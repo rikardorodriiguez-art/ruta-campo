@@ -23,7 +23,7 @@
 
         .floating-menu {
             position: fixed; bottom: 80px; left: 20px; z-index: 99999;
-            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 270px; display: none; font-family: Arial; font-size: 12px;
+            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; display: none; font-family: Arial; font-size: 12px;
         }
         
         .floating-filter-panel {
@@ -54,14 +54,14 @@
             <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar texto / Reporte</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar múltiples reportes</button>
         <button class="main-opt" onclick="abrirSeccion('foto')">2. 📷 Pegar foto y placa</button>
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Pega el texto y se verá de inmediato:</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí el texto del reporte..." style="height: 80px;"></textarea>
-            <button class="action" onclick="procesarTextoLibre()">Analizar y Agregar</button>
+            <b style="color:#2c3e50; font-size:10px;">Pega varios mensajes (omite duplicadas, máx 3 ubicaciones c/u):</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes de WhatsApp..." style="height: 90px;"></textarea>
+            <button class="action" onclick="procesarMultiplesReportes()">Analizar y Agregar Lote</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -152,41 +152,106 @@
             alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        // PROCESAR TEXTO LIBRE Y VERIFICAR EN EL MAPA AL INSTANTE
-        function procesarTextoLibre() {
+        // Lista global de placas ya registradas para omitir duplicados
+        var placasRegistradas = {};
+
+        // PROCESAR MÚLTIPLES REPORTES DE WHATSAPP SIMULTÁNEAMENTE
+        function procesarMultiplesReportes() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Por favor pega el texto primero."); return; }
+            if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
 
-            // Extraer placa o asignar genérica si no se encuentra
-            var matchPlaca = texto.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/i);
-            var placa = matchPlaca ? matchPlaca[0].toUpperCase() : "PLACA" + Math.floor(Math.random()*100);
+            // Dividir por bloques de placa (UBICAR / UBICAR A)
+            var bloques = texto.split(/UBICAR\s*A?/i);
+            var agregadosCount = 0;
+            var omitidosCount = 0;
 
-            // Coordenadas simuladas cercanas a Medellín para visualizar de inmediato
-            var lat = 6.2442 + (Math.random() - 0.5) * 0.08;
-            var lng = -75.5812 + (Math.random() - 0.5) * 0.08;
+            bloques.forEach(function(bloque) {
+                if (bloque.trim().length < 5) return;
 
-            var nuevoPunto = {
-                placa: placa,
-                marca: "VEHÍCULO",
-                linea: "GENERAL",
-                modelo: "2026",
-                color: "N/A",
-                telefonos: "Ver reporte",
-                lat: lat,
-                lng: lng,
-                dir: "Ubicación agregada por texto",
-                fecha: hoyStr
-            };
+                // Extraer placa (3 letras seguidas de números o letras)
+                var matchPlaca = bloque.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/i);
+                if (!matchPlaca) return;
+                var placa = matchPlaca[0].toUpperCase();
 
-            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
-            alert("¡Placa " + placa + " agregada y visible de inmediato en el mapa!");
-            document.getElementById('txtWhatsapp').value = '';
-            cerrarSecciones();
+                // Si ya existe la placa, se omite
+                if (placasRegistradas[placa]) {
+                    omitidosCount++;
+                    return;
+                }
+
+                // Extraer marca y línea simulada o del texto
+                var marcaMatch = bloque.match(/Marca:\s*([A-Z]+)/i);
+                var lineaMatch = bloque.match(/Línea:\s*([A-Z0-9\-]+)/i);
+                var modeloMatch = bloque.match(/Modelo:\s*([0-9]{4})/i);
+                var colorMatch = bloque.match(/Color:\s*([A-Z\s]+)/i);
+
+                var marca = marcaMatch ? marcaMatch[1].trim() : "VEHÍCULO";
+                var linea = lineaMatch ? lineaMatch[1].trim() : "GENERAL";
+                var modelo = modeloMatch ? modeloMatch[1].trim() : "2026";
+                var color = colorMatch ? colorMatch[1].trim().split('
+')[0] : "N/A";
+
+                // Extraer teléfonos
+                var telsMatch = bloque.match(/3[0-9]{9}/g);
+                var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
+
+                // Extraer líneas de ubicación
+                var lineasUbicacion = [];
+                var lineasTexto = bloque.split('
+');
+                lineasTexto.forEach(function(l) {
+                    if (l.includes('#') || l.includes('CL ') || l.includes('KR ') || l.includes('TV ') || l.includes('AV ')) {
+                        lineasUbicacion.push(l.trim());
+                    }
+                });
+
+                // Limitar a máximo 3 ubicaciones por placa
+                var ubicacionesAProcesar = lineasUbicacion.slice(0, 3);
+                if (ubicacionesAProcesar.length === 0) {
+                    ubicacionesAProcesar = ["Dirección reportada en Medellín"];
+                }
+
+                placasRegistradas[placa] = true;
+
+                ubicacionesAProcesar.forEach(function(dir, index) {
+                    // Generar coordenadas ligeramente dispersas en el Valle de Aburrá
+                    var lat = 6.2442 + (Math.random() - 0.5) * 0.12 + (index * 0.01);
+                    var lng = -75.5812 + (Math.random() - 0.5) * 0.12 + (index * 0.01);
+
+                    var nuevoPunto = {
+                        placa: placa,
+                        marca: marca,
+                        linea: linea,
+                        modelo: modelo,
+                        color: color,
+                        telefonos: telefonos,
+                        lat: lat,
+                        lng: lng,
+                        dir: dir,
+                        fecha: hoyStr
+                    };
+
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
+                });
+
+                agregadosCount++;
+            });
+
+            if (agregadosCount > 0) {
+                alert("🚀 ¡Lote procesado con éxito! Placas nuevas agregadas: " + agregadosCount + (omitidosCount > 0 ? " (Omitidas por estar duplicadas: " + omitidosCount + ")" : ""));
+                document.getElementById('txtWhatsapp').value = '';
+                cerrarSecciones();
+            } else {
+                alert("⚠️ No se detectaron placas válidas en el texto. Revisa el formato.");
+            }
         }
 
         function procesarFoto() {
             var placa = document.getElementById('txtPlacaFoto').value;
             if(!placa) { alert("Por favor escribe la placa."); return; }
+            if(placasRegistradas[placa.toUpperCase()]) { alert("Esta placa ya está registrada."); return; }
+
+            placasRegistradas[placa.toUpperCase()] = true;
             var lat = 6.2442 + (Math.random() - 0.5) * 0.05;
             var lng = -75.5812 + (Math.random() - 0.5) * 0.05;
             
@@ -199,7 +264,7 @@
         }
 
         function procesarManual() {
-            var placa = document.getElementById('manPlaca').value;
+            var placa = document.getElementById('manPlaca').value.toUpperCase();
             var marca = document.getElementById('manMarca').value || "GENÉRICO";
             var linea = document.getElementById('manLinea').value || "LÍNEA";
             var modelo = document.getElementById('manModelo').value || "2026";
@@ -207,12 +272,14 @@
             var dir = document.getElementById('manDir').value;
             
             if(!placa || !dir) { alert("Ingresa al menos la placa y la dirección."); return; }
-            
+            if(placasRegistradas[placa]) { alert("Esta placa ya está registrada."); return; }
+
+            placasRegistradas[placa] = true;
             var lat = 6.2442 + (Math.random() - 0.5) * 0.06;
             var lng = -75.5812 + (Math.random() - 0.5) * 0.06;
 
             agregarMarcadorAlMapa({
-                placa: placa.toUpperCase(), marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: lat, lng: lng, dir: dir, fecha: hoyStr
+                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: lat, lng: lng, dir: dir, fecha: hoyStr
             }, puntosData.length + 1);
 
             alert("¡Punto manual agregado con éxito!");
@@ -295,15 +362,11 @@
             puntosData.push({ marker: marker, pico: pico, esHoy: esHoy });
         }
 
-        // Puntos iniciales de ejemplo
-        var puntosIniciales = [
-            {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'},
-            {placa: "PMR341", marca: "RENAULT", linea: "ARKANA", modelo: "2025", color: "GRIS", telefonos: "3017427040", lat: 6.2170, lng: -75.5800, dir: "CL 35 # 76 - 56, Medellin", fecha: "2026-10-01"}
-        ];
-
-        puntosIniciales.forEach(function(p, i) {
-            agregarMarcadorAlMapa(p, i + 1);
-        });
+        // Punto base inicial
+        placasRegistradas["STC789"] = true;
+        agregarMarcadorAlMapa({
+            placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'
+        }, 1);
     </script>
 </body>
 </html>
