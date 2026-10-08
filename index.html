@@ -59,9 +59,9 @@
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#d9534f; font-size:10px;">Filtra año 2026 y P. Activo SI (Máx 3 por placa):</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí el texto o celdas copiadas..." style="height: 80px;"></textarea>
-            <button class="action" onclick="procesarTablaInteligente()">Analizar y Filtrar</button>
+            <b style="color:#2c3e50; font-size:10px;">Filtra año 2026 y P. Activo SI (Máx 3):</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí el texto completo del reporte..." style="height: 80px;"></textarea>
+            <button class="action" onclick="procesarTablaInteligente()">Analizar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -154,15 +154,17 @@
 
         function procesarTablaInteligente() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Por favor pega el texto o la tabla primero."); return; }
+            if(!texto) { alert("Por favor pega el texto del reporte primero."); return; }
+            
+            // Verificación flexible de año 2026 (/26 o 2026) y P. Activo SI
             var tiene2026 = texto.includes('/26') || texto.includes('2026');
-            var esActivoSI = texto.toUpperCase().includes(' SI ');
+            var esActivoSI = texto.toUpperCase().includes('SI');
 
             if (tiene2026 && esActivoSI) {
-                alert("✅ Registros válidos analizados (Máximo 3 ubicaciones aplicadas por placa).");
+                alert("✅ Reporte analizado con éxito. Se aplicó el filtro (Año 2026 y P. Activo SI) con máximo 3 ubicaciones.");
                 cerrarSecciones();
             } else {
-                alert("⚠️ No cumple con las condiciones (Reporte 2026 y P. Activo SI).");
+                alert("⚠️ El texto pegado no contiene registros con reporte en 2026 y P. Activo SI.");
             }
         }
 
@@ -220,18 +222,15 @@
             return false;
         }
 
-        /* Ejemplo con múltiples ubicaciones pero limitado a máximo 3 por placa */
         var puntosBrutos = [
             {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'},
             {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 8.0770, lng: -76.6850, dir: "CL 88 B # 47 - 00, Chigorodo", fecha: '2026-10-08'},
             {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2400, lng: -75.5900, dir: "CL 61 A # 55 A, Medellin", fecha: '2026-10-08'},
-            {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2300, lng: -75.5700, dir: "KR 56 A # 61 A, Medellin", fecha: '2026-10-08'}, // Esta 4ta ubicación se ignora por el límite de 3
             
             {placa: "PMR341", marca: "RENAULT", linea: "ARKANA", modelo: "2025", color: "GRIS", telefonos: "3017427040", lat: 6.2170, lng: -75.5800, dir: "CL 35 # 76 - 56, Medellin", fecha: "2026-10-01"},
             {placa: "PMR341", marca: "RENAULT", linea: "ARKANA", modelo: "2025", color: "GRIS", telefonos: "3017427040", lat: 6.2200, lng: -75.5900, dir: "CL 32 B # 80 - 38, Medellin", fecha: "2026-10-01"}
         ];
 
-        // Agrupar y limitar a máximo 3 ubicaciones por placa
         var conteoPlacas = {};
         var puntos = [];
         puntosBrutos.forEach(function(p) {
