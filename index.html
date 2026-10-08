@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_cbef94e6b5a38bc314bf370ffa3ba259 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_cbef94e6b5a38bc314bf370ffa3ba259" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_cbef94e6b5a38bc314bf370ffa3ba259 = L.map(
+                "map_cbef94e6b5a38bc314bf370ffa3ba259",
+                {
+                    center: [6.2442, -75.5812],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 11,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_2d0fd9848aedc94df8047509e9cf5a3a = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_2d0fd9848aedc94df8047509e9cf5a3a.addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+            var circle_marker_1c96a27392ab76b3736b53f6d40b4fcb = L.circleMarker(
+                [6.3474904, -75.5117097],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "darkred", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_e83afd4ffde8bffdd4d6df6ac518a665 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_72d0fa9d7a9b8046196bcea2feb01375 = $(`<div id="html_72d0fa9d7a9b8046196bcea2feb01375" style="width: 100.0%; height: 100.0%;"><b>Punto #1</b><br><b>Placa:</b> LRY223<br><b>Estado:</b> ⚠️ PICO Y PLACA<br><b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.3474904,-75.5117097' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_e83afd4ffde8bffdd4d6df6ac518a665.setContent(html_72d0fa9d7a9b8046196bcea2feb01375);
+            
+        
+
+        circle_marker_1c96a27392ab76b3736b53f6d40b4fcb.bindPopup(popup_e83afd4ffde8bffdd4d6df6ac518a665)
+        ;
+
+        
+    
+    
+            circle_marker_1c96a27392ab76b3736b53f6d40b4fcb.bindTooltip(
+                `<div>
+                     1. [LRY223] Calle 54 # 56-32, Copacabana, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_469efb4350c27b43879d44572905d145 = L.circleMarker(
+                [6.3424086, -75.5189306],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_2c1fcc6df3767ff7278da6d8c8402a1d = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_b97cd311034831963e571e25b61c0529 = $(`<div id="html_b97cd311034831963e571e25b61c0529" style="width: 100.0%; height: 100.0%;"><b>Punto #2</b><br><b>Placa:</b> LKR104<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 50 # 58-49, Copacabana, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.3424086,-75.5189306' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_2c1fcc6df3767ff7278da6d8c8402a1d.setContent(html_b97cd311034831963e571e25b61c0529);
+            
+        
+
+        circle_marker_469efb4350c27b43879d44572905d145.bindPopup(popup_2c1fcc6df3767ff7278da6d8c8402a1d)
+        ;
+
+        
+    
+    
+            circle_marker_469efb4350c27b43879d44572905d145.bindTooltip(
+                `<div>
+                     2. [LKR104] Calle 50 # 58-49, Copacabana, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_3fc3f84f11ab0ffa52569adcfbca0084 = L.circleMarker(
+                [6.2233773, -75.6065988],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_2d715d069d099de4ea1b723ffee3bcf6 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_4591b299e2c3889554b5acafb8cfd747 = $(`<div id="html_4591b299e2c3889554b5acafb8cfd747" style="width: 100.0%; height: 100.0%;"><b>Punto #3</b><br><b>Placa:</b> EPP329<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Carrera 83D # 95-25, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2233773,-75.6065988' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_2d715d069d099de4ea1b723ffee3bcf6.setContent(html_4591b299e2c3889554b5acafb8cfd747);
+            
+        
+
+        circle_marker_3fc3f84f11ab0ffa52569adcfbca0084.bindPopup(popup_2d715d069d099de4ea1b723ffee3bcf6)
+        ;
+
+        
+    
+    
+            circle_marker_3fc3f84f11ab0ffa52569adcfbca0084.bindTooltip(
+                `<div>
+                     3. [EPP329] Carrera 83D # 95-25, Medellín, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_724d4e1b2f0780635c8cd29882733109 = L.circleMarker(
+                [6.2559031, -75.5705589],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_8b13c855698338f9dcae54fab512616c = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_e735053236f16ab2fa147ffa26659efc = $(`<div id="html_e735053236f16ab2fa147ffa26659efc" style="width: 100.0%; height: 100.0%;"><b>Punto #4</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 56 # 51D-7, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2559031,-75.5705589' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_8b13c855698338f9dcae54fab512616c.setContent(html_e735053236f16ab2fa147ffa26659efc);
+            
+        
+
+        circle_marker_724d4e1b2f0780635c8cd29882733109.bindPopup(popup_8b13c855698338f9dcae54fab512616c)
+        ;
+
+        
+    
+    
+            circle_marker_724d4e1b2f0780635c8cd29882733109.bindTooltip(
+                `<div>
+                     4. [KRV374] Calle 56 # 51D-7, Medellín, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f83999970be4fe1daadd562e19a3ea8a = L.circleMarker(
+                [6.2457362, -75.5820887],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "darkred", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_0eb5a7503422e26ebf9d2318fcf5ddd8 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_3fc44433fa74901aa9284b03222ef729 = $(`<div id="html_3fc44433fa74901aa9284b03222ef729" style="width: 100.0%; height: 100.0%;"><b>Punto #5</b><br><b>Placa:</b> LRY223<br><b>Estado:</b> ⚠️ PICO Y PLACA<br><b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2457362,-75.5820887' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_0eb5a7503422e26ebf9d2318fcf5ddd8.setContent(html_3fc44433fa74901aa9284b03222ef729);
+            
+        
+
+        circle_marker_f83999970be4fe1daadd562e19a3ea8a.bindPopup(popup_0eb5a7503422e26ebf9d2318fcf5ddd8)
+        ;
+
+        
+    
+    
+            circle_marker_f83999970be4fe1daadd562e19a3ea8a.bindTooltip(
+                `<div>
+                     5. [LRY223] Calle 42B # 52-106, Medellín, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c148218d97dd0d86fa4c4dcaa10c7230 = L.circleMarker(
+                [6.2563027, -75.5942873],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_5d0304caffbe960931ec261f7529b861 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_4080e3e2cda28b3272c7a18c814d0c2e = $(`<div id="html_4080e3e2cda28b3272c7a18c814d0c2e" style="width: 100.0%; height: 100.0%;"><b>Punto #6</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 47D # 70-113, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2563027,-75.5942873' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_5d0304caffbe960931ec261f7529b861.setContent(html_4080e3e2cda28b3272c7a18c814d0c2e);
+            
+        
+
+        circle_marker_c148218d97dd0d86fa4c4dcaa10c7230.bindPopup(popup_5d0304caffbe960931ec261f7529b861)
+        ;
+
+        
+    
+    
+            circle_marker_c148218d97dd0d86fa4c4dcaa10c7230.bindTooltip(
+                `<div>
+                     6. [KRV374] Calle 47D # 70-113, Medellín, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_bf2304136abef5214cd9805b4f173001 = L.circleMarker(
+                [6.1822079, -75.6042365],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_e1d960017675f579cc6803318c690ed6 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_b7b19adfe8dc036d0b3ac88e25d0699f = $(`<div id="html_b7b19adfe8dc036d0b3ac88e25d0699f" style="width: 100.0%; height: 100.0%;"><b>Punto #8</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 66 # 48-111, Itagüí, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.1822079,-75.6042365' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_e1d960017675f579cc6803318c690ed6.setContent(html_b7b19adfe8dc036d0b3ac88e25d0699f);
+            
+        
+
+        circle_marker_bf2304136abef5214cd9805b4f173001.bindPopup(popup_e1d960017675f579cc6803318c690ed6)
+        ;
+
+        
+    
+    
+            circle_marker_bf2304136abef5214cd9805b4f173001.bindTooltip(
+                `<div>
+                     8. [KRV374] Calle 66 # 48-111, Itagüí, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_495dd34bd6d22b66e4d441be9010a38d = L.circleMarker(
+                [6.1898072, -75.5858112],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.85, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 1}
+            ).addTo(map_cbef94e6b5a38bc314bf370ffa3ba259);
+        
+    
+        var popup_22008b74dce54191b75bb0eee07a52ab = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_82d71ad187c861d9e50be00d559d6934 = $(`<div id="html_82d71ad187c861d9e50be00d559d6934" style="width: 100.0%; height: 100.0%;"><b>Punto #9</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Carrera 44 # 63-11, Itagüí, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.1898072,-75.5858112' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
+                popup_22008b74dce54191b75bb0eee07a52ab.setContent(html_82d71ad187c861d9e50be00d559d6934);
+            
+        
+
+        circle_marker_495dd34bd6d22b66e4d441be9010a38d.bindPopup(popup_22008b74dce54191b75bb0eee07a52ab)
+        ;
+
+        
+    
+    
+            circle_marker_495dd34bd6d22b66e4d441be9010a38d.bindTooltip(
+                `<div>
+                     9. [KRV374] Carrera 44 # 63-11, Itagüí, Antioquia
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+</script>
+</html>
