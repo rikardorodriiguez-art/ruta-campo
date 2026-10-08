@@ -9,24 +9,21 @@
     <style>
         html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; }
         
-        /* Botón inferior izquierdo (Agregar) */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
             background-color: #2c3e50; color: white; border: none; padding: 12px 18px;
             border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
         }
         
-        /* Botón superior derecho (Filtros) */
         .floating-btn-filter {
             position: fixed; top: 20px; right: 20px; z-index: 99999;
             background-color: #2c3e50; color: white; border: none; padding: 10px 14px;
             border-radius: 50px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
         }
 
-        /* Paneles desplegables flotantes */
         .floating-menu {
             position: fixed; bottom: 80px; left: 20px; z-index: 99999;
-            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 250px; display: none; font-family: Arial; font-size: 12px;
+            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 270px; display: none; font-family: Arial; font-size: 12px;
         }
         
         .floating-filter-panel {
@@ -44,28 +41,27 @@
         
         .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 14px; }
-        
         .filter-option { display: block; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
-    <!-- Botón y Menú Inferior Izquierdo (Agregar) -->
+    <!-- Menú Agregar -->
     <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
     <div id="menuOpciones" class="floating-menu">
         <div class="header-menu">
-            <b style="color: #2c3e50;">Seleccione método:</b>
+            <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar mensaje WhatsApp</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar tabla / WhatsApp</button>
         <button class="main-opt" onclick="abrirSeccion('foto')">2. 📷 Pegar foto y placa</button>
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b>Pegar mensaje de WhatsApp:</b>
-            <textarea id="txtWhatsapp" placeholder="Pega el texto aquí..." style="height: 60px;"></textarea>
-            <button class="action" onclick="procesarWhatsApp()">Analizar Mensaje</button>
+            <b style="color:#d9534f; font-size:10px;">Filtra automáticamente año 2026 y P. Activo SI:</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí el texto o celdas copiadas de la tabla..." style="height: 80px;"></textarea>
+            <button class="action" onclick="procesarTablaInteligente()">Analizar y Filtrar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -87,7 +83,7 @@
         </div>
     </div>
 
-    <!-- Botón y Panel Superior Derecho (Filtros minimizados) -->
+    <!-- Menú Filtros -->
     <button class="floating-btn-filter" onclick="toggleMenuFilter()">🗺️ Filtros</button>
     <div id="panelFiltros" class="floating-filter-panel">
         <div class="header-menu">
@@ -119,7 +115,7 @@
         function toggleMenuAdd() {
             var m = document.getElementById('menuOpciones');
             var f = document.getElementById('panelFiltros');
-            f.style.display = 'none'; // Cerrar filtros si se abre agregar
+            f.style.display = 'none';
             m.style.display = (m.style.display === 'block') ? 'none' : 'block';
             if (m.style.display === 'none') cerrarSecciones();
         }
@@ -127,7 +123,7 @@
         function toggleMenuFilter() {
             var f = document.getElementById('panelFiltros');
             var m = document.getElementById('menuOpciones');
-            m.style.display = 'none'; // Cerrar agregar si se abre filtros
+            m.style.display = 'none';
             f.style.display = (f.style.display === 'block') ? 'none' : 'block';
         }
 
@@ -154,11 +150,30 @@
             alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        function procesarWhatsApp() {
-            var t = document.getElementById('txtWhatsapp').value;
-            if(!t) { alert("Pega un mensaje primero."); return; }
-            alert("Mensaje de WhatsApp capturado con éxito.");
-            cerrarSecciones();
+        // FUNCIÓN INTELIGENTE PARA VALIDAR REPORTE 2026 Y P.ACTIVO SI
+        function procesarTablaInteligente() {
+            var texto = document.getElementById('txtWhatsapp').value;
+            if(!texto) { alert("Por favor pega el texto o la tabla primero."); return; }
+
+            var lineas = texto.split('\n');
+            var agregados = 0;
+
+            lineas.forEach(function(linea) {
+                // Buscamos si la línea contiene año 26 (ej: /26 o /05/26) y SI en activo
+                var tiene2026 = linea.includes('/26') || linea.includes('2026');
+                var esActivoSI = linea.toUpperCase().includes(' SI ');
+
+                if (tiene2026 && esActivoSI) {
+                    agregados++;
+                }
+            });
+
+            if (agregados > 0) {
+                alert("✅ Se filtraron y detectaron " + agregados + " registros válidos (Año 2026 y P. Activo: SI).");
+                cerrarSecciones();
+            } else {
+                alert("⚠️ No se encontraron registros que cumplan con ambas reglas (Último reporte 2026 y P. Activo SI). Revisa el texto copiado.");
+            }
         }
 
         function procesarFoto() {
@@ -176,7 +191,6 @@
             cerrarSecciones();
         }
 
-        // Grupos de capas para los filtros personalizados
         var layerTodas = L.layerGroup().addTo(map);
         var layerPico = L.layerGroup().addTo(map);
         var layerHoy = L.layerGroup().addTo(map);
@@ -217,9 +231,8 @@
         }
 
         var puntos = [
-            {placa: "STC789", modelo: "2023", color: "BLANCO", telefonos: "3207474601, 3104736714", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'},
-            {placa: "PMR341", modelo: "2025", color: "GRIS", telefonos: "3017427040, 3043410540", lat: 6.2170, lng: -75.5800, dir: "CL 35 # 76 - 56, Medellin", fecha: "2026-10-01"},
-            {placa: "LRY223", modelo: "2022", color: "ROJO", telefonos: "3111234567, 3129876543", lat: 6.3400, lng: -75.5100, dir: "Calle 54 # 56-32, Copacabana", fecha: '2026-10-08'}
+            {placa: "STC789", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'},
+            {placa: "PMR341", modelo: "2025", color: "GRIS", telefonos: "3017427040", lat: 6.2170, lng: -75.5800, dir: "CL 35 # 76 - 56, Medellin", fecha: "2026-10-01"}
         ];
 
         var puntosData = [];
