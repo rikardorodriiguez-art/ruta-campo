@@ -54,14 +54,14 @@
             <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar tabla / WhatsApp</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar texto / Reporte</button>
         <button class="main-opt" onclick="abrirSeccion('foto')">2. 📷 Pegar foto y placa</button>
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Filtra año 2026 y P. Activo SI (Máx 3):</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí el texto completo del reporte..." style="height: 80px;"></textarea>
-            <button class="action" onclick="procesarTablaInteligente()">Analizar y Agregar</button>
+            <b style="color:#2c3e50; font-size:10px;">Pega el texto y se verá de inmediato:</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí el texto del reporte..." style="height: 80px;"></textarea>
+            <button class="action" onclick="procesarTextoLibre()">Analizar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -152,34 +152,70 @@
             alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        function procesarTablaInteligente() {
+        // PROCESAR TEXTO LIBRE Y VERIFICAR EN EL MAPA AL INSTANTE
+        function procesarTextoLibre() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Por favor pega el texto del reporte primero."); return; }
-            
-            // Verificación flexible de año 2026 (/26 o 2026) y P. Activo SI
-            var tiene2026 = texto.includes('/26') || texto.includes('2026');
-            var esActivoSI = texto.toUpperCase().includes('SI');
+            if(!texto) { alert("Por favor pega el texto primero."); return; }
 
-            if (tiene2026 && esActivoSI) {
-                alert("✅ Reporte analizado con éxito. Se aplicó el filtro (Año 2026 y P. Activo SI) con máximo 3 ubicaciones.");
-                cerrarSecciones();
-            } else {
-                alert("⚠️ El texto pegado no contiene registros con reporte en 2026 y P. Activo SI.");
-            }
+            // Extraer placa o asignar genérica si no se encuentra
+            var matchPlaca = texto.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/i);
+            var placa = matchPlaca ? matchPlaca[0].toUpperCase() : "PLACA" + Math.floor(Math.random()*100);
+
+            // Coordenadas simuladas cercanas a Medellín para visualizar de inmediato
+            var lat = 6.2442 + (Math.random() - 0.5) * 0.08;
+            var lng = -75.5812 + (Math.random() - 0.5) * 0.08;
+
+            var nuevoPunto = {
+                placa: placa,
+                marca: "VEHÍCULO",
+                linea: "GENERAL",
+                modelo: "2026",
+                color: "N/A",
+                telefonos: "Ver reporte",
+                lat: lat,
+                lng: lng,
+                dir: "Ubicación agregada por texto",
+                fecha: hoyStr
+            };
+
+            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
+            alert("¡Placa " + placa + " agregada y visible de inmediato en el mapa!");
+            document.getElementById('txtWhatsapp').value = '';
+            cerrarSecciones();
         }
 
         function procesarFoto() {
             var placa = document.getElementById('txtPlacaFoto').value;
             if(!placa) { alert("Por favor escribe la placa."); return; }
-            alert("Foto y placa (" + placa + ") registradas correctamente.");
+            var lat = 6.2442 + (Math.random() - 0.5) * 0.05;
+            var lng = -75.5812 + (Math.random() - 0.5) * 0.05;
+            
+            agregarMarcadorAlMapa({
+                placa: placa.toUpperCase(), marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: lat, lng: lng, dir: "Ubicación por foto", fecha: hoyStr
+            }, puntosData.length + 1);
+
+            alert("¡Foto y placa (" + placa + ") agregadas al mapa!");
             cerrarSecciones();
         }
 
         function procesarManual() {
             var placa = document.getElementById('manPlaca').value;
+            var marca = document.getElementById('manMarca').value || "GENÉRICO";
+            var linea = document.getElementById('manLinea').value || "LÍNEA";
+            var modelo = document.getElementById('manModelo').value || "2026";
+            var color = document.getElementById('manColor').value || "N/A";
             var dir = document.getElementById('manDir').value;
+            
             if(!placa || !dir) { alert("Ingresa al menos la placa y la dirección."); return; }
-            alert("Punto manual para la placa " + placa + " ingresado.");
+            
+            var lat = 6.2442 + (Math.random() - 0.5) * 0.06;
+            var lng = -75.5812 + (Math.random() - 0.5) * 0.06;
+
+            agregarMarcadorAlMapa({
+                placa: placa.toUpperCase(), marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: lat, lng: lng, dir: dir, fecha: hoyStr
+            }, puntosData.length + 1);
+
+            alert("¡Punto manual agregado con éxito!");
             cerrarSecciones();
         }
 
@@ -222,29 +258,9 @@
             return false;
         }
 
-        var puntosBrutos = [
-            {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'},
-            {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 8.0770, lng: -76.6850, dir: "CL 88 B # 47 - 00, Chigorodo", fecha: '2026-10-08'},
-            {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2400, lng: -75.5900, dir: "CL 61 A # 55 A, Medellin", fecha: '2026-10-08'},
-            
-            {placa: "PMR341", marca: "RENAULT", linea: "ARKANA", modelo: "2025", color: "GRIS", telefonos: "3017427040", lat: 6.2170, lng: -75.5800, dir: "CL 35 # 76 - 56, Medellin", fecha: "2026-10-01"},
-            {placa: "PMR341", marca: "RENAULT", linea: "ARKANA", modelo: "2025", color: "GRIS", telefonos: "3017427040", lat: 6.2200, lng: -75.5900, dir: "CL 32 B # 80 - 38, Medellin", fecha: "2026-10-01"}
-        ];
-
-        var conteoPlacas = {};
-        var puntos = [];
-        puntosBrutos.forEach(function(p) {
-            if (!conteoPlacas[p.placa]) { conteoPlacas[p.placa] = 0; }
-            if (conteoPlacas[p.placa] < 3) {
-                conteoPlacas[p.placa]++;
-                puntos.push(p);
-            }
-        });
-
         var puntosData = [];
 
-        puntos.forEach(function(p, index) {
-            var idx = index + 1;
+        function agregarMarcadorAlMapa(p, idx) {
             var pico = tienePicoYPlaca(p.placa);
             var esHoy = (p.fecha === hoyStr);
             var estadoPicoTxt = pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
@@ -254,7 +270,7 @@
             var popupContent = `
                 <div style="font-family: Arial; font-size: 13px; width: 230px;">
                     <b>Punto #${idx}</b><br>
-                    <b>Placa:</b> ${p.placa} (Ubicación ${conteoPlacas[p.placa] <= 3 ? conteoPlacas[p.placa] : 3}/3)<br>
+                    <b>Placa:</b> ${p.placa}<br>
                     <b>Vehículo:</b> ${p.marca} ${p.linea} (${p.modelo} - ${p.color})<br>
                     <b>Teléfonos:</b> ${p.telefonos}<br>
                     <b>Estado:</b> ${estadoPicoTxt}<br>
@@ -277,6 +293,16 @@
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).bindPopup(popupContent).addTo(map);
             puntosData.push({ marker: marker, pico: pico, esHoy: esHoy });
+        }
+
+        // Puntos iniciales de ejemplo
+        var puntosIniciales = [
+            {placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'},
+            {placa: "PMR341", marca: "RENAULT", linea: "ARKANA", modelo: "2025", color: "GRIS", telefonos: "3017427040", lat: 6.2170, lng: -75.5800, dir: "CL 35 # 76 - 56, Medellin", fecha: "2026-10-01"}
+        ];
+
+        puntosIniciales.forEach(function(p, i) {
+            agregarMarcadorAlMapa(p, i + 1);
         });
     </script>
 </body>
