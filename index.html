@@ -17,7 +17,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_c317ffcc7a5e15f5614c8fd45abf9acb {
+                #map_008cb361408c151edac34960a0b60fa4 {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -56,23 +56,42 @@
 <body>
     
     
+<div style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); max-width: 300px; font-family: Arial; font-size: 12px;">
+    <b>📥 Agregar Ubicación por Mensaje</b><br>
+    <textarea id="textoMensaje" placeholder="Pega aquí el mensaje de WhatsApp..." style="width: 100%; height: 60px; margin-top: 5px; font-size: 11px;"></textarea>
+    <button onclick="procesarMensaje()" style="background-color: #ff9800; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; margin-top: 5px; font-weight: bold; cursor: pointer;">🔍 Analizar y Agregar</button>
+</div>
+
 <script>
-function marcarVisitada(placa) {
+function marcarVisitada(placa, idx) {
     var key = 'visitas_' + placa;
     var actual = parseInt(localStorage.getItem(key) || 0) + 1;
     localStorage.setItem(key, actual);
-    alert("¡Placa " + placa + " visitada! Total de visitas registradas: " + actual);
+    var span = document.getElementById('contador-' + idx);
+    if (span) {
+        span.innerText = actual;
+    }
+    alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
+}
+
+function procesarMensaje() {
+    var texto = document.getElementById('textoMensaje').value;
+    if(!texto) {
+        alert("Por favor pega un mensaje primero.");
+        return;
+    }
+    alert("Mensaje capturado. Para guardar nuevos puntos de forma permanente en la nube, actualiza el script en Pydroid 3 con la nueva placa.");
 }
 </script>
     
-            <div class="folium-map" id="map_c317ffcc7a5e15f5614c8fd45abf9acb" ></div>
+            <div class="folium-map" id="map_008cb361408c151edac34960a0b60fa4" ></div>
         
 </body>
 <script>
     
     
-            var map_c317ffcc7a5e15f5614c8fd45abf9acb = L.map(
-                "map_c317ffcc7a5e15f5614c8fd45abf9acb",
+            var map_008cb361408c151edac34960a0b60fa4 = L.map(
+                "map_008cb361408c151edac34960a0b60fa4",
                 {
                     center: [6.2442, -75.5812],
                     crs: L.CRS.EPSG3857,
@@ -89,7 +108,7 @@ function marcarVisitada(placa) {
 
         
     
-            var tile_layer_fdd803d36d1f0b04713b830a21ea0a19 = L.tileLayer(
+            var tile_layer_1fc7f61e5da2e8e974229815e217315c = L.tileLayer(
                 "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
   "minZoom": 0,
@@ -106,558 +125,294 @@ function marcarVisitada(placa) {
             );
         
     
-            tile_layer_fdd803d36d1f0b04713b830a21ea0a19.addTo(map_c317ffcc7a5e15f5614c8fd45abf9acb);
+            tile_layer_1fc7f61e5da2e8e974229815e217315c.addTo(map_008cb361408c151edac34960a0b60fa4);
         
     
-            var locate_control_d0b5ee24e36d5a9249e1d3667ee0226e = L.control.locate(
+            var locate_control_9e54b8759a71208aba33160e2b6cae94 = L.control.locate(
                 {"locate_options": {"enableHighAccuracy": true, "maxZoom": 16}, "position": "topleft", "strings": {"popup": "\u00a1Est\u00e1s aqu\u00ed!", "title": "Mi ubicaci\u00f3n actual"}}
-            ).addTo(map_c317ffcc7a5e15f5614c8fd45abf9acb);
+            ).addTo(map_008cb361408c151edac34960a0b60fa4);
             
-                locate_control_d0b5ee24e36d5a9249e1d3667ee0226e.start();
+                locate_control_9e54b8759a71208aba33160e2b6cae94.start();
             
         
     
-            var feature_group_5835aa88e8aee1746705450166f6bdb9 = L.featureGroup(
+            var feature_group_daaf710cbb95936f50cfb1e9a76227b4 = L.featureGroup(
                 {
 }
             );
         
     
-            var marker_e242068e99cde3db14eabb2a535c197f = L.marker(
+            var marker_30a782aa27fadf0a95411b680c587869 = L.marker(
+                [6.2697324, -75.6025597],
+                {
+}
+            ).addTo(feature_group_daaf710cbb95936f50cfb1e9a76227b4);
+        
+    
+            var div_icon_46bfe2f0d9c8d979a8a49f3984644f5f = L.divIcon({
+  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#1: STC789 (2023)\u003c/div\u003e\n            \u003c/div\u003e\n            ",
+  "className": "empty",
+});
+        
+    
+        var popup_7f3e87dfef84f4bcee6da1d7f309e177 = L.popup({
+  "maxWidth": 260,
+});
+
+        
+            
+                var html_5ce1117fe73fb83afef8bccc70121e01 = $(`<div id="html_5ce1117fe73fb83afef8bccc70121e01" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 230px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> STC789<br>                 <b>Vehículo:</b> 2023 - BLANCO<br>                 <b>Teléfonos:</b> 3207474601, 3104736714<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Dirección:</b> CL 65 # 55 - 30, Medellin, Antioquia<br>                 <b>Veces visitada:</b> <span id="contador-1" style="color: #d9534f; font-weight: bold; font-size: 14px;">0</span><br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2697324,-75.6025597" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('STC789', '1')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             <script>                 (function() {                     var v = localStorage.getItem('visitas_STC789') || 0;                     var el = document.getElementById('contador-1');                     if(el) el.innerText = v;                 })();             </script>             </div>`)[0];
+                popup_7f3e87dfef84f4bcee6da1d7f309e177.setContent(html_5ce1117fe73fb83afef8bccc70121e01);
+            
+        
+
+        marker_30a782aa27fadf0a95411b680c587869.bindPopup(popup_7f3e87dfef84f4bcee6da1d7f309e177)
+        ;
+
+        
+    
+    
+                marker_30a782aa27fadf0a95411b680c587869.setIcon(div_icon_46bfe2f0d9c8d979a8a49f3984644f5f);
+            
+    
+            var marker_574e109b18b12f6a19889e9e18eb5df3 = L.marker(
+                [6.2697324, -75.6025597],
+                {
+}
+            ).addTo(feature_group_daaf710cbb95936f50cfb1e9a76227b4);
+        
+    
+            var div_icon_a14c45a9418a9e1f1ce77f8e5195251f = L.divIcon({
+  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#2: PMR341 (2025)\u003c/div\u003e\n            \u003c/div\u003e\n            ",
+  "className": "empty",
+});
+        
+    
+        var popup_b3e69fb3f133aa898d96b663d4b31ef7 = L.popup({
+  "maxWidth": 260,
+});
+
+        
+            
+                var html_8aa9ce9f863c04e6f6a4a04480852afb = $(`<div id="html_8aa9ce9f863c04e6f6a4a04480852afb" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 230px;">                 <b>Punto #2</b><br>                 <b>Placa:</b> PMR341<br>                 <b>Vehículo:</b> 2025 - GRIS METALICO<br>                 <b>Teléfonos:</b> 3017427040, 3043410540<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Dirección:</b> CL 35 # 76 - 56, Medellin, Antioquia<br>                 <b>Veces visitada:</b> <span id="contador-2" style="color: #d9534f; font-weight: bold; font-size: 14px;">0</span><br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2697324,-75.6025597" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('PMR341', '2')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             <script>                 (function() {                     var v = localStorage.getItem('visitas_PMR341') || 0;                     var el = document.getElementById('contador-2');                     if(el) el.innerText = v;                 })();             </script>             </div>`)[0];
+                popup_b3e69fb3f133aa898d96b663d4b31ef7.setContent(html_8aa9ce9f863c04e6f6a4a04480852afb);
+            
+        
+
+        marker_574e109b18b12f6a19889e9e18eb5df3.bindPopup(popup_b3e69fb3f133aa898d96b663d4b31ef7)
+        ;
+
+        
+    
+    
+                marker_574e109b18b12f6a19889e9e18eb5df3.setIcon(div_icon_a14c45a9418a9e1f1ce77f8e5195251f);
+            
+    
+            var marker_381528c1d9a173f090d9a312bfbc0e02 = L.marker(
                 [6.3474904, -75.5117097],
                 {
 }
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
+            ).addTo(feature_group_daaf710cbb95936f50cfb1e9a76227b4);
         
     
-            var div_icon_cb9e83bf137b83becfc013f62789e04e = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#1: LRY223\u003c/div\u003e\n            \u003c/div\u003e\n            ",
+            var div_icon_09641c4d2e66365eda7bf1ac6e191a9d = L.divIcon({
+  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#3: LRY223 (2022)\u003c/div\u003e\n            \u003c/div\u003e\n            ",
   "className": "empty",
 });
         
     
-        var popup_348715c3557079650591caa2449f1bd7 = L.popup({
-  "maxWidth": 250,
+        var popup_a72ef1e17dd24522e70584eccc891c79 = L.popup({
+  "maxWidth": 260,
 });
 
         
             
-                var html_962d543a77222d66d2fe00bd234c47af = $(`<div id="html_962d543a77222d66d2fe00bd234c47af" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_348715c3557079650591caa2449f1bd7.setContent(html_962d543a77222d66d2fe00bd234c47af);
+                var html_32b6a6c0674e3e9a16f31487f7a91372 = $(`<div id="html_32b6a6c0674e3e9a16f31487f7a91372" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 230px;">                 <b>Punto #3</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Vehículo:</b> 2022 - ROJO<br>                 <b>Teléfonos:</b> 3111234567, 3129876543<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br>                 <b>Veces visitada:</b> <span id="contador-3" style="color: #d9534f; font-weight: bold; font-size: 14px;">0</span><br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223', '3')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             <script>                 (function() {                     var v = localStorage.getItem('visitas_LRY223') || 0;                     var el = document.getElementById('contador-3');                     if(el) el.innerText = v;                 })();             </script>             </div>`)[0];
+                popup_a72ef1e17dd24522e70584eccc891c79.setContent(html_32b6a6c0674e3e9a16f31487f7a91372);
             
         
 
-        marker_e242068e99cde3db14eabb2a535c197f.bindPopup(popup_348715c3557079650591caa2449f1bd7)
+        marker_381528c1d9a173f090d9a312bfbc0e02.bindPopup(popup_a72ef1e17dd24522e70584eccc891c79)
         ;
 
         
     
     
-                marker_e242068e99cde3db14eabb2a535c197f.setIcon(div_icon_cb9e83bf137b83becfc013f62789e04e);
+                marker_381528c1d9a173f090d9a312bfbc0e02.setIcon(div_icon_09641c4d2e66365eda7bf1ac6e191a9d);
             
     
-            var marker_7a6799baf5d288a515104f477e51e73a = L.marker(
-                [6.3424086, -75.5189306],
-                {
-}
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
+            feature_group_daaf710cbb95936f50cfb1e9a76227b4.addTo(map_008cb361408c151edac34960a0b60fa4);
         
     
-            var div_icon_5dfce67cbf33c19eddfe9e4dc45a6db6 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#2: LKR104\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_acf9c6af2ff58179c8a46a2e5cae7f83 = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_43efe9d47f2117129a07b039f2079892 = $(`<div id="html_43efe9d47f2117129a07b039f2079892" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #2</b><br>                 <b>Placa:</b> LKR104<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-01<br>                 <b>Dirección:</b> Calle 50 # 58-49, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3424086,-75.5189306" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LKR104')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_acf9c6af2ff58179c8a46a2e5cae7f83.setContent(html_43efe9d47f2117129a07b039f2079892);
-            
-        
-
-        marker_7a6799baf5d288a515104f477e51e73a.bindPopup(popup_acf9c6af2ff58179c8a46a2e5cae7f83)
-        ;
-
-        
-    
-    
-                marker_7a6799baf5d288a515104f477e51e73a.setIcon(div_icon_5dfce67cbf33c19eddfe9e4dc45a6db6);
-            
-    
-            var marker_25c884e92dba859388571c39966788fd = L.marker(
-                [6.2233773, -75.6065988],
-                {
-}
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
-        
-    
-            var div_icon_be329896b0bc7c29ba81d0c6cf926694 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#3: EPP329\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_8bcb624c43547257f085107daacb4f6c = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_abad090ad99cbea68166485acd34e70c = $(`<div id="html_abad090ad99cbea68166485acd34e70c" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #3</b><br>                 <b>Placa:</b> EPP329<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Carrera 83D # 95-25, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2233773,-75.6065988" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('EPP329')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_8bcb624c43547257f085107daacb4f6c.setContent(html_abad090ad99cbea68166485acd34e70c);
-            
-        
-
-        marker_25c884e92dba859388571c39966788fd.bindPopup(popup_8bcb624c43547257f085107daacb4f6c)
-        ;
-
-        
-    
-    
-                marker_25c884e92dba859388571c39966788fd.setIcon(div_icon_be329896b0bc7c29ba81d0c6cf926694);
-            
-    
-            var marker_58dac8781be21972474ee48caf50c1fa = L.marker(
-                [6.240001, -75.5437335],
-                {
-}
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
-        
-    
-            var div_icon_24a36dc1cf9be73b6924840e0fe14a09 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#4: KRV374\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_f5561b6a5ae768d076a708ac420d963b = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_182a912576d13dfcbb72373b00d49634 = $(`<div id="html_182a912576d13dfcbb72373b00d49634" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #4</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-02<br>                 <b>Dirección:</b> Calle 56 # 51D-7, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.240001,-75.5437335" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('KRV374')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_f5561b6a5ae768d076a708ac420d963b.setContent(html_182a912576d13dfcbb72373b00d49634);
-            
-        
-
-        marker_58dac8781be21972474ee48caf50c1fa.bindPopup(popup_f5561b6a5ae768d076a708ac420d963b)
-        ;
-
-        
-    
-    
-                marker_58dac8781be21972474ee48caf50c1fa.setIcon(div_icon_24a36dc1cf9be73b6924840e0fe14a09);
-            
-    
-            var marker_5b7f029929eada0ff44022749474c3c3 = L.marker(
-                [6.2457362, -75.5820887],
-                {
-}
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
-        
-    
-            var div_icon_0e73a809f8b8852c044b4be4dca9df71 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#5: LRY223\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_ff79ec1c93a3b5e197fcc7a8b692769a = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_e4ee76c2599eca77c4e306653b5dae6f = $(`<div id="html_e4ee76c2599eca77c4e306653b5dae6f" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #5</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2457362,-75.5820887" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_ff79ec1c93a3b5e197fcc7a8b692769a.setContent(html_e4ee76c2599eca77c4e306653b5dae6f);
-            
-        
-
-        marker_5b7f029929eada0ff44022749474c3c3.bindPopup(popup_ff79ec1c93a3b5e197fcc7a8b692769a)
-        ;
-
-        
-    
-    
-                marker_5b7f029929eada0ff44022749474c3c3.setIcon(div_icon_0e73a809f8b8852c044b4be4dca9df71);
-            
-    
-            var marker_ad30bbadb3602a2407b512663a0e6ecd = L.marker(
-                [6.2563027, -75.5942873],
-                {
-}
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
-        
-    
-            var div_icon_3586e0b8b1047be853161d644d10acfb = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#6: KRV374\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_5cefca0c4500f00265a3629756fad7a4 = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_217d91359ed86cb7a4d39cb333dd2491 = $(`<div id="html_217d91359ed86cb7a4d39cb333dd2491" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #6</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 47D # 70-113, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2563027,-75.5942873" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('KRV374')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_5cefca0c4500f00265a3629756fad7a4.setContent(html_217d91359ed86cb7a4d39cb333dd2491);
-            
-        
-
-        marker_ad30bbadb3602a2407b512663a0e6ecd.bindPopup(popup_5cefca0c4500f00265a3629756fad7a4)
-        ;
-
-        
-    
-    
-                marker_ad30bbadb3602a2407b512663a0e6ecd.setIcon(div_icon_3586e0b8b1047be853161d644d10acfb);
-            
-    
-            var marker_b18003a30fae98737eb5d249d73ef8af = L.marker(
-                [6.177796, -75.5958369],
-                {
-}
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
-        
-    
-            var div_icon_54fc9b9bb8f59036e4434c4986396646 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#8: KRV374\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_b1ca18bc1e9ea413dae775c165819799 = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_ea4e1f5c20800f06cdbca1d92ef470dd = $(`<div id="html_ea4e1f5c20800f06cdbca1d92ef470dd" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #8</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 66 # 48-111, Itagüí, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.177796,-75.5958369" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('KRV374')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_b1ca18bc1e9ea413dae775c165819799.setContent(html_ea4e1f5c20800f06cdbca1d92ef470dd);
-            
-        
-
-        marker_b18003a30fae98737eb5d249d73ef8af.bindPopup(popup_b1ca18bc1e9ea413dae775c165819799)
-        ;
-
-        
-    
-    
-                marker_b18003a30fae98737eb5d249d73ef8af.setIcon(div_icon_54fc9b9bb8f59036e4434c4986396646);
-            
-    
-            var marker_bbeb466163f543b5d544c8d78f1c8deb = L.marker(
-                [6.1898072, -75.5858112],
-                {
-}
-            ).addTo(feature_group_5835aa88e8aee1746705450166f6bdb9);
-        
-    
-            var div_icon_764347e51c32d8b8f3b73bc9a074b542 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#9: KRV374\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_a08a92776bd3d736995953f28ffafa3b = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_7d4f33c30410eff3e70a3880614f86e3 = $(`<div id="html_7d4f33c30410eff3e70a3880614f86e3" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #9</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-03<br>                 <b>Dirección:</b> Carrera 44 # 63-11, Itagüí, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.1898072,-75.5858112" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('KRV374')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_a08a92776bd3d736995953f28ffafa3b.setContent(html_7d4f33c30410eff3e70a3880614f86e3);
-            
-        
-
-        marker_bbeb466163f543b5d544c8d78f1c8deb.bindPopup(popup_a08a92776bd3d736995953f28ffafa3b)
-        ;
-
-        
-    
-    
-                marker_bbeb466163f543b5d544c8d78f1c8deb.setIcon(div_icon_764347e51c32d8b8f3b73bc9a074b542);
-            
-    
-            feature_group_5835aa88e8aee1746705450166f6bdb9.addTo(map_c317ffcc7a5e15f5614c8fd45abf9acb);
-        
-    
-            var feature_group_c3d831b54eec8fd2d729553a8a0e1bc5 = L.featureGroup(
+            var feature_group_740ab8c06a21890b96690c95dee64fd4 = L.featureGroup(
                 {
 }
             );
         
     
-            var marker_9fcf59b51ad1dd9065998bdb4f12be1b = L.marker(
+            var marker_5fb727b2fd8dc1d33699a2671759a88e = L.marker(
                 [6.3474904, -75.5117097],
                 {
 }
-            ).addTo(feature_group_c3d831b54eec8fd2d729553a8a0e1bc5);
+            ).addTo(feature_group_740ab8c06a21890b96690c95dee64fd4);
         
     
-            var div_icon_f9408a03f1d4c0f4fa2f265d6d0fe41e = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#1: LRY223\u003c/div\u003e\n            \u003c/div\u003e\n            ",
+            var div_icon_29786c8874d6100c4e15c9ea8b2a1b52 = L.divIcon({
+  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#3: LRY223 (2022)\u003c/div\u003e\n            \u003c/div\u003e\n            ",
   "className": "empty",
 });
         
     
-        var popup_b22a210537f676e1d37a97e272c2fc34 = L.popup({
-  "maxWidth": 250,
+        var popup_447bcdfc8a311a84a3ce709f8dd0da7c = L.popup({
+  "maxWidth": 260,
 });
 
         
             
-                var html_fd050746e27b580eed974cbd4a69c672 = $(`<div id="html_fd050746e27b580eed974cbd4a69c672" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_b22a210537f676e1d37a97e272c2fc34.setContent(html_fd050746e27b580eed974cbd4a69c672);
+                var html_31c2348c24fa5e3a9458f29fa04137eb = $(`<div id="html_31c2348c24fa5e3a9458f29fa04137eb" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 230px;">                 <b>Punto #3</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Vehículo:</b> 2022 - ROJO<br>                 <b>Teléfonos:</b> 3111234567, 3129876543<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br>                 <b>Veces visitada:</b> <span id="contador-3" style="color: #d9534f; font-weight: bold; font-size: 14px;">0</span><br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223', '3')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             <script>                 (function() {                     var v = localStorage.getItem('visitas_LRY223') || 0;                     var el = document.getElementById('contador-3');                     if(el) el.innerText = v;                 })();             </script>             </div>`)[0];
+                popup_447bcdfc8a311a84a3ce709f8dd0da7c.setContent(html_31c2348c24fa5e3a9458f29fa04137eb);
             
         
 
-        marker_9fcf59b51ad1dd9065998bdb4f12be1b.bindPopup(popup_b22a210537f676e1d37a97e272c2fc34)
+        marker_5fb727b2fd8dc1d33699a2671759a88e.bindPopup(popup_447bcdfc8a311a84a3ce709f8dd0da7c)
         ;
 
         
     
     
-                marker_9fcf59b51ad1dd9065998bdb4f12be1b.setIcon(div_icon_f9408a03f1d4c0f4fa2f265d6d0fe41e);
+                marker_5fb727b2fd8dc1d33699a2671759a88e.setIcon(div_icon_29786c8874d6100c4e15c9ea8b2a1b52);
             
     
-            var marker_7f9af6495da291c5b5ecab975db89805 = L.marker(
-                [6.2457362, -75.5820887],
-                {
-}
-            ).addTo(feature_group_c3d831b54eec8fd2d729553a8a0e1bc5);
+            feature_group_740ab8c06a21890b96690c95dee64fd4.addTo(map_008cb361408c151edac34960a0b60fa4);
         
     
-            var div_icon_df92b27390c4a278449352b62d6216f8 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#5: LRY223\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_12903907be4bf5c6c5a18e7b6e970f40 = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_dd8f699384767b0fb10322fdf8c6877b = $(`<div id="html_dd8f699384767b0fb10322fdf8c6877b" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #5</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2457362,-75.5820887" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_12903907be4bf5c6c5a18e7b6e970f40.setContent(html_dd8f699384767b0fb10322fdf8c6877b);
-            
-        
-
-        marker_7f9af6495da291c5b5ecab975db89805.bindPopup(popup_12903907be4bf5c6c5a18e7b6e970f40)
-        ;
-
-        
-    
-    
-                marker_7f9af6495da291c5b5ecab975db89805.setIcon(div_icon_df92b27390c4a278449352b62d6216f8);
-            
-    
-            feature_group_c3d831b54eec8fd2d729553a8a0e1bc5.addTo(map_c317ffcc7a5e15f5614c8fd45abf9acb);
-        
-    
-            var feature_group_10e222c71e46fd055c0e13bf68c05f90 = L.featureGroup(
+            var feature_group_5586eb986de8f1a635821a8ba5e45a75 = L.featureGroup(
                 {
 }
             );
         
     
-            var marker_3690cd62f25744467d0cf03bd34f9f72 = L.marker(
+            var marker_2abf06750a29d468907c72c244b3d250 = L.marker(
+                [6.2697324, -75.6025597],
+                {
+}
+            ).addTo(feature_group_5586eb986de8f1a635821a8ba5e45a75);
+        
+    
+            var div_icon_774c71959e030bc793899dbec09f78d4 = L.divIcon({
+  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#1: STC789 (2023)\u003c/div\u003e\n            \u003c/div\u003e\n            ",
+  "className": "empty",
+});
+        
+    
+        var popup_b43006784947a8568e33c1e523962d1e = L.popup({
+  "maxWidth": 260,
+});
+
+        
+            
+                var html_1160eb05080f860a0ca61222887b6c23 = $(`<div id="html_1160eb05080f860a0ca61222887b6c23" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 230px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> STC789<br>                 <b>Vehículo:</b> 2023 - BLANCO<br>                 <b>Teléfonos:</b> 3207474601, 3104736714<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Dirección:</b> CL 65 # 55 - 30, Medellin, Antioquia<br>                 <b>Veces visitada:</b> <span id="contador-1" style="color: #d9534f; font-weight: bold; font-size: 14px;">0</span><br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2697324,-75.6025597" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('STC789', '1')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             <script>                 (function() {                     var v = localStorage.getItem('visitas_STC789') || 0;                     var el = document.getElementById('contador-1');                     if(el) el.innerText = v;                 })();             </script>             </div>`)[0];
+                popup_b43006784947a8568e33c1e523962d1e.setContent(html_1160eb05080f860a0ca61222887b6c23);
+            
+        
+
+        marker_2abf06750a29d468907c72c244b3d250.bindPopup(popup_b43006784947a8568e33c1e523962d1e)
+        ;
+
+        
+    
+    
+                marker_2abf06750a29d468907c72c244b3d250.setIcon(div_icon_774c71959e030bc793899dbec09f78d4);
+            
+    
+            var marker_9bc57037e9f1e23b6d84a002ba0d5c3e = L.marker(
+                [6.2697324, -75.6025597],
+                {
+}
+            ).addTo(feature_group_5586eb986de8f1a635821a8ba5e45a75);
+        
+    
+            var div_icon_fe83c54fe2a957d054b370330e120f33 = L.divIcon({
+  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#2: PMR341 (2025)\u003c/div\u003e\n            \u003c/div\u003e\n            ",
+  "className": "empty",
+});
+        
+    
+        var popup_26c8b061b34ef963ce8bf30267afc706 = L.popup({
+  "maxWidth": 260,
+});
+
+        
+            
+                var html_e26cb1dda85115b2f74ba304cacebdc0 = $(`<div id="html_e26cb1dda85115b2f74ba304cacebdc0" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 230px;">                 <b>Punto #2</b><br>                 <b>Placa:</b> PMR341<br>                 <b>Vehículo:</b> 2025 - GRIS METALICO<br>                 <b>Teléfonos:</b> 3017427040, 3043410540<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Dirección:</b> CL 35 # 76 - 56, Medellin, Antioquia<br>                 <b>Veces visitada:</b> <span id="contador-2" style="color: #d9534f; font-weight: bold; font-size: 14px;">0</span><br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2697324,-75.6025597" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('PMR341', '2')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             <script>                 (function() {                     var v = localStorage.getItem('visitas_PMR341') || 0;                     var el = document.getElementById('contador-2');                     if(el) el.innerText = v;                 })();             </script>             </div>`)[0];
+                popup_26c8b061b34ef963ce8bf30267afc706.setContent(html_e26cb1dda85115b2f74ba304cacebdc0);
+            
+        
+
+        marker_9bc57037e9f1e23b6d84a002ba0d5c3e.bindPopup(popup_26c8b061b34ef963ce8bf30267afc706)
+        ;
+
+        
+    
+    
+                marker_9bc57037e9f1e23b6d84a002ba0d5c3e.setIcon(div_icon_fe83c54fe2a957d054b370330e120f33);
+            
+    
+            var marker_f75baa5d5db9b935925c301732c78dd2 = L.marker(
                 [6.3474904, -75.5117097],
                 {
 }
-            ).addTo(feature_group_10e222c71e46fd055c0e13bf68c05f90);
+            ).addTo(feature_group_5586eb986de8f1a635821a8ba5e45a75);
         
     
-            var div_icon_02b0638c3fc931d6ffcc4d29de17eb63 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#1: LRY223\u003c/div\u003e\n            \u003c/div\u003e\n            ",
+            var div_icon_276d9ab689078d6a006467bbbf0d0a2f = L.divIcon({
+  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#3: LRY223 (2022)\u003c/div\u003e\n            \u003c/div\u003e\n            ",
   "className": "empty",
 });
         
     
-        var popup_12c383aefd7f7638bca5a7f43b152013 = L.popup({
-  "maxWidth": 250,
+        var popup_359903c7177bf1842310b09f8a52c077 = L.popup({
+  "maxWidth": 260,
 });
 
         
             
-                var html_ccf32afb12dc2aeafc017f6e3459bddc = $(`<div id="html_ccf32afb12dc2aeafc017f6e3459bddc" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_12c383aefd7f7638bca5a7f43b152013.setContent(html_ccf32afb12dc2aeafc017f6e3459bddc);
+                var html_bf86dbd83a9caa2be06f9cbe1a3d1154 = $(`<div id="html_bf86dbd83a9caa2be06f9cbe1a3d1154" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 230px;">                 <b>Punto #3</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Vehículo:</b> 2022 - ROJO<br>                 <b>Teléfonos:</b> 3111234567, 3129876543<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br>                 <b>Veces visitada:</b> <span id="contador-3" style="color: #d9534f; font-weight: bold; font-size: 14px;">0</span><br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223', '3')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             <script>                 (function() {                     var v = localStorage.getItem('visitas_LRY223') || 0;                     var el = document.getElementById('contador-3');                     if(el) el.innerText = v;                 })();             </script>             </div>`)[0];
+                popup_359903c7177bf1842310b09f8a52c077.setContent(html_bf86dbd83a9caa2be06f9cbe1a3d1154);
             
         
 
-        marker_3690cd62f25744467d0cf03bd34f9f72.bindPopup(popup_12c383aefd7f7638bca5a7f43b152013)
+        marker_f75baa5d5db9b935925c301732c78dd2.bindPopup(popup_359903c7177bf1842310b09f8a52c077)
         ;
 
         
     
     
-                marker_3690cd62f25744467d0cf03bd34f9f72.setIcon(div_icon_02b0638c3fc931d6ffcc4d29de17eb63);
+                marker_f75baa5d5db9b935925c301732c78dd2.setIcon(div_icon_276d9ab689078d6a006467bbbf0d0a2f);
             
     
-            var marker_868491cb4d9a06869fb08ee360c7bc40 = L.marker(
-                [6.2233773, -75.6065988],
-                {
-}
-            ).addTo(feature_group_10e222c71e46fd055c0e13bf68c05f90);
+            feature_group_5586eb986de8f1a635821a8ba5e45a75.addTo(map_008cb361408c151edac34960a0b60fa4);
         
     
-            var div_icon_03cb8d1a20689f0032b832f20398d153 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#3: EPP329\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_32efaa11d49fa7fe736bf14fb24389c7 = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_5c69914ec505b3fe5cde094d9eb97693 = $(`<div id="html_5c69914ec505b3fe5cde094d9eb97693" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #3</b><br>                 <b>Placa:</b> EPP329<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Carrera 83D # 95-25, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2233773,-75.6065988" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('EPP329')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_32efaa11d49fa7fe736bf14fb24389c7.setContent(html_5c69914ec505b3fe5cde094d9eb97693);
-            
-        
-
-        marker_868491cb4d9a06869fb08ee360c7bc40.bindPopup(popup_32efaa11d49fa7fe736bf14fb24389c7)
-        ;
-
-        
-    
-    
-                marker_868491cb4d9a06869fb08ee360c7bc40.setIcon(div_icon_03cb8d1a20689f0032b832f20398d153);
-            
-    
-            var marker_0eb8f21cf8970c055c36f3459e8270c1 = L.marker(
-                [6.2457362, -75.5820887],
-                {
-}
-            ).addTo(feature_group_10e222c71e46fd055c0e13bf68c05f90);
-        
-    
-            var div_icon_3ebe6ffedc33d08dcf5ef9b4dc090b8f = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #8B0000; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#5: LRY223\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_dedcab6e3943f0c17c7c3eddef66e2ba = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_46c60f53edcbeef016d892538d6de443 = $(`<div id="html_46c60f53edcbeef016d892538d6de443" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #5</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2457362,-75.5820887" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('LRY223')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_dedcab6e3943f0c17c7c3eddef66e2ba.setContent(html_46c60f53edcbeef016d892538d6de443);
-            
-        
-
-        marker_0eb8f21cf8970c055c36f3459e8270c1.bindPopup(popup_dedcab6e3943f0c17c7c3eddef66e2ba)
-        ;
-
-        
-    
-    
-                marker_0eb8f21cf8970c055c36f3459e8270c1.setIcon(div_icon_3ebe6ffedc33d08dcf5ef9b4dc090b8f);
-            
-    
-            var marker_54e8c4f0dae544fa976ddcfcb44cb1a5 = L.marker(
-                [6.2563027, -75.5942873],
-                {
-}
-            ).addTo(feature_group_10e222c71e46fd055c0e13bf68c05f90);
-        
-    
-            var div_icon_e7832810733cd3cf1f165b1c7d079263 = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#6: KRV374\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_055151296023ef87f9a3e533f9961918 = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_a5e85e1787f3b087483159b29e5e17b4 = $(`<div id="html_a5e85e1787f3b087483159b29e5e17b4" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #6</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 47D # 70-113, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2563027,-75.5942873" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('KRV374')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_055151296023ef87f9a3e533f9961918.setContent(html_a5e85e1787f3b087483159b29e5e17b4);
-            
-        
-
-        marker_54e8c4f0dae544fa976ddcfcb44cb1a5.bindPopup(popup_055151296023ef87f9a3e533f9961918)
-        ;
-
-        
-    
-    
-                marker_54e8c4f0dae544fa976ddcfcb44cb1a5.setIcon(div_icon_e7832810733cd3cf1f165b1c7d079263);
-            
-    
-            var marker_065db84b41402441de8d54cd44971b40 = L.marker(
-                [6.177796, -75.5958369],
-                {
-}
-            ).addTo(feature_group_10e222c71e46fd055c0e13bf68c05f90);
-        
-    
-            var div_icon_eda43f9b872f3a9cec19cd6c1de98caf = L.divIcon({
-  "html": "\n            \u003cdiv style=\"display: flex; align-items: center; cursor: pointer;\"\u003e\n                \u003cdiv style=\"width: 14px; height: 14px; background-color: #D32F2F; border: 2px solid black; border-radius: 50%;\"\u003e\u003c/div\u003e\n                \u003cdiv style=\"font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);\"\u003e#8: KRV374\u003c/div\u003e\n            \u003c/div\u003e\n            ",
-  "className": "empty",
-});
-        
-    
-        var popup_6723339dc9ce987cb21bf1b873b7d506 = L.popup({
-  "maxWidth": 250,
-});
-
-        
-            
-                var html_b278e13cf44f82a033178cc1a2d32856 = $(`<div id="html_b278e13cf44f82a033178cc1a2d32856" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 220px;">                 <b>Punto #8</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 66 # 48-111, Itagüí, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.177796,-75.5958369" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>                 <button onclick="marcarVisitada('KRV374')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>                 <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>             </div>             </div>`)[0];
-                popup_6723339dc9ce987cb21bf1b873b7d506.setContent(html_b278e13cf44f82a033178cc1a2d32856);
-            
-        
-
-        marker_065db84b41402441de8d54cd44971b40.bindPopup(popup_6723339dc9ce987cb21bf1b873b7d506)
-        ;
-
-        
-    
-    
-                marker_065db84b41402441de8d54cd44971b40.setIcon(div_icon_eda43f9b872f3a9cec19cd6c1de98caf);
-            
-    
-            feature_group_10e222c71e46fd055c0e13bf68c05f90.addTo(map_c317ffcc7a5e15f5614c8fd45abf9acb);
-        
-    
-            var layer_control_3769dea8e910155fccc4e36a41ec4f10_layers = {
+            var layer_control_ad99d07fca64d39b82af392420de217a_layers = {
                 base_layers : {
-                    "openstreetmap" : tile_layer_fdd803d36d1f0b04713b830a21ea0a19,
+                    "openstreetmap" : tile_layer_1fc7f61e5da2e8e974229815e217315c,
                 },
                 overlays :  {
-                    "3. Ver todas las placas" : feature_group_5835aa88e8aee1746705450166f6bdb9,
-                    "1. Placas con Pico y Placa" : feature_group_c3d831b54eec8fd2d729553a8a0e1bc5,
-                    "2. Placas subidas hoy" : feature_group_10e222c71e46fd055c0e13bf68c05f90,
+                    "3. Ver todas las placas" : feature_group_daaf710cbb95936f50cfb1e9a76227b4,
+                    "1. Placas con Pico y Placa" : feature_group_740ab8c06a21890b96690c95dee64fd4,
+                    "2. Placas subidas hoy" : feature_group_5586eb986de8f1a635821a8ba5e45a75,
                 },
             };
-            let layer_control_3769dea8e910155fccc4e36a41ec4f10 = L.control.layers(
-                layer_control_3769dea8e910155fccc4e36a41ec4f10_layers.base_layers,
-                layer_control_3769dea8e910155fccc4e36a41ec4f10_layers.overlays,
+            let layer_control_ad99d07fca64d39b82af392420de217a = L.control.layers(
+                layer_control_ad99d07fca64d39b82af392420de217a_layers.base_layers,
+                layer_control_ad99d07fca64d39b82af392420de217a_layers.overlays,
                 {
   "position": "topright",
   "collapsed": false,
   "autoZIndex": true,
 }
-            ).addTo(map_c317ffcc7a5e15f5614c8fd45abf9acb);
+            ).addTo(map_008cb361408c151edac34960a0b60fa4);
 
         
 </script>
