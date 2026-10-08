@@ -24,7 +24,7 @@
 
         .floating-menu {
             position: fixed; bottom: 80px; left: 20px; z-index: 99999;
-            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; display: none; font-family: Arial; font-size: 12px;
+            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px;
         }
         
         .floating-filter-panel {
@@ -55,14 +55,14 @@
             <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar múltiples reportes</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte de WhatsApp</button>
         <button class="main-opt" onclick="abrirSeccion('foto')">2. 📷 Pegar foto y placa</button>
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Pega varios mensajes (omite duplicadas, máx 3 ubicaciones c/u):</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes de WhatsApp..." style="height: 90px;"></textarea>
-            <button class="action" onclick="procesarMultiplesReportes()">Analizar y Agregar Lote</button>
+            <b style="color:#2c3e50; font-size:10px;">Extrae direcciones exactas (máx 3 por placa):</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí el mensaje completo con UBICACION..." style="height: 100px;"></textarea>
+            <button class="action" onclick="procesarReportePreciso()">Analizar con Precisión</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -80,7 +80,7 @@
             <input type="text" id="manLinea" placeholder="Línea (ej: ARKANA)">
             <input type="text" id="manModelo" placeholder="Modelo (ej: 2025)">
             <input type="text" id="manColor" placeholder="Color (ej: GRIS)">
-            <input type="text" id="manDir" placeholder="Dirección y Ciudad">
+            <input type="text" id="manDir" placeholder="Dirección exacta (ej: CL 35 # 76 - 56)">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -155,11 +155,7 @@
 
         function mostrarOpcionesEliminar(markerId, placa) {
             var div = document.getElementById('eliminar-container-' + markerId);
-            if (div.style.display === 'none' || div.style.display === '') {
-                div.style.display = 'block';
-            } else {
-                div.style.display = 'none';
-            }
+            div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
         }
 
         function eliminarEstaDireccion(markerId, placa) {
@@ -179,19 +175,19 @@
                 }
             });
             delete placasRegistradas[placa];
-            alert("🗑️ Se han eliminado todas las ubicaciones (" + eliminadas + ") asociadas a la placa " + placa + ".");
+            alert("🗑️ Se eliminaron todas las ubicaciones (" + eliminadas + ") de la placa " + placa + ".");
         }
 
         var placasRegistradas = {};
         var puntosData = [];
 
-        function procesarMultiplesReportes() {
+        // ANALIZADOR PRECISO DE REPORTES WHATSAPP
+        function procesarReportePreciso() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
+            if(!texto) { alert("Por favor pega el texto del reporte."); return; }
 
             var bloques = texto.split(/UBICAR\s*A?/i);
             var agregadosCount = 0;
-            var omitidosCount = 0;
 
             bloques.forEach(function(bloque) {
                 if (bloque.trim().length < 5) return;
@@ -200,10 +196,7 @@
                 if (!matchPlaca) return;
                 var placa = matchPlaca[0].toUpperCase();
 
-                if (placasRegistradas[placa]) {
-                    omitidosCount++;
-                    return;
-                }
+                if (placasRegistradas[placa]) return; // Omitir duplicadas
 
                 var marcaMatch = bloque.match(/Marca:\s*([A-Z]+)/i);
                 var lineaMatch = bloque.match(/Línea:\s*([A-Z0-9\-]+)/i);
@@ -218,23 +211,37 @@
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
                 var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-                var lineasUbicacion = [];
-                bloque.split('\n').forEach(function(l) {
-                    if (l.includes('#') || l.includes('CL ') || l.includes('KR ') || l.includes('TV ') || l.includes('AV ')) {
-                        lineasUbicacion.push(l.trim());
+                // Extraer estrictamente líneas que parezcan direcciones viales (CL, KR, CR, TV, AV)
+                var direccionesValidas = [];
+                var lineas = bloque.split('\n');
+                lineas.forEach(function(l) {
+                    var lClean = l.trim().toUpperCase();
+                    if ((lClean.startsWith('CL') || lClean.startsWith('KR') || lClean.startsWith('CR') || lClean.startsWith('TV') || lClean.startsWith('AV') || lClean.startsWith('DIAG')) && lClean.includes('#')) {
+                        direccionesValidas.push(l.trim());
                     }
                 });
 
-                var ubicacionesAProcesar = lineasUbicacion.slice(0, 3);
-                if (ubicacionesAProcesar.length === 0) {
-                    ubicacionesAProcesar = ["Dirección reportada en Medellín"];
+                // Si no encontró con prefijo estricto, buscar cualquier línea con '#'
+                if (direccionesValidas.length === 0) {
+                    lineas.forEach(function(l) {
+                        if (l.includes('#') && l.length > 8) {
+                            direccionesValidas.push(l.trim());
+                        }
+                    });
+                }
+
+                // Limitar estrictamente a máximo 3 ubicaciones
+                var ubicacionesFinales = direccionesValidas.slice(0, 3);
+                if (ubicacionesFinales.length === 0) {
+                    ubicacionesFinales = ["Medellín, Antioquia (Dirección general)"];
                 }
 
                 placasRegistradas[placa] = true;
 
-                ubicacionesAProcesar.forEach(function(dir, index) {
-                    var lat = 6.2442 + (Math.random() - 0.5) * 0.12 + (index * 0.01);
-                    var lng = -75.5812 + (Math.random() - 0.5) * 0.12 + (index * 0.01);
+                ubicacionesFinales.forEach(function(dir, index) {
+                    // Coordenadas base en Medellín con ligera separación para visualización limpia
+                    var lat = 6.2442 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
+                    var lng = -75.5812 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
 
                     var nuevoPunto = {
                         placa: placa,
@@ -256,11 +263,11 @@
             });
 
             if (agregadosCount > 0) {
-                alert("🚀 ¡Lote procesado con éxito! Placas nuevas agregadas: " + agregadosCount);
+                alert("🚀 ¡Procesado correctamente! Placas agregadas: " + agregadosCount);
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
-                alert("⚠️ No se detectaron placas válidas en el texto.");
+                alert("⚠️ No se detectaron direcciones válidas con formato vial (ej: CL # ...). Revisa el texto.");
             }
         }
 
@@ -371,16 +378,16 @@
             var customIcon = L.divIcon({
                 className: 'custom-marker',
                 html: `<div style="display: flex; align-items: center; cursor: pointer;">
-                        <div style="width: 14px; height: 14px; background-color: ${colorFondo}; border: 2px solid black; border-radius: 50%;"></div>
+                        <div style="width: 14px; height: 14px; background-color: {colorFondo}; border: 2px solid black; border-radius: 50%;"></div>
                         <div style="font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">#${idx}: ${p.placa} (${p.marca})</div>
                        </div>`
-            });
+            }.replace("{colorFondo}", colorFondo));
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).bindPopup(popupContent).addTo(map);
             puntosData.push({ id: markerId, placa: p.placa, marker: marker, pico: pico, esHoy: esHoy });
         }
 
-        // Punto base inicial
+        // Punto base inicial de prueba
         placasRegistradas["STC789"] = true;
         agregarMarcadorAlMapa({
             placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'
