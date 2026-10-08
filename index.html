@@ -152,15 +152,43 @@
             alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        // Lista global de placas ya registradas para omitir duplicados
-        var placasRegistradas = {};
+        // FUNCIONES DE ELIMINACIÓN AVANZADAS
+        function mostrarOpcionesEliminar(markerId, placa) {
+            var div = document.getElementById('eliminar-container-' + markerId);
+            if (div.style.display === 'none' || div.style.display === '') {
+                div.style.display = 'block';
+            } else {
+                div.style.display = 'none';
+            }
+        }
 
-        // PROCESAR MÚLTIPLES REPORTES DE WHATSAPP SIMULTÁNEAMENTE
+        function eliminarEstaDireccion(markerId, placa) {
+            var item = puntosData.find(function(d) { return d.id === markerId; });
+            if (item) {
+                map.removeLayer(item.marker);
+                alert("🗑️ Dirección eliminada correctamente.");
+            }
+        }
+
+        function eliminarTodasDePlaca(placa) {
+            var eliminadas = 0;
+            puntosData.forEach(function(item) {
+                if (item.placa === placa) {
+                    map.removeLayer(item.marker);
+                    eliminadas++;
+                }
+            });
+            delete placasRegistradas[placa];
+            alert("🗑️ Se han eliminado todas las ubicaciones (" + eliminadas + ") asociadas a la placa " + placa + ".");
+        }
+
+        var placasRegistradas = {};
+        var puntosData = [];
+
         function procesarMultiplesReportes() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
 
-            // Dividir por bloques de placa (UBICAR / UBICAR A)
             var bloques = texto.split(/UBICAR\s*A?/i);
             var agregadosCount = 0;
             var omitidosCount = 0;
@@ -168,18 +196,15 @@
             bloques.forEach(function(bloque) {
                 if (bloque.trim().length < 5) return;
 
-                // Extraer placa (3 letras seguidas de números o letras)
                 var matchPlaca = bloque.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/i);
                 if (!matchPlaca) return;
                 var placa = matchPlaca[0].toUpperCase();
 
-                // Si ya existe la placa, se omite
                 if (placasRegistradas[placa]) {
                     omitidosCount++;
                     return;
                 }
 
-                // Extraer marca y línea simulada o del texto
                 var marcaMatch = bloque.match(/Marca:\s*([A-Z]+)/i);
                 var lineaMatch = bloque.match(/Línea:\s*([A-Z0-9\-]+)/i);
                 var modeloMatch = bloque.match(/Modelo:\s*([0-9]{4})/i);
@@ -191,21 +216,17 @@
                 var color = colorMatch ? colorMatch[1].trim().split('
 ')[0] : "N/A";
 
-                // Extraer teléfonos
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
                 var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-                // Extraer líneas de ubicación
                 var lineasUbicacion = [];
-                var lineasTexto = bloque.split('
-');
-                lineasTexto.forEach(function(l) {
+                bloque.split('
+').forEach(function(l) {
                     if (l.includes('#') || l.includes('CL ') || l.includes('KR ') || l.includes('TV ') || l.includes('AV ')) {
                         lineasUbicacion.push(l.trim());
                     }
                 });
 
-                // Limitar a máximo 3 ubicaciones por placa
                 var ubicacionesAProcesar = lineasUbicacion.slice(0, 3);
                 if (ubicacionesAProcesar.length === 0) {
                     ubicacionesAProcesar = ["Dirección reportada en Medellín"];
@@ -214,7 +235,6 @@
                 placasRegistradas[placa] = true;
 
                 ubicacionesAProcesar.forEach(function(dir, index) {
-                    // Generar coordenadas ligeramente dispersas en el Valle de Aburrá
                     var lat = 6.2442 + (Math.random() - 0.5) * 0.12 + (index * 0.01);
                     var lng = -75.5812 + (Math.random() - 0.5) * 0.12 + (index * 0.01);
 
@@ -242,7 +262,7 @@
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
-                alert("⚠️ No se detectaron placas válidas en el texto. Revisa el formato.");
+                alert("⚠️ No se detectaron placas válidas en el texto.");
             }
         }
 
@@ -325,9 +345,8 @@
             return false;
         }
 
-        var puntosData = [];
-
         function agregarMarcadorAlMapa(p, idx) {
+            var markerId = 'marker_' + idx + '_' + Math.random().toString(36.substr(2, 5));
             var pico = tienePicoYPlaca(p.placa);
             var esHoy = (p.fecha === hoyStr);
             var estadoPicoTxt = pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
@@ -346,7 +365,12 @@
                     <b>Veces visitada:</b> <span id="contador-${idx}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br><br>
                     <a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>
                     <button onclick="marcarVisitada('${p.placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>
-                    <button onclick="this.closest('.leaflet-popup').style.display='none';" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>
+                    <button onclick="mostrarOpcionesEliminar('${markerId}', '${p.placa}')" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>
+                    
+                    <div id="eliminar-container-${markerId}" style="display: none; margin-top: 8px; background: #f8d7da; padding: 6px; border-radius: 4px; border: 1px solid #f5c6cb;">
+                        <button onclick="eliminarEstaDireccion('${markerId}', '${p.placa}')" style="background-color: #d9534f; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 4px;">❌ Eliminar esta dirección</button>
+                        <button onclick="eliminarTodasDePlaca('${p.placa}')" style="background-color: #721c24; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">🗑️ Eliminar todas las de esta placa</button>
+                    </div>
                 </div>
             `;
 
@@ -359,10 +383,10 @@
             });
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).bindPopup(popupContent).addTo(map);
-            puntosData.push({ marker: marker, pico: pico, esHoy: esHoy });
+            puntosData.push({ id: markerId, placa: p.placa, marker: marker, pico: pico, esHoy: esHoy });
         }
 
-        // Punto base inicial
+        // Punto base inicial de prueba
         placasRegistradas["STC789"] = true;
         agregarMarcadorAlMapa({
             placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'
