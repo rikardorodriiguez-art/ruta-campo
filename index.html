@@ -17,7 +17,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_8d24d7f4cc63582e618c72d7948cd43e {
+                #map_5b43a888c571dbf95cf80b749e789b65 {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -56,14 +56,14 @@
 <body>
     
     
-            <div class="folium-map" id="map_8d24d7f4cc63582e618c72d7948cd43e" ></div>
+            <div class="folium-map" id="map_5b43a888c571dbf95cf80b749e789b65" ></div>
         
 </body>
 <script>
     
     
-            var map_8d24d7f4cc63582e618c72d7948cd43e = L.map(
-                "map_8d24d7f4cc63582e618c72d7948cd43e",
+            var map_5b43a888c571dbf95cf80b749e789b65 = L.map(
+                "map_5b43a888c571dbf95cf80b749e789b65",
                 {
                     center: [6.2442, -75.5812],
                     crs: L.CRS.EPSG3857,
@@ -80,7 +80,7 @@
 
         
     
-            var tile_layer_7bdf18f41fc6727dd1ae7e1788aa2f5a = L.tileLayer(
+            var tile_layer_b3fe07da60203afdb5a01747590299d0 = L.tileLayer(
                 "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
   "minZoom": 0,
@@ -97,325 +97,735 @@
             );
         
     
-            tile_layer_7bdf18f41fc6727dd1ae7e1788aa2f5a.addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            tile_layer_b3fe07da60203afdb5a01747590299d0.addTo(map_5b43a888c571dbf95cf80b749e789b65);
         
     
-            var locate_control_e00a3ddaea38b6c27bb98334d597efdc = L.control.locate(
-                {"locate_options": {"enableHighAccuracy": true, "maxZoom": 16}, "position": "topleft", "strings": {"popup": "\u00a1Est\u00e1s aqu\u00ed!", "title": "Ver mi ubicaci\u00f3n actual"}}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            var locate_control_036d8b36453d398c408431a54ace8143 = L.control.locate(
+                {"locate_options": {"enableHighAccuracy": true, "maxZoom": 16}, "position": "topleft", "strings": {"popup": "\u00a1Est\u00e1s aqu\u00ed!", "title": "Mi ubicaci\u00f3n actual"}}
+            ).addTo(map_5b43a888c571dbf95cf80b749e789b65);
             
         
     
-            var circle_marker_da86ba0c0b15d445c7b5377d1596f04a = L.circleMarker(
-                [6.3474904, -75.5117097],
-                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            var feature_group_0593c1405d59bd3d249a3021675b2c07 = L.featureGroup(
+                {
+}
+            );
         
     
-        var popup_3d687a7e1817a8fd01bcff3f9b522482 = L.popup({
+            var circle_marker_7e2408d30c1d326ff02a02cb45a4b6d8 = L.circleMarker(
+                [6.3474904, -75.5117097],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
+        
+    
+        var popup_0dfb894bfc91d0265f84a2438cb21624 = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_b571eb981de931d41009a4653c997db0 = $(`<div id="html_b571eb981de931d41009a4653c997db0" style="width: 100.0%; height: 100.0%;"><b>Punto #1</b><br><b>Placa:</b> LRY223<br><b>Estado:</b> ⚠️ PICO Y PLACA<br><b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.3474904,-75.5117097' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_3d687a7e1817a8fd01bcff3f9b522482.setContent(html_b571eb981de931d41009a4653c997db0);
+                var html_ebed4bb4eb3945f3ae4e666b9a4eeb38 = $(`<div id="html_ebed4bb4eb3945f3ae4e666b9a4eeb38" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_0dfb894bfc91d0265f84a2438cb21624.setContent(html_ebed4bb4eb3945f3ae4e666b9a4eeb38);
             
         
 
-        circle_marker_da86ba0c0b15d445c7b5377d1596f04a.bindPopup(popup_3d687a7e1817a8fd01bcff3f9b522482)
+        circle_marker_7e2408d30c1d326ff02a02cb45a4b6d8.bindPopup(popup_0dfb894bfc91d0265f84a2438cb21624)
         ;
 
         
     
     
-            var marker_848ba2a21941fa6e5b4b475ce75d5e1d = L.marker(
+            var marker_47c5245b3af3700ce6207d47dd8be106 = L.marker(
                 [6.3474904, -75.5117097],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_c28f3a2aa2d8288a805aca4fbdadaa19 = L.divIcon({
+            var div_icon_e090ffc32e6c37d3c7574dd82b0cda4b = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#1: LRY223\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_848ba2a21941fa6e5b4b475ce75d5e1d.setIcon(div_icon_c28f3a2aa2d8288a805aca4fbdadaa19);
+                marker_47c5245b3af3700ce6207d47dd8be106.setIcon(div_icon_e090ffc32e6c37d3c7574dd82b0cda4b);
             
     
-            var circle_marker_dbd07d03689a07e8f9cde22cb2dbca67 = L.circleMarker(
+            var circle_marker_1824da7aa396f88e40fd6ca41bb3d350 = L.circleMarker(
                 [6.3424086, -75.5189306],
                 {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-        var popup_cac6d2a6d34b0565f4b4624a7b1259f1 = L.popup({
+        var popup_4c675ebc7717844570186bee4ec41f1f = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_eca187af989be3ddfa29f2586e956e9f = $(`<div id="html_eca187af989be3ddfa29f2586e956e9f" style="width: 100.0%; height: 100.0%;"><b>Punto #2</b><br><b>Placa:</b> LKR104<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 50 # 58-49, Copacabana, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.3424086,-75.5189306' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_cac6d2a6d34b0565f4b4624a7b1259f1.setContent(html_eca187af989be3ddfa29f2586e956e9f);
+                var html_4d339f716a4068c33168c1574f9e0d73 = $(`<div id="html_4d339f716a4068c33168c1574f9e0d73" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #2</b><br>                 <b>Placa:</b> LKR104<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-01<br>                 <b>Dirección:</b> Calle 50 # 58-49, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3424086,-75.5189306" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_4c675ebc7717844570186bee4ec41f1f.setContent(html_4d339f716a4068c33168c1574f9e0d73);
             
         
 
-        circle_marker_dbd07d03689a07e8f9cde22cb2dbca67.bindPopup(popup_cac6d2a6d34b0565f4b4624a7b1259f1)
+        circle_marker_1824da7aa396f88e40fd6ca41bb3d350.bindPopup(popup_4c675ebc7717844570186bee4ec41f1f)
         ;
 
         
     
     
-            var marker_07e221ea171396b0ebe4db9fb770fd20 = L.marker(
+            var marker_c1b8bb37ee2db5751a04ba6f084ebf81 = L.marker(
                 [6.3424086, -75.5189306],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_f7d73028cbe109ac8edada631a8d99b2 = L.divIcon({
+            var div_icon_a5a0d10c0ecd78cdf399259faab70fd0 = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#2: LKR104\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_07e221ea171396b0ebe4db9fb770fd20.setIcon(div_icon_f7d73028cbe109ac8edada631a8d99b2);
+                marker_c1b8bb37ee2db5751a04ba6f084ebf81.setIcon(div_icon_a5a0d10c0ecd78cdf399259faab70fd0);
             
     
-            var circle_marker_676c5566155f19560c945eaede396ec0 = L.circleMarker(
+            var circle_marker_6064e4086148b7addf0b977eb491dadb = L.circleMarker(
                 [6.2233773, -75.6065988],
                 {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-        var popup_6df85d01f84e42803558558fce6b2f6a = L.popup({
+        var popup_bad1c1d2c3e78c141373b79e00faf44b = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_d22ddf81b57b1fe328c665a049ce0f3a = $(`<div id="html_d22ddf81b57b1fe328c665a049ce0f3a" style="width: 100.0%; height: 100.0%;"><b>Punto #3</b><br><b>Placa:</b> EPP329<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Carrera 83D # 95-25, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2233773,-75.6065988' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_6df85d01f84e42803558558fce6b2f6a.setContent(html_d22ddf81b57b1fe328c665a049ce0f3a);
+                var html_dfcaf9ca05e48767a631502a8fad03ff = $(`<div id="html_dfcaf9ca05e48767a631502a8fad03ff" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #3</b><br>                 <b>Placa:</b> EPP329<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Carrera 83D # 95-25, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2233773,-75.6065988" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_bad1c1d2c3e78c141373b79e00faf44b.setContent(html_dfcaf9ca05e48767a631502a8fad03ff);
             
         
 
-        circle_marker_676c5566155f19560c945eaede396ec0.bindPopup(popup_6df85d01f84e42803558558fce6b2f6a)
+        circle_marker_6064e4086148b7addf0b977eb491dadb.bindPopup(popup_bad1c1d2c3e78c141373b79e00faf44b)
         ;
 
         
     
     
-            var marker_d282256a88666d5442758cf5975749bc = L.marker(
+            var marker_f2649304b3c1524d87281d1f9737a01b = L.marker(
                 [6.2233773, -75.6065988],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_f9020c28860b24359d0f7a6aa643ea6e = L.divIcon({
+            var div_icon_5a7b521c04243e5e200c9f392ea54d68 = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#3: EPP329\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_d282256a88666d5442758cf5975749bc.setIcon(div_icon_f9020c28860b24359d0f7a6aa643ea6e);
+                marker_f2649304b3c1524d87281d1f9737a01b.setIcon(div_icon_5a7b521c04243e5e200c9f392ea54d68);
             
     
-            var circle_marker_88af9703d15784d15734064cb96f881c = L.circleMarker(
+            var circle_marker_1034197ab9ad16d0583ed6fa807880e8 = L.circleMarker(
                 [6.2559031, -75.5705589],
                 {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-        var popup_c5b7b76db85f24e28ab971ffdac11d98 = L.popup({
+        var popup_5b0d8f0d7a69cca3ad78201990c5b1f5 = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_36c1fc2910a451e26341551710952ced = $(`<div id="html_36c1fc2910a451e26341551710952ced" style="width: 100.0%; height: 100.0%;"><b>Punto #4</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 56 # 51D-7, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2559031,-75.5705589' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_c5b7b76db85f24e28ab971ffdac11d98.setContent(html_36c1fc2910a451e26341551710952ced);
+                var html_6633f87b05dbd7618af12a32a8885033 = $(`<div id="html_6633f87b05dbd7618af12a32a8885033" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #4</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-02<br>                 <b>Dirección:</b> Calle 56 # 51D-7, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2559031,-75.5705589" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_5b0d8f0d7a69cca3ad78201990c5b1f5.setContent(html_6633f87b05dbd7618af12a32a8885033);
             
         
 
-        circle_marker_88af9703d15784d15734064cb96f881c.bindPopup(popup_c5b7b76db85f24e28ab971ffdac11d98)
+        circle_marker_1034197ab9ad16d0583ed6fa807880e8.bindPopup(popup_5b0d8f0d7a69cca3ad78201990c5b1f5)
         ;
 
         
     
     
-            var marker_2295ced222f6e1cccba09955441540db = L.marker(
+            var marker_391da0e064d2e077462faa14536e294a = L.marker(
                 [6.2559031, -75.5705589],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_82a2f045425dfed313af123b483c4d18 = L.divIcon({
+            var div_icon_5333f4612df3124b872277cf572f3e11 = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#4: KRV374\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_2295ced222f6e1cccba09955441540db.setIcon(div_icon_82a2f045425dfed313af123b483c4d18);
+                marker_391da0e064d2e077462faa14536e294a.setIcon(div_icon_5333f4612df3124b872277cf572f3e11);
             
     
-            var circle_marker_e235c2b320085862048e478328e28ab2 = L.circleMarker(
+            var circle_marker_5ef7cdd5491bdb44a546f98b5ca3c4b7 = L.circleMarker(
                 [6.2457362, -75.5820887],
                 {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-        var popup_127c09351fd33a25ff987532edc2bb4b = L.popup({
+        var popup_2a503c12215fe64434c33c576444ff94 = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_39301d889dae9b9a9b1d6b387783e137 = $(`<div id="html_39301d889dae9b9a9b1d6b387783e137" style="width: 100.0%; height: 100.0%;"><b>Punto #5</b><br><b>Placa:</b> LRY223<br><b>Estado:</b> ⚠️ PICO Y PLACA<br><b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2457362,-75.5820887' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_127c09351fd33a25ff987532edc2bb4b.setContent(html_39301d889dae9b9a9b1d6b387783e137);
+                var html_37447692572c37929208612a294b87e0 = $(`<div id="html_37447692572c37929208612a294b87e0" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #5</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2457362,-75.5820887" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_2a503c12215fe64434c33c576444ff94.setContent(html_37447692572c37929208612a294b87e0);
             
         
 
-        circle_marker_e235c2b320085862048e478328e28ab2.bindPopup(popup_127c09351fd33a25ff987532edc2bb4b)
+        circle_marker_5ef7cdd5491bdb44a546f98b5ca3c4b7.bindPopup(popup_2a503c12215fe64434c33c576444ff94)
         ;
 
         
     
     
-            var marker_c61d3b8b0a18b723d99f0292a99ee51a = L.marker(
+            var marker_e5f43832c19d35706cf15f6d6affaa01 = L.marker(
                 [6.2457362, -75.5820887],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_d7f210ba6cc31c5c095035419b2e41d5 = L.divIcon({
+            var div_icon_eb9557e761c312b9c5b450cc07e3235d = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#5: LRY223\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_c61d3b8b0a18b723d99f0292a99ee51a.setIcon(div_icon_d7f210ba6cc31c5c095035419b2e41d5);
+                marker_e5f43832c19d35706cf15f6d6affaa01.setIcon(div_icon_eb9557e761c312b9c5b450cc07e3235d);
             
     
-            var circle_marker_d649bd23070df4e4f916dd774b21722f = L.circleMarker(
+            var circle_marker_a2bbc3189808d5dc21de1e510a256488 = L.circleMarker(
                 [6.2563027, -75.5942873],
                 {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-        var popup_bb9772889b5d8f2dfde352deffa619ef = L.popup({
+        var popup_b98fdbf2f63c878f4141b4c7a2af0800 = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_98c301b7c4454270e4541114f0a6309d = $(`<div id="html_98c301b7c4454270e4541114f0a6309d" style="width: 100.0%; height: 100.0%;"><b>Punto #6</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 47D # 70-113, Medellín, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.2563027,-75.5942873' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_bb9772889b5d8f2dfde352deffa619ef.setContent(html_98c301b7c4454270e4541114f0a6309d);
+                var html_a6dd49a51c663231a9ef6295fe0efe36 = $(`<div id="html_a6dd49a51c663231a9ef6295fe0efe36" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #6</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 47D # 70-113, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2563027,-75.5942873" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_b98fdbf2f63c878f4141b4c7a2af0800.setContent(html_a6dd49a51c663231a9ef6295fe0efe36);
             
         
 
-        circle_marker_d649bd23070df4e4f916dd774b21722f.bindPopup(popup_bb9772889b5d8f2dfde352deffa619ef)
+        circle_marker_a2bbc3189808d5dc21de1e510a256488.bindPopup(popup_b98fdbf2f63c878f4141b4c7a2af0800)
         ;
 
         
     
     
-            var marker_3c0579fabdeab452cf7c189685c5dfef = L.marker(
+            var marker_39e11ef4671e72ca1a75763ed37f28db = L.marker(
                 [6.2563027, -75.5942873],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_e617c92c77a1fc85485ec48a3cfb8877 = L.divIcon({
+            var div_icon_3da20d63918db48e0ebc82850784025e = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#6: KRV374\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_3c0579fabdeab452cf7c189685c5dfef.setIcon(div_icon_e617c92c77a1fc85485ec48a3cfb8877);
+                marker_39e11ef4671e72ca1a75763ed37f28db.setIcon(div_icon_3da20d63918db48e0ebc82850784025e);
             
     
-            var circle_marker_41c3360d9d1d1d403c4f6779e8671f66 = L.circleMarker(
+            var circle_marker_35e5242c7c1999b191b86d9df551c19a = L.circleMarker(
                 [6.1822079, -75.6042365],
                 {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-        var popup_024f651d201154b1406faef406fa9dfb = L.popup({
+        var popup_e2f354706a24e52f5ab320303b285df2 = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_dba86e9a0b4b15bccfd708724da2c215 = $(`<div id="html_dba86e9a0b4b15bccfd708724da2c215" style="width: 100.0%; height: 100.0%;"><b>Punto #8</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Calle 66 # 48-111, Itagüí, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.1822079,-75.6042365' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_024f651d201154b1406faef406fa9dfb.setContent(html_dba86e9a0b4b15bccfd708724da2c215);
+                var html_30b9dbef1e586966b541e302961b4f0e = $(`<div id="html_30b9dbef1e586966b541e302961b4f0e" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #8</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 66 # 48-111, Itagüí, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.1822079,-75.6042365" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_e2f354706a24e52f5ab320303b285df2.setContent(html_30b9dbef1e586966b541e302961b4f0e);
             
         
 
-        circle_marker_41c3360d9d1d1d403c4f6779e8671f66.bindPopup(popup_024f651d201154b1406faef406fa9dfb)
+        circle_marker_35e5242c7c1999b191b86d9df551c19a.bindPopup(popup_e2f354706a24e52f5ab320303b285df2)
         ;
 
         
     
     
-            var marker_0fe673b4bae7f198960c583828c24dd1 = L.marker(
+            var marker_f3ec4ca437341497c5459798b672849e = L.marker(
                 [6.1822079, -75.6042365],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_939f9a92589789911f226749075e8878 = L.divIcon({
+            var div_icon_0c3fcb8d5f40ad63ddf204295a2af784 = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#8: KRV374\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_0fe673b4bae7f198960c583828c24dd1.setIcon(div_icon_939f9a92589789911f226749075e8878);
+                marker_f3ec4ca437341497c5459798b672849e.setIcon(div_icon_0c3fcb8d5f40ad63ddf204295a2af784);
             
     
-            var circle_marker_ac26625143a02114020970221f158dbe = L.circleMarker(
+            var circle_marker_b1e938b690743211f42140ab0eec77b2 = L.circleMarker(
                 [6.1898072, -75.5858112],
                 {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-        var popup_ee61c8d84c50421efa473d51fd2bcf2b = L.popup({
+        var popup_38ba5833da1b5cd2b0909d63929d47ce = L.popup({
   "maxWidth": 250,
 });
 
         
             
-                var html_175658c187e36d4298caf7dd66146a81 = $(`<div id="html_175658c187e36d4298caf7dd66146a81" style="width: 100.0%; height: 100.0%;"><b>Punto #9</b><br><b>Placa:</b> KRV374<br><b>Estado:</b> ✅ HÁBIL<br><b>Dirección:</b> Carrera 44 # 63-11, Itagüí, Antioquia<br><br><a href='https://www.google.com/maps/search/?api=1&query=6.1898072,-75.5858112' target='_blank' style='background-color: #4CAF50; color: white; padding: 5px 8px; text-decoration: none; border-radius: 4px; display: inline-block;'>🗺️ Abrir GPS</a></div>`)[0];
-                popup_ee61c8d84c50421efa473d51fd2bcf2b.setContent(html_175658c187e36d4298caf7dd66146a81);
+                var html_1d33841f89f297815a417862bb9a4557 = $(`<div id="html_1d33841f89f297815a417862bb9a4557" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #9</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-03<br>                 <b>Dirección:</b> Carrera 44 # 63-11, Itagüí, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.1898072,-75.5858112" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_38ba5833da1b5cd2b0909d63929d47ce.setContent(html_1d33841f89f297815a417862bb9a4557);
             
         
 
-        circle_marker_ac26625143a02114020970221f158dbe.bindPopup(popup_ee61c8d84c50421efa473d51fd2bcf2b)
+        circle_marker_b1e938b690743211f42140ab0eec77b2.bindPopup(popup_38ba5833da1b5cd2b0909d63929d47ce)
         ;
 
         
     
     
-            var marker_d9892fa297bba40a6018bbec3562e199 = L.marker(
+            var marker_147d05557b4b6f299a836764523b9a3a = L.marker(
                 [6.1898072, -75.5858112],
                 {
 }
-            ).addTo(map_8d24d7f4cc63582e618c72d7948cd43e);
+            ).addTo(feature_group_0593c1405d59bd3d249a3021675b2c07);
         
     
-            var div_icon_df45f7ba9d3dffc2680b4ead07a52184 = L.divIcon({
+            var div_icon_16e0a8ac64ac6d77c933265e39cbc242 = L.divIcon({
   "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#9: KRV374\u003c/div\u003e",
   "className": "empty",
 });
         
     
-                marker_d9892fa297bba40a6018bbec3562e199.setIcon(div_icon_df45f7ba9d3dffc2680b4ead07a52184);
+                marker_147d05557b4b6f299a836764523b9a3a.setIcon(div_icon_16e0a8ac64ac6d77c933265e39cbc242);
             
+    
+            feature_group_0593c1405d59bd3d249a3021675b2c07.addTo(map_5b43a888c571dbf95cf80b749e789b65);
+        
+    
+            var feature_group_c1e9a053544e276fe0f65ac88ff49a6b = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_marker_be7008ec456677de3e49aa91847e1fb7 = L.circleMarker(
+                [6.3474904, -75.5117097],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_c1e9a053544e276fe0f65ac88ff49a6b);
+        
+    
+        var popup_72eb6e59b3fd3a4a621e2d566f7e53f9 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_bf6b5ac27c93a5d842b0e94c793e55df = $(`<div id="html_bf6b5ac27c93a5d842b0e94c793e55df" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_72eb6e59b3fd3a4a621e2d566f7e53f9.setContent(html_bf6b5ac27c93a5d842b0e94c793e55df);
+            
+        
+
+        circle_marker_be7008ec456677de3e49aa91847e1fb7.bindPopup(popup_72eb6e59b3fd3a4a621e2d566f7e53f9)
+        ;
+
+        
+    
+    
+            var marker_1db84c46697e3513b168d0ea21a8c65f = L.marker(
+                [6.3474904, -75.5117097],
+                {
+}
+            ).addTo(feature_group_c1e9a053544e276fe0f65ac88ff49a6b);
+        
+    
+            var div_icon_ab2d569a1a263b9b089de4cf48abb57c = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#1: LRY223\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_1db84c46697e3513b168d0ea21a8c65f.setIcon(div_icon_ab2d569a1a263b9b089de4cf48abb57c);
+            
+    
+            var circle_marker_7738449d564e4d7ec2325340967aee07 = L.circleMarker(
+                [6.2457362, -75.5820887],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_c1e9a053544e276fe0f65ac88ff49a6b);
+        
+    
+        var popup_09158339c2f8c2b1f847f00fb0f6605d = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_fd79978a025256e6021ca4e672649854 = $(`<div id="html_fd79978a025256e6021ca4e672649854" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #5</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2457362,-75.5820887" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_09158339c2f8c2b1f847f00fb0f6605d.setContent(html_fd79978a025256e6021ca4e672649854);
+            
+        
+
+        circle_marker_7738449d564e4d7ec2325340967aee07.bindPopup(popup_09158339c2f8c2b1f847f00fb0f6605d)
+        ;
+
+        
+    
+    
+            var marker_c291ee136779524aba3bfa448e5a576a = L.marker(
+                [6.2457362, -75.5820887],
+                {
+}
+            ).addTo(feature_group_c1e9a053544e276fe0f65ac88ff49a6b);
+        
+    
+            var div_icon_ea9fe4bbe957cfa076f70a28039a312b = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#5: LRY223\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_c291ee136779524aba3bfa448e5a576a.setIcon(div_icon_ea9fe4bbe957cfa076f70a28039a312b);
+            
+    
+            feature_group_c1e9a053544e276fe0f65ac88ff49a6b.addTo(map_5b43a888c571dbf95cf80b749e789b65);
+        
+    
+            var feature_group_a13094c0ad7131db1cee3622d9a087a5 = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_marker_a82f358b554976b5d45fabf6408b95b1 = L.circleMarker(
+                [6.3474904, -75.5117097],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+        var popup_c9113f1021849e5dfedab0c086dfec33 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_3f34cf63a00cb0f7c0ac01cb1e0835fb = $(`<div id="html_3f34cf63a00cb0f7c0ac01cb1e0835fb" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_c9113f1021849e5dfedab0c086dfec33.setContent(html_3f34cf63a00cb0f7c0ac01cb1e0835fb);
+            
+        
+
+        circle_marker_a82f358b554976b5d45fabf6408b95b1.bindPopup(popup_c9113f1021849e5dfedab0c086dfec33)
+        ;
+
+        
+    
+    
+            var marker_23e6f03faeea084c096fd7411f96297e = L.marker(
+                [6.3474904, -75.5117097],
+                {
+}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+            var div_icon_028d0a9554171f69ab0720d1567a6fd7 = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#1: LRY223\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_23e6f03faeea084c096fd7411f96297e.setIcon(div_icon_028d0a9554171f69ab0720d1567a6fd7);
+            
+    
+            var circle_marker_b2f117956e6962466895a8f6219404e9 = L.circleMarker(
+                [6.2233773, -75.6065988],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+        var popup_1458c5783ae9517400dc4c0d855952ef = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_d92a55ae18e73dce37aacdeaf6b5e22c = $(`<div id="html_d92a55ae18e73dce37aacdeaf6b5e22c" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #3</b><br>                 <b>Placa:</b> EPP329<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Carrera 83D # 95-25, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2233773,-75.6065988" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_1458c5783ae9517400dc4c0d855952ef.setContent(html_d92a55ae18e73dce37aacdeaf6b5e22c);
+            
+        
+
+        circle_marker_b2f117956e6962466895a8f6219404e9.bindPopup(popup_1458c5783ae9517400dc4c0d855952ef)
+        ;
+
+        
+    
+    
+            var marker_cbd315d6067671b283cdd0d5c4f3ff45 = L.marker(
+                [6.2233773, -75.6065988],
+                {
+}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+            var div_icon_5ef78e27f29254c4cef30c2795ce771c = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#3: EPP329\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_cbd315d6067671b283cdd0d5c4f3ff45.setIcon(div_icon_5ef78e27f29254c4cef30c2795ce771c);
+            
+    
+            var circle_marker_d8a4cbd12dfe67fa66336c8f22c68166 = L.circleMarker(
+                [6.2457362, -75.5820887],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+        var popup_d06808a5bc20d44a1a067241a5ba5277 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_c13b2a56134f20316eddc9f431f2cc1a = $(`<div id="html_c13b2a56134f20316eddc9f431f2cc1a" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #5</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2457362,-75.5820887" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_d06808a5bc20d44a1a067241a5ba5277.setContent(html_c13b2a56134f20316eddc9f431f2cc1a);
+            
+        
+
+        circle_marker_d8a4cbd12dfe67fa66336c8f22c68166.bindPopup(popup_d06808a5bc20d44a1a067241a5ba5277)
+        ;
+
+        
+    
+    
+            var marker_60d4e4efcdf9db95c67f465ef31e9911 = L.marker(
+                [6.2457362, -75.5820887],
+                {
+}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+            var div_icon_b631be00766c32848e68d3b748eef566 = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#5: LRY223\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_60d4e4efcdf9db95c67f465ef31e9911.setIcon(div_icon_b631be00766c32848e68d3b748eef566);
+            
+    
+            var circle_marker_430fa8c9e5aff428eeb5e42a5f4cb39c = L.circleMarker(
+                [6.2563027, -75.5942873],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+        var popup_e9bdb2a883403bfcde638536b153cdd9 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_bafa8bf64bdf71fbb9ea77a17bd81485 = $(`<div id="html_bafa8bf64bdf71fbb9ea77a17bd81485" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #6</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 47D # 70-113, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2563027,-75.5942873" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_e9bdb2a883403bfcde638536b153cdd9.setContent(html_bafa8bf64bdf71fbb9ea77a17bd81485);
+            
+        
+
+        circle_marker_430fa8c9e5aff428eeb5e42a5f4cb39c.bindPopup(popup_e9bdb2a883403bfcde638536b153cdd9)
+        ;
+
+        
+    
+    
+            var marker_b73e8b8827eeb316f1f577d75eb798cd = L.marker(
+                [6.2563027, -75.5942873],
+                {
+}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+            var div_icon_0fc27b6d0ecc471faf773cc8f4032da8 = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#6: KRV374\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_b73e8b8827eeb316f1f577d75eb798cd.setIcon(div_icon_0fc27b6d0ecc471faf773cc8f4032da8);
+            
+    
+            var circle_marker_3c883d32858ed2a66ce5c26711181b4d = L.circleMarker(
+                [6.1822079, -75.6042365],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#D32F2F", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+        var popup_075621264bc4be9e6836fa5506547cec = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_0c7dd2730eecdf35b9ac38bf9f244b0d = $(`<div id="html_0c7dd2730eecdf35b9ac38bf9f244b0d" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #8</b><br>                 <b>Placa:</b> KRV374<br>                 <b>Estado:</b> ✅ HÁBIL<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 66 # 48-111, Itagüí, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.1822079,-75.6042365" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_075621264bc4be9e6836fa5506547cec.setContent(html_0c7dd2730eecdf35b9ac38bf9f244b0d);
+            
+        
+
+        circle_marker_3c883d32858ed2a66ce5c26711181b4d.bindPopup(popup_075621264bc4be9e6836fa5506547cec)
+        ;
+
+        
+    
+    
+            var marker_1ed9059c5c0cdb28d3cb38eb15587227 = L.marker(
+                [6.1822079, -75.6042365],
+                {
+}
+            ).addTo(feature_group_a13094c0ad7131db1cee3622d9a087a5);
+        
+    
+            var div_icon_3b3c41f46923a2d5e0417ff362bc7c50 = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#8: KRV374\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_1ed9059c5c0cdb28d3cb38eb15587227.setIcon(div_icon_3b3c41f46923a2d5e0417ff362bc7c50);
+            
+    
+            feature_group_a13094c0ad7131db1cee3622d9a087a5.addTo(map_5b43a888c571dbf95cf80b749e789b65);
+        
+    
+            var feature_group_f5fac66e344de72a909e21fb83bc0eed = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_marker_939cddc13581ee87cac0695aefe4833d = L.circleMarker(
+                [6.3474904, -75.5117097],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_f5fac66e344de72a909e21fb83bc0eed);
+        
+    
+        var popup_c2c42009be2b4bd5fa5989e72e352a30 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_4fc2c252f4fe04c26dc2c213b78c7ffe = $(`<div id="html_4fc2c252f4fe04c26dc2c213b78c7ffe" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #1</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 54 # 56-32, Copacabana, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.3474904,-75.5117097" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_c2c42009be2b4bd5fa5989e72e352a30.setContent(html_4fc2c252f4fe04c26dc2c213b78c7ffe);
+            
+        
+
+        circle_marker_939cddc13581ee87cac0695aefe4833d.bindPopup(popup_c2c42009be2b4bd5fa5989e72e352a30)
+        ;
+
+        
+    
+    
+            var marker_73302cd02024b0af22c0e628f8c52604 = L.marker(
+                [6.3474904, -75.5117097],
+                {
+}
+            ).addTo(feature_group_f5fac66e344de72a909e21fb83bc0eed);
+        
+    
+            var div_icon_93c6a6d81de894611655a1f51987ace2 = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#1: LRY223\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_73302cd02024b0af22c0e628f8c52604.setIcon(div_icon_93c6a6d81de894611655a1f51987ace2);
+            
+    
+            var circle_marker_ba9737015fa31bdac4262c9f1a4914f4 = L.circleMarker(
+                [6.2457362, -75.5820887],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#8B0000", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 1}
+            ).addTo(feature_group_f5fac66e344de72a909e21fb83bc0eed);
+        
+    
+        var popup_5ccfa237a23cc761324f2ebeb59093e5 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_01647508ad225b3a8639e5020037e798 = $(`<div id="html_01647508ad225b3a8639e5020037e798" style="width: 100.0%; height: 100.0%;">             <div style="font-family: Arial; font-size: 13px; width: 200px;">                 <b>Punto #5</b><br>                 <b>Placa:</b> LRY223<br>                 <b>Estado:</b> ⚠️ PICO Y PLACA<br>                 <b>Fecha:</b> 2026-10-08<br>                 <b>Dirección:</b> Calle 42B # 52-106, Medellín, Antioquia<br><br>                 <a href="https://www.google.com/maps/dir/?api=1&destination=6.2457362,-75.5820887" target="_blank" style="background-color: #2196F3; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; display: block; text-align: center; font-weight: bold;">🧭 Enrutar desde mi GPS</a>             </div>             </div>`)[0];
+                popup_5ccfa237a23cc761324f2ebeb59093e5.setContent(html_01647508ad225b3a8639e5020037e798);
+            
+        
+
+        circle_marker_ba9737015fa31bdac4262c9f1a4914f4.bindPopup(popup_5ccfa237a23cc761324f2ebeb59093e5)
+        ;
+
+        
+    
+    
+            var marker_dca6abb53c8c43f7b1d6c8c135857269 = L.marker(
+                [6.2457362, -75.5820887],
+                {
+}
+            ).addTo(feature_group_f5fac66e344de72a909e21fb83bc0eed);
+        
+    
+            var div_icon_f3784723abaa569655e9808c23fc10c6 = L.divIcon({
+  "html": "\u003cdiv style=\"font-size: 10px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 12px; margin-top: -8px;\"\u003e#5: LRY223\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_dca6abb53c8c43f7b1d6c8c135857269.setIcon(div_icon_f3784723abaa569655e9808c23fc10c6);
+            
+    
+            feature_group_f5fac66e344de72a909e21fb83bc0eed.addTo(map_5b43a888c571dbf95cf80b749e789b65);
+        
+    
+            var layer_control_6c20cd90d935ad76dc323a5ba7536336_layers = {
+                base_layers : {
+                    "openstreetmap" : tile_layer_b3fe07da60203afdb5a01747590299d0,
+                },
+                overlays :  {
+                    "4. Ver todas las placas" : feature_group_0593c1405d59bd3d249a3021675b2c07,
+                    "1. Placas con Pico y Placa" : feature_group_c1e9a053544e276fe0f65ac88ff49a6b,
+                    "2. Subidas el d\u00eda de hoy" : feature_group_a13094c0ad7131db1cee3622d9a087a5,
+                    "3. Pico y Placa + Hoy" : feature_group_f5fac66e344de72a909e21fb83bc0eed,
+                },
+            };
+            let layer_control_6c20cd90d935ad76dc323a5ba7536336 = L.control.layers(
+                layer_control_6c20cd90d935ad76dc323a5ba7536336_layers.base_layers,
+                layer_control_6c20cd90d935ad76dc323a5ba7536336_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": false,
+  "autoZIndex": true,
+}
+            ).addTo(map_5b43a888c571dbf95cf80b749e789b65);
+
+        
 </script>
 </html>
