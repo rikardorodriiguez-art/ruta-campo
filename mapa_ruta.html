@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ruta de Campo - Raptor S.A.S.</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        .floating-btn-add {
+            position: fixed; bottom: 20px; left: 20px; z-index: 99999;
+            background-color: #2c3e50; color: white; border: none; padding: 12px 18px;
+            border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
+        }
+        
+        .floating-menu {
+            position: fixed; bottom: 80px; left: 20px; z-index: 99999;
+            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px;
+        }
+
+        .floating-menu button.main-opt { background-color: #34495e; color: white; border: none; padding: 8px; width: 100%; border-radius: 5px; margin-bottom: 6px; font-weight: bold; cursor: pointer; text-align: left; }
+        .sub-panel { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; }
+        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 4px; font-size: 11px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .sub-panel button.action { background-color: #ff9800; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; margin-top: 6px; font-weight: bold; cursor: pointer; }
+        .sub-panel button.close-sub { background-color: #e74c3c; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; margin-top: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
+    <div id="menuOpciones" class="floating-menu">
+        <div class="header-menu">
+            <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
+            <button onclick="toggleMenuAdd()">✖</button>
+        </div>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar múltiples reportes</button>
+        <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual</button>
+
+        <div id="seccion-whatsapp" class="sub-panel">
+            <b style="color:#2c3e50; font-size:10px;">Pega varios reportes juntos:</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí..." style="height: 100px;"></textarea>
+            <button class="action" onclick="procesarLote()">Analizar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Cerrar</button>
+        </div>
+
+        <div id="seccion-manual" class="sub-panel">
+            <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
+            <input type="text" id="manDir" placeholder="Dirección exacta">
+            <button class="action" onclick="procesarManual()">Agregar Punto</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Cerrar</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
+    <script>
+        var map = L.map('map').setView([6.2442, -75.5812], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+        L.control.locate({
+            position: 'topleft',
+            strings: { title: "Mi ubicación actual" },
+            locateOptions: { maxZoom: 16, enableHighAccuracy: true },
+            autoStart: true
+        }).addTo(map);
+
+        function toggleMenuAdd() {
+            var m = document.getElementById('menuOpciones');
+            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function abrirSeccion(tipo) {
+            document.getElementById('seccion-whatsapp').style.display = 'none';
+            document.getElementById('seccion-manual').style.display = 'none';
+            document.getElementById('seccion-' + tipo).style.display = 'block';
+        }
+
+        function cerrarSecciones() {
+            document.getElementById('seccion-whatsapp').style.display = 'none';
+            document.getElementById('seccion-manual').style.display = 'none';
+            document.getElementById('menuOpciones').style.display = 'none';
+        }
+
+        function marcarVisitada(placa, idx) {
+            var key = 'visitas_' + placa;
+            var actual = parseInt(localStorage.getItem(key) || 0) + 1;
+            localStorage.setItem(key, actual);
+            var span = document.getElementById('contador-' + idx);
+            if (span) { span.innerText = actual; }
+            alert("¡Placa " + placa + " visitada! Total: " + actual);
+        }
+
+        var puntosData = [];
+
+        function obtenerCoordenadas(textoDir) {
+            var t = textoDir.toUpperCase();
+            if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
+            if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
+            if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
+            if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
+            return {lat: 6.2442, lng: -75.5812};
+        }
+
+        function procesarLote() {
+            var texto = document.getElementById('txtWhatsapp').value;
+            if(!texto) { alert("Pega el texto."); return; }
+
+            var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
+            var total = 0;
+
+            bloques.forEach(function(bloque) {
+                if (bloque.trim().length < 5) return;
+                var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
+                if (!matches) return;
+                var placa = matches[0].toUpperCase();
+
+                var dir = "Medellin";
+                var lineas = bloque.split('\n');
+                lineas.forEach(function(l) {
+                    var up = l.toUpperCase();
+                    if (up.includes("#") || up.includes("CL ") || up.includes("KR ")) {
+                        dir = l.trim();
+                    }
+                });
+
+                var coords = obtenerCoordenadas(dir + " " + bloque);
+                agregarMarcador(placa, dir, coords.lat, coords.lng, puntosData.length + 1);
+                total++;
+            });
+
+            if (total > 0) {
+                alert("¡Lote procesado con éxito!");
+                document.getElementById('txtWhatsapp').value = '';
+                cerrarSecciones();
+            } else {
+                alert("No se encontraron placas válidas.");
+            }
+        }
+
+        function procesarManual() {
+            var placa = document.getElementById('manPlaca').value.toUpperCase();
+            var dir = document.getElementById('manDir').value;
+            if(!placa || !dir) { alert("Ingresa placa y dirección."); return; }
+            var coords = obtenerCoordenadas(dir);
+            agregarMarcador(placa, dir, coords.lat, coords.lng, puntosData.length + 1);
+            alert("Punto agregado.");
+            cerrarSecciones();
+        }
+
+        function agregarMarcador(placa, dir, lat, lng, idx) {
+            var visitas = localStorage.getItem('visitas_' + placa) || 0;
+            var mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(dir);
+
+            var popupContent = `
+                <div style="font-family: Arial; font-size: 13px; width: 220px;">
+                    <b>Placa:</b> ${placa}<br>
+                    <b>Dir:</b> ${dir}<br>
+                    <b>Visitas:</b> <span id="contador-${idx}">${visitas}</span><br><br>
+                    <a href="${mapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir a Google Maps</a>
+                    <button onclick="marcarVisitada('${placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">2. ✅ Visitada</button>
+                </div>
+            `;
+
+            var marker = L.marker([lat, lng]).bindPopup(popupContent).addTo(map);
+            puntosData.push({ marker: marker });
+        }
+    </script>
+</body>
+</html>
