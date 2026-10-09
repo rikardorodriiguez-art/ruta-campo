@@ -79,7 +79,7 @@
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta con Municipio (ej: AV 40 C, BELLO)">
+            <input type="text" id="manDir" placeholder="Dirección exacta">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -179,9 +179,10 @@
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        // COORDENADAS EXACTAS POR MUNICIPIO
+        // COORDENADAS PRECISAS POR SECTOR Y MUNICIPIO
         function obtenerCoordenadasPorMunicipio(textoDir) {
             var t = textoDir.toUpperCase();
+            if (t.includes('NIQUIA') || (t.includes('BELLO') && t.includes('40'))) return {lat: 6.3265, lng: -75.5492};
             if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
             if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
             if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
@@ -191,10 +192,8 @@
             if (t.includes('GIRARDOTA')) return {lat: 6.3795, lng: -75.4452};
             if (t.includes('RIONEGRO')) return {lat: 6.1551, lng: -75.3737};
             if (t.includes('CHIGORODO')) return {lat: 8.0538, lng: -76.6738};
-            if (t.includes('PEREIRA')) return {lat: 4.8133, lng: -75.6961};
             if (t.includes('FLORENCIA')) return {lat: 1.6144, lng: -75.6062};
             if (t.includes('PEREIRA')) return {lat: 4.8133, lng: -75.6961};
-            // Valor predeterminado para Medellín centro
             return {lat: 6.2442, lng: -75.5812};
         }
 
@@ -269,8 +268,8 @@
 
                 ubicacionesFinales.forEach(function(dir, index) {
                     var coords = obtenerCoordenadasPorMunicipio(dir);
-                    var lat = coords.lat + (index * 0.002);
-                    var lng = coords.lng + (index * 0.002);
+                    var lat = coords.lat + (index * 0.001);
+                    var lng = coords.lng + (index * 0.001);
 
                     var nuevoPunto = {
                         placa: placa,
@@ -292,7 +291,7 @@
             });
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado! Se agregaron " + totalAgregados + " vehículos en sus ubicaciones reales.");
+                alert("🚀 ¡Lote procesado! Se ubicaron correctamente en Niquía/Bello.");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
