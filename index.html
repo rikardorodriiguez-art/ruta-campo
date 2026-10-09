@@ -63,6 +63,12 @@
             z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 15px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column;
         }
 
+        #modal-asistente, #modal-recalcular {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.4);
+            width: 310px; z-index: 9999999; display: none; font-family: Arial; font-size: 12px;
+        }
+
         .leaflet-popup-content { margin: 10px; line-height: 1.4; }
         .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
         .edit-input { width: 100%; margin-bottom: 4px; padding: 3px; font-size: 12px; border: 1px solid #aaa; border-radius: 3px; box-sizing: border-box; }
@@ -72,7 +78,30 @@
     <div id="map"></div>
 
     <div id="loading-overlay">
-        <span id="loading-texto">🎯 Ubicando puntos...</span>
+        <span id="loading-texto">🎯 Procesando...</span>
+    </div>
+
+    <!-- MODAL DE RESCATE VISUAL OCR -->
+    <div id="modal-asistente">
+        <b style="color: #c0392b; font-size: 13px; display: block; margin-bottom: 8px;">✏️ Revisar Texto de Consulta:</b>
+        <span style="font-size: 10px; color:#555; display:block; margin-bottom:6px;">Corrige las líneas de las direcciones aquí:</span>
+        <textarea id="asistente-texto" placeholder="" style="width:100%; height:110px; font-size:11px; padding:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:none;"></textarea>
+        <div style="display:flex; gap:6px; margin-top:10px;">
+            <button onclick="procesarModalRescate()" style="flex:1; background:#27ae60; color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer;">Mapear</button>
+            <button onclick="cerrarAsistente()" style="flex:1; background:#7f8c8d; color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer;">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL NUEVO PARA RECALCULAR UBICACIÓN (EVITA BLOQUEOS EN CELULAR) -->
+    <div id="modal-recalcular">
+        <b style="color: #1abc9c; font-size: 13px; display: block; margin-bottom: 8px;">🔄 Recalcular Ubicación:</b>
+        <span style="font-size: 10px; color:#555; display:block; margin-bottom:6px;">Hemos limpiado la dirección para buscarla mejor. Borra lo que sobre y deja solo la calle principal y la ciudad:</span>
+        <input type="text" id="recalcular-input" style="width:100%; font-size:13px; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; margin-bottom: 10px;">
+        <input type="hidden" id="recalcular-marker-id">
+        <div style="display:flex; gap:6px;">
+            <button onclick="ejecutarRecalculo()" style="flex:1; background:#1abc9c; color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer;">Buscar y Mover</button>
+            <button onclick="cerrarModalRecalcular()" style="flex:1; background:#e74c3c; color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer;">Cancelar</button>
+        </div>
     </div>
 
     <div id="modo-edicion-banner">
@@ -88,8 +117,7 @@
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
         <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual (Carro / Punto)</button>
-        <button class="main-opt" onclick="abrirSeccion('gemini')" style="background-color: #8e44ad; color: white;">3. ⚡ Pegar Extracción de Gemini (IA)</button>
+        <button class="main-opt" onclick="abrirSeccion('manual')" style="background-color: #8e44ad; color: white;">2. ✍️/📄 Ingreso manual o Foto</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
@@ -99,23 +127,19 @@
         </div>
 
         <div id="seccion-manual" class="sub-panel">
-            <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
+            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección.</b><br>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa, deja dirección vacía y sube la foto.</b>
+            
+            <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta">
-            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto Inicial (Opcional):</b>
+            <input type="text" id="manDir" placeholder="Dirección (Vacío si subes foto reporte)">
+            
+            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Reporte (Datacrédito/CIFIN):</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
-            <button class="action" onclick="procesarManual()">Agregar Punto</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
-        </div>
-
-        <div id="seccion-gemini" class="sub-panel">
-            <b style="color:#8e44ad; font-size:11px;">⚡ IMPORTADOR EXCLUSIVO DE EXTRAÍDOS DE GEMINI</b><br><br>
-            <b style="font-size: 10px; display: block; margin-bottom: 6px;">Pega los datos exactos que copiaste del chat:</b>
-            <textarea id="txtGemini" placeholder="Pega aquí el bloque de datos de Gemini..." style="height: 120px; font-size: 10px;"></textarea>
-            <button class="action" onclick="procesarExtraccionGemini()" style="background-color: #8e44ad;">Mapear Todo en el Mapa</button>
+            <button class="action" onclick="procesarManual()" style="background-color: #8e44ad;">Procesar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
     </div>
@@ -158,6 +182,7 @@
         var puntoEnEdicionId = null;
         var placasRegistradas = {};
         var puntosData = [];
+        var actualPlacaFuerza = "";
 
         map.on('click', function(e) {
             if (puntoEnEdicionId) {
@@ -203,14 +228,12 @@
         function abrirSeccion(tipo) {
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('seccion-gemini').style.display = 'none';
             document.getElementById('seccion-' + tipo).style.display = 'block';
         }
 
         function cerrarSecciones() {
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('seccion-gemini').style.display = 'none';
             document.getElementById('menuOpciones').style.display = 'none';
         }
 
@@ -259,12 +282,38 @@
             });
         }
 
-        // LÓGICA DE CIUDADES INTELIGENTE
+        function preprocesarImagen(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width * 3;
+                        canvas.height = img.height * 3;
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imgData.data;
+                        for (let i = 0; i < data.length; i += 4) {
+                            const grayscale = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                            const v = (grayscale < 140) ? 0 : 255; 
+                            data[i] = v; data[i + 1] = v; data[i + 2] = v;
+                        }
+                        ctx.putImageData(imgData, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg', 1.0));
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
         async function obtenerCoordenadasExactasLimpias(dir) {
-            var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ')
-                               .replace(/KR\s*|CR\s*/gi, 'Carrera ')
-                               .replace(/#/g, ' ')
-                               .replace(/-/g, ' ');
+            var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ').replace(/KR\s*|CR\s*/gi, 'Carrera ').replace(/#/g, ' ').replace(/-/g, ' ');
             var query = dirLimpia + ", Colombia"; 
             
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
@@ -296,15 +345,14 @@
             return {lat: 6.2442, lng: -75.5812}; 
         }
 
-        // NUEVA LÓGICA: PROMPT INTELIGENTE CON "MEMORIA DE CIUDAD"
-        async function reubicarPuntoAutomatico(markerId) {
+        // --- SISTEMA DEFINITIVO PARA RECALCULAR UBICACIÓN EN MÓVILES ---
+        function abrirModalRecalcular(markerId) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex === -1) return;
 
-            var p = puntosData[itemIndex];
-            var dirOriginal = p.dir;
+            var dirOriginal = puntosData[itemIndex].dir;
 
-            // 1. Detectar ciudad ANTES de limpiar
+            // Memoria de Ciudad
             var ciudad = "";
             var t = dirOriginal.toUpperCase();
             if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) ciudad = "Bogota";
@@ -315,67 +363,95 @@
             else if (t.includes('ENVIGADO')) ciudad = "Envigado";
             else if (t.includes('ITAGUI') || t.includes('ITAGÜÍ')) ciudad = "Itagui";
             else if (t.includes('CALI')) ciudad = "Cali";
-            else if (t.includes('BARRANQUILLA')) ciudad = "Barranquilla";
-            else if (t.includes('CARTAGENA')) ciudad = "Cartagena";
-            else if (t.includes('SABANETA')) ciudad = "Sabaneta";
             else if (t.includes('MEDELLIN') || t.includes('MEDELLÍN')) ciudad = "Medellin";
 
-            // 2. Limpieza agresiva de basura (AP, TO, IN...)
+            // Limpieza
             var dirLimpia = dirOriginal.toUpperCase();
-            dirLimpia = dirLimpia.replace(/\([^)]*\)/g, ''); // quita texto en parentesis
+            dirLimpia = dirLimpia.replace(/\([^)]*\)/g, ''); 
             dirLimpia = dirLimpia.replace(/\b(AP|APTO|APT|IN|INT|INTERIOR|BL|BLOQUE|ET|ETAPA|PI|PISO|ED|EDIFICIO|TO|TORRE|LC|LOCAL|LT|LOTE|MZ|MANZANA|URB|URBANIZACION|BARRIO|BR)\b.*/g, '');
             dirLimpia = dirLimpia.replace(/\bCL\b/g, 'Calle').replace(/\bKR\b|\bCR\b|\bCRA\b/g, 'Carrera').replace(/\bDG\b|\bDIAG\b/g, 'Diagonal').replace(/\bTV\b|\bTR\b/g, 'Transversal');
             dirLimpia = dirLimpia.replace(/#/g, ' ').replace(/-/g, ' ').trim();
 
-            // 3. Volver a pegar la ciudad al final (Si la borró el corte agresivo)
             if (ciudad !== "" && !dirLimpia.toUpperCase().includes(ciudad.toUpperCase())) {
                 dirLimpia = dirLimpia + ", " + ciudad;
             }
 
-            // 4. Mostrar PROMPT para que el usuario pueda pulirla aún más antes de buscar
-            var dirEditada = prompt("✏️ Revisa y corrige la dirección antes de recalcular:", dirLimpia);
+            document.getElementById('recalcular-marker-id').value = markerId;
+            document.getElementById('recalcular-input').value = dirLimpia;
             
-            // Si le da Cancelar o lo deja vacío, se cancela el proceso
-            if (dirEditada === null || dirEditada.trim() === "") {
-                return; 
+            // Cierra el globito para evitar bloqueos del navegador
+            map.closePopup();
+            document.getElementById('modal-recalcular').style.display = 'block';
+        }
+
+        async function ejecutarRecalculo() {
+            var markerId = document.getElementById('recalcular-marker-id').value;
+            var dirEditada = document.getElementById('recalcular-input').value;
+            
+            if(!dirEditada || dirEditada.trim() === "") {
+                alert("La dirección no puede estar vacía.");
+                return;
             }
 
+            document.getElementById('modal-recalcular').style.display = 'none';
             document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🔄 Buscando en Google Maps...";
+            document.getElementById('loading-texto').innerText = "🔄 Buscando en el mapa...";
 
             var query = dirEditada.trim() + ", Colombia"; 
             
+            // DOBLE MOTOR DE BÚSQUEDA: Si falla Google, usa OpenStreetMap
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
-            var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
+            var urlGoogle = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
+            var urlOSM = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query);
             
+            var latNueva = null, lngNueva = null;
+            var motorUsado = "";
+
             try {
-                var response = await fetch(url);
-                var data = await response.json();
-                if (data.status === "OK" && data.results.length > 0) {
-                    var location = data.results[0].geometry.location;
-                    
-                    // Actualizar el punto (Lat, Lng) y la dirección limpia
-                    puntosData[itemIndex].lat = parseFloat(location.lat);
-                    puntosData[itemIndex].lng = parseFloat(location.lng);
+                // Intento 1: Google Maps
+                var resG = await fetch(urlGoogle);
+                var dataG = await resG.json();
+                if (dataG.status === "OK" && dataG.results.length > 0) {
+                    latNueva = parseFloat(dataG.results[0].geometry.location.lat);
+                    lngNueva = parseFloat(dataG.results[0].geometry.location.lng);
+                    motorUsado = "Google Maps";
+                } else {
+                    // Intento 2: OpenStreetMap (Respaldo Infalible)
+                    var resOSM = await fetch(urlOSM);
+                    var dataOSM = await resOSM.json();
+                    if(dataOSM && dataOSM.length > 0) {
+                        latNueva = parseFloat(dataOSM[0].lat);
+                        lngNueva = parseFloat(dataOSM[0].lon);
+                        motorUsado = "OpenStreetMap";
+                    }
+                }
+
+                if (latNueva !== null) {
+                    var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
+                    puntosData[itemIndex].lat = latNueva;
+                    puntosData[itemIndex].lng = lngNueva;
                     puntosData[itemIndex].dir = dirEditada.trim(); 
                     
-                    // Refrescar mapa y popup
-                    p.marker.setLatLng([puntosData[itemIndex].lat, puntosData[itemIndex].lng]);
-                    p.marker.setPopupContent(generarContenidoPopup(puntosData[itemIndex], markerId));
-                    map.setView([puntosData[itemIndex].lat, puntosData[itemIndex].lng], 16); 
+                    var p = puntosData[itemIndex];
+                    p.marker.setLatLng([p.lat, p.lng]);
+                    p.marker.setPopupContent(generarContenidoPopup(p, markerId));
+                    map.setView([p.lat, p.lng], 16); 
                     
                     guardarPuntosStorage();
-                    
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert("✅ ¡Reubicación Exitosa!\n\nEl marcador ha sido corregido.");
+                    alert("✅ ¡Ubicación corregida con éxito! (" + motorUsado + ")");
                 } else {
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert("⚠️ Google Maps no encontró la dirección: " + dirEditada + ". \nIntenta dejar solo la calle principal y el municipio.");
+                    alert("⚠️ No se encontró la dirección: " + dirEditada + ". \nIntenta borrar más detalles y dejar solo calle y ciudad.");
                 }
             } catch(e) {
                 document.getElementById('loading-overlay').style.display = 'none';
-                alert("❌ Error de conexión al recalcular.");
+                alert("❌ Error de conexión al buscar la dirección.");
             }
+        }
+
+        function cerrarModalRecalcular() {
+            document.getElementById('modal-recalcular').style.display = 'none';
         }
 
         function guardarPuntosStorage() {
@@ -423,68 +499,6 @@
                 } catch(err) { alert("Archivo inválido."); }
             };
             reader.readAsText(file);
-        }
-
-        async function procesarExtraccionGemini() {
-            var texto = document.getElementById('txtGemini').value;
-            if(!texto) { alert("Por favor pega el texto extraído primero."); return; }
-
-            var loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.style.display = 'flex';
-
-            var placaMatch = texto.match(/PLACA:\s*([A-Za-z0-9]+)/i);
-            var placa = placaMatch ? placaMatch[1].toUpperCase().trim() : "";
-            
-            if(!placa) {
-                placa = prompt("Por favor ingresa la placa para esta ruta:").toUpperCase();
-            }
-            if(!placa) { loadingOverlay.style.display = 'none'; return; }
-
-            if (placasRegistradas[placa]) {
-                var nuevasPuntos = [];
-                puntosData.forEach(function(item) {
-                    if (item.placa === placa) {
-                        map.removeLayer(item.marker);
-                    } else {
-                        nuevasPuntos.push(item);
-                    }
-                });
-                puntosData = nuevasPuntos;
-            }
-            placasRegistradas[placa] = true;
-
-            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
-            var celulares = telsMatch ? telsMatch[1].trim() : "-";
-
-            var lineas = texto.split('\n');
-            var direcciones = [];
-            lineas.forEach(function(l) {
-                var up = l.toUpperCase();
-                if (up.includes("DIRECCIÓN") || up.includes("DIRECCION")) {
-                    var limpio = l.replace(/DIRECCIÓN\s*\d*:\s*|DIRECCION\s*\d*:\s*/gi, '').trim();
-                    if(limpio) direcciones.push(limpio);
-                }
-            });
-
-            if (direcciones.length === 0) {
-                alert("No se encontraron direcciones en el texto. Revisa la estructura del pegado.");
-                loadingOverlay.style.display = 'none';
-                return;
-            }
-
-            for (let [index, dir] of direcciones.entries()) {
-                var coords = await obtenerCoordenadasExactasLimpias(dir);
-                var nuevoPunto = {
-                    placa: placa, marca: "EXTRACCIÓN IA GEMINI", linea: "-", modelo: "-", color: "-", telefonos: celulares,
-                    lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
-                };
-                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-            }
-
-            loadingOverlay.style.display = 'none';
-            alert("🚀 ¡Súper! Se mapearon " + direcciones.length + " ubicaciones vigentes para " + placa);
-            document.getElementById('txtGemini').value = '';
-            cerrarSecciones();
         }
 
         async function procesarLoteMasivo() {
@@ -583,9 +597,118 @@
             var fileInput = document.getElementById('manFoto');
             var fotoBase64 = null;
             
-            if(!placa || !dir) { alert("Ingresa la placa y dirección."); return; }
+            if(!placa) { alert("Por favor ingresa la Placa."); return; }
+            actualPlacaFuerza = placa;
+
+            if (!dir && fileInput.files && fileInput.files[0]) {
+                var loadingOverlay = document.getElementById('loading-overlay');
+                var loadingTexto = document.getElementById('loading-texto');
+                loadingOverlay.style.display = 'flex';
+                loadingTexto.innerText = "⏳ Potenciando imagen y escaneando reporte IA...";
+
+                const imgOptimizada = await preprocesarImagen(fileInput.files[0]);
+
+                Tesseract.recognize(
+                    imgOptimizada,
+                    'spa+eng', 
+                    { logger: m => {
+                        if (m.status === 'recognizing text') {
+                            loadingTexto.innerText = "⏳ Leyendo datos... " + Math.round(m.progress * 100) + "%";
+                        }
+                    }}
+                ).then(async ({ data: { text } }) => {
+                    loadingTexto.innerText = "🎯 Filtrando año 2026 y Activos (SI)...";
+                    
+                    var lineas = text.split('\n');
+                    var direccionesVigentes2026 = [];
+                    var direccionesCualquiera = [];
+
+                    var telsMatch = text.match(/\b3[0-9]{9}\b/g) || [];
+                    var mobileNumbers = [];
+                    for(var i=0; i<telsMatch.length; i++) {
+                        if(!mobileNumbers.includes(telsMatch[i])) mobileNumbers.push(telsMatch[i]);
+                    }
+                    var celularesExtract = mobileNumbers.slice(0, 2).join(', ') || "-";
+
+                    lineas.forEach(function(l) {
+                        var dirLimpia = l.trim().replace(/\s+/g, ' ');
+                        var up = dirLimpia.toUpperCase();
+                        var tieneNomenclatura = /(\b(CL|KR|CRA?|CR|TV|AV|KM|CLL|CARRERA|CALLE|TRANSVERSAL|AVENIDA|DG|DIAG|DIAGONAL|LAB|RES)\b)/i.test(up) || up.includes("#");
+                        
+                        if (tieneNomenclatura && up.length > 5) {
+                            if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE") && !up.includes("ACTIVO") && !up.includes("CÓDIGO")) {
+                                var corte = dirLimpia.match(/(CL\s*\d+|KR\s*\d+|CRA?\s*\d+|CR\s*\d+|CARRERA\s*\d+|CALLE\s*\d+|KM\s*\d+|TRANSVERSAL\s*\d+|AV\s*\d+|AVENIDA\s*\d+|DG\s*\d+|DIAG\s*\d+).*?(\d+-\d+|\d+\s*A\s*#|\s*#\s*\d+)/i);
+                                var dirFiltrada = corte ? corte[0] : dirLimpia;
+                                
+                                if (up.includes("MEDELLIN") || up.includes("MEDELLÍN")) dirFiltrada += ", Medellin";
+                                else if (up.includes("COPACABANA")) dirFiltrada += ", Copacabana";
+                                else if (up.includes("ITAGUI") || up.includes("ITAGÜÍ")) dirFiltrada += ", Itagui";
+                                else if (up.includes("ENVIGADO")) dirFiltrada += ", Envigado";
+                                else if (up.includes("BELLO")) dirFiltrada += ", Bello";
+                                else if (up.includes("LA ESTRELLA") || up.includes("ESTRELLA")) dirFiltrada += ", La Estrella";
+                                else if (up.includes("BOGOTA") || up.includes("BOGOTÁ")) dirFiltrada += ", Bogota";
+
+                                direccionesCualquiera.push(dirFiltrada);
+
+                                var esVigente = (up.includes("26") || up.includes("2026")) && 
+                                                (up.includes("SI") || up.includes("S1") || up.includes("SL") || up.includes("S|") || up.includes("S!") || up.includes(" S1 "));
+                                
+                                if (esVigente) {
+                                    direccionesVigentes2026.push(dirFiltrada);
+                                }
+                            }
+                        }
+                    });
+
+                    var ubicacionesFinales = [];
+                    var alertaFiltroText = "";
+
+                    if (direccionesVigentes2026.length > 0) {
+                        ubicacionesFinales = direccionesVigentes2026.slice(0, 3);
+                        alertaFiltroText = "Se ubicaron las direcciones vigentes (2026 activas) para la placa " + placa;
+                    } else if (direccionesCualquiera.length > 0) {
+                        ubicacionesFinales = direccionesCualquiera.slice(0, 3);
+                        alertaFiltroText = "⚠️ No logramos detectar la columna 2026 y SI. Se ubicaron " + ubicacionesFinales.length + " direcciones detectadas para " + placa;
+                    }
+
+                    if (ubicacionesFinales.length === 0) {
+                        loadingOverlay.style.display = 'none';
+                        document.getElementById('asistente-texto').value = text; 
+                        document.getElementById('modal-asistente').style.display = 'block';
+                        return;
+                    }
+
+                    if (placasRegistradas[placa]) {
+                        eliminarTodasDePlaca(placa);
+                    }
+                    placasRegistradas[placa] = true;
+
+                    for (let [index, d] of ubicacionesFinales.entries()) {
+                        var coords = await obtenerCoordenadasExactasLimpias(d);
+                        var nuevoPunto = {
+                            placa: placa, marca: "REPORTE OCR", linea: "-", modelo: "-", color: "-", telefonos: celularesExtract,
+                            lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
+                        };
+                        agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                    }
+
+                    alert("🚀 " + alertaFiltroText);
+                    document.getElementById('manPlaca').value = '';
+                    fileInput.value = '';
+                    loadingOverlay.style.display = 'none';
+                    cerrarSecciones();
+                }).catch(error => {
+                    console.error(error);
+                    loadingOverlay.style.display = 'none';
+                    document.getElementById('modal-asistente').style.display = 'block';
+                });
+                return;
+            }
+
+            if(!dir) { alert("Ingresa la dirección exacta o sube una foto de reporte sin dirección."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
             
             if (fileInput.files && fileInput.files[0]) {
                 fotoBase64 = await fileToBase64(fileInput.files[0]);
@@ -613,6 +736,53 @@
             agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
             document.getElementById('loading-overlay').style.display = 'none';
             cerrarSecciones();
+        }
+
+        async function procesarModalRescate() {
+            var rawText = document.getElementById('asistente-texto').value;
+            if(!rawText.trim()) { alert("Por favor ingresa o revisa el texto."); return; }
+            
+            document.getElementById('modal-asistente').style.display = 'none';
+            document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-texto').innerText = "🎯 Ubicando en el mapa...";
+
+            var lineas = rawText.split('\n');
+            var ubiFinales = [];
+
+            lineas.forEach(function(l) {
+                var up = l.toUpperCase();
+                var tieneNom = /(\b(CL|KR|CR|TV|AV|CRA|KM|CLL|CARRERA|CALLE|TRANSVERSAL)\b)/i.test(up) || up.includes("#");
+                if(tieneNom && up.length > 5) {
+                    ubiFinales.push(l.trim());
+                }
+            });
+
+            var telsMatch = rawText.match(/\b3[0-9]{9}\b/g) || ["-"];
+            var celularesExtract = telsMatch.slice(0, 2).join(', ');
+
+            var placa = actualPlacaFuerza || "RAPTOR";
+
+            if (placasRegistradas[placa]) {
+                eliminarTodasDePlaca(placa);
+            }
+            placasRegistradas[placa] = true;
+
+            for (let d of ubiFinales.slice(0, 3)) {
+                var coords = await obtenerCoordenadasExactasLimpias(d);
+                var nuevoPunto = {
+                    placa: placa, marca: "REPORTE OCR", linea: "-", modelo: "-", color: "-", telefonos: celularesExtract,
+                    lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
+                };
+                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+            }
+
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert("🚀 ¡Todo listo! Se extrajeron y ubicaron las " + (ubiFinales.slice(0, 3).length || 0) + " ubicaciones.");
+            cerrarSecciones();
+        }
+
+        function cerrarAsistente() {
+            document.getElementById('modal-asistente').style.display = 'none';
         }
 
         function actualizarFiltros() {
@@ -729,7 +899,7 @@
                             
                             <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" style="background-color: #e67e22; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold; font-size: 11px;">3. 📍 Mover punto manual</button>
                             
-                            <button onclick="reubicarPuntoAutomatico('${markerId}')" style="background-color: #1abc9c; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold; font-size: 11px;">5. 🔄 Recalcular Ubicación Exacta</button>
+                            <button onclick="abrirModalRecalcular('${markerId}')" style="background-color: #1abc9c; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold; font-size: 11px;">5. 🔄 Recalcular Ubicación Exacta</button>
                             
                             <button onclick="mostrarOpcionesEliminar('${markerId}')" style="background-color: #f44336; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">4. 🗑️ Eliminar</button>
                         </div>
