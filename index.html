@@ -102,7 +102,7 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Para Manual: escribe Placa, Dirección y más.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Para Foto de CIFIN/RUNT (2026 Vigentes): Escribe solo la Placa y sube la captura de la tabla abajo.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Para Foto de CIFIN/RUNT: Escribe solo la Placa y sube la captura de la tabla abajo.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
@@ -492,8 +492,8 @@
                         ubicacionesFinales = direccionesVigentes2026.slice(0, 3); // Máximo 3 de 2026
                         alertaFiltroText = "Se ubicaron las direcciones vigentes (2026 activas) de la placa: " + placa;
                     } else if (direccionesCualquiera.length > 0) {
-                        ubicacionesFinales = direccionesCualquiera.slice(0, 3); // Máximo 3 genéricas
-                        alertaFiltroText = "⚠️ No encontramos filtros 2026 (SI) legibles. En su lugar, se extrajeron " + ubicacionesFinales.length + " ubicaciones encontradas para la placa: " + placa;
+                        ubicacionesFinales = direccionesCualquiera.slice(0, 3); // Máximo 3 genéricas (Failsafe)
+                        alertaFiltroText = "⚠️ No encontramos filtros 2026 (SI) legibles. En su lugar, se extrajeron " + ubicacionesFinales.length + " ubicaciones de la captura para la placa: " + placa;
                     }
 
                     if (ubicacionesFinales.length === 0) {
