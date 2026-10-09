@@ -95,6 +95,8 @@
             <b>Subir o tomar foto:</b>
             <input type="file" id="inputFile" accept="image/*" style="font-size:10px; margin-top:4px;">
             <input type="text" id="txtPlacaFoto" placeholder="Escribir placa">
+            <!-- AQUÍ AGREGAMOS EL CAMPO DE DIRECCIÓN QUE FALTABA -->
+            <input type="text" id="txtDirFoto" placeholder="Dirección exacta (ej: Calle 10 # 43-20)">
             <button class="action" onclick="procesarFoto()">Guardar con Foto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -446,9 +448,12 @@
         }
 
         async function procesarFoto() {
-            var placa = document.getElementById('txtPlacaFoto').value;
-            if(!placa) { alert("Por favor escribe la placa."); return; }
-            placa = placa.toUpperCase();
+            var placa = document.getElementById('txtPlacaFoto').value.toUpperCase();
+            var dir = document.getElementById('txtDirFoto').value; // Saca la dirección que escribas
+
+            if(!placa || !dir) { alert("Por favor escribe la placa y la dirección."); return; }
+
+            document.getElementById('loading-overlay').style.display = 'flex'; // Pantalla de carga
 
             if(placasRegistradas[placa]) {
                 var nuevasPuntos = [];
@@ -463,14 +468,27 @@
             }
 
             placasRegistradas[placa] = true;
-            var coords = await obtenerCoordenadasExactasLimpias("Medellin");
+            
+            // ¡Ya no dice "Medellin"! Ahora usa la dirección real conectada a Google Maps
+            var coords = await obtenerCoordenadasExactasLimpias(dir);
             
             var nuevoPunto = {
-                placa: placa, marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: coords.lat, lng: coords.lng, dir: "Ubicación por foto", fecha: new Date().toISOString().split('T')[0]
+                placa: placa, 
+                marca: "FOTO", 
+                linea: "REGISTRO", 
+                modelo: "2026", 
+                color: "N/A", 
+                telefonos: "N/A", 
+                lat: coords.lat, 
+                lng: coords.lng, 
+                dir: dir, // Guarda la dirección que escribiste
+                fecha: new Date().toISOString().split('T')[0]
             };
 
             agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-            alert("¡Foto y placa (" + placa + ") agregadas y guardadas!");
+            
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert("¡Foto y placa (" + placa + ") agregadas en su ubicación exacta!");
             cerrarSecciones();
         }
 
@@ -520,15 +538,28 @@
             puntosData.forEach(function(item) {
                 var coincideBusqueda = (textoBusqueda === "" || item.placa.includes(textoBusqueda));
                 
-                var pasaFiltroEstado = true;
-                if (item.pico && !verPico) pasaFiltroEstado = false;
-                if (item.esHoy && !verHoy) pasaFiltroEstado = false;
-                if (!item.pico && !item.esHoy && !verTodas) pasaFiltroEstado = false;
+                var pasaFiltroEstado = false;
+                
+                // Si "Ver todas" está marcado, mostramos todo sin importar lo demás
+                if (verTodas) {
+                    pasaFiltroEstado = true;
+                } else {
+                    // Si no está "Ver todas", evaluamos Pico y Placa / Subidas Hoy
+                    if (verPico && item.pico) pasaFiltroEstado = true;
+                    if (verHoy && item.esHoy) pasaFiltroEstado = true;
+                    // Si un punto no es pico ni es hoy, y "Ver todas" está apagado, se oculta
+                }
 
                 if (coincideBusqueda && pasaFiltroEstado) {
-                    map.addLayer(item.marker);
+                    // Verificamos que el marcador no esté ya en el mapa antes de agregarlo
+                    if (!map.hasLayer(item.marker)) {
+                        map.addLayer(item.marker);
+                    }
                 } else {
-                    map.removeLayer(item.marker);
+                    // Lo removemos del mapa si no cumple las condiciones
+                    if (map.hasLayer(item.marker)) {
+                        map.removeLayer(item.marker);
+                    }
                 }
             });
         }
@@ -617,5 +648,3 @@
     </script>
 </body>
 </html>
-
-
