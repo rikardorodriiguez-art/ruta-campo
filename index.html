@@ -3,66 +3,103 @@
 <head>
     <meta charset="utf-8">
     <title>Ruta de Campo - Raptor S.A.S.</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
     <style>
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: #e5e3df; }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        .floating-btn {
-            position: fixed; bottom: 25px; left: 20px; z-index: 99999;
-            background-color: #2c3e50; color: white; border: none; padding: 14px 22px;
-            border-radius: 50px; font-size: 15px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer;
+        .floating-btn-add {
+            position: fixed; bottom: 20px; left: 20px; z-index: 99999;
+            background-color: #2c3e50; color: white; border: none; padding: 12px 18px;
+            border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
         }
         
-        .floating-menu {
-            position: fixed; bottom: 90px; left: 20px; z-index: 99999;
-            background: white; padding: 14px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px;
+        .floating-btn-filter {
+            position: fixed; top: 20px; right: 20px; z-index: 99999;
+            background-color: #2c3e50; color: white; border: none; padding: 10px 14px;
+            border-radius: 50px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
         }
 
-        .floating-menu button.main-opt { background-color: #34495e; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-bottom: 6px; font-weight: bold; cursor: pointer; text-align: left; }
+        .floating-menu {
+            position: fixed; bottom: 80px; left: 20px; z-index: 99999;
+            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px;
+        }
+        
+        .floating-filter-panel {
+            position: fixed; top: 70px; right: 20px; z-index: 99999;
+            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 220px; display: none; font-family: Arial; font-size: 12px;
+        }
+
+        .floating-menu button.main-opt { background-color: #34495e; color: white; border: none; padding: 8px; width: 100%; border-radius: 5px; margin-bottom: 6px; font-weight: bold; cursor: pointer; text-align: left; }
+        .floating-menu button.main-opt:hover { background-color: #2c3e50; }
+        
         .sub-panel { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; }
-        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 4px; font-size: 11px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .sub-panel button.action { background-color: #ff9800; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; margin-top: 6px; font-weight: bold; cursor: pointer; }
-        .sub-panel button.close-sub { background-color: #e74c3c; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; margin-top: 4px; font-weight: bold; cursor: pointer; }
+        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 4px; font-size: 11px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .sub-panel button.action { background-color: #ff9800; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; margin-top: 6px; font-weight: bold; cursor: pointer; }
+        .sub-panel button.close-sub { background-color: #e74c3c; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; margin-top: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        
         .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 14px; }
+        .filter-option { display: block; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
-    <button class="floating-btn" onclick="toggleMenu()">➕ Agregar</button>
-    
+    <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
     <div id="menuOpciones" class="floating-menu">
         <div class="header-menu">
-            <b style="color: #2c3e50; font-size: 13px;">Agregar Ubicaciones:</b>
-            <button onclick="toggleMenu()">✖</button>
+            <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
+            <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar múltiples reportes</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte de WhatsApp</button>
+        <button class="main-opt" onclick="abrirSeccion('foto')">2. 📷 Pegar foto y placa</button>
+        <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:11px;">Pega varios reportes juntos:</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarLote()">Analizar y Agregar al Mapa</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Cerrar</button>
+            <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes múltiples..." style="height: 100px;"></textarea>
+            <button class="action" onclick="procesarLoteMasivo()">Analizar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
+        </div>
+
+        <div id="seccion-foto" class="sub-panel">
+            <b>Subir o tomar foto:</b>
+            <input type="file" id="inputFile" accept="image/*" style="font-size:10px; margin-top:4px;">
+            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa">
+            <button class="action" onclick="procesarFoto()">Guardar con Foto</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
         <div id="seccion-manual" class="sub-panel">
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
+            <input type="text" id="manMarca" placeholder="Marca">
+            <input type="text" id="manLinea" placeholder="Línea">
+            <input type="text" id="manModelo" placeholder="Modelo">
+            <input type="text" id="manColor" placeholder="Color">
             <input type="text" id="manDir" placeholder="Dirección exacta">
-            <button class="action" onclick="procesarManual()">Agregar al Mapa</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Cerrar</button>
+            <button class="action" onclick="procesarManual()">Agregar Punto</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
+    </div>
+
+    <button class="floating-btn-filter" onclick="toggleMenuFilter()">🗺️ Filtros</button>
+    <div id="panelFiltros" class="floating-filter-panel">
+        <div class="header-menu">
+            <b style="color: #2c3e50;">Filtrar Placas:</b>
+            <button onclick="toggleMenuFilter()">✖</button>
+        </div>
+        <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Pico y Placa</label>
+        <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
+        <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
-        var map = L.map('map', {zoomControl: false}).setView([6.2442, -75.5812], 12);
-        L.control.zoom({position: 'topright'}).addTo(map);
+        var map = L.map('map').setView([6.2442, -75.5812], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -76,19 +113,31 @@
             autoStart: true
         }).addTo(map);
 
-        function toggleMenu() {
+        function toggleMenuAdd() {
             var m = document.getElementById('menuOpciones');
+            var f = document.getElementById('panelFiltros');
+            f.style.display = 'none';
             m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+            if (m.style.display === 'none') cerrarSecciones();
+        }
+
+        function toggleMenuFilter() {
+            var f = document.getElementById('panelFiltros');
+            var m = document.getElementById('menuOpciones');
+            m.style.display = 'none';
+            f.style.display = (f.style.display === 'block') ? 'none' : 'block';
         }
 
         function abrirSeccion(tipo) {
             document.getElementById('seccion-whatsapp').style.display = 'none';
+            document.getElementById('seccion-foto').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
             document.getElementById('seccion-' + tipo).style.display = 'block';
         }
 
         function cerrarSecciones() {
             document.getElementById('seccion-whatsapp').style.display = 'none';
+            document.getElementById('seccion-foto').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
             document.getElementById('menuOpciones').style.display = 'none';
         }
@@ -99,87 +148,278 @@
             localStorage.setItem(key, actual);
             var span = document.getElementById('contador-' + idx);
             if (span) { span.innerText = actual; }
-            alert("¡Placa " + placa + " visitada! Total: " + actual);
+            alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        var puntosData = [];
+        function mostrarOpcionesEliminar(markerId, placa) {
+            var div = document.getElementById('eliminar-container-' + markerId);
+            div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
+        }
 
-        function obtenerCoordenadas(textoDir) {
+        function eliminarEstaDireccion(markerId, placa) {
+            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
+            if (itemIndex !== -1) {
+                map.removeLayer(puntosData[itemIndex].marker);
+                puntosData.splice(itemIndex, 1);
+                alert("🗑️ Dirección eliminada correctamente.");
+            }
+        }
+
+        function eliminarTodasDePlaca(placa) {
+            var nuevasPuntos = [];
+            puntosData.forEach(function(item) {
+                if (item.placa === placa) {
+                    map.removeLayer(item.marker);
+                } else {
+                    nuevasPuntos.push(item);
+                }
+            });
+            puntosData = nuevasPuntos;
+            delete placasRegistradas[placa];
+            alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
+        }
+
+        function obtenerCoordenadasPorMunicipio(textoDir) {
             var t = textoDir.toUpperCase();
             if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
+            if (t.includes('NIQUIA') || (t.includes('BELLO') && t.includes('40'))) return {lat: 6.3265, lng: -75.5492};
             if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
             if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
             if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
             if (t.includes('SABANETA')) return {lat: 6.1513, lng: -75.6146};
+            if (t.includes('CALDAS')) return {lat: 6.0927, lng: -75.6369};
+            if (t.includes('GIRARDOTA')) return {lat: 6.3795, lng: -75.4452};
+            if (t.includes('RIONEGRO')) return {lat: 6.1551, lng: -75.3737};
             return {lat: 6.2442, lng: -75.5812};
         }
 
-        function procesarLote() {
+        var placasRegistradas = {};
+        var puntosData = [];
+
+        function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Pega el texto del reporte."); return; }
+            if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
 
             var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
-            var total = 0;
+            var totalAgregados = 0;
 
             bloques.forEach(function(bloque) {
                 if (bloque.trim().length < 5) return;
+
                 var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
                 if (!matches) return;
-                var placa = matches[0].toUpperCase();
 
-                var dir = "Medellin";
+                var placa = "";
+                var ignorar = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELUL", "SOATX"];
+                for (var i = 0; i < matches.length; i++) {
+                    var cand = matches[i].toUpperCase();
+                    var bad = false;
+                    for (var j = 0; j < ignorar.length; j++) {
+                        if (cand.includes(ignorar[j])) { bad = true; break; }
+                    }
+                    if (!bad) { placa = cand; break; }
+                }
+
+                if (!placa) return;
+
+                if (placasRegistradas[placa]) {
+                    puntosData.forEach(function(item) {
+                        if (item.placa === placa) { map.removeLayer(item.marker); }
+                    });
+                    puntosData = puntosData.filter(function(item) { return item.placa !== placa; });
+                }
+                placasRegistradas[placa] = true;
+
+                var marca = "VEHÍCULO";
+                var linea = "GENERAL";
+                var modelo = "2026";
+                var color = "N/A";
+
                 var lineas = bloque.split('\n');
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
-                    if (up.includes("#") || up.includes("CL ") || up.includes("KR ")) {
-                        dir = l.trim();
+                    if (up.includes("MARCA:")) marca = l.replace(/Marca:/i, '').trim();
+                    if (up.includes("LÍNEA:") || up.includes("LINEA:")) linea = l.replace(/Línea:|Linea:/i, '').trim();
+                    if (up.includes("MODELO:")) modelo = l.replace(/Modelo:/i, '').trim();
+                    if (up.includes("COLOR:")) color = l.replace(/Color:/i, '').trim();
+                });
+
+                var telsMatch = bloque.match(/3[0-9]{9}/g);
+                var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
+
+                var direcciones = [];
+                lineas.forEach(function(l) {
+                    var dirLimpia = l.trim();
+                    var up = dirLimpia.toUpperCase();
+                    if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ")) && up.length > 5) {
+                        if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("CEL")) {
+                            direcciones.push(dirLimpia);
+                        }
                     }
                 });
 
-                var coords = obtenerCoordenadas(dir + " " + bloque);
-                var offsetLat = coords.lat + (total * 0.001);
-                var offsetLng = coords.lng + (total * 0.001);
+                var ubicacionesFinales = direcciones.slice(0, 3);
+                if (ubicacionesFinales.length === 0) {
+                    ubicacionesFinales = ["Dirección reportada en la zona"];
+                }
 
-                agregarMarcador(placa, dir, offsetLat, offsetLng, puntosData.length + 1);
-                total++;
+                ubicacionesFinales.forEach(function(dir, index) {
+                    var coords = obtenerCoordenadasPorMunicipio(dir + " " + bloque);
+                    var lat = coords.lat + (index * 0.0012);
+                    var lng = coords.lng + (index * 0.0012);
+
+                    var nuevoPunto = {
+                        placa: placa,
+                        marca: marca,
+                        linea: linea,
+                        modelo: modelo,
+                        color: color,
+                        telefonos: telefonos,
+                        lat: lat,
+                        lng: lng,
+                        dir: dir,
+                        fecha: new Date().toISOString().split('T')[0]
+                    };
+
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
+                });
+
+                totalAgregados++;
             });
 
-            if (total > 0) {
-                alert("¡Lote procesado y agregado al mapa!");
+            if (totalAgregados > 0) {
+                alert("🚀 ¡Lote procesado! Se agregaron " + totalAgregados + " vehículos al mapa.");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
-                alert("No se encontraron placas válidas.");
+                alert("⚠️ No se pudieron extraer placas válidas.");
             }
+        }
+
+        function procesarFoto() {
+            var placa = document.getElementById('txtPlacaFoto').value;
+            if(!placa) { alert("Por favor escribe la placa."); return; }
+            placa = placa.toUpperCase();
+
+            if(placasRegistradas[placa]) {
+                puntosData.forEach(function(item) {
+                    if (item.placa === placa) { map.removeLayer(item.marker); }
+                });
+                puntosData = puntosData.filter(function(item) { return item.placa !== placa; });
+            }
+
+            placasRegistradas[placa] = true;
+            var coords = obtenerCoordenadasPorMunicipio("MEDELLIN");
+            
+            agregarMarcadorAlMapa({
+                placa: placa, marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: coords.lat, lng: coords.lng, dir: "Ubicación por foto", fecha: new Date().toISOString().split('T')[0]
+            }, puntosData.length + 1);
+
+            alert("¡Foto y placa (" + placa + ") agregadas al mapa!");
+            cerrarSecciones();
         }
 
         function procesarManual() {
             var placa = document.getElementById('manPlaca').value.toUpperCase();
+            var marca = document.getElementById('manMarca').value || "GENÉRICO";
+            var linea = document.getElementById('manLinea').value || "LÍNEA";
+            var modelo = document.getElementById('manModelo').value || "2026";
+            var color = document.getElementById('manColor').value || "N/A";
             var dir = document.getElementById('manDir').value;
-            if(!placa || !dir) { alert("Ingresa placa y dirección."); return; }
-            var coords = obtenerCoordenadas(dir);
-            agregarMarcador(placa, dir, coords.lat, coords.lng, puntosData.length + 1);
-            alert("Punto agregado al mapa.");
+            
+            if(!placa || !dir) { alert("Ingresa al menos la placa y la dirección."); return; }
+
+            if(placasRegistradas[placa]) {
+                puntosData.forEach(function(item) {
+                    if (item.placa === placa) { map.removeLayer(item.marker); }
+                });
+                puntosData = puntosData.filter(function(item) { return item.placa !== placa; });
+            }
+
+            placasRegistradas[placa] = true;
+            var coords = obtenerCoordenadasPorMunicipio(dir);
+
+            agregarMarcadorAlMapa({
+                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0]
+            }, puntosData.length + 1);
+
+            alert("¡Punto manual agregado con éxito!");
             cerrarSecciones();
         }
 
-        function agregarMarcador(placa, dir, lat, lng, idx) {
-            var visitas = localStorage.getItem('visitas_' + placa) || 0;
-            var mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(dir);
+        function actualizarFiltros() {
+            var verPico = document.getElementById('chkPico').checked;
+            var verHoy = document.getElementById('chkHoy').checked;
+            var verTodas = document.getElementById('chkTodas').checked;
+
+            puntosData.forEach(function(item) {
+                if (item.pico && !verPico) { map.removeLayer(item.marker); }
+                else if (item.pico && verPico) { map.addLayer(item.marker); }
+
+                if (item.esHoy && !verHoy) { map.removeLayer(item.marker); }
+                else if (item.esHoy && verHoy) { map.addLayer(item.marker); }
+
+                if (!item.pico && !item.esHoy && !verTodas) { map.removeLayer(item.marker); }
+                else if (!item.pico && !item.esHoy && verTodas) { map.addLayer(item.marker); }
+            });
+        }
+
+        var hoyStr = new Date().toISOString().split('T')[0];
+        var diaSemana = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+        var reglasPico = {
+            0: ['0', '2'],
+            1: ['1', '4'],
+            2: ['8', '9'],
+            3: ['3', '6'],
+            4: ['5', '7']
+        };
+
+        function tienePicoYPlaca(placa) {
+            if (reglasPico[diaSemana]) {
+                var ultimo = placa.trim().slice(-1);
+                return reglasPico[diaSemana].includes(ultimo);
+            }
+            return false;
+        }
+
+        function agregarMarcadorAlMapa(p, idx) {
+            var markerId = 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+            var pico = tienePicoYPlaca(p.placa);
+            var esHoy = (p.fecha === hoyStr);
+            var estadoPicoTxt = pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
+            var colorFondo = pico ? "#8B0000" : "#D32F2F";
+            var visitas = localStorage.getItem('visitas_' + p.placa) || 0;
+
+            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
 
             var popupContent = `
-                <div style="font-family: Arial; font-size: 13px; width: 220px;">
-                    <b>Placa:</b> ${placa}<br>
-                    <b>Dir:</b> ${dir}<br>
-                    <b>Visitas:</b> <span id="contador-${idx}" style="color:#d9534f; font-weight:bold;">${visitas}</span><br><br>
-                    <a href="${mapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir a Google Maps</a>
-                    <button onclick="marcarVisitada('${placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">2. ✅ Visitada</button>
+                <div style="font-family: Arial; font-size: 13px; width: 230px;">
+                    <b>Punto #${idx}</b><br>
+                    <b>Placa:</b> ${p.placa}<br>
+                    <b>Vehículo:</b> ${p.marca} ${p.linea} (${p.modelo} - ${p.color})<br>
+                    <b>Teléfonos:</b> ${p.telefonos}<br>
+                    <b>Estado:</b> ${estadoPicoTxt}<br>
+                    <b>Fecha:</b> ${p.fecha}<br>
+                    <b>Dirección:</b> ${p.dir}<br>
+                    <b>Veces visitada:</b> <span id="contador-${idx}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br><br>
+                    <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir a Google Maps</a>
+                    <button onclick="marcarVisitada('${p.placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>
+                    <button onclick="mostrarOpcionesEliminar('${markerId}', '${p.placa}')" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>
+                    
+                    <div id="eliminar-container-${markerId}" style="display: none; margin-top: 8px; background: #f8d7da; padding: 6px; border-radius: 4px; border: 1px solid #f5c6cb;">
+                        <button onclick="eliminarEstaDireccion('${markerId}', '${p.placa}')" style="background-color: #d9534f; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 4px;">❌ Eliminar esta dirección</button>
+                        <button onclick="eliminarTodasDePlaca('${p.placa}')" style="background-color: #721c24; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">🗑️ Eliminar todas las de esta placa</button>
+                    </div>
                 </div>
             `;
 
-            var marker = L.marker([lat, lng]).bindPopup(popupContent).addTo(map);
-            puntosData.push({ marker: marker });
-            map.setView([lat, lng], 14);
+            var customIcon = L.divIcon({
+                className: 'custom-marker',
+                html: '<div style="display: flex; align-items: center; cursor: pointer;"><div style="width: 14px; height: 14px; background-color: ' + colorFondo + '; border: 2px solid black; border-radius: 50%;"></div><div style="font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">#' + idx + ': ' + p.placa + ' (' + p.marca + ')</div></div>'
+            });
+
+            var marker = L.marker([p.lat, p.lng], {icon: customIcon}).bindPopup(popupContent).addTo(map);
+            puntosData.push({ id: markerId, placa: p.placa, marker: marker, pico: pico, esHoy: esHoy });
         }
     </script>
 </body>
