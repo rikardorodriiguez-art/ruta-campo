@@ -151,6 +151,11 @@
             alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
+        function mostrarOpcionesEliminar(markerId, placa) {
+            var div = document.getElementById('eliminar-container-' + markerId);
+            div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
+        }
+
         function eliminarEstaDireccion(markerId, placa) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex !== -1) {
@@ -183,7 +188,6 @@
             return true;
         }
 
-        // MAPEO SEGURO DE MUNICIPIOS CON REFERENCIA EN EL VALLE DE ABURRÁ Y COLOMBIA
         function obtenerCoordenadasPorMunicipio(textoDir) {
             var t = textoDir.toUpperCase();
             if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
@@ -195,10 +199,6 @@
             if (t.includes('CALDAS')) return {lat: 6.0927, lng: -75.6369};
             if (t.includes('GIRARDOTA')) return {lat: 6.3795, lng: -75.4452};
             if (t.includes('RIONEGRO')) return {lat: 6.1551, lng: -75.3737};
-            if (t.includes('BOGOTA')) return {lat: 4.6097, lng: -74.0817};
-            if (t.includes('CALI')) return {lat: 3.4516, lng: -76.5320};
-            if (t.includes('BARRANQUILLA')) return {lat: 10.9685, lng: -74.7813};
-            // Predeterminado Medellín
             return {lat: 6.2442, lng: -75.5812};
         }
 
@@ -402,7 +402,7 @@
             var colorFondo = pico ? "#8B0000" : "#D32F2F";
             var visitas = localStorage.getItem('visitas_' + p.placa) || 0;
 
-            // Enlace directo a Google Maps utilizando el texto exacto de la dirección para garantizar precisión de navegación
+            // ENLACE 100% PRECISO A GOOGLE MAPS USANDO LA DIRECCIÓN REAL DE TEXTO
             var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
 
             var popupContent = `
@@ -415,7 +415,7 @@
                     <b>Fecha:</b> ${p.fecha}<br>
                     <b>Dirección:</b> ${p.dir}<br>
                     <b>Veces visitada:</b> <span id="contador-${idx}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br><br>
-                    <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir (Google Maps)</a>
+                    <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir a Google Maps</a>
                     <button onclick="marcarVisitada('${p.placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>
                     <button onclick="mostrarOpcionesEliminar('${markerId}', '${p.placa}')" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>
                     
