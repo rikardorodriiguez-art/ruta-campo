@@ -56,9 +56,9 @@
 
         #modo-edicion-banner {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            background: #e67e22; color: white; padding: 10px 20px; border-radius: 30px;
-            z-index: 999999; font-family: Arial; font-size: 13px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            display: none; text-align: center; max-width: 90%;
+            background: #e67e22; color: white; padding: 12px 18px; border-radius: 15px;
+            z-index: 999999; font-family: Arial; font-size: 12px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: none; text-align: center; width: 300px; max-width: 90%;
         }
 
         #loading-overlay {
@@ -94,10 +94,17 @@
         </div>
     </div>
 
+    <!-- BANNER DE MOVIMIENTO ACTUALIZADO CON CASILLA PARA PEGAR LINK DE MAPS -->
     <div id="modo-edicion-banner">
         📍 Moviendo punto:<br>
         <span id="info-edicion-texto" style="font-size: 11px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px;"></span><br>
-        <button onclick="cancelarEdicion()" style="background:#c0392b; color:white; border:none; padding:4px 10px; border-radius:4px; margin-top:6px; cursor:pointer; font-weight:bold;">Cancelar</button>
+        <div style="margin-top: 8px; background: white; padding: 6px; border-radius: 6px;">
+            <input type="text" id="input-link-maps-rapido" placeholder="Pega aquí el link de Google Maps..." style="width:100%; font-size:11px; padding:5px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:5px; color:#000;">
+            <div style="display:flex; gap:4px;">
+                <button onclick="confirmarLinkRapido()" style="flex:1; background:#27ae60; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">✅ Confirmar Link</button>
+                <button onclick="cancelarEdicion()" style="flex:1; background:#c0392b; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">❌ Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
@@ -118,14 +125,15 @@
         </div>
 
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#2980b9;">Ingresa Placa y Dirección, o pega tu Link de Google Maps:</b>
+            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección.</b><br>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa, deja dirección vacía y sube la foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta (ej: Itagui) o Link Maps">
+            <input type="text" id="manDir" placeholder="Dirección, Coordenadas o Link Maps">
             
             <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Reporte (Opcional):</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
@@ -199,6 +207,7 @@
         function iniciarModoMover(markerId, placa, dir) {
             puntoEnEdicionId = markerId;
             document.getElementById('info-edicion-texto').innerText = placa + " - " + dir;
+            document.getElementById('input-link-maps-rapido').value = "";
             document.getElementById('modo-edicion-banner').style.display = 'block';
             map.closePopup();
         }
@@ -206,6 +215,32 @@
         function cancelarEdicion() {
             puntoEnEdicionId = null;
             document.getElementById('modo-edicion-banner').style.display = 'none';
+        }
+
+        // CONFIRMAR LINK PEGADO DIRECTAMENTE EN EL BANNER NARANJA
+        async function confirmarLinkRapido() {
+            var link = document.getElementById('input-link-maps-rapido').value.trim();
+            if(!link) { alert("Por favor pega un link de Google Maps o haz clic directamente en el mapa."); return; }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-texto').innerText = "🎯 Leyendo ubicación exacta...";
+
+            var coords = await obtenerCoordenadasExactasLimpias(link);
+
+            var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
+            if (item) {
+                item.marker.setLatLng([coords.lat, coords.lng]);
+                item.lat = coords.lat;
+                item.lng = coords.lng;
+                item.dir = link;
+                item.marker.setPopupContent(generarContenidoPopup(item, item.id));
+                map.setView([coords.lat, coords.lng], 16);
+                guardarPuntosStorage();
+                alert("✅ ¡Punto reubicado con éxito mediante el link!");
+            }
+
+            document.getElementById('loading-overlay').style.display = 'none';
+            cancelarEdicion();
         }
 
         function toggleMenuAdd() {
@@ -303,36 +338,30 @@
             });
         }
 
-        // LÓGICA DE GEOLOCALIZACIÓN CON SOPORTE DE LINKS DE GOOGLE MAPS Y CIUDADES INDEPENDIENTES
         async function obtenerCoordenadasExactasLimpias(dir) {
             dir = dir.trim();
 
-            // 1. Si pegan un link de Google Maps (ej: https://maps.app.goo.gl/...)
             if (dir.includes("maps.app.goo.gl") || dir.includes("goo.gl/maps") || dir.includes("google.com/maps")) {
                 try {
-                    // Extraer coordenadas si ya vienen en el link (ej: @6.18,-75.59)
                     var coordMatch = dir.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
                     if (coordMatch) {
                         return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
                     }
-                    // Si es link corto, intentamos resolverlo
                     var res = await fetch(dir, { method: 'HEAD', redirect: 'follow' });
                     var finalUrl = res.url;
                     var matchUrl = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
                     if (matchUrl) {
                         return { lat: parseFloat(matchUrl[1]), lng: parseFloat(matchUrl[2]) };
                     }
-                } catch(e) { console.log("No se pudo expandir el link de Maps automáticamente, usando dirección textual"); }
+                } catch(e) { console.log("Error expandiendo link"); }
             }
 
-            // 2. Soporte si pegan coordenadas numéricas directas (lat, lng)
             var coordRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
             if (coordRegex.test(dir)) {
                 var matchCoord = dir.match(coordRegex);
                 return { lat: parseFloat(matchCoord[1]), lng: parseFloat(matchCoord[2]) };
             }
 
-            // 3. Geocodificación estándar con ciudades independientes estrictas
             var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ').replace(/KR\s*|CR\s*/gi, 'Carrera ').replace(/#/g, ' ').replace(/-/g, ' ');
             var query = dirLimpia + ", Antioquia, Colombia"; 
             
@@ -348,7 +377,6 @@
                 }
             } catch(e) { console.log("Error Google Maps"); }
             
-            // 4. Catálogo independiente de municipios (Evita que se confundan)
             var t = dir.toUpperCase();
             if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) return {lat: 4.6097, lng: -74.0817};
             if (t.includes('BUCARAMANGA')) return {lat: 7.1254, lng: -73.1198};
@@ -373,7 +401,6 @@
             var urlMaps = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
             window.open(urlMaps, '_blank');
             iniciarModoMover(markerId, p.placa, p.dir);
-            alert("🧭 Se abrió Google Maps.\n\nVerifica la ubicación exacta, vuelve al mapa y haz clic sobre el lugar correcto para ajustar el pin.");
         }
 
         function guardarPuntosStorage() {
