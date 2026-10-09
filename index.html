@@ -94,14 +94,13 @@
         </div>
     </div>
 
-    <!-- BANNER DE MOVIMIENTO ACTUALIZADO CON CASILLA PARA PEGAR LINK DE MAPS -->
     <div id="modo-edicion-banner">
         📍 Moviendo punto:<br>
         <span id="info-edicion-texto" style="font-size: 11px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px;"></span><br>
         <div style="margin-top: 8px; background: white; padding: 6px; border-radius: 6px;">
-            <input type="text" id="input-link-maps-rapido" placeholder="Pega aquí el link de Google Maps..." style="width:100%; font-size:11px; padding:5px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:5px; color:#000;">
+            <input type="text" id="input-link-maps-rapido" placeholder="Pega Coordenadas (Ej: 6.18,-75.59)" style="width:100%; font-size:11px; padding:5px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:5px; color:#000;">
             <div style="display:flex; gap:4px;">
-                <button onclick="confirmarLinkRapido()" style="flex:1; background:#27ae60; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">✅ Confirmar Link</button>
+                <button onclick="confirmarLinkRapido()" style="flex:1; background:#27ae60; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">✅ Confirmar Coordenadas</button>
                 <button onclick="cancelarEdicion()" style="flex:1; background:#c0392b; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">❌ Cancelar</button>
             </div>
         </div>
@@ -114,7 +113,7 @@
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
         <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')" style="background-color: #8e44ad; color: white;">2. ✍️/📄 Ingreso manual / Link Maps / Foto</button>
+        <button class="main-opt" onclick="abrirSeccion('manual')" style="background-color: #8e44ad; color: white;">2. ✍️/📄 Ingreso manual / Coordenadas / Foto</button>
         <button class="main-opt" onclick="abrirSeccion('gemini')" style="background-color: #27ae60; color: white;">3. ⚡ Pegar Extracción de Gemini (IA)</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
@@ -125,7 +124,7 @@
         </div>
 
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección.</b><br>
+            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección o Coordenadas.</b><br>
             <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa, deja dirección vacía y sube la foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
@@ -133,7 +132,7 @@
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección, Coordenadas o Link Maps">
+            <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
             
             <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Reporte (Opcional):</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
@@ -217,26 +216,27 @@
             document.getElementById('modo-edicion-banner').style.display = 'none';
         }
 
-        // CONFIRMAR LINK PEGADO DIRECTAMENTE EN EL BANNER NARANJA
         async function confirmarLinkRapido() {
-            var link = document.getElementById('input-link-maps-rapido').value.trim();
-            if(!link) { alert("Por favor pega un link de Google Maps o haz clic directamente en el mapa."); return; }
+            var val = document.getElementById('input-link-maps-rapido').value.trim();
+            if(!val) { alert("Por favor ingresa coordenadas o haz clic en el mapa."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Leyendo ubicación exacta...";
+            document.getElementById('loading-texto').innerText = "🎯 Reubicando...";
 
-            var coords = await obtenerCoordenadasExactasLimpias(link);
+            var coords = await obtenerCoordenadasExactasLimpias(val);
 
             var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
             if (item) {
                 item.marker.setLatLng([coords.lat, coords.lng]);
                 item.lat = coords.lat;
                 item.lng = coords.lng;
-                item.dir = link;
+                if (!item.dir.includes(val)) {
+                    item.dir = item.dir + " | Link: " + val;
+                }
                 item.marker.setPopupContent(generarContenidoPopup(item, item.id));
                 map.setView([coords.lat, coords.lng], 16);
                 guardarPuntosStorage();
-                alert("✅ ¡Punto reubicado con éxito mediante el link!");
+                alert("✅ ¡Punto reubicado con éxito manteniendo la dirección!");
             }
 
             document.getElementById('loading-overlay').style.display = 'none';
@@ -340,21 +340,6 @@
 
         async function obtenerCoordenadasExactasLimpias(dir) {
             dir = dir.trim();
-
-            if (dir.includes("maps.app.goo.gl") || dir.includes("goo.gl/maps") || dir.includes("google.com/maps")) {
-                try {
-                    var coordMatch = dir.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                    if (coordMatch) {
-                        return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
-                    }
-                    var res = await fetch(dir, { method: 'HEAD', redirect: 'follow' });
-                    var finalUrl = res.url;
-                    var matchUrl = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                    if (matchUrl) {
-                        return { lat: parseFloat(matchUrl[1]), lng: parseFloat(matchUrl[2]) };
-                    }
-                } catch(e) { console.log("Error expandiendo link"); }
-            }
 
             var coordRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
             if (coordRegex.test(dir)) {
@@ -684,7 +669,7 @@
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o pega un Link de Google Maps."); return; }
+            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o link de Maps."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
@@ -835,7 +820,7 @@
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
                         <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: #27ae60; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">🟢</span><br>
-                        <b>Vehículo:</b> ${p.marca} ${p.linea !== '-' ? p.linea : ''} ${p.color !== '-' ? '('+p.color+')' : ''}<br>
+                        <b>Vehículo:</b> ${p.marca || '-'} ${p.linea && p.linea !== '-' ? p.linea : ''} ${p.color && p.color !== '-' ? '('+p.color+')' : ''}<br>
                         <b>Teléfonos:</b> ${p.telefonos}<br>
                         <b>Estado:</b> ${estadoPicoTxt}<br>
                         <b>Fecha:</b> ${p.fecha}<br>
