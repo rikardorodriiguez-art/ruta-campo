@@ -91,8 +91,7 @@
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
         <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual (con foto)</button>
-        <button class="main-opt" onclick="abrirSeccion('ocr')" style="background-color: #8e44ad;">3. 📄 Extraer de Foto Reporte</button>
+        <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual / Foto reportes</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
@@ -102,23 +101,19 @@
         </div>
 
         <div id="seccion-manual" class="sub-panel">
+            <b style="font-size: 11px; color:#2980b9;">Para Manual: escribe Placa, Dirección y más.</b><br>
+            <b style="font-size: 11px; color:#8e44ad;">Para Foto de CIFIN/RUNT: Escribe solo la Placa y sube la captura de la tabla abajo.</b>
+            
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta">
-            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto Inicial (Opcional):</b>
+            <input type="text" id="manDir" placeholder="Dirección exacta (Dejar en blanco para Escaneo)">
+            
+            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Carro / Foto de CIFIN-Reporte:</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
-        </div>
-
-        <div id="seccion-ocr" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Lee direcciones desde una captura de reporte:</b>
-            <input type="text" id="ocrPlaca" placeholder="Escribe la placa a seguir (Obligatorio)">
-            <input type="file" id="ocrFile" accept="image/*" style="font-size:10px; margin-top:8px;">
-            <button class="action" onclick="procesarImagenOCR()" style="background-color: #8e44ad;">Extraer direcciones</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
     </div>
@@ -206,14 +201,12 @@
         function abrirSeccion(tipo) {
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('seccion-ocr').style.display = 'none';
             document.getElementById('seccion-' + tipo).style.display = 'block';
         }
 
         function cerrarSecciones() {
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('seccion-ocr').style.display = 'none';
             document.getElementById('menuOpciones').style.display = 'none';
         }
 
@@ -331,84 +324,6 @@
             reader.readAsText(file);
         }
 
-        // --- LÓGICA DE INTELIGENCIA ARTIFICIAL OCR ---
-        function procesarImagenOCR() {
-            var placa = document.getElementById('ocrPlaca').value.toUpperCase().trim();
-            var fileInput = document.getElementById('ocrFile');
-
-            if (!placa || !fileInput.files || !fileInput.files[0]) {
-                alert("Por favor ingresa la placa y sube la imagen del reporte.");
-                return;
-            }
-
-            var loadingOverlay = document.getElementById('loading-overlay');
-            var loadingTexto = document.getElementById('loading-texto');
-            loadingOverlay.style.display = 'flex';
-            loadingTexto.innerText = "⏳ Extrayendo direcciones con IA... (Esto puede tardar unos segundos)";
-
-            Tesseract.recognize(
-                fileInput.files[0],
-                'spa',
-                { logger: m => {
-                    if (m.status === 'recognizing text') {
-                        loadingTexto.innerText = "⏳ Leyendo imagen... " + Math.round(m.progress * 100) + "%";
-                    }
-                }}
-            ).then(async ({ data: { text } }) => {
-                loadingTexto.innerText = "🎯 Texto extraído, ubicando direcciones en el mapa...";
-                
-                var lineas = text.split('\n');
-                var direccionesEncontradas = [];
-
-                // Lógica de limpieza y búsqueda de direcciones en la imagen
-                lineas.forEach(function(l) {
-                    var dirLimpia = l.trim();
-                    var up = dirLimpia.toUpperCase();
-                    // Buscar patrones clásicos de direcciones colombianas
-                    if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ") || up.includes("KM ")) && up.length > 5) {
-                        // Evitar que lea encabezados de las tablas
-                        if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE")) {
-                             direccionesEncontradas.push(dirLimpia);
-                        }
-                    }
-                });
-
-                // Tomamos hasta 5 direcciones para no saturar el mapa si el historial es muy largo
-                var ubicacionesFinales = direccionesEncontradas.slice(0, 5);
-
-                if (ubicacionesFinales.length === 0) {
-                    alert("⚠️ No se detectaron direcciones claras en la imagen. Intenta con una captura más nítida o ingresa manual.");
-                    loadingOverlay.style.display = 'none';
-                    return;
-                }
-
-                if (placasRegistradas[placa]) {
-                    eliminarTodasDePlaca(placa); // Borra antiguas si ya existía
-                }
-                placasRegistradas[placa] = true;
-
-                for (let [index, dir] of ubicacionesFinales.entries()) {
-                    var coords = await obtenerCoordenadasExactasLimpias(dir);
-                    var nuevoPunto = {
-                        placa: placa, marca: "REPORTE OCR", linea: "-", modelo: "-", color: "-", telefonos: "Extraído con IA",
-                        lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
-                    };
-                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-                }
-
-                alert("🚀 ¡IA completada! Se extrajeron y ubicaron " + ubicacionesFinales.length + " direcciones de la imagen para la placa " + placa);
-                document.getElementById('ocrPlaca').value = '';
-                fileInput.value = '';
-                loadingOverlay.style.display = 'none';
-                cerrarSecciones();
-
-            }).catch(error => {
-                console.error(error);
-                alert("❌ Ocurrió un error al procesar la imagen.");
-                loadingOverlay.style.display = 'none';
-            });
-        }
-
         async function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Pega el texto primero."); return; }
@@ -496,16 +411,108 @@
         }
 
         async function procesarManual() {
-            var placa = document.getElementById('manPlaca').value.toUpperCase();
+            var placa = document.getElementById('manPlaca').value.toUpperCase().trim();
             var marca = document.getElementById('manMarca').value || "-";
             var linea = document.getElementById('manLinea').value || "-";
             var modelo = document.getElementById('manModelo').value || "-";
             var color = document.getElementById('manColor').value || "-";
-            var dir = document.getElementById('manDir').value;
+            var dir = document.getElementById('manDir').value.trim();
             var fileInput = document.getElementById('manFoto');
             var fotoBase64 = null;
             
-            if(!placa || !dir) { alert("Falta placa o dirección."); return; }
+            if(!placa) { alert("Por favor ingresa la placa."); return; }
+
+            // LÓGICA INTELIGENTE: ESCANEO OCR FILTRADO EXCLUSIVO (MÁX 3 DIR DE 2026 ACTIVAS, 2 PRIMEROS CELULARES)
+            if (!dir && fileInput.files && fileInput.files[0]) {
+                
+                var loadingOverlay = document.getElementById('loading-overlay');
+                var loadingTexto = document.getElementById('loading-texto');
+                loadingOverlay.style.display = 'flex';
+                loadingTexto.innerText = "⏳ Extrayendo direcciones de la foto... (Buscando reporte del 2026)";
+
+                Tesseract.recognize(
+                    fileInput.files[0],
+                    'spa',
+                    { logger: m => {
+                        if (m.status === 'recognizing text') {
+                            loadingTexto.innerText = "⏳ Leyendo foto... " + Math.round(m.progress * 100) + "%";
+                        }
+                    }}
+                ).then(async ({ data: { text } }) => {
+                    loadingTexto.innerText = "🎯 Aplicando filtros inteligentes en Google Maps...";
+                    
+                    var lineas = text.split('\n');
+                    var direccionesEncontradas = [];
+
+                    // Extraer los 2 primeros celulares que inicien con 3 (10 dígitos)
+                    var telsMatch = text.match(/3[0-9]{9}/g);
+                    var celularesExtract = telsMatch ? telsMatch.slice(0, 2).join(', ') : "-";
+
+                    // Procesar líneas buscando direcciones que tengan año 2026 (/26) y estén Activas (SI)
+                    lineas.forEach(function(l) {
+                        var dirLimpia = l.trim().replace(/\s+/g, ' ');
+                        var up = dirLimpia.toUpperCase();
+                        
+                        // Validar que sea una dirección y contenga el año '26' o '2026' y 'SI'
+                        if ((/(\b(CL|KR|CR|TR|TV|AV|KM|CLL|CARRERA|CALLE|TRANSVERSAL|AVENIDA|DG|DIAG|DIAGONAL|LAB|RES)\b)/i.test(up) || up.includes("#")) && up.length > 5) {
+                            if (up.includes("SI") && (up.includes("26") || up.includes("2026"))) {
+                                if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE") && !up.includes("ACTIVO") && !up.includes("CÓDIGO") && !up.includes("CLIENTE") && !up.includes("HISTÓRICOS") && !up.includes("CELULAR") && !up.includes("NO. DE") && !up.includes("PRIMER") && !up.includes("ÚLTIMO") && !up.includes("CONTEO") && !up.includes("EST ") && !up.includes("BÁSICA")) {
+                                    
+                                    // Limpieza rápida de datos innecesarios a la derecha de la dirección
+                                    var corte = dirLimpia.match(/(CL\s*\d+|KR\s*\d+|CARRERA\s*\d+|CALLE\s*\d+|KM\s*\d+|TRANSVERSAL\s*\d+|AV\s*\d+|AVENIDA\s*\d+|DG\s*\d+|DIAG\s*\d+).*?(\d+-\d+|\d+\s*A\s*#|\s*#\s*\d+)/i);
+                                    var dirFiltrada = corte ? corte[0] : dirLimpia;
+                                    
+                                    // Conservar el municipio si el OCR lo pegó
+                                    if (up.includes("MEDELLIN")) dirFiltrada += ", Medellin";
+                                    else if (up.includes("COPACABANA")) dirFiltrada += ", Copacabana";
+                                    else if (up.includes("ITAGUI")) dirFiltrada += ", Itagui";
+                                    else if (up.includes("ENVIGADO")) dirFiltrada += ", Envigado";
+                                    else if (up.includes("BELLO")) dirFiltrada += ", Bello";
+
+                                    direccionesEncontradas.push(dirFiltrada);
+                                }
+                            }
+                        }
+                    });
+
+                    // Limitar estrictamente a las 3 primeras que cumplan
+                    var ubicacionesFinales = direccionesEncontradas.slice(0, 3);
+
+                    if (ubicacionesFinales.length === 0) {
+                        alert("⚠️ No encontramos direcciones activas de 2026. Prueba registrando manualmente.");
+                        loadingOverlay.style.display = 'none';
+                        return;
+                    }
+
+                    if (placasRegistradas[placa]) {
+                        eliminarTodasDePlaca(placa);
+                    }
+                    placasRegistradas[placa] = true;
+
+                    for (let [index, d] of ubicacionesFinales.entries()) {
+                        var coords = await obtenerCoordenadasExactasLimpias(d);
+                        var nuevoPunto = {
+                            placa: placa, marca: "REPORTE OCR 2026 (SI)", linea: "-", modelo: "-", color: "-", telefonos: celularesExtract,
+                            lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
+                        };
+                        agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                    }
+
+                    alert("🚀 ¡Procesado con éxito! Se ubicaron las direcciones vigentes (2026 activas) para la placa " + placa);
+                    document.getElementById('manPlaca').value = '';
+                    fileInput.value = '';
+                    loadingOverlay.style.display = 'none';
+                    cerrarSecciones();
+                }).catch(error => {
+                    console.error(error);
+                    alert("❌ Error al procesar el reporte.");
+                    loadingOverlay.style.display = 'none';
+                });
+                return;
+            }
+
+            // --- LÓGICA DE INGRESO MANUAL TRADICIONAL ---
+            if(!dir) { alert("Falta ingresar la dirección exacta."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
@@ -623,7 +630,7 @@
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
             var visitas = localStorage.getItem('visitas_' + p.placa) || 0;
-            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir + ", Antioquia");
+            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir + ", Medellin, Antioquia");
             
             var imgHtml = '';
             if (p.foto) {
