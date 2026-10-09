@@ -125,6 +125,47 @@
         .pb-darkred { background: linear-gradient(145deg, #922b21, #7b241c); }
         
         .leaflet-div-icon { background: transparent; border: none; }
+        
+        /* NUEVO ESTILO DE PLACAS "NEÓN / FUTURISTA" */
+        .neon-marker-red {
+            background: linear-gradient(145deg, #1a1a1a, #2c3e50);
+            border: 2px solid #ff3b30;
+            border-radius: 12px;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 5px 12px;
+            box-shadow: 0 0 12px rgba(255, 59, 48, 0.8), inset 0 1px 1px rgba(255,255,255,0.2);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .neon-marker-red::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            border-width: 8px 6px 0; border-style: solid; border-color: #ff3b30 transparent transparent transparent;
+        }
+
+        .neon-marker-green {
+            background: linear-gradient(145deg, #1a1a1a, #2c3e50);
+            border: 2px solid #00ff87;
+            border-radius: 12px;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 5px 12px;
+            box-shadow: 0 0 12px rgba(0, 255, 135, 0.8), inset 0 1px 1px rgba(255,255,255,0.2);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .neon-marker-green::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            border-width: 8px 6px 0; border-style: solid; border-color: #00ff87 transparent transparent transparent;
+        }
     </style>
 </head>
 <body>
@@ -220,7 +261,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
-        // EL MAPA ORIGINAL CLÁSICO DE OPENSTREETMAP INTACTO
+        // MAPA CLÁSICO DE OPENSTREETMAP INTACTO
         var map = L.map('map').setView([6.2442, -75.5812], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -245,6 +286,12 @@
         var actualModeloFuerza = "";
         var actualColorFuerza = "";
 
+        // GENERADOR DE PINES ESTILO NEÓN / FUTURISTA
+        function generarMarcadorNeon(placa, esVisitada) {
+            var claseNeon = esVisitada ? 'neon-marker-green' : 'neon-marker-red';
+            return '<div class="' + claseNeon + '">' + placa + '</div>';
+        }
+
         function extraerInfoVehiculoUniversal(texto) {
             var m = "-", l = "-", mod = "-", c = "-";
             var lineas = texto.split('\n');
@@ -268,17 +315,6 @@
             if (mod === "") mod = "-";
             if (c === "") c = "-";
             return { marca: m, linea: l, modelo: mod, color: c };
-        }
-
-        // GENERADOR DE PINES MODERNOS: Color según visita (Rojo -> Verde)
-        function generarMarcadorHtml(placa, esVisitada) {
-            var colorGrad = esVisitada ? 'radial-gradient(circle, #2ecc71, #27ae60)' : 'radial-gradient(circle, #ff6b6b, #c0392b)';
-            var shadowColor = esVisitada ? 'rgba(46, 204, 113, 0.8)' : 'rgba(231, 76, 60, 0.8)';
-            
-            return '<div style="display: flex; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">' +
-                   '<div style="width: 18px; height: 18px; background: ' + colorGrad + '; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px ' + shadowColor + '; z-index: 2; position: relative;"></div>' +
-                   '<div style="font-size: 12px; font-weight: 900; color: #2c3e50; background: linear-gradient(180deg, #ffffff, #f0f0f0); padding: 4px 8px 4px 12px; border-radius: 0 6px 6px 0; border: 1px solid #ccc; border-left: none; white-space: nowrap; margin-left: -8px; position: relative; z-index: 1;">' + placa + '</div>' +
-                   '</div>';
         }
 
         map.on('click', function(e) {
@@ -364,7 +400,7 @@
             document.getElementById('menuOpciones').style.display = 'none';
         }
 
-        // LÓGICA DE VISITA: Incrementa cuenta, actualiza ícono a verde y recarga popup
+        // MARCAR VISITADA (ACTUALIZA COLOR A VERDE ELÉCTRICO)
         function marcarVisitada(placa, markerId) {
             var key = 'visitas_' + placa;
             var actual = parseInt(localStorage.getItem(key) || 0) + 1;
@@ -374,15 +410,13 @@
             if (itemIndex !== -1) {
                 var p = puntosData[itemIndex];
                 
-                // ACTUALIZA EL ÍCONO DEL MAPA (AHORA EN VERDE)
                 var customIcon = L.divIcon({
-                    className: 'custom-marker-modern',
-                    html: generarMarcadorHtml(p.placa, true), // true = verde
-                    iconAnchor: [9, 15]
+                    className: 'custom-neon-marker',
+                    html: generarMarcadorNeon(p.placa, true), // true = verde
+                    iconAnchor: [35, 15]
                 });
                 p.marker.setIcon(customIcon);
                 
-                // ACTUALIZA EL POPUP
                 p.marker.setPopupContent(generarContenidoPopup(p, markerId));
                 p.marker.openPopup();
             }
@@ -947,12 +981,9 @@
 
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
-            
-            // VERIFICAMOS VISITAS PARA EL PUNTO VERDE O ROJO DEL POPUP
             var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-            var dotEmoji = visitas > 0 ? '🟢 (Visitada)' : '🔴 (Pendiente)';
-            
             var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
+            
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
 
             var v = [];
@@ -971,7 +1002,7 @@
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-size: 11px;">${dotEmoji}</span><br>
+                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span><br>
                         <b>Vehículo:</b> <span style="color:#000;">${vehiculoTexto}</span><br>
                         <b>Teléfonos:</b> ${p.telefonos}<br>
                         <b>Estado:</b> ${estadoPicoTxt}<br>
@@ -1030,14 +1061,13 @@
             p.pico = tienePicoYPlaca(p.placa);
             p.esHoy = (p.fecha === hoyStr);
 
-            // COMPROBAMOS VISITAS PARA EL MAPA (ROJO POR DEFECTO, VERDE SI VISITADA)
             var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
             var esVisitada = visitas > 0;
 
             var customIcon = L.divIcon({
-                className: 'custom-marker-modern',
-                html: generarMarcadorHtml(p.placa, esVisitada),
-                iconAnchor: [9, 15] // Centra el marcador perfectamente en el mapa
+                className: 'custom-neon-marker',
+                html: generarMarcadorNeon(p.placa, esVisitada),
+                iconAnchor: [35, 15] // Centra la placa exactamente en el punto
             });
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).addTo(map);
