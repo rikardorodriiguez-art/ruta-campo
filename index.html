@@ -55,30 +55,30 @@
             <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte de WhatsApp</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar múltiples reportes</button>
         <button class="main-opt" onclick="abrirSeccion('foto')">2. 📷 Pegar foto y placa</button>
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí el mensaje completo de WhatsApp..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarReporteDirecto()">Analizar y Agregar</button>
+            <b style="color:#2c3e50; font-size:10px;">Pega varios reportes juntos (máx 3 direcciones por placa):</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes múltiples..." style="height: 100px;"></textarea>
+            <button class="action" onclick="procesarReporteMultipleSimultaneo()">Analizar y Agregar Lote</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
         <div id="seccion-foto" class="sub-panel">
             <b>Subir o tomar foto:</b>
             <input type="file" id="inputFile" accept="image/*" style="font-size:10px; margin-top:4px;">
-            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa (ej: HFM316)">
+            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa">
             <button class="action" onclick="procesarFoto()">Guardar con Foto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
         <div id="seccion-manual" class="sub-panel">
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
-            <input type="text" id="manMarca" placeholder="Marca (ej: VEHÍCULO)">
+            <input type="text" id="manMarca" placeholder="Marca">
             <input type="text" id="manLinea" placeholder="Línea">
-            <input type="text" id="manModelo" placeholder="Modelo (ej: 2024)">
+            <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
             <input type="text" id="manDir" placeholder="Dirección exacta">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
@@ -181,101 +181,108 @@
         var placasRegistradas = {};
         var puntosData = [];
 
-        // PROCESADOR DIRECTO Y SEGURO
-        function procesarReporteDirecto() {
+        // PROCESADOR DE PEGADO MÚLTIPLE MASIVO
+        function procesarReporteMultipleSimultaneo() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Por favor pega el texto del reporte."); return; }
+            if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
 
-            // Buscar la primera combinación de 6 caracteres que parezca una placa
-            var lineas = texto.split('\n');
-            var placaEncontrada = "";
+            // Dividir el texto en bloques usando la palabra UBICAR o saltos de fecha largos
+            var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
+            var totalAgregados = 0;
 
-            for (var i = 0; i < lineas.length; i++) {
-                var l = lineas[i].trim();
-                // Si la línea tiene exactamente o comienza con una estructura de placa de 6 caracteres
-                var match = l.match(/[A-Z]{3}[0-9A-Z]{3}/i);
-                if (match && !l.includes("UBICAR") && !l.includes("PRINCIPAL")) {
-                    placaEncontrada = match[0].toUpperCase();
-                    break;
-                }
-            }
+            bloques.forEach(function(bloque) {
+                if (bloque.trim().length < 6) return;
 
-            if (!placaEncontrada) {
-                // Plan B: buscar cualquier palabra de 6 caracteres alfanuméricos
-                var generalMatch = texto.match(/[A-Z]{3}[0-9A-Z]{3}/i);
-                if (generalMatch) {
-                    placaEncontrada = generalMatch[0].toUpperCase();
-                } else {
-                    placaEncontrada = "VEH" + Math.floor(100 + Math.random() * 900);
-                }
-            }
+                // Encontrar la placa dentro del bloque (3 letras seguidas de 3 caracteres/números)
+                var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
+                if (!matches) return;
 
-            // Si ya está registrada, limpiar los marcadores anteriores de esa placa
-            if (placasRegistradas[placaEncontrada]) {
-                puntosData.forEach(function(item) {
-                    if (item.placa === placaEncontrada) { map.removeLayer(item.marker); }
-                });
-            }
-
-            // Extraer datos del vehículo de forma sencilla
-            var marca = "VEHÍCULO";
-            var linea = "GENERAL";
-            var modelo = "2026";
-            var color = "N/A";
-
-            lineas.forEach(function(l) {
-                var up = l.toUpperCase();
-                if (up.includes("MARCA:")) marca = l.replace(/Marca:/i, '').trim();
-                if (up.includes("LÍNEA:") || up.includes("LINEA:")) linea = l.replace(/Línea:|Linea:/i, '').trim();
-                if (up.includes("MODELO:")) modelo = l.replace(/Modelo:/i, '').trim();
-                if (up.includes("COLOR:")) color = l.replace(/Color:/i, '').trim();
-            });
-
-            // Extraer teléfonos
-            var telsMatch = texto.match(/3[0-9]{9}/g);
-            var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
-
-            // Extraer direcciones (máximo 3)
-            var direcciones = [];
-            lineas.forEach(function(l) {
-                var up = l.trim().toUpperCase();
-                if ((up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ") || up.includes("ITAGUI") || up.includes("MEDELLIN") || up.includes("#")) && up.length > 6) {
-                    if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("CEL")) {
-                        direcciones.push(l.trim());
+                var placa = "";
+                var prohibidas = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELUL"];
+                for (var i = 0; i < matches.length; i++) {
+                    var cand = matches[i].toUpperCase();
+                    var prohibido = false;
+                    for (var j = 0; j < prohibidas.length; j++) {
+                        if (cand.includes(prohibidas[j])) { prohibido = true; break; }
                     }
+                    if (!prohibido) { placa = cand; break; }
                 }
+
+                if (!placa) return;
+
+                // Si ya está registrada, la limpiamos primero para actualizarla sin problemas
+                if (placasRegistradas[placa]) {
+                    puntosData.forEach(function(item) {
+                        if (item.placa === placa) { map.removeLayer(item.marker); }
+                    });
+                }
+                placasRegistradas[placa] = true;
+
+                // Extraer datos del vehículo
+                var marca = "VEHÍCULO";
+                var linea = "GENERAL";
+                var modelo = "2026";
+                var color = "N/A";
+
+                var lineas = bloque.split('\n');
+                lineas.forEach(function(l) {
+                    var up = l.toUpperCase();
+                    if (up.includes("MARCA:")) marca = l.replace(/Marca:/i, '').trim();
+                    if (up.includes("LÍNEA:") || up.includes("LINEA:")) linea = l.replace(/Línea:|Linea:/i, '').trim();
+                    if (up.includes("MODELO:")) modelo = l.replace(/Modelo:/i, '').trim();
+                    if (up.includes("COLOR:")) color = l.replace(/Color:/i, '').trim();
+                });
+
+                // Extraer teléfonos
+                var telsMatch = bloque.match(/3[0-9]{9}/g);
+                var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
+
+                // Extraer direcciones (máximo 3)
+                var direcciones = [];
+                lineas.forEach(function(l) {
+                    var up = l.trim().toUpperCase();
+                    if ((up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ") || up.includes("ITAGUI") || up.includes("MEDELLIN") || up.includes("#")) && up.length > 6) {
+                        if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("CEL")) {
+                            direcciones.push(l.trim());
+                        }
+                    }
+                });
+
+                var ubicacionesFinales = direcciones.slice(0, 3);
+                if (ubicacionesFinales.length === 0) {
+                    ubicacionesFinales = ["Dirección reportada en la zona"];
+                }
+
+                ubicacionesFinales.forEach(function(dir, index) {
+                    var lat = 6.2442 + (Math.random() - 0.5) * 0.12 + (index * 0.012);
+                    var lng = -75.5812 + (Math.random() - 0.5) * 0.12 + (index * 0.012);
+
+                    var nuevoPunto = {
+                        placa: placa,
+                        marca: marca,
+                        linea: linea,
+                        modelo: modelo,
+                        color: color,
+                        telefonos: telefonos,
+                        lat: lat,
+                        lng: lng,
+                        dir: dir,
+                        fecha: '2026-10-08'
+                    };
+
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
+                });
+
+                totalAgregados++;
             });
 
-            var ubicacionesFinales = direcciones.slice(0, 3);
-            if (ubicacionesFinales.length === 0) {
-                ubicacionesFinales = ["Dirección reportada en Antioquia"];
+            if (totalAgregados > 0) {
+                alert("🚀 ¡Lote procesado con éxito! Se cargaron " + totalAgregados + " vehículos al mapa.");
+                document.getElementById('txtWhatsapp').value = '';
+                cerrarSecciones();
+            } else {
+                alert("⚠️ No se pudieron extraer placas o direcciones del texto múltiple. Asegúrate de pegar el bloque completo.");
             }
-
-            placasRegistradas[placaEncontrada] = true;
-
-            ubicacionesFinales.forEach(function(dir, index) {
-                var lat = 6.2442 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
-                var lng = -75.5812 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
-
-                var nuevoPunto = {
-                    placa: placaEncontrada,
-                    marca: marca,
-                    linea: linea,
-                    modelo: modelo,
-                    color: color,
-                    telefonos: telefonos,
-                    lat: lat,
-                    lng: lng,
-                    dir: dir,
-                    fecha: '2026-10-08'
-                };
-
-                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
-            });
-
-            alert("🚀 ¡Placa " + placaEncontrada + " cargada exitosamente en el mapa!");
-            document.getElementById('txtWhatsapp').value = '';
-            cerrarSecciones();
         }
 
         function procesarFoto() {
