@@ -69,18 +69,18 @@
         <div id="seccion-foto" class="sub-panel">
             <b>Subir o tomar foto:</b>
             <input type="file" id="inputFile" accept="image/*" style="font-size:10px; margin-top:4px;">
-            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa (ej: TTM258)">
+            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa (ej: HFM316)">
             <button class="action" onclick="procesarFoto()">Guardar con Foto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
         <div id="seccion-manual" class="sub-panel">
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
-            <input type="text" id="manMarca" placeholder="Marca (ej: HYUNDAI)">
-            <input type="text" id="manLinea" placeholder="Línea (ej: i 10 GL)">
-            <input type="text" id="manModelo" placeholder="Modelo (ej: 2013)">
-            <input type="text" id="manColor" placeholder="Color (ej: AMARILLO)">
-            <input type="text" id="manDir" placeholder="Dirección exacta (ej: CL 42 # 82 - 35)">
+            <input type="text" id="manMarca" placeholder="Marca (ej: MAZDA)">
+            <input type="text" id="manLinea" placeholder="Línea (ej: CX-5)">
+            <input type="text" id="manModelo" placeholder="Modelo (ej: 2024)">
+            <input type="text" id="manColor" placeholder="Color (ej: PLATA)">
+            <input type="text" id="manDir" placeholder="Dirección exacta">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -191,7 +191,7 @@
                 return;
             }
 
-            var palabrasProhibidas = ["UBICAR", "PRINC", "PARTES", "DETAL"];
+            var palabrasProhibidas = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELULAR"];
             var placa = "";
             for (var i = 0; i < matches.length; i++) {
                 var p = matches[i].toUpperCase();
@@ -210,12 +210,16 @@
                 return;
             }
 
+            // Si ya está registrada, la eliminamos automáticamente de la memoria previa para permitir actualizarla sin bloqueos
             if (placasRegistradas[placa]) {
-                alert("⚠️ La placa " + placa + " ya se encuentra registrada en el mapa.");
-                return;
+                puntosData.forEach(function(item) {
+                    if (item.placa === placa) {
+                        map.removeLayer(item.marker);
+                    }
+                });
             }
 
-            var marcaMatch = texto.match(/Marca:\s*([A-Z\s]+)/i);
+            var marcaMatch = texto.match(/Marca:\s*([A-Z\s\-]+)/i);
             var lineaMatch = texto.match(/Línea:\s*([A-Z0-9\-\s]+)/i);
             var modeloMatch = texto.match(/Modelo:\s*([0-9]{4})/i);
             var colorMatch = texto.match(/Color:\s*([A-Z\s]+)/i);
@@ -233,7 +237,7 @@
             lineas.forEach(function(l) {
                 var lClean = l.trim();
                 if (lClean.length > 5 && (lClean.includes('#') || lClean.toUpperCase().includes('CL ') || lClean.toUpperCase().includes('KR ') || lClean.toUpperCase().includes('TV ') || lClean.toUpperCase().includes('AV '))) {
-                    if (!lClean.includes('PARTES') && !lClean.includes('DETALLE') && !lClean.includes('SOAT')) {
+                    if (!lClean.includes('PARTES') && !lClean.includes('DETALLE') && !lClean.includes('SOAT') && !lClean.includes('CEL')) {
                         direccionesValidas.push(lClean);
                     }
                 }
@@ -274,14 +278,20 @@
         function procesarFoto() {
             var placa = document.getElementById('txtPlacaFoto').value;
             if(!placa) { alert("Por favor escribe la placa."); return; }
-            if(placasRegistradas[placa.toUpperCase()]) { alert("Esta placa ya está registrada."); return; }
+            placa = placa.toUpperCase();
 
-            placasRegistradas[placa.toUpperCase()] = true;
+            if(placasRegistradas[placa]) {
+                puntosData.forEach(function(item) {
+                    if (item.placa === placa) { map.removeLayer(item.marker); }
+                });
+            }
+
+            placasRegistradas[placa] = true;
             var lat = 6.2442 + (Math.random() - 0.5) * 0.05;
             var lng = -75.5812 + (Math.random() - 0.5) * 0.05;
             
             agregarMarcadorAlMapa({
-                placa: placa.toUpperCase(), marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: lat, lng: lng, dir: "Ubicación por foto", fecha: '2026-10-08'
+                placa: placa, marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: lat, lng: lng, dir: "Ubicación por foto", fecha: '2026-10-08'
             }, puntosData.length + 1);
 
             alert("¡Foto y placa (" + placa + ") agregadas al mapa!");
@@ -297,7 +307,12 @@
             var dir = document.getElementById('manDir').value;
             
             if(!placa || !dir) { alert("Ingresa al menos la placa y la dirección."); return; }
-            if(placasRegistradas[placa]) { alert("Esta placa ya está registrada."); return; }
+
+            if(placasRegistradas[placa]) {
+                puntosData.forEach(function(item) {
+                    if (item.placa === placa) { map.removeLayer(item.marker); }
+                });
+            }
 
             placasRegistradas[placa] = true;
             var lat = 6.2442 + (Math.random() - 0.5) * 0.06;
