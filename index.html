@@ -60,27 +60,27 @@
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Extrae direcciones exactas (máx 3 por placa):</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí el mensaje completo con UBICACION..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarReportePreciso()">Analizar con Precisión</button>
+            <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí el mensaje completo de WhatsApp..." style="height: 100px;"></textarea>
+            <button class="action" onclick="procesarReporteFlexible()">Analizar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
         <div id="seccion-foto" class="sub-panel">
             <b>Subir o tomar foto:</b>
             <input type="file" id="inputFile" accept="image/*" style="font-size:10px; margin-top:4px;">
-            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa (ej: STC789)">
+            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa (ej: TTM258)">
             <button class="action" onclick="procesarFoto()">Guardar con Foto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
         <div id="seccion-manual" class="sub-panel">
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
-            <input type="text" id="manMarca" placeholder="Marca (ej: RENAULT)">
-            <input type="text" id="manLinea" placeholder="Línea (ej: ARKANA)">
-            <input type="text" id="manModelo" placeholder="Modelo (ej: 2025)">
-            <input type="text" id="manColor" placeholder="Color (ej: GRIS)">
-            <input type="text" id="manDir" placeholder="Dirección exacta (ej: CL 35 # 76 - 56)">
+            <input type="text" id="manMarca" placeholder="Marca (ej: HYUNDAI)">
+            <input type="text" id="manLinea" placeholder="Línea (ej: i 10 GL)">
+            <input type="text" id="manModelo" placeholder="Modelo (ej: 2013)">
+            <input type="text" id="manColor" placeholder="Color (ej: AMARILLO)">
+            <input type="text" id="manDir" placeholder="Dirección exacta (ej: CL 42 # 82 - 35)">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -181,8 +181,8 @@
         var placasRegistradas = {};
         var puntosData = [];
 
-        // ANALIZADOR PRECISO DE REPORTES WHATSAPP
-        function procesarReportePreciso() {
+        // ANALIZADOR FLEXIBLE DE REPORTES
+        function procesarReporteFlexible() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto del reporte."); return; }
 
@@ -198,33 +198,33 @@
 
                 if (placasRegistradas[placa]) return; // Omitir duplicadas
 
-                var marcaMatch = bloque.match(/Marca:\s*([A-Z]+)/i);
-                var lineaMatch = bloque.match(/Línea:\s*([A-Z0-9\-]+)/i);
+                var marcaMatch = bloque.match(/Marca:\s*([A-Z\s]+)/i);
+                var lineaMatch = bloque.match(/Línea:\s*([A-Z0-9\-\s]+)/i);
                 var modeloMatch = bloque.match(/Modelo:\s*([0-9]{4})/i);
                 var colorMatch = bloque.match(/Color:\s*([A-Z\s]+)/i);
 
-                var marca = marcaMatch ? marcaMatch[1].trim() : "VEHÍCULO";
-                var linea = lineaMatch ? lineaMatch[1].trim() : "GENERAL";
-                var modelo = modeloMatch ? modeloMatch[1].trim() : "2026";
+                var marca = marcaMatch ? marcaMatch[1].trim().split('\n')[0] : "VEHÍCULO";
+                var linea = lineaMatch ? lineaMatch[1].trim().split('\n')[0] : "GENERAL";
+                var modelo = modeloMatch ? modeloMatch[1].trim().split('\n')[0] : "2026";
                 var color = colorMatch ? colorMatch[1].trim().split('\n')[0] : "N/A";
 
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
                 var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-                // Extraer estrictamente líneas que parezcan direcciones viales (CL, KR, CR, TV, AV)
+                // Extracción flexible de direcciones (busca líneas con nomenclatura o números largos)
                 var direccionesValidas = [];
                 var lineas = bloque.split('\n');
                 lineas.forEach(function(l) {
                     var lClean = l.trim().toUpperCase();
-                    if ((lClean.startsWith('CL') || lClean.startsWith('KR') || lClean.startsWith('CR') || lClean.startsWith('TV') || lClean.startsWith('AV') || lClean.startsWith('DIAG')) && lClean.includes('#')) {
+                    if ((lClean.includes('CL ') || lClean.includes('KR ') || lClean.includes('CR ') || lClean.includes('TV ') || lClean.includes('AV ') || lClean.includes('#')) && lClean.length > 5) {
                         direccionesValidas.push(l.trim());
                     }
                 });
 
-                // Si no encontró con prefijo estricto, buscar cualquier línea con '#'
+                // Si no encontró con el filtro anterior, toma cualquier línea relevante
                 if (direccionesValidas.length === 0) {
                     lineas.forEach(function(l) {
-                        if (l.includes('#') && l.length > 8) {
+                        if (l.trim().length > 8 && !l.includes('PARTES') && !l.includes('DETALLE') && !l.includes('SOAT') && !l.includes('CELULAR')) {
                             direccionesValidas.push(l.trim());
                         }
                     });
@@ -233,13 +233,12 @@
                 // Limitar estrictamente a máximo 3 ubicaciones
                 var ubicacionesFinales = direccionesValidas.slice(0, 3);
                 if (ubicacionesFinales.length === 0) {
-                    ubicacionesFinales = ["Medellín, Antioquia (Dirección general)"];
+                    ubicacionesFinales = ["Medellín, Antioquia"];
                 }
 
                 placasRegistradas[placa] = true;
 
                 ubicacionesFinales.forEach(function(dir, index) {
-                    // Coordenadas base en Medellín con ligera separación para visualización limpia
                     var lat = 6.2442 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
                     var lng = -75.5812 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
 
@@ -263,11 +262,11 @@
             });
 
             if (agregadosCount > 0) {
-                alert("🚀 ¡Procesado correctamente! Placas agregadas: " + agregadosCount);
+                alert("🚀 ¡Reporte procesado con éxito! Placas agregadas: " + agregadosCount);
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
-                alert("⚠️ No se detectaron direcciones válidas con formato vial (ej: CL # ...). Revisa el texto.");
+                alert("⚠️ Asegúrate de incluir la placa y las direcciones en el texto pegado.");
             }
         }
 
@@ -387,10 +386,10 @@
             puntosData.push({ id: markerId, placa: p.placa, marker: marker, pico: pico, esHoy: esHoy });
         }
 
-        // Punto base inicial de prueba
-        placasRegistradas["STC789"] = true;
+        // Punto base inicial
+        placasRegistradas["TTM258"] = true;
         agregarMarcadorAlMapa({
-            placa: "STC789", marca: "JMC", linea: "JX1044TC4", modelo: "2023", color: "BLANCO", telefonos: "3207474601", lat: 6.2518, lng: -75.5636, dir: "CL 65 # 55 - 30, Medellin", fecha: '2026-10-08'
+            placa: "TTM258", marca: "HYUNDAI", linea: "i 10 GL", modelo: "2013", color: "AMARILLO", telefonos: "3017599649", lat: 6.3400, lng: -75.5100, dir: "CL 42 # 82 - 35, Copacabana", fecha: '2026-10-08'
         }, 1);
     </script>
 </body>
