@@ -181,93 +181,80 @@
         var placasRegistradas = {};
         var puntosData = [];
 
-        // ANALIZADOR FLEXIBLE DE REPORTES
+        // ANALIZADOR TOTALMENTE FLEXIBLE Y SIN BLOQUEOS
         function procesarReporteFlexible() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto del reporte."); return; }
 
-            var bloques = texto.split(/UBICAR\s*A?/i);
-            var agregadosCount = 0;
+            // Buscar cualquier placa de 6 caracteres (3 letras + 3 dígitos/letras)
+            var matchPlaca = texto.match(/[A-Z]{3}[0-9A-Z]{3}/i);
+            if (!matchPlaca) {
+                alert("⚠️ No se encontró ninguna placa válida en el texto. Asegúrate de incluirla.");
+                return;
+            }
+            var placa = matchPlaca[0].toUpperCase();
 
-            bloques.forEach(function(bloque) {
-                if (bloque.trim().length < 5) return;
+            if (placasRegistradas[placa]) {
+                alert("⚠️ La placa " + placa + " ya se encuentra registrada en el mapa.");
+                return;
+            }
 
-                var matchPlaca = bloque.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/i);
-                if (!matchPlaca) return;
-                var placa = matchPlaca[0].toUpperCase();
+            var marcaMatch = texto.match(/Marca:\s*([A-Z\s]+)/i);
+            var lineaMatch = texto.match(/Línea:\s*([A-Z0-9\-\s]+)/i);
+            var modeloMatch = texto.match(/Modelo:\s*([0-9]{4})/i);
+            var colorMatch = texto.match(/Color:\s*([A-Z\s]+)/i);
 
-                if (placasRegistradas[placa]) return; // Omitir duplicadas
+            var marca = marcaMatch ? marcaMatch[1].trim().split('\n')[0] : "VEHÍCULO";
+            var linea = lineaMatch ? lineaMatch[1].trim().split('\n')[0] : "GENERAL";
+            var modelo = modeloMatch ? modeloMatch[1].trim().split('\n')[0] : "2026";
+            var color = colorMatch ? colorMatch[1].trim().split('\n')[0] : "N/A";
 
-                var marcaMatch = bloque.match(/Marca:\s*([A-Z\s]+)/i);
-                var lineaMatch = bloque.match(/Línea:\s*([A-Z0-9\-\s]+)/i);
-                var modeloMatch = bloque.match(/Modelo:\s*([0-9]{4})/i);
-                var colorMatch = bloque.match(/Color:\s*([A-Z\s]+)/i);
+            var telsMatch = texto.match(/3[0-9]{9}/g);
+            var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-                var marca = marcaMatch ? marcaMatch[1].trim().split('\n')[0] : "VEHÍCULO";
-                var linea = lineaMatch ? lineaMatch[1].trim().split('\n')[0] : "GENERAL";
-                var modelo = modeloMatch ? modeloMatch[1].trim().split('\n')[0] : "2026";
-                var color = colorMatch ? colorMatch[1].trim().split('\n')[0] : "N/A";
-
-                var telsMatch = bloque.match(/3[0-9]{9}/g);
-                var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
-
-                // Extracción flexible de direcciones (busca líneas con nomenclatura o números largos)
-                var direccionesValidas = [];
-                var lineas = bloque.split('\n');
-                lineas.forEach(function(l) {
-                    var lClean = l.trim().toUpperCase();
-                    if ((lClean.includes('CL ') || lClean.includes('KR ') || lClean.includes('CR ') || lClean.includes('TV ') || lClean.includes('AV ') || lClean.includes('#')) && lClean.length > 5) {
-                        direccionesValidas.push(l.trim());
+            // Extraer direcciones de forma flexible (líneas que tengan número o nomenclaturas)
+            var direccionesValidas = [];
+            var lineas = texto.split('\n');
+            lineas.forEach(function(l) {
+                var lClean = l.trim();
+                if (lClean.length > 5 && (lClean.includes('#') || lClean.toUpperCase().includes('CL ') || lClean.toUpperCase().includes('KR ') || lClean.toUpperCase().includes('TV ') || lClean.toUpperCase().includes('AV '))) {
+                    if (!lClean.includes('PARTES') && !lClean.includes('DETALLE') && !lClean.includes('SOAT')) {
+                        direccionesValidas.push(lClean);
                     }
-                });
-
-                // Si no encontró con el filtro anterior, toma cualquier línea relevante
-                if (direccionesValidas.length === 0) {
-                    lineas.forEach(function(l) {
-                        if (l.trim().length > 8 && !l.includes('PARTES') && !l.includes('DETALLE') && !l.includes('SOAT') && !l.includes('CELULAR')) {
-                            direccionesValidas.push(l.trim());
-                        }
-                    });
                 }
-
-                // Limitar estrictamente a máximo 3 ubicaciones
-                var ubicacionesFinales = direccionesValidas.slice(0, 3);
-                if (ubicacionesFinales.length === 0) {
-                    ubicacionesFinales = ["Medellín, Antioquia"];
-                }
-
-                placasRegistradas[placa] = true;
-
-                ubicacionesFinales.forEach(function(dir, index) {
-                    var lat = 6.2442 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
-                    var lng = -75.5812 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
-
-                    var nuevoPunto = {
-                        placa: placa,
-                        marca: marca,
-                        linea: linea,
-                        modelo: modelo,
-                        color: color,
-                        telefonos: telefonos,
-                        lat: lat,
-                        lng: lng,
-                        dir: dir,
-                        fecha: '2026-10-08'
-                    };
-
-                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
-                });
-
-                agregadosCount++;
             });
 
-            if (agregadosCount > 0) {
-                alert("🚀 ¡Reporte procesado con éxito! Placas agregadas: " + agregadosCount);
-                document.getElementById('txtWhatsapp').value = '';
-                cerrarSecciones();
-            } else {
-                alert("⚠️ Asegúrate de incluir la placa y las direcciones en el texto pegado.");
+            // Si no encuentra direcciones específicas, toma el texto general como ubicación
+            var ubicacionesFinales = direccionesValidas.slice(0, 3);
+            if (ubicacionesFinales.length === 0) {
+                ubicacionesFinales = ["Dirección reportada en Antioquia"];
             }
+
+            placasRegistradas[placa] = true;
+
+            ubicacionesFinales.forEach(function(dir, index) {
+                var lat = 6.2442 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
+                var lng = -75.5812 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
+
+                var nuevoPunto = {
+                    placa: placa,
+                    marca: marca,
+                    linea: linea,
+                    modelo: modelo,
+                    color: color,
+                    telefonos: telefonos,
+                    lat: lat,
+                    lng: lng,
+                    dir: dir,
+                    fecha: '2026-10-08'
+                };
+
+                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
+            });
+
+            alert("🚀 ¡Placa " + placa + " agregada con éxito al mapa!");
+            document.getElementById('txtWhatsapp').value = '';
+            cerrarSecciones();
         }
 
         function procesarFoto() {
