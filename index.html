@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
+    
+    <!-- LIBRERÍA DE INTELIGENCIA ARTIFICIAL PARA LEER TEXTO DE IMÁGENES -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <style>
         html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
@@ -58,26 +62,21 @@
         }
 
         #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6);
-            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 15px; font-weight: bold; text-align: center; padding: 20px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 15px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column;
         }
 
-        /* Estilos para el popup de Leaflet y miniatura */
         .leaflet-popup-content { margin: 10px; line-height: 1.4; }
         .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
         .edit-input { width: 100%; margin-bottom: 4px; padding: 3px; font-size: 12px; border: 1px solid #aaa; border-radius: 3px; box-sizing: border-box; }
-        .action-btn-small { background-color: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 5px; width: 100%; }
-        .save-btn-small { background-color: #27ae60; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; margin-top: 5px; }
-        
-        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; margin-bottom: 5px; }
-        .file-upload-btn { background-color: #8e44ad; color: white; padding: 6px; border-radius: 4px; font-size: 11px; font-weight: bold; text-align: center; display: block; cursor: pointer; border: none; width: 100%; box-sizing: border-box;}
-        .file-upload-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
-    <div id="loading-overlay">🎯 Leyendo y ubicando...</div>
+    <div id="loading-overlay">
+        <span id="loading-texto">🎯 Leyendo y ubicando...</span>
+    </div>
 
     <div id="modo-edicion-banner">
         📍 Moviendo punto:<br>
@@ -91,8 +90,9 @@
             <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
         <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual (con foto)</button>
+        <button class="main-opt" onclick="abrirSeccion('ocr')" style="background-color: #8e44ad;">3. 📄 Extraer de Foto Reporte</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
@@ -111,6 +111,14 @@
             <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto Inicial (Opcional):</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
+        </div>
+
+        <div id="seccion-ocr" class="sub-panel">
+            <b style="color:#2c3e50; font-size:10px;">Lee direcciones desde una captura de reporte:</b>
+            <input type="text" id="ocrPlaca" placeholder="Escribe la placa a seguir (Obligatorio)">
+            <input type="file" id="ocrFile" accept="image/*" style="font-size:10px; margin-top:8px;">
+            <button class="action" onclick="procesarImagenOCR()" style="background-color: #8e44ad;">Extraer direcciones</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
     </div>
@@ -198,12 +206,14 @@
         function abrirSeccion(tipo) {
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
+            document.getElementById('seccion-ocr').style.display = 'none';
             document.getElementById('seccion-' + tipo).style.display = 'block';
         }
 
         function cerrarSecciones() {
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
+            document.getElementById('seccion-ocr').style.display = 'none';
             document.getElementById('menuOpciones').style.display = 'none';
         }
 
@@ -243,7 +253,6 @@
             guardarPuntosStorage();
         }
 
-        // Función para convertir archivo de imagen a Base64
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -258,7 +267,7 @@
                                .replace(/KR\s*|CR\s*/gi, 'Carrera ')
                                .replace(/#/g, ' ')
                                .replace(/-/g, ' ');
-            var query = dirLimpia + ", Medellin, Antioquia, Colombia";
+            var query = dirLimpia + ", Antioquia, Colombia"; 
             
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
             var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
@@ -270,9 +279,7 @@
                     var location = data.results[0].geometry.location;
                     return { lat: parseFloat(location.lat), lng: parseFloat(location.lng) };
                 }
-            } catch(e) {
-                console.log("Error Google Maps");
-            }
+            } catch(e) { console.log("Error Google Maps"); }
             
             return {lat: 6.2442, lng: -75.5812};
         }
@@ -280,18 +287,7 @@
         function guardarPuntosStorage() {
             var datosASeguardar = puntosData.map(function(item) {
                 return {
-                    id: item.id,
-                    placa: item.placa,
-                    marca: item.marca,
-                    linea: item.linea,
-                    modelo: item.modelo,
-                    color: item.color,
-                    telefonos: item.telefonos,
-                    dir: item.dir,
-                    fecha: item.fecha,
-                    lat: item.lat,
-                    lng: item.lng,
-                    foto: item.foto // Guarda la foto en base64
+                    id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color, telefonos: item.telefonos, dir: item.dir, fecha: item.fecha, lat: item.lat, lng: item.lng, foto: item.foto 
                 };
             });
             localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
@@ -312,7 +308,7 @@
 
         function exportarRespaldo() {
             var datos = localStorage.getItem('puntos_raptor_guardados');
-            if (!datos || datos === "[]") { alert("No hay puntos."); return; }
+            if (!datos || datos === "[]") { alert("No hay puntos para exportar."); return; }
             var blob = new Blob([datos], {type: "application/json"});
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
@@ -330,18 +326,95 @@
                     var lista = JSON.parse(e.target.result);
                     localStorage.setItem('puntos_raptor_guardados', JSON.stringify(lista));
                     location.reload();
-                } catch(err) {
-                    alert("Archivo inválido.");
-                }
+                } catch(err) { alert("Archivo inválido."); }
             };
             reader.readAsText(file);
         }
 
+        // --- LÓGICA DE INTELIGENCIA ARTIFICIAL OCR ---
+        function procesarImagenOCR() {
+            var placa = document.getElementById('ocrPlaca').value.toUpperCase().trim();
+            var fileInput = document.getElementById('ocrFile');
+
+            if (!placa || !fileInput.files || !fileInput.files[0]) {
+                alert("Por favor ingresa la placa y sube la imagen del reporte.");
+                return;
+            }
+
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            loadingOverlay.style.display = 'flex';
+            loadingTexto.innerText = "⏳ Extrayendo direcciones con IA... (Esto puede tardar unos segundos)";
+
+            Tesseract.recognize(
+                fileInput.files[0],
+                'spa',
+                { logger: m => {
+                    if (m.status === 'recognizing text') {
+                        loadingTexto.innerText = "⏳ Leyendo imagen... " + Math.round(m.progress * 100) + "%";
+                    }
+                }}
+            ).then(async ({ data: { text } }) => {
+                loadingTexto.innerText = "🎯 Texto extraído, ubicando direcciones en el mapa...";
+                
+                var lineas = text.split('\n');
+                var direccionesEncontradas = [];
+
+                // Lógica de limpieza y búsqueda de direcciones en la imagen
+                lineas.forEach(function(l) {
+                    var dirLimpia = l.trim();
+                    var up = dirLimpia.toUpperCase();
+                    // Buscar patrones clásicos de direcciones colombianas
+                    if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ") || up.includes("KM ")) && up.length > 5) {
+                        // Evitar que lea encabezados de las tablas
+                        if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE")) {
+                             direccionesEncontradas.push(dirLimpia);
+                        }
+                    }
+                });
+
+                // Tomamos hasta 5 direcciones para no saturar el mapa si el historial es muy largo
+                var ubicacionesFinales = direccionesEncontradas.slice(0, 5);
+
+                if (ubicacionesFinales.length === 0) {
+                    alert("⚠️ No se detectaron direcciones claras en la imagen. Intenta con una captura más nítida o ingresa manual.");
+                    loadingOverlay.style.display = 'none';
+                    return;
+                }
+
+                if (placasRegistradas[placa]) {
+                    eliminarTodasDePlaca(placa); // Borra antiguas si ya existía
+                }
+                placasRegistradas[placa] = true;
+
+                for (let [index, dir] of ubicacionesFinales.entries()) {
+                    var coords = await obtenerCoordenadasExactasLimpias(dir);
+                    var nuevoPunto = {
+                        placa: placa, marca: "REPORTE OCR", linea: "-", modelo: "-", color: "-", telefonos: "Extraído con IA",
+                        lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
+                    };
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                }
+
+                alert("🚀 ¡IA completada! Se extrajeron y ubicaron " + ubicacionesFinales.length + " direcciones de la imagen para la placa " + placa);
+                document.getElementById('ocrPlaca').value = '';
+                fileInput.value = '';
+                loadingOverlay.style.display = 'none';
+                cerrarSecciones();
+
+            }).catch(error => {
+                console.error(error);
+                alert("❌ Ocurrió un error al procesar la imagen.");
+                loadingOverlay.style.display = 'none';
+            });
+        }
+
         async function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Pega el texto."); return; }
+            if(!texto) { alert("Pega el texto primero."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-texto').innerText = "🎯 Analizando texto y ubicando...";
 
             var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
             var totalAgregados = 0;
@@ -377,7 +450,7 @@
                 }
                 placasRegistradas[placa] = true;
 
-                var marca = "VEHÍCULO", linea = "GENERAL", modelo = "2026", color = "N/A";
+                var marca = "VEHÍCULO", linea = "-", modelo = "-", color = "-";
                 var lineas = bloque.split('\n');
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
@@ -388,7 +461,7 @@
                 });
 
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
-                var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
+                var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "-";
 
                 var direcciones = [];
                 lineas.forEach(function(l) {
@@ -435,6 +508,7 @@
             if(!placa || !dir) { alert("Falta placa o dirección."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
             
             if (fileInput.files && fileInput.files[0]) {
                 fotoBase64 = await fileToBase64(fileInput.files[0]);
@@ -501,8 +575,6 @@
             return false;
         }
 
-        // --- FUNCIONES DE EDICIÓN EN EL POPUP ---
-
         function toggleEditMode(markerId) {
             var viewDiv = document.getElementById('view-mode-' + markerId);
             var editDiv = document.getElementById('edit-mode-' + markerId);
@@ -520,40 +592,39 @@
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex === -1) return;
 
-            // Recoger los nuevos valores de los inputs
+            var placaEditada = puntosData[itemIndex].placa;
+
             var nuevoVehiculo = document.getElementById('edit-vehiculo-' + markerId).value;
             var nuevosTels = document.getElementById('edit-telefonos-' + markerId).value;
             var nuevaDir = document.getElementById('edit-dir-' + markerId).value;
-            
             var fileInput = document.getElementById('upload-foto-' + markerId);
-
-            // Actualizar objeto
-            puntosData[itemIndex].marca = nuevoVehiculo;
-            puntosData[itemIndex].telefonos = nuevosTels;
-            puntosData[itemIndex].dir = nuevaDir;
-
+            
+            var nuevaFotoBase64 = puntosData[itemIndex].foto;
             if (fileInput.files && fileInput.files[0]) {
-                puntosData[itemIndex].foto = await fileToBase64(fileInput.files[0]);
+                nuevaFotoBase64 = await fileToBase64(fileInput.files[0]);
             }
 
+            puntosData.forEach(function(p) {
+                if (p.placa === placaEditada) {
+                    p.marca = nuevoVehiculo; 
+                    p.telefonos = nuevosTels; 
+                    if (nuevaFotoBase64) p.foto = nuevaFotoBase64; 
+                    
+                    if (p.id === markerId) p.dir = nuevaDir;
+
+                    if (p.marker) p.marker.setPopupContent(generarContenidoPopup(p, p.id));
+                }
+            });
+
             guardarPuntosStorage();
-            
-            // Volver a dibujar el popup con los datos nuevos
-            var marcadorAnterior = puntosData[itemIndex].marker;
-            var dataPunto = puntosData[itemIndex];
-            
-            var contenidoNuevo = generarContenidoPopup(dataPunto, markerId);
-            marcadorAnterior.setPopupContent(contenidoNuevo);
-            
-            alert("✅ Información guardada correctamente");
+            alert("✅ Información sincronizada en TODAS las ubicaciones de la placa " + placaEditada);
         }
 
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
             var visitas = localStorage.getItem('visitas_' + p.placa) || 0;
-            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir + ", Medellin, Antioquia");
+            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir + ", Antioquia");
             
-            // Verifica si tiene foto guardada
             var imgHtml = '';
             if (p.foto) {
                 imgHtml = `<img src="${p.foto}" class="car-thumbnail" style="display:block;">`;
@@ -561,8 +632,6 @@
 
             return `
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
-                    
-                    <!-- MODO VISTA NORMAL -->
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
                         <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: #27ae60; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">🟢</span><br>
@@ -591,7 +660,6 @@
                         </div>
                     </div>
 
-                    <!-- MODO EDICIÓN -->
                     <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
                         <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
                         
@@ -608,7 +676,7 @@
                         <input type="file" id="upload-foto-${markerId}" accept="image/*" class="edit-input" style="padding:2px;">
                         
                         <div style="display:flex; gap:5px; margin-top:10px;">
-                            <button onclick="guardarEdicionPopup('${markerId}')" style="background-color: #27ae60; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-weight: bold; flex: 1;">💾 Guardar</button>
+                            <button onclick="guardarEdicionPopup('${markerId}')" style="background-color: #27ae60; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-weight: bold; flex: 1;">💾 Guardar Todo</button>
                             <button onclick="toggleEditMode('${markerId}')" style="background-color: #7f8c8d; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-weight: bold; flex: 1;">Cancelar</button>
                         </div>
                     </div>
@@ -618,7 +686,7 @@
 
         function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
             var markerId = p.id || 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
-            p.id = markerId; // Asegurar que tenga ID
+            p.id = markerId; 
             p.pico = tienePicoYPlaca(p.placa);
             p.esHoy = (p.fecha === hoyStr);
 
@@ -630,7 +698,6 @@
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).addTo(map);
             p.marker = marker;
             
-            // Bindear el contenido generado dinámicamente
             marker.bindPopup(generarContenidoPopup(p, markerId));
             
             if (guardarEnStorage) {
