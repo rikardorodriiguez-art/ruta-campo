@@ -59,9 +59,9 @@
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Pega varios reportes nacionales (máx 3 por placa):</b>
+            <b style="color:#2c3e50; font-size:10px;">Pega varios reportes juntos (omite nomenclaturas erróneas):</b>
             <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes múltiples..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarLoteNacional()">Analizar y Buscar en Colombia</button>
+            <button class="action" onclick="procesarLoteNacional()">Analizar y Agregar Lote</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -79,7 +79,7 @@
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección y Ciudad (ej: Calle 100, Bogotá)">
+            <input type="text" id="manDir" placeholder="Dirección exacta">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -99,7 +99,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
-        var map = L.map('map').setView([4.5709, -74.2973], 6); // Vista centrada en Colombia
+        var map = L.map('map').setView([4.5709, -74.2973], 6);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -174,10 +174,21 @@
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        // GEOCODIFICADOR NACIONAL AUTOMÁTICO (NOMINATIM)
+        // VALIDACIÓN ESTRICTA DE NOMENCLATURA VIAL
+        function esNomenclaturaValida(dir) {
+            var match = dir.match(/#\s*([0-9]+)/);
+            if (match) {
+                var numeroPlaca = parseInt(match[1], 10);
+                // Si el número principal después del # es mayor a 250, se considera erróneo/atípico y se omite
+                if (numeroPlaca > 250) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         async function obtenerCoordenadasNacionales(direccionTexto) {
             try {
-                // Limpiar texto para optimizar búsqueda en Colombia
                 var query = encodeURIComponent(direccionTexto + ", Colombia");
                 var response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
                 var data = await response.json();
@@ -187,7 +198,6 @@
             } catch (e) {
                 console.log("Error de geocodificación:", e);
             }
-            // Coordenada por defecto (Centro de Colombia) si falla la red
             return { lat: 4.5709, lng: -74.2973 };
         }
 
@@ -248,10 +258,14 @@
 
                 var direcciones = [];
                 lineas.forEach(function(l) {
-                    var up = l.trim().toUpperCase();
+                    var dirLimpia = l.trim();
+                    var up = dirLimpia.toUpperCase();
                     if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ")) && up.length > 5) {
                         if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("CEL")) {
-                            direcciones.push(l.trim());
+                            // APLICAR FILTRO DE NOMENCLATURA VÁLIDA
+                            if (esNomenclaturaValida(dirLimpia)) {
+                                direcciones.push(dirLimpia);
+                            }
                         }
                     }
                 });
@@ -284,11 +298,11 @@
             }
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote nacional procesado! Se ubicaron " + totalAgregados + " vehículos en todo el país.");
+                alert("🚀 ¡Lote procesado con filtro de nomenclaturas erróneas activo!");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
-                alert("⚠️ No se pudieron extraer placas con formato válido.");
+                alert("⚠️ No se encontraron direcciones con nomenclatura válida.");
             }
         }
 
@@ -324,6 +338,7 @@
             var dir = document.getElementById('manDir').value;
             
             if(!placa || !dir) { alert("Ingresa al menos la placa y la dirección."); return; }
+            if(!esNomenclaturaValida(dir)) { alert("⚠️ La nomenclatura ingresada parece errónea o tiene un número de placa muy alto."); return; }
 
             if(placasRegistradas[placa]) {
                 puntosData.forEach(function(item) {
@@ -339,7 +354,7 @@
                 placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0]
             }, puntosData.length + 1);
 
-            alert("¡Punto manual nacional agregado con éxito!");
+            alert("¡Punto manual agregado con éxito!");
             cerrarSecciones();
         }
 
