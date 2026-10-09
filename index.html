@@ -62,7 +62,7 @@
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:10px;">Pega varios reportes juntos (máx 3 direcciones por placa):</b>
             <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes múltiples..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarReporteMultipleSimultaneo()">Analizar y Agregar Lote</button>
+            <button class="action" onclick="procesarLoteMasivo()">Analizar y Agregar Lote</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -98,8 +98,8 @@
         <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css"></script>
     <script>
         var map = L.map('map').setView([6.2442, -75.5812], 12);
 
@@ -181,36 +181,36 @@
         var placasRegistradas = {};
         var puntosData = [];
 
-        // PROCESADOR DE PEGADO MÚLTIPLE MASIVO
-        function procesarReporteMultipleSimultaneo() {
+        // NUEVO MOTOR ROBUSTO DE PROCESAMIENTO MÚLTIPLE
+        function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
 
-            // Dividir el texto en bloques usando la palabra UBICAR o saltos de fecha largos
+            // Dividir por bloques donde comience la palabra UBICAR o por líneas de fecha
             var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
             var totalAgregados = 0;
 
             bloques.forEach(function(bloque) {
-                if (bloque.trim().length < 6) return;
+                if (bloque.trim().length < 5) return;
 
-                // Encontrar la placa dentro del bloque (3 letras seguidas de 3 caracteres/números)
+                // Buscar patrón de placa (3 letras + 3 caracteres/números)
                 var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
                 if (!matches) return;
 
                 var placa = "";
-                var prohibidas = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELUL"];
+                var ignorar = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELUL", "SOATX"];
                 for (var i = 0; i < matches.length; i++) {
                     var cand = matches[i].toUpperCase();
-                    var prohibido = false;
-                    for (var j = 0; j < prohibidas.length; j++) {
-                        if (cand.includes(prohibidas[j])) { prohibido = true; break; }
+                    var bad = false;
+                    for (var j = 0; j < ignorar.length; j++) {
+                        if (cand.includes(ignorar[j])) { bad = true; break; }
                     }
-                    if (!prohibido) { placa = cand; break; }
+                    if (!bad) { placa = cand; break; }
                 }
 
                 if (!placa) return;
 
-                // Si ya está registrada, la limpiamos primero para actualizarla sin problemas
+                // Si ya existe, la limpiamos para actualizar
                 if (placasRegistradas[placa]) {
                     puntosData.forEach(function(item) {
                         if (item.placa === placa) { map.removeLayer(item.marker); }
@@ -218,7 +218,7 @@
                 }
                 placasRegistradas[placa] = true;
 
-                // Extraer datos del vehículo
+                // Extraer atributos del vehículo de forma sencilla
                 var marca = "VEHÍCULO";
                 var linea = "GENERAL";
                 var modelo = "2026";
@@ -233,15 +233,15 @@
                     if (up.includes("COLOR:")) color = l.replace(/Color:/i, '').trim();
                 });
 
-                // Extraer teléfonos
+                // Teléfonos
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
                 var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-                // Extraer direcciones (máximo 3)
+                // Direcciones (máximo 3)
                 var direcciones = [];
                 lineas.forEach(function(l) {
                     var up = l.trim().toUpperCase();
-                    if ((up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ") || up.includes("ITAGUI") || up.includes("MEDELLIN") || up.includes("#")) && up.length > 6) {
+                    if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ")) && up.length > 5) {
                         if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("CEL")) {
                             direcciones.push(l.trim());
                         }
@@ -277,11 +277,11 @@
             });
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado con éxito! Se cargaron " + totalAgregados + " vehículos al mapa.");
+                alert("🚀 ¡Lote procesado! Se agregaron " + totalAgregados + " vehículos correctamente.");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
-                alert("⚠️ No se pudieron extraer placas o direcciones del texto múltiple. Asegúrate de pegar el bloque completo.");
+                alert("⚠️ No se pudieron extraer placas con formato válido. Revisa el texto pegado.");
             }
         }
 
