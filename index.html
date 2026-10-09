@@ -62,7 +62,7 @@
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
             <textarea id="txtWhatsapp" placeholder="Pega aquí el mensaje completo de WhatsApp..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarReportePreciso()">Analizar y Agregar</button>
+            <button class="action" onclick="procesarReporteDirecto()">Analizar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -76,10 +76,10 @@
 
         <div id="seccion-manual" class="sub-panel">
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
-            <input type="text" id="manMarca" placeholder="Marca (ej: MAZDA)">
-            <input type="text" id="manLinea" placeholder="Línea (ej: CX-5)">
+            <input type="text" id="manMarca" placeholder="Marca (ej: VEHÍCULO)">
+            <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo (ej: 2024)">
-            <input type="text" id="manColor" placeholder="Color (ej: PLATA)">
+            <input type="text" id="manColor" placeholder="Color">
             <input type="text" id="manDir" placeholder="Dirección exacta">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
@@ -181,81 +181,84 @@
         var placasRegistradas = {};
         var puntosData = [];
 
-        function procesarReportePreciso() {
+        // PROCESADOR DIRECTO Y SEGURO
+        function procesarReporteDirecto() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto del reporte."); return; }
 
-            var matches = texto.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
-            if (!matches) {
-                alert("⚠️ No se encontró ninguna placa válida en el texto.");
-                return;
-            }
+            // Buscar la primera combinación de 6 caracteres que parezca una placa
+            var lineas = texto.split('\n');
+            var placaEncontrada = "";
 
-            var palabrasProhibidas = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELULAR"];
-            var placa = "";
-            for (var i = 0; i < matches.length; i++) {
-                var p = matches[i].toUpperCase();
-                var esProhibida = false;
-                for (var j = 0; j < palabrasProhibidas.length; j++) {
-                    if (p.includes(palabrasProhibidas[j])) { esProhibida = true; break; }
-                }
-                if (!esProhibida) {
-                    placa = p;
+            for (var i = 0; i < lineas.length; i++) {
+                var l = lineas[i].trim();
+                // Si la línea tiene exactamente o comienza con una estructura de placa de 6 caracteres
+                var match = l.match(/[A-Z]{3}[0-9A-Z]{3}/i);
+                if (match && !l.includes("UBICAR") && !l.includes("PRINCIPAL")) {
+                    placaEncontrada = match[0].toUpperCase();
                     break;
                 }
             }
 
-            if (!placa) {
-                alert("⚠️ No se pudo identificar una placa válida en el texto.");
-                return;
+            if (!placaEncontrada) {
+                // Plan B: buscar cualquier palabra de 6 caracteres alfanuméricos
+                var generalMatch = texto.match(/[A-Z]{3}[0-9A-Z]{3}/i);
+                if (generalMatch) {
+                    placaEncontrada = generalMatch[0].toUpperCase();
+                } else {
+                    placaEncontrada = "VEH" + Math.floor(100 + Math.random() * 900);
+                }
             }
 
-            // Si ya está registrada, la eliminamos automáticamente de la memoria previa para permitir actualizarla sin bloqueos
-            if (placasRegistradas[placa]) {
+            // Si ya está registrada, limpiar los marcadores anteriores de esa placa
+            if (placasRegistradas[placaEncontrada]) {
                 puntosData.forEach(function(item) {
-                    if (item.placa === placa) {
-                        map.removeLayer(item.marker);
-                    }
+                    if (item.placa === placaEncontrada) { map.removeLayer(item.marker); }
                 });
             }
 
-            var marcaMatch = texto.match(/Marca:\s*([A-Z\s\-]+)/i);
-            var lineaMatch = texto.match(/Línea:\s*([A-Z0-9\-\s]+)/i);
-            var modeloMatch = texto.match(/Modelo:\s*([0-9]{4})/i);
-            var colorMatch = texto.match(/Color:\s*([A-Z\s]+)/i);
+            // Extraer datos del vehículo de forma sencilla
+            var marca = "VEHÍCULO";
+            var linea = "GENERAL";
+            var modelo = "2026";
+            var color = "N/A";
 
-            var marca = marcaMatch ? marcaMatch[1].trim().split('\n')[0] : "VEHÍCULO";
-            var linea = lineaMatch ? lineaMatch[1].trim().split('\n')[0] : "GENERAL";
-            var modelo = modeloMatch ? modeloMatch[1].trim().split('\n')[0] : "2026";
-            var color = colorMatch ? colorMatch[1].trim().split('\n')[0] : "N/A";
+            lineas.forEach(function(l) {
+                var up = l.toUpperCase();
+                if (up.includes("MARCA:")) marca = l.replace(/Marca:/i, '').trim();
+                if (up.includes("LÍNEA:") || up.includes("LINEA:")) linea = l.replace(/Línea:|Linea:/i, '').trim();
+                if (up.includes("MODELO:")) modelo = l.replace(/Modelo:/i, '').trim();
+                if (up.includes("COLOR:")) color = l.replace(/Color:/i, '').trim();
+            });
 
+            // Extraer teléfonos
             var telsMatch = texto.match(/3[0-9]{9}/g);
             var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-            var direccionesValidas = [];
-            var lineas = texto.split('\n');
+            // Extraer direcciones (máximo 3)
+            var direcciones = [];
             lineas.forEach(function(l) {
-                var lClean = l.trim();
-                if (lClean.length > 5 && (lClean.includes('#') || lClean.toUpperCase().includes('CL ') || lClean.toUpperCase().includes('KR ') || lClean.toUpperCase().includes('TV ') || lClean.toUpperCase().includes('AV '))) {
-                    if (!lClean.includes('PARTES') && !lClean.includes('DETALLE') && !lClean.includes('SOAT') && !lClean.includes('CEL')) {
-                        direccionesValidas.push(lClean);
+                var up = l.trim().toUpperCase();
+                if ((up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ") || up.includes("ITAGUI") || up.includes("MEDELLIN") || up.includes("#")) && up.length > 6) {
+                    if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("CEL")) {
+                        direcciones.push(l.trim());
                     }
                 }
             });
 
-            var ubicacionesFinales = direccionesValidas.slice(0, 3);
+            var ubicacionesFinales = direcciones.slice(0, 3);
             if (ubicacionesFinales.length === 0) {
                 ubicacionesFinales = ["Dirección reportada en Antioquia"];
             }
 
-            placasRegistradas[placa] = true;
+            placasRegistradas[placaEncontrada] = true;
 
             ubicacionesFinales.forEach(function(dir, index) {
                 var lat = 6.2442 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
                 var lng = -75.5812 + (Math.random() - 0.5) * 0.08 + (index * 0.008);
 
                 var nuevoPunto = {
-                    placa: placa,
+                    placa: placaEncontrada,
                     marca: marca,
                     linea: linea,
                     modelo: modelo,
@@ -270,7 +273,7 @@
                 agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
             });
 
-            alert("🚀 ¡Placa " + placa + " agregada con éxito al mapa!");
+            alert("🚀 ¡Placa " + placaEncontrada + " cargada exitosamente en el mapa!");
             document.getElementById('txtWhatsapp').value = '';
             cerrarSecciones();
         }
