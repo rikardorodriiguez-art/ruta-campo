@@ -98,9 +98,9 @@
         📍 Moviendo punto:<br>
         <span id="info-edicion-texto" style="font-size: 11px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px;"></span><br>
         <div style="margin-top: 8px; background: white; padding: 6px; border-radius: 6px;">
-            <input type="text" id="input-link-maps-rapido" placeholder="Pega Coordenadas (Ej: 6.18,-75.59)" style="width:100%; font-size:11px; padding:5px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:5px; color:#000;">
+            <input type="text" id="input-link-maps-rapido" placeholder="Pega Coordenadas o Dirección exacta..." style="width:100%; font-size:11px; padding:5px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:5px; color:#000;">
             <div style="display:flex; gap:4px;">
-                <button onclick="confirmarLinkRapido()" style="flex:1; background:#27ae60; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">✅ Confirmar Coordenadas</button>
+                <button onclick="confirmarLinkRapido()" style="flex:1; background:#27ae60; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">✅ Confirmar</button>
                 <button onclick="cancelarEdicion()" style="flex:1; background:#c0392b; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">❌ Cancelar</button>
             </div>
         </div>
@@ -124,7 +124,7 @@
         </div>
 
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección o Coordenadas.</b><br>
+            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección exacta.</b><br>
             <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa, deja dirección vacía y sube la foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
@@ -218,7 +218,7 @@
 
         async function confirmarLinkRapido() {
             var val = document.getElementById('input-link-maps-rapido').value.trim();
-            if(!val) { alert("Por favor ingresa coordenadas o haz clic en el mapa."); return; }
+            if(!val) { alert("Por favor ingresa datos o haz clic en el mapa."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Reubicando...";
@@ -231,12 +231,12 @@
                 item.lat = coords.lat;
                 item.lng = coords.lng;
                 if (!item.dir.includes(val)) {
-                    item.dir = item.dir + " | Link: " + val;
+                    item.dir = item.dir + " | " + val;
                 }
                 item.marker.setPopupContent(generarContenidoPopup(item, item.id));
                 map.setView([coords.lat, coords.lng], 16);
                 guardarPuntosStorage();
-                alert("✅ ¡Punto reubicado con éxito manteniendo la dirección!");
+                alert("✅ ¡Punto reubicado con éxito!");
             }
 
             document.getElementById('loading-overlay').style.display = 'none';
@@ -347,9 +347,7 @@
                 return { lat: parseFloat(matchCoord[1]), lng: parseFloat(matchCoord[2]) };
             }
 
-            var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ').replace(/KR\s*|CR\s*/gi, 'Carrera ').replace(/#/g, ' ').replace(/-/g, ' ');
-            var query = dirLimpia + ", Antioquia, Colombia"; 
-            
+            var query = dir + ", Colombia"; 
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
             var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
             
@@ -361,20 +359,6 @@
                     return { lat: parseFloat(location.lat), lng: parseFloat(location.lng) };
                 }
             } catch(e) { console.log("Error Google Maps"); }
-            
-            var t = dir.toUpperCase();
-            if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) return {lat: 4.6097, lng: -74.0817};
-            if (t.includes('BUCARAMANGA')) return {lat: 7.1254, lng: -73.1198};
-            if (t.includes('BELLO')) return {lat: 6.3373, lng: -75.5580};
-            if (t.includes('COPACABANA')) return {lat: 6.3463, lng: -75.5089};
-            if (t.includes('LA ESTRELLA') || t.includes('ESTRELLA')) return {lat: 6.1583, lng: -75.6444};
-            if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
-            if (t.includes('ITAGUI') || t.includes('ITAGÜÍ')) return {lat: 6.1846, lng: -75.5991};
-            if (t.includes('CALI')) return {lat: 3.4516, lng: -76.5320};
-            if (t.includes('BARRANQUILLA')) return {lat: 10.9685, lng: -74.7813};
-            if (t.includes('CARTAGENA')) return {lat: 10.3910, lng: -75.4794};
-            if (t.includes('SABANETA')) return {lat: 6.1515, lng: -75.6166};
-            if (t.includes('MEDELLIN') || t.includes('MEDELLÍN')) return {lat: 6.2442, lng: -75.5812};
             
             return {lat: 6.2442, lng: -75.5812}; 
         }
@@ -669,7 +653,7 @@
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o link de Maps."); return; }
+            if(!dir) { alert("Ingresa la dirección exacta o coordenadas."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
