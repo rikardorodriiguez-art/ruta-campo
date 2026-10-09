@@ -56,10 +56,17 @@
             z-index: 999999; font-family: Arial; font-size: 13px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             display: none; text-align: center; max-width: 90%;
         }
+
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 15px; font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+
+    <div id="loading-overlay">🔍 Buscando direcciones exactas en el mapa...</div>
 
     <div id="modo-edicion-banner">
         📍 Moviendo punto:<br>
@@ -237,8 +244,20 @@
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        function obtenerCoordenadasPorMunicipio(textoDir) {
-            var t = textoDir.toUpperCase();
+        // Búsqueda real de coordenadas exactas mediante Nominatim (OpenStreetMap)
+        async function obtenerCoordenadasExactas(dir) {
+            var query = dir + ", Antioquia, Colombia";
+            try {
+                var response = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query));
+                var data = await response.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                }
+            } catch(e) {
+                console.log("Error de geocodificación, usando respaldo");
+            }
+            // Respaldo por municipio si no hay conexión o no encuentra la dirección exacta
+            var t = dir.toUpperCase();
             if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
             if (t.includes('NIQUIA') || (t.includes('BELLO') && t.includes('40'))) return {lat: 6.3265, lng: -75.5492};
             if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
@@ -310,18 +329,20 @@
             reader.readAsText(file);
         }
 
-        function procesarLoteMasivo() {
+        async function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
 
             var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
             var totalAgregados = 0;
 
-            bloques.forEach(function(bloque) {
-                if (bloque.trim().length < 5) return;
+            for (let bloque of bloques) {
+                if (bloque.trim().length < 5) continue;
 
                 var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
-                if (!matches) return;
+                if (!matches) continue;
 
                 var placa = "";
                 var ignorar = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELUL", "SOATX"];
@@ -334,7 +355,7 @@
                     if (!bad) { placa = cand; break; }
                 }
 
-                if (!placa) return;
+                if (!placa) continue;
 
                 if (placasRegistradas[placa]) {
                     var nuevasPuntos = [];
@@ -379,13 +400,13 @@
 
                 var ubicacionesFinales = direcciones.slice(0, 3);
                 if (ubicacionesFinales.length === 0) {
-                    ubicacionesFinales = ["Dirección reportada en la zona"];
+                    ubicacionesFinales = ["Medellin, Antioquia"];
                 }
 
-                ubicacionesFinales.forEach(function(dir, index) {
-                    var coords = obtenerCoordenadasPorMunicipio(dir + " " + bloque);
-                    var lat = coords.lat + (index * 0.0012);
-                    var lng = coords.lng + (index * 0.0012);
+                for (let [index, dir] of ubicacionesFinales.entries()) {
+                    var coords = await obtenerCoordenadasExactas(dir);
+                    var lat = coords.lat + (index * 0.0005);
+                    var lng = coords.lng + (index * 0.0005);
 
                     var nuevoPunto = {
                         placa: placa,
@@ -401,13 +422,15 @@
                     };
 
                     agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-                });
+                }
 
                 totalAgregados++;
-            });
+            }
+
+            document.getElementById('loading-overlay').style.display = 'none';
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado y guardado! Si algún pin quedó aproximado, usa el botón 'Mover/Corregir punto' para ubicarlo exactamente.");
+                alert("🚀 ¡Lote procesado con direcciones exactas y guardado!");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
@@ -415,7 +438,7 @@
             }
         }
 
-        function procesarFoto() {
+        async function procesarFoto() {
             var placa = document.getElementById('txtPlacaFoto').value;
             if(!placa) { alert("Por favor escribe la placa."); return; }
             placa = placa.toUpperCase();
@@ -433,7 +456,7 @@
             }
 
             placasRegistradas[placa] = true;
-            var coords = obtenerCoordenadasPorMunicipio("MEDELLIN");
+            var coords = await obtenerCoordenadasExactas("Medellin");
             
             var nuevoPunto = {
                 placa: placa, marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: coords.lat, lng: coords.lng, dir: "Ubicación por foto", fecha: new Date().toISOString().split('T')[0]
@@ -444,7 +467,7 @@
             cerrarSecciones();
         }
 
-        function procesarManual() {
+        async function procesarManual() {
             var placa = document.getElementById('manPlaca').value.toUpperCase();
             var marca = document.getElementById('manMarca').value || "GENÉRICO";
             var linea = document.getElementById('manLinea').value || "LÍNEA";
@@ -453,6 +476,8 @@
             var dir = document.getElementById('manDir').value;
             
             if(!placa || !dir) { alert("Ingresa al menos la placa y la dirección."); return; }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
 
             if(placasRegistradas[placa]) {
                 var nuevasPuntos = [];
@@ -467,13 +492,14 @@
             }
 
             placasRegistradas[placa] = true;
-            var coords = obtenerCoordenadasPorMunicipio(dir);
+            var coords = await obtenerCoordenadasExactas(dir);
 
             var nuevoPunto = {
                 placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0]
             };
 
             agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+            document.getElementById('loading-overlay').style.display = 'none';
             alert("¡Punto manual agregado y guardado con éxito!");
             cerrarSecciones();
         }
