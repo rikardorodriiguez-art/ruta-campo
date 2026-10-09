@@ -124,12 +124,12 @@
         </div>
 
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección exacta.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa, deja dirección vacía y sube la foto.</b>
+            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa y datos, deja dirección vacía y sube foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
-            <input type="text" id="manLinea" placeholder="Línea">
+            <input type="text" id="manLinea" placeholder="Línea / Clase">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
             <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
@@ -569,10 +569,10 @@
 
         async function procesarManual() {
             var placa = document.getElementById('manPlaca').value.toUpperCase().trim();
-            var marca = document.getElementById('manMarca').value || "-";
-            var linea = document.getElementById('manLinea').value || "-";
-            var modelo = document.getElementById('manModelo').value || "-";
-            var color = document.getElementById('manColor').value || "-";
+            var marca = document.getElementById('manMarca').value.trim() || "-";
+            var linea = document.getElementById('manLinea').value.trim() || "-";
+            var modelo = document.getElementById('manModelo').value.trim() || "-";
+            var color = document.getElementById('manColor').value.trim() || "-";
             var dir = document.getElementById('manDir').value.trim();
             var fileInput = document.getElementById('manFoto');
             var fotoBase64 = null;
@@ -634,7 +634,7 @@
                     for (let d of ubicacionesFinales) {
                         var coords = await obtenerCoordenadasExactasLimpias(d);
                         var nuevoPunto = {
-                            placa: placa, marca: "REPORTE OCR", linea: "-", modelo: "-", color: "-", telefonos: celularesExtract,
+                            placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: celularesExtract,
                             lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
                         };
                         agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -799,12 +799,19 @@
             
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
 
+            // Construir texto de vehículo de manera segura
+            var vehiculoTexto = (p.marca && p.marca !== '-' ? p.marca : '') + 
+                                (p.linea && p.linea !== '-' ? ' ' + p.linea : '') + 
+                                (p.modelo && p.modelo !== '-' ? ' ' + p.modelo : '') + 
+                                (p.color && p.color !== '-' ? ' (' + p.color + ')' : '');
+            if (!vehiculoTexto.trim()) vehiculoTexto = '-';
+
             return `
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
                         <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: #27ae60; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">🟢</span><br>
-                        <b>Vehículo:</b> ${p.marca || '-'} ${p.linea && p.linea !== '-' ? p.linea : ''} ${p.color && p.color !== '-' ? '('+p.color+')' : ''}<br>
+                        <b>Vehículo:</b> ${vehiculoTexto}<br>
                         <b>Teléfonos:</b> ${p.telefonos}<br>
                         <b>Estado:</b> ${estadoPicoTxt}<br>
                         <b>Fecha:</b> ${p.fecha}<br>
@@ -886,3 +893,4 @@
     </script>
 </body>
 </html>
+
