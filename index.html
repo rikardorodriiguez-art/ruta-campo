@@ -125,7 +125,7 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa y Vehículo, deja dirección vacía y sube foto.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa y Vehículo, deja dirección vacía y sube foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
@@ -193,6 +193,33 @@
         var actualLineaFuerza = "";
         var actualModeloFuerza = "";
         var actualColorFuerza = "";
+
+        // --- EXTRACTOR UNIVERSAL BLINDADO DE VEHÍCULOS ---
+        function extraerInfoVehiculoUniversal(texto) {
+            var m = "-", l = "-", mod = "-", c = "-";
+            var lineas = texto.split('\n');
+            for (var i = 0; i < lineas.length; i++) {
+                var up = lineas[i].toUpperCase();
+                // Busca con o sin dos puntos
+                if (m === "-" && (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO"))) {
+                    m = lineas[i].replace(/.*(MARCA|VEH[IÍ]CULO)\s*[:\-]?\s*/i, '').trim();
+                }
+                if (l === "-" && (up.includes("CLASE") || up.includes("LINEA") || up.includes("LÍNEA"))) {
+                    l = lineas[i].replace(/.*(CLASE|L[IÍ]NEA)\s*[:\-]?\s*/i, '').trim();
+                }
+                if (mod === "-" && up.includes("MODELO")) {
+                    mod = lineas[i].replace(/.*MODELO\s*[:\-]?\s*/i, '').trim();
+                }
+                if (c === "-" && up.includes("COLOR")) {
+                    c = lineas[i].replace(/.*COLOR\s*[:\-]?\s*/i, '').trim();
+                }
+            }
+            if (m === "") m = "-";
+            if (l === "") l = "-";
+            if (mod === "") mod = "-";
+            if (c === "") c = "-";
+            return { marca: m, linea: l, modelo: mod, color: c };
+        }
 
         map.on('click', function(e) {
             if (puntoEnEdicionId) {
@@ -456,12 +483,16 @@
             loadingOverlay.style.display = 'flex';
 
             var placaMatch = texto.match(/PLACA:\s*([A-Za-z0-9]+)/i);
-            var vehMatch = texto.match(/(?:VEH[IÍ]CULO|MARCA|CLASE|L[IÍ]NEA|MODELO):\s*([^\n]+)/i);
-            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
             
-            var placa = placaMatch ? placaMatch[1].toUpperCase().trim() : "";
-            var vehiculo = vehMatch ? vehMatch[1].trim() : "-";
+            // Usar extractor blindado
+            var infoVeh = extraerInfoVehiculoUniversal(texto);
+            var vehiculo = infoVeh.marca;
+            if (infoVeh.linea !== "-") vehiculo += " " + infoVeh.linea;
+            if (infoVeh.modelo !== "-") vehiculo += " " + infoVeh.modelo;
+
+            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
             var celulares = telsMatch ? telsMatch[1].trim() : "-";
+            var placa = placaMatch ? placaMatch[1].toUpperCase().trim() : "";
             
             if(!placa) {
                 placa = prompt("Por favor ingresa la placa para esta ruta:").toUpperCase();
@@ -553,20 +584,11 @@
                 }
                 placasRegistradas[placa] = true;
 
-                var marca = "-", linea = "-", modelo = "-", color = "-";
-                var lineas = bloque.split('\n');
-                lineas.forEach(function(l) {
-                    var up = l.toUpperCase();
-                    if (up.includes("MARCA:") || up.includes("VEH[IÍ]CULO:")) {
-                        marca = l.replace(/MARCA:|VEH[IÍ]CULO:/i, '').trim();
-                    }
-                    if (up.includes("LÍNEA:") || up.includes("LINEA:") || up.includes("CLASE:")) {
-                        linea = l.replace(/L[IÍ]NEA:|CLASE:/i, '').trim();
-                    }
-                    if (up.includes("MODELO:")) modelo = l.replace(/MODELO:/i, '').trim();
-                    if (up.includes("COLOR:")) color = l.replace(/COLOR:/i, '').trim();
-                });
+                // Extraer con la función blindada
+                var infoVeh = extraerInfoVehiculoUniversal(bloque);
+                var marca = infoVeh.marca, linea = infoVeh.linea, modelo = infoVeh.modelo, color = infoVeh.color;
 
+                var lineas = bloque.split('\n');
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
                 var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "-";
 
@@ -637,6 +659,17 @@
                     var direccionesVigentes2026 = [];
                     var direccionesCualquiera = [];
 
+                    // Rescate de vehículo por OCR si los campos manuales se dejaron vacíos
+                    var infoVehOcr = extraerInfoVehiculoUniversal(text);
+                    var fMarca = (marca !== "-") ? marca : infoVehOcr.marca;
+                    var fLinea = (linea !== "-") ? linea : infoVehOcr.linea;
+                    var fModelo = (modelo !== "-") ? modelo : infoVehOcr.modelo;
+                    var fColor = (color !== "-") ? color : infoVehOcr.color;
+
+                    // Actualizar variables de rescate global
+                    window.actualMarcaFuerza = fMarca;
+                    window.actualLineaFuerza = fLinea;
+
                     var telsMatch = text.match(/\b3[0-9]{9}\b/g) || [];
                     var mobileNumbers = [];
                     for(var i=0; i<telsMatch.length; i++) {
@@ -674,7 +707,7 @@
                     for (let d of ubicacionesFinales) {
                         var coords = await obtenerCoordenadasExactasLimpias(d);
                         var nuevoPunto = {
-                            placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: celularesExtract,
+                            placa: placa, marca: fMarca, linea: fLinea, modelo: fModelo, color: fColor, telefonos: celularesExtract,
                             lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
                         };
                         agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -847,13 +880,18 @@
             
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
 
+            // Construir el texto a mostrar uniendo lo que haya encontrado (marca, línea, modelo, color)
             var v = [];
             if (p.marca && p.marca !== '-' && p.marca !== 'REPORTE OCR' && p.marca !== 'REPORTE' && p.marca !== 'VEHÍCULO') v.push(p.marca);
             if (p.linea && p.linea !== '-') v.push(p.linea);
             if (p.modelo && p.modelo !== '-') v.push(p.modelo);
             if (p.color && p.color !== '-') v.push(p.color);
+            
             var vehiculoTexto = v.length > 0 ? v.join(' ') : 'No especificado (Editar ✏️)';
             var valEdicion = v.length > 0 ? v.join(' ') : '';
+            var valEdicionSeguro = valEdicion.replace(/"/g, '&quot;');
+            var dirSegura = p.dir.replace(/"/g, '&quot;');
+            var telSeguro = p.telefonos.replace(/"/g, '&quot;');
 
             return `
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
@@ -892,13 +930,13 @@
                         <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
                         
                         <label style="font-size:11px; font-weight:bold;">Vehículo / Detalles:</label>
-                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${valEdicion}" placeholder="Ej: Automóvil Mazda 3 Rojo">
+                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${valEdicionSeguro}" placeholder="Ej: Automóvil Mazda 3 Rojo">
                         
                         <label style="font-size:11px; font-weight:bold;">Teléfonos:</label>
-                        <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${p.telefonos}">
+                        <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${telSeguro}">
                         
                         <label style="font-size:11px; font-weight:bold;">Dirección:</label>
-                        <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${p.dir}">
+                        <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${dirSegura}">
                         
                         <label style="font-size:11px; font-weight:bold; margin-top:5px; display:block;">📷 Adjuntar/Cambiar Foto:</label>
                         <input type="file" id="upload-foto-${markerId}" accept="image/*" class="edit-input" style="padding:2px;">
