@@ -7,14 +7,14 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
     
-    <!-- LIBRERÍA DE INTELIGENCIA ARTIFICIAL PARA LEER TEXTO DE IMÁGENES -->
+    <!-- LIBRERÍA DE IA PARA LEER FOTOS -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
         html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* BOTONES FLOTANTES PRINCIPALES - ESTILO 3D MODERNO */
+        /* BOTONES FLOTANTES Y PANELES MANTIENEN SU ESTILO 3D MODERNO */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
             background: linear-gradient(145deg, #34495e, #1a252f); color: white; border: none; padding: 14px 22px;
@@ -43,7 +43,6 @@
             background: white; padding: 15px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); width: 230px; display: none; font-family: Arial; font-size: 12px;
         }
 
-        /* BOTONES DEL MENÚ DE OPCIONES 3D */
         .floating-menu button.main-opt { 
             color: white; border: none; padding: 12px 10px; width: 100%; border-radius: 8px; margin-bottom: 8px; font-weight: bold; font-size: 13px; cursor: pointer; text-align: left; 
             box-shadow: 0 5px 10px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease;
@@ -56,7 +55,6 @@
         .sub-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
         .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 6px; font-size: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         
-        /* BOTONES DE ACCIÓN 3D */
         .sub-panel button.action, #modo-edicion-banner button { 
             color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px; font-weight: bold; cursor: pointer; font-size: 13px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: all 0.2s ease; text-transform: uppercase;
@@ -89,7 +87,7 @@
         .btn-import { background: linear-gradient(145deg, #3498db, #2980b9); }
 
         #modo-edicion-banner {
-            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 150px; left: 50%; transform: translateX(-50%);
             background: linear-gradient(145deg, #e67e22, #d35400); color: white; padding: 15px; border-radius: 12px;
             z-index: 999999; font-family: Arial; font-size: 13px; font-weight: bold; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
             display: none; text-align: center; width: 320px; max-width: 90%; border: 1px solid #e67e22;
@@ -110,7 +108,6 @@
         .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
         .edit-input { width: 100%; margin-bottom: 6px; padding: 5px; font-size: 12px; border: 1px solid #aaa; border-radius: 4px; box-sizing: border-box; }
 
-        /* ESTILOS DE BOTONES DE TARJETA POPUP */
         .pop-btn {
             color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-weight: bold; font-size: 13px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 2px 2px rgba(255,255,255,0.2); text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.15s ease;
@@ -125,10 +122,35 @@
         .pb-darkred { background: linear-gradient(145deg, #922b21, #7b241c); }
         
         .leaflet-div-icon { background: transparent; border: none; }
+
+        /* ESTILOS DEL NUEVO RADAR (PANEL CERCANO) */
+        #panel-cercano {
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 350px;
+            background: linear-gradient(145deg, #1a252f, #2c3e50); border: 2px solid #00ff87; border-radius: 15px;
+            padding: 15px; color: white; text-align: center; z-index: 999999; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            display: none; font-family: Arial, sans-serif;
+        }
+        .radar-title { font-size: 11px; color: #bdc3c7; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .radar-placa { font-size: 24px; font-weight: 900; color: #ffffff; text-shadow: 0 0 12px rgba(255,255,255,0.5); margin-bottom: 4px; }
+        .radar-info { font-size: 12px; color: #ecf0f1; margin-bottom: 12px; }
+        .btn-visitar-radar {
+            width: 100%; background: linear-gradient(145deg, #27ae60, #2ecc71); border: 1px solid #2ecc71; border-radius: 8px;
+            padding: 12px; color: white; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(39, 174, 96, 0.5), inset 0 2px 2px rgba(255,255,255,0.3); transition: all 0.2s ease;
+        }
+        .btn-visitar-radar:active { transform: translateY(3px); box-shadow: 0 1px 3px rgba(39, 174, 96, 0.5); }
     </style>
 </head>
 <body>
     <div id="map"></div>
+
+    <!-- EL NUEVO PANEL DEL VEHÍCULO MÁS CERCANO -->
+    <div id="panel-cercano">
+        <div class="radar-title">🚨 Vehículo más cercano</div>
+        <div id="cercano-placa" class="radar-placa">--</div>
+        <div id="cercano-datos" class="radar-info">--</div>
+        <button onclick="visitarCercanoDesdeRadar()" class="btn-visitar-radar">✅ Marcar Visitada<br><span style="font-size: 9px; opacity: 0.8; font-weight: normal; display: block; margin-top: 2px;">(Ir al siguiente más cercano)</span></button>
+    </div>
 
     <div id="loading-overlay">
         <span id="loading-texto">🎯 Procesando...</span>
@@ -224,7 +246,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
-        // MAPA CLÁSICO DE OPENSTREETMAP INTACTO
         var map = L.map('map').setView([6.2442, -75.5812], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -232,10 +253,11 @@
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        L.control.locate({
+        // CONFIGURACIÓN DE UBICACIÓN ACTIVA (GPS)
+        var locateControl = L.control.locate({
             position: 'topleft',
             strings: { title: "Mi ubicación actual" },
-            locateOptions: { maxZoom: 16, enableHighAccuracy: true },
+            locateOptions: { maxZoom: 16, enableHighAccuracy: true, watch: true }, // WATCH: Sigue tu posición siempre
             autoStart: true
         }).addTo(map);
 
@@ -243,6 +265,7 @@
         var placasRegistradas = {};
         var puntosData = [];
         
+        // VARIABLES GLOBALES
         var actualPlacaFuerza = "";
         var actualMarcaFuerza = "";
         var actualLineaFuerza = "";
@@ -250,10 +273,78 @@
         var actualColorFuerza = "";
         var actualSoatFuerza = "";
         var actualTecnoFuerza = "";
+        
+        // VARIABLES DEL RADAR
+        var userLat = null;
+        var userLng = null;
+        var placaMasCercanaObj = null;
+
+        // SE DETECTA LA UBICACIÓN Y SE ACTUALIZA EL RADAR AUTOMÁTICAMENTE
+        map.on('locationfound', function(e) {
+            userLat = e.latlng.lat;
+            userLng = e.latlng.lng;
+            actualizarPanelCercano();
+        });
+
+        // FÓRMULA PARA CALCULAR DISTANCIAS EN METROS
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            var R = 6371; // km
+            var dLat = (lat2-lat1) * Math.PI / 180;
+            var dLon = (lon2-lon1) * Math.PI / 180;
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c * 1000; // en metros
+        }
+
+        // LÓGICA PRINCIPAL DEL RADAR: ENCONTRAR LA PLACA PENDIENTE MÁS CERCANA
+        function actualizarPanelCercano() {
+            if (!userLat || !userLng || puntosData.length === 0) {
+                document.getElementById('panel-cercano').style.display = 'none';
+                return;
+            }
+            
+            var distMinima = Infinity;
+            var puntoCercano = null;
+            
+            puntosData.forEach(function(p) {
+                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+                if (visitas === 0) { // Solo busca las que NO han sido visitadas (Punto Rojo)
+                    var dist = calcularDistancia(userLat, userLng, p.lat, p.lng);
+                    if (dist < distMinima) {
+                        distMinima = dist;
+                        puntoCercano = p;
+                    }
+                }
+            });
+
+            if (puntoCercano) {
+                placaMasCercanaObj = puntoCercano;
+                document.getElementById('panel-cercano').style.display = 'block';
+                var distStr = distMinima > 1000 ? (distMinima/1000).toFixed(1) + ' km' : Math.round(distMinima) + ' m';
+                
+                document.getElementById('cercano-placa').innerHTML = '🚗 ' + puntoCercano.placa + ' (a ' + distStr + ')';
+                var s = puntoCercano.soat || 'NO';
+                var t = puntoCercano.tecnomecanica || 'NO';
+                var dirCorta = puntoCercano.dir.length > 35 ? puntoCercano.dir.substring(0, 35) + '...' : puntoCercano.dir;
+                document.getElementById('cercano-datos').innerHTML = 'SOAT: ' + s + ' | Tecno: ' + t + '<br><span style="font-size:10px; color:#bdc3c7;">' + dirCorta + '</span>';
+            } else {
+                // Si ya visitaste todas, se oculta el panel
+                document.getElementById('panel-cercano').style.display = 'none';
+                placaMasCercanaObj = null;
+            }
+        }
+
+        // BOTÓN DEL RADAR PARA VISITAR LA ACTUAL E IR A LA SIGUIENTE
+        function visitarCercanoDesdeRadar() {
+            if (placaMasCercanaObj) {
+                marcarVisitada(placaMasCercanaObj.placa, placaMasCercanaObj.id);
+                // El panel se actualizará automáticamente dentro de la función marcarVisitada
+            }
+        }
 
         // ---- GENERADOR DE MARCADORES (BURBUJA BLANCA CON PUNTO ROJO O VERDE) ----
         function generarMarcadorProfesional(placa, esVisitada) {
-            var colorDot = esVisitada ? '#27ae60' : '#e74c3c'; // Verde o Rojo
+            var colorDot = esVisitada ? '#27ae60' : '#e74c3c'; 
             var shadowDot = esVisitada ? 'rgba(39, 174, 96, 0.8)' : 'rgba(231, 76, 60, 0.8)';
             
             return '<div style="position: relative; display: inline-block;">' +
@@ -266,61 +357,44 @@
                    '</div>';
         }
 
-        // EXTRACTOR ULTRA-FLEXIBLE CON SOAT Y TECNOMECÁNICA
+        // FUNCIÓN LIMPIADORA BLINDADA (EVITA EL DESBORDE DE TEXTO)
+        function limpiarCampoFiltro(texto) {
+            if(!texto) return "-";
+            var limpio = texto.replace(/[:\-;]/g, '').trim();
+            // Esto evita que lea direcciones o teléfonos que estén después de la palabra clave
+            limpio = limpio.split(/\s+(TEL|CEL|DIR|UBIC|ESTRELLA|MEDELLIN|BELLO|ITAGUI|SABANETA|SOAT|TECNO|RTM|MODELO|COLOR)/i)[0].trim();
+            // LÍMITE DE SEGURIDAD ABSOLUTO: Nunca dejará pasar más de 30 letras
+            if (limpio.length > 30) limpio = limpio.substring(0, 30).trim();
+            return limpio || "-";
+        }
+
+        // EXTRACTOR SEGURO Y FLEXIBLE
         function extraerInfoVehiculoUniversal(texto) {
             var m = "-", l = "-", mod = "-", c = "-", s = "NO", t = "NO";
+            var lineas = texto.split('\n');
             
-            // Reemplazar saltos de línea para buscar en todo el bloque si es necesario
-            var textFlat = texto.replace(/\n/g, ' ').toUpperCase();
-            
-            // Buscar Marca/Vehículo/Clase (captura todo hasta la siguiente palabra clave común o fin de línea si se usa split)
-            var marcaMatch = textFlat.match(/(?:MARCA|VEHICULO|VEHÍCULO|CLASE)\s*[:\-]?\s*([^MCLSC\n]*)/i);
-            if (marcaMatch && marcaMatch[1].trim() !== "") {
-                m = marcaMatch[1].trim().split(/(LÍNEA|LINEA|MODELO|COLOR|SOAT|TECNO|CEL|DIR)/i)[0].trim();
+            for (var i = 0; i < lineas.length; i++) {
+                var linea = lineas[i].toUpperCase();
+                
+                if (m === "-" && /(MARCA|VEHICULO|VEHÍCULO)/.test(linea)) {
+                    m = limpiarCampoFiltro(linea.replace(/.*(MARCA|VEHICULO|VEHÍCULO)/, ''));
+                }
+                if (l === "-" && /(CLASE|LÍNEA|LINEA)/.test(linea)) {
+                    l = limpiarCampoFiltro(linea.replace(/.*(CLASE|LÍNEA|LINEA)/, ''));
+                }
+                if (mod === "-" && /MODELO/.test(linea)) {
+                    mod = limpiarCampoFiltro(linea.replace(/.*MODELO/, ''));
+                }
+                if (c === "-" && /COLOR/.test(linea)) {
+                    c = limpiarCampoFiltro(linea.replace(/.*COLOR/, ''));
+                }
+                if (s === "NO" && /(SOAT|SEGURO)/.test(linea)) {
+                    s = limpiarCampoFiltro(linea.replace(/.*(SOAT|SEGURO)/, ''));
+                }
+                if (t === "NO" && /(TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISIÓN|REVISION)/.test(linea)) {
+                    t = limpiarCampoFiltro(linea.replace(/.*(TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISIÓN|REVISION)/, ''));
+                }
             }
-
-            // Buscar Línea
-            var lineaMatch = textFlat.match(/(?:LÍNEA|LINEA)\s*[:\-]?\s*([^MCLSC\n]*)/i);
-            if (lineaMatch && lineaMatch[1].trim() !== "") {
-                l = lineaMatch[1].trim().split(/(MARCA|VEHICULO|MODELO|COLOR|SOAT|TECNO|CEL|DIR)/i)[0].trim();
-            }
-
-            // Buscar Modelo
-            var modeloMatch = textFlat.match(/MODELO\s*[:\-]?\s*(\d{4})/i);
-            if (modeloMatch && modeloMatch[1].trim() !== "") {
-                mod = modeloMatch[1].trim();
-            } else {
-                 var modeloMatch2 = textFlat.match(/MODELO\s*[:\-]?\s*([^CST\n]*)/i);
-                 if(modeloMatch2 && modeloMatch2[1].trim() !== ""){
-                    mod = modeloMatch2[1].trim().split(/(COLOR|SOAT|TECNO|CEL|DIR)/i)[0].trim();
-                 }
-            }
-
-            // Buscar Color
-            var colorMatch = textFlat.match(/COLOR\s*[:\-]?\s*([^MST\n]*)/i);
-            if (colorMatch && colorMatch[1].trim() !== "") {
-                c = colorMatch[1].trim().split(/(MARCA|VEHICULO|LINEA|MODELO|SOAT|TECNO|CEL|DIR)/i)[0].trim();
-            }
-
-            // Buscar SOAT y Tecno (Busca la palabra y captura lo que sigue, ej. "Vigente", fechas)
-            var soatMatch = textFlat.match(/(?:SOAT|SEGURO)\s*[:\-]?\s*([^T\n]*)/i);
-            if(soatMatch && soatMatch[1].trim() !== "") {
-                s = soatMatch[1].trim().split(/(TECNO|RTM|REVISI|CEL|DIR)/i)[0].trim();
-            }
-
-            var tecnoMatch = textFlat.match(/(?:TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISI[OÓ]N)\s*[:\-]?\s*([^\n]*)/i);
-            if(tecnoMatch && tecnoMatch[1].trim() !== "") {
-                 t = tecnoMatch[1].trim().split(/(SOAT|SEGURO|CEL|DIR)/i)[0].trim();
-            }
-            
-            // Limpieza final
-            if (m === "") m = "-";
-            if (l === "") l = "-";
-            if (mod === "") mod = "-";
-            if (c === "") c = "-";
-            if (s === "") s = "NO";
-            if (t === "") t = "NO";
-
             return { marca: m, linea: l, modelo: mod, color: c, soat: s, tecnomecanica: t };
         }
 
@@ -333,6 +407,7 @@
                     item.lng = e.latlng.lng;
                     guardarPuntosStorage();
                     alert("📍 ¡Punto movido y corregido exactamente!");
+                    actualizarPanelCercano(); // Actualizar si el punto movido cambió distancias
                 }
                 cancelarEdicion();
             }
@@ -372,6 +447,7 @@
                 map.setView([coords.lat, coords.lng], 16);
                 guardarPuntosStorage();
                 alert("✅ ¡Punto reubicado con éxito!");
+                actualizarPanelCercano();
             }
 
             document.getElementById('loading-overlay').style.display = 'none';
@@ -426,8 +502,15 @@
                 p.marker.setIcon(customIcon);
                 
                 p.marker.setPopupContent(generarContenidoPopup(p, markerId));
-                p.marker.openPopup();
+                
+                // Si la marcamos desde el popup abierto, lo dejamos abierto. Si fue del radar, se cierra.
+                if(!placaMasCercanaObj || placaMasCercanaObj.id !== markerId) {
+                    p.marker.openPopup();
+                }
             }
+            
+            // ACTUALIZAR RADAR AUTOMÁTICAMENTE PARA ENCONTRAR LA SIGUIENTE
+            actualizarPanelCercano();
         }
 
         function mostrarOpcionesEliminar(markerId) {
@@ -441,6 +524,7 @@
                 map.removeLayer(puntosData[itemIndex].marker);
                 puntosData.splice(itemIndex, 1);
                 guardarPuntosStorage();
+                actualizarPanelCercano();
             }
         }
 
@@ -456,6 +540,7 @@
             puntosData = nuevasPuntos;
             delete placasRegistradas[placa];
             guardarPuntosStorage();
+            actualizarPanelCercano();
         }
 
         function fileToBase64(file) {
@@ -657,6 +742,7 @@
             alert("🚀 ¡Súper! Se mapearon " + direcciones.length + " ubicaciones vigentes para " + placa);
             document.getElementById('txtGemini').value = '';
             cerrarSecciones();
+            actualizarPanelCercano();
         }
 
         async function procesarLoteMasivo() {
@@ -736,6 +822,7 @@
             if (totalAgregados > 0) {
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
+                actualizarPanelCercano();
             }
         }
 
@@ -745,15 +832,14 @@
             var linea = document.getElementById('manLinea').value.trim() || "-";
             var modelo = document.getElementById('manModelo').value.trim() || "-";
             var color = document.getElementById('manColor').value.trim() || "-";
-            var msoat = document.getElementById('manSoat').value.trim() || "-";
-            var mtecno = document.getElementById('manTecno').value.trim() || "-";
+            var msoat = document.getElementById('manSoat').value.trim() || "NO";
+            var mtecno = document.getElementById('manTecno').value.trim() || "NO";
             var dir = document.getElementById('manDir').value.trim();
             var fileInput = document.getElementById('manFoto');
             var fotoBase64 = null;
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
             
-            // Asignar variables globales correctamente
             actualPlacaFuerza = placa;
             window.actualMarcaFuerza = marca;
             window.actualLineaFuerza = linea;
@@ -784,8 +870,8 @@
                     var fLinea = (linea !== "-") ? linea : infoVehOcr.linea;
                     var fModelo = (modelo !== "-") ? modelo : infoVehOcr.modelo;
                     var fColor = (color !== "-") ? color : infoVehOcr.color;
-                    var fSoat = (msoat !== "-") ? msoat : infoVehOcr.soat;
-                    var fTecno = (mtecno !== "-") ? mtecno : infoVehOcr.tecnomecanica;
+                    var fSoat = (msoat !== "NO") ? msoat : infoVehOcr.soat;
+                    var fTecno = (mtecno !== "NO") ? mtecno : infoVehOcr.tecnomecanica;
 
                     window.actualMarcaFuerza = fMarca;
                     window.actualLineaFuerza = fLinea;
@@ -843,6 +929,7 @@
                     fileInput.value = '';
                     loadingOverlay.style.display = 'none';
                     cerrarSecciones();
+                    actualizarPanelCercano();
                 }).catch(error => {
                     console.error(error);
                     loadingOverlay.style.display = 'none';
@@ -866,14 +953,15 @@
             var coords = await obtenerCoordenadasExactasLimpias(dir);
 
             var nuevoPunto = {
-                placa: placa, marca: window.actualMarcaFuerza, linea: window.actualLineaFuerza, modelo: window.actualModeloFuerza, color: window.actualColorFuerza, telefonos: "-", 
-                soat: window.actualSoatFuerza, tecnomecanica: window.actualTecnoFuerza,
+                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-", 
+                soat: msoat, tecnomecanica: mtecno,
                 lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: fotoBase64
             };
 
             agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
             document.getElementById('loading-overlay').style.display = 'none';
             cerrarSecciones();
+            actualizarPanelCercano();
         }
 
         async function procesarModalRescate() {
@@ -909,6 +997,7 @@
             document.getElementById('loading-overlay').style.display = 'none';
             alert("🚀 ¡Puntos agregados!");
             cerrarSecciones();
+            actualizarPanelCercano();
         }
 
         function cerrarAsistente() {
@@ -1001,6 +1090,7 @@
 
             guardarPuntosStorage();
             alert("✅ Información sincronizada para la placa " + placaEditada);
+            actualizarPanelCercano();
         }
 
         function generarContenidoPopup(p, markerId) {
@@ -1102,7 +1192,7 @@
             var esVisitada = visitas > 0;
 
             var customIcon = L.divIcon({
-                className: '', // Limpiamos clase por defecto
+                className: '', 
                 html: generarMarcadorProfesional(p.placa, esVisitada),
                 iconAnchor: [40, 35],
                 popupAnchor: [0, -35]
@@ -1116,6 +1206,7 @@
             if (guardarEnStorage) {
                 puntosData.push(p);
                 guardarPuntosStorage();
+                actualizarPanelCercano();
             } else {
                 if(!puntosData.find(d => d.id === p.id)) puntosData.push(p);
             }
@@ -1123,6 +1214,8 @@
 
         window.onload = function() {
             cargarPuntosStorage();
+            // Retrasar el cálculo inicial del radar para asegurar que el GPS haya cargado
+            setTimeout(actualizarPanelCercano, 1500);
         };
     </script>
 </body>
