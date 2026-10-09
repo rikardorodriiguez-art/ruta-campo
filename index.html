@@ -151,11 +151,6 @@
             alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        function mostrarOpcionesEliminar(markerId, placa) {
-            var div = document.getElementById('eliminar-container-' + markerId);
-            div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
-        }
-
         function eliminarEstaDireccion(markerId, placa) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex !== -1) {
@@ -188,19 +183,23 @@
             return true;
         }
 
-        function obtenerCoordenadasExactas(textoDir) {
+        // MAPEO SEGURO DE MUNICIPIOS CON REFERENCIA EN EL VALLE DE ABURRÁ Y COLOMBIA
+        function obtenerCoordenadasPorMunicipio(textoDir) {
             var t = textoDir.toUpperCase();
+            if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
             if (t.includes('NIQUIA') || (t.includes('BELLO') && t.includes('40'))) return {lat: 6.3265, lng: -75.5492};
             if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
             if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
             if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
             if (t.includes('SABANETA')) return {lat: 6.1513, lng: -75.6146};
-            if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
             if (t.includes('CALDAS')) return {lat: 6.0927, lng: -75.6369};
             if (t.includes('GIRARDOTA')) return {lat: 6.3795, lng: -75.4452};
             if (t.includes('RIONEGRO')) return {lat: 6.1551, lng: -75.3737};
-            if (t.includes('MEDELLIN')) return {lat: 6.2442, lng: -75.5812};
-            return {lat: 6.2500, lng: -75.5600};
+            if (t.includes('BOGOTA')) return {lat: 4.6097, lng: -74.0817};
+            if (t.includes('CALI')) return {lat: 3.4516, lng: -76.5320};
+            if (t.includes('BARRANQUILLA')) return {lat: 10.9685, lng: -74.7813};
+            // Predeterminado Medellín
+            return {lat: 6.2442, lng: -75.5812};
         }
 
         var placasRegistradas = {};
@@ -276,9 +275,9 @@
                 }
 
                 ubicacionesFinales.forEach(function(dir, index) {
-                    var coords = obtenerCoordenadasExactas(dir + " " + bloque);
-                    var lat = coords.lat + (index * 0.0015);
-                    var lng = coords.lng + (index * 0.0015);
+                    var coords = obtenerCoordenadasPorMunicipio(dir + " " + bloque);
+                    var lat = coords.lat + (index * 0.001);
+                    var lng = coords.lng + (index * 0.001);
 
                     var nuevoPunto = {
                         placa: placa,
@@ -321,7 +320,7 @@
             }
 
             placasRegistradas[placa] = true;
-            var coords = obtenerCoordenadasExactas("MEDELLIN");
+            var coords = obtenerCoordenadasPorMunicipio("MEDELLIN");
             
             agregarMarcadorAlMapa({
                 placa: placa, marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: coords.lat, lng: coords.lng, dir: "Ubicación por foto", fecha: new Date().toISOString().split('T')[0]
@@ -350,7 +349,7 @@
             }
 
             placasRegistradas[placa] = true;
-            var coords = obtenerCoordenadasExactas(dir);
+            var coords = obtenerCoordenadasPorMunicipio(dir);
 
             agregarMarcadorAlMapa({
                 placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0]
@@ -403,6 +402,9 @@
             var colorFondo = pico ? "#8B0000" : "#D32F2F";
             var visitas = localStorage.getItem('visitas_' + p.placa) || 0;
 
+            // Enlace directo a Google Maps utilizando el texto exacto de la dirección para garantizar precisión de navegación
+            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
+
             var popupContent = `
                 <div style="font-family: Arial; font-size: 13px; width: 230px;">
                     <b>Punto #${idx}</b><br>
@@ -413,7 +415,7 @@
                     <b>Fecha:</b> ${p.fecha}<br>
                     <b>Dirección:</b> ${p.dir}<br>
                     <b>Veces visitada:</b> <span id="contador-${idx}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br><br>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir</a>
+                    <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir (Google Maps)</a>
                     <button onclick="marcarVisitada('${p.placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>
                     <button onclick="mostrarOpcionesEliminar('${markerId}', '${p.placa}')" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">3. 🗑️ Eliminar</button>
                     
