@@ -24,7 +24,7 @@
 
         .floating-menu {
             position: fixed; bottom: 80px; left: 20px; z-index: 99999;
-            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px;
+            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px; max-height: 70vh; overflow-y: auto;
         }
         
         .floating-filter-panel {
@@ -61,12 +61,23 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6);
             z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 15px; font-weight: bold; text-align: center; padding: 20px;
         }
+
+        /* Estilos para el popup de Leaflet y miniatura */
+        .leaflet-popup-content { margin: 10px; line-height: 1.4; }
+        .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
+        .edit-input { width: 100%; margin-bottom: 4px; padding: 3px; font-size: 12px; border: 1px solid #aaa; border-radius: 3px; box-sizing: border-box; }
+        .action-btn-small { background-color: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 5px; width: 100%; }
+        .save-btn-small { background-color: #27ae60; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; margin-top: 5px; }
+        
+        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; margin-bottom: 5px; }
+        .file-upload-btn { background-color: #8e44ad; color: white; padding: 6px; border-radius: 4px; font-size: 11px; font-weight: bold; text-align: center; display: block; cursor: pointer; border: none; width: 100%; box-sizing: border-box;}
+        .file-upload-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
-    <div id="loading-overlay">🎯 Leyendo y ubicando dirección exacta...</div>
+    <div id="loading-overlay">🎯 Leyendo y ubicando...</div>
 
     <div id="modo-edicion-banner">
         📍 Moviendo punto:<br>
@@ -80,9 +91,8 @@
             <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte de WhatsApp</button>
-        <button class="main-opt" onclick="abrirSeccion('foto')">2. 📷 Pegar foto y placa</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
+        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte</button>
+        <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual (con foto)</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
@@ -91,22 +101,15 @@
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
-        <div id="seccion-foto" class="sub-panel">
-            <b>Subir o tomar foto:</b>
-            <input type="file" id="inputFile" accept="image/*" style="font-size:10px; margin-top:4px;">
-            <input type="text" id="txtPlacaFoto" placeholder="Escribir placa">
-            <input type="text" id="txtDirFoto" placeholder="Dirección exacta (ej: Calle 10 # 43-20)">
-            <button class="action" onclick="procesarFoto()">Guardar con Foto</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
-        </div>
-
         <div id="seccion-manual" class="sub-panel">
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
-            <input type="text" id="manMarca" placeholder="Marca">
+            <input type="text" id="manMarca" placeholder="Marca / Vehículo">
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
             <input type="text" id="manDir" placeholder="Dirección exacta">
+            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto Inicial (Opcional):</b>
+            <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -159,7 +162,7 @@
                     item.lat = e.latlng.lat;
                     item.lng = e.latlng.lng;
                     guardarPuntosStorage();
-                    alert("📍 ¡Punto de la placa " + item.placa + " movido y corregido exactamente!");
+                    alert("📍 ¡Punto movido y corregido exactamente!");
                 }
                 cancelarEdicion();
             }
@@ -194,14 +197,12 @@
 
         function abrirSeccion(tipo) {
             document.getElementById('seccion-whatsapp').style.display = 'none';
-            document.getElementById('seccion-foto').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
             document.getElementById('seccion-' + tipo).style.display = 'block';
         }
 
         function cerrarSecciones() {
             document.getElementById('seccion-whatsapp').style.display = 'none';
-            document.getElementById('seccion-foto').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
             document.getElementById('menuOpciones').style.display = 'none';
         }
@@ -212,21 +213,19 @@
             localStorage.setItem(key, actual);
             var span = document.getElementById('contador-' + idx);
             if (span) { span.innerText = actual; }
-            alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        function mostrarOpcionesEliminar(markerId, placa) {
+        function mostrarOpcionesEliminar(markerId) {
             var div = document.getElementById('eliminar-container-' + markerId);
-            div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
+            if(div) div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
         }
 
-        function eliminarEstaDireccion(markerId, placa) {
+        function eliminarEstaDireccion(markerId) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex !== -1) {
                 map.removeLayer(puntosData[itemIndex].marker);
                 puntosData.splice(itemIndex, 1);
                 guardarPuntosStorage();
-                alert("🗑️ Dirección eliminada y guardada.");
             }
         }
 
@@ -242,7 +241,16 @@
             puntosData = nuevasPuntos;
             delete placasRegistradas[placa];
             guardarPuntosStorage();
-            alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
+        }
+
+        // Función para convertir archivo de imagen a Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
         }
 
         async function obtenerCoordenadasExactasLimpias(dir) {
@@ -263,15 +271,9 @@
                     return { lat: parseFloat(location.lat), lng: parseFloat(location.lng) };
                 }
             } catch(e) {
-                console.log("Error de red con Google Maps");
+                console.log("Error Google Maps");
             }
             
-            var t = dir.toUpperCase();
-            if (t.includes('BELEN') || t.includes('RINCON') || t.includes('CL 2')) return {lat: 6.2185, lng: -75.6020};
-            if (t.includes('POBLADO')) return {lat: 6.2088, lng: -75.5670};
-            if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
-            if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
-            if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
             return {lat: 6.2442, lng: -75.5812};
         }
 
@@ -288,7 +290,8 @@
                     dir: item.dir,
                     fecha: item.fecha,
                     lat: item.lat,
-                    lng: item.lng
+                    lng: item.lng,
+                    foto: item.foto // Guarda la foto en base64
                 };
             });
             localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
@@ -309,7 +312,7 @@
 
         function exportarRespaldo() {
             var datos = localStorage.getItem('puntos_raptor_guardados');
-            if (!datos || datos === "[]") { alert("No hay puntos para respaldar."); return; }
+            if (!datos || datos === "[]") { alert("No hay puntos."); return; }
             var blob = new Blob([datos], {type: "application/json"});
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
@@ -328,7 +331,7 @@
                     localStorage.setItem('puntos_raptor_guardados', JSON.stringify(lista));
                     location.reload();
                 } catch(err) {
-                    alert("Archivo de respaldo inválido.");
+                    alert("Archivo inválido.");
                 }
             };
             reader.readAsText(file);
@@ -336,7 +339,7 @@
 
         async function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
+            if(!texto) { alert("Pega el texto."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
 
@@ -345,7 +348,6 @@
 
             for (let bloque of bloques) {
                 if (bloque.trim().length < 5) continue;
-
                 var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
                 if (!matches) continue;
 
@@ -375,11 +377,7 @@
                 }
                 placasRegistradas[placa] = true;
 
-                var marca = "VEHÍCULO";
-                var linea = "GENERAL";
-                var modelo = "2026";
-                var color = "N/A";
-
+                var marca = "VEHÍCULO", linea = "GENERAL", modelo = "2026", color = "N/A";
                 var lineas = bloque.split('\n');
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
@@ -404,100 +402,43 @@
                 });
 
                 var ubicacionesFinales = direcciones.slice(0, 3);
-                if (ubicacionesFinales.length === 0) {
-                    ubicacionesFinales = ["Medellin, Antioquia"];
-                }
+                if (ubicacionesFinales.length === 0) ubicacionesFinales = ["Medellin, Antioquia"];
 
                 for (let [index, dir] of ubicacionesFinales.entries()) {
                     var coords = await obtenerCoordenadasExactasLimpias(dir);
-                    var lat = coords.lat; 
-                    var lng = coords.lng; 
-
                     var nuevoPunto = {
-                        placa: placa,
-                        marca: marca,
-                        linea: linea,
-                        modelo: modelo,
-                        color: color,
-                        telefonos: telefonos,
-                        lat: lat,
-                        lng: lng,
-                        dir: dir,
-                        fecha: new Date().toISOString().split('T')[0]
+                        placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: telefonos,
+                        lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
                     };
-
                     agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
                 }
-
                 totalAgregados++;
             }
 
             document.getElementById('loading-overlay').style.display = 'none';
-
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado con direcciones limpias y exactas de Google Maps!");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
-            } else {
-                alert("⚠️ No se pudieron extraer placas válidas.");
             }
-        }
-
-        async function procesarFoto() {
-            var placa = document.getElementById('txtPlacaFoto').value.toUpperCase();
-            var dir = document.getElementById('txtDirFoto').value; 
-
-            if(!placa || !dir) { alert("Por favor escribe la placa y la dirección."); return; }
-
-            document.getElementById('loading-overlay').style.display = 'flex'; 
-
-            if(placasRegistradas[placa]) {
-                var nuevasPuntos = [];
-                puntosData.forEach(function(item) {
-                    if (item.placa === placa) {
-                        map.removeLayer(item.marker);
-                    } else {
-                        nuevasPuntos.push(item);
-                    }
-                });
-                puntosData = nuevasPuntos;
-            }
-
-            placasRegistradas[placa] = true;
-            
-            var coords = await obtenerCoordenadasExactasLimpias(dir);
-            
-            var nuevoPunto = {
-                placa: placa, 
-                marca: "FOTO", 
-                linea: "REGISTRO", 
-                modelo: "2026", 
-                color: "N/A", 
-                telefonos: "N/A", 
-                lat: coords.lat, 
-                lng: coords.lng, 
-                dir: dir, 
-                fecha: new Date().toISOString().split('T')[0]
-            };
-
-            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-            
-            document.getElementById('loading-overlay').style.display = 'none';
-            alert("¡Foto y placa (" + placa + ") agregadas en su ubicación exacta!");
-            cerrarSecciones();
         }
 
         async function procesarManual() {
             var placa = document.getElementById('manPlaca').value.toUpperCase();
-            var marca = document.getElementById('manMarca').value || "GENÉRICO";
-            var linea = document.getElementById('manLinea').value || "LÍNEA";
-            var modelo = document.getElementById('manModelo').value || "2026";
-            var color = document.getElementById('manColor').value || "N/A";
+            var marca = document.getElementById('manMarca').value || "-";
+            var linea = document.getElementById('manLinea').value || "-";
+            var modelo = document.getElementById('manModelo').value || "-";
+            var color = document.getElementById('manColor').value || "-";
             var dir = document.getElementById('manDir').value;
+            var fileInput = document.getElementById('manFoto');
+            var fotoBase64 = null;
             
-            if(!placa || !dir) { alert("Ingresa al menos la placa y la dirección."); return; }
+            if(!placa || !dir) { alert("Falta placa o dirección."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
+            
+            if (fileInput.files && fileInput.files[0]) {
+                fotoBase64 = await fileToBase64(fileInput.files[0]);
+            }
 
             if(placasRegistradas[placa]) {
                 var nuevasPuntos = [];
@@ -515,12 +456,11 @@
             var coords = await obtenerCoordenadasExactasLimpias(dir);
 
             var nuevoPunto = {
-                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0]
+                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: fotoBase64
             };
 
             agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
             document.getElementById('loading-overlay').style.display = 'none';
-            alert("¡Punto manual exacto agregado y guardado!");
             cerrarSecciones();
         }
 
@@ -532,7 +472,6 @@
 
             puntosData.forEach(function(item) {
                 var coincideBusqueda = (textoBusqueda === "" || item.placa.includes(textoBusqueda));
-                
                 var pasaFiltroEstado = false;
                 
                 if (verTodas) {
@@ -543,28 +482,16 @@
                 }
 
                 if (coincideBusqueda && pasaFiltroEstado) {
-                    if (!map.hasLayer(item.marker)) {
-                        map.addLayer(item.marker);
-                    }
+                    if (!map.hasLayer(item.marker)) map.addLayer(item.marker);
                 } else {
-                    if (map.hasLayer(item.marker)) {
-                        map.removeLayer(item.marker);
-                    }
+                    if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
                 }
             });
         }
 
         var hoyStr = new Date().toISOString().split('T')[0];
         var diaSemana = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-        
-        // REGLAS DE PICO Y PLACA ACTUALIZADAS (2026 - SEMESTRE 2)
-        var reglasPico = {
-            0: ['5', '8'], // Lunes
-            1: ['1', '4'], // Martes
-            2: ['0', '2'], // Miércoles
-            3: ['3', '6'], // Jueves
-            4: ['7', '9']  // Viernes
-        };
+        var reglasPico = { 0: ['5', '8'], 1: ['1', '4'], 2: ['0', '2'], 3: ['3', '6'], 4: ['7', '9'] };
 
         function tienePicoYPlaca(placa) {
             if (reglasPico[diaSemana]) {
@@ -574,63 +501,143 @@
             return false;
         }
 
-        function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
-            var markerId = 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
-            var pico = tienePicoYPlaca(p.placa);
-            var esHoy = (p.fecha === hoyStr);
-            var estadoPicoTxt = pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
+        // --- FUNCIONES DE EDICIÓN EN EL POPUP ---
+
+        function toggleEditMode(markerId) {
+            var viewDiv = document.getElementById('view-mode-' + markerId);
+            var editDiv = document.getElementById('edit-mode-' + markerId);
+            
+            if (viewDiv.style.display === 'none') {
+                viewDiv.style.display = 'block';
+                editDiv.style.display = 'none';
+            } else {
+                viewDiv.style.display = 'none';
+                editDiv.style.display = 'block';
+            }
+        }
+
+        async function guardarEdicionPopup(markerId) {
+            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
+            if (itemIndex === -1) return;
+
+            // Recoger los nuevos valores de los inputs
+            var nuevoVehiculo = document.getElementById('edit-vehiculo-' + markerId).value;
+            var nuevosTels = document.getElementById('edit-telefonos-' + markerId).value;
+            var nuevaDir = document.getElementById('edit-dir-' + markerId).value;
+            
+            var fileInput = document.getElementById('upload-foto-' + markerId);
+
+            // Actualizar objeto
+            puntosData[itemIndex].marca = nuevoVehiculo;
+            puntosData[itemIndex].telefonos = nuevosTels;
+            puntosData[itemIndex].dir = nuevaDir;
+
+            if (fileInput.files && fileInput.files[0]) {
+                puntosData[itemIndex].foto = await fileToBase64(fileInput.files[0]);
+            }
+
+            guardarPuntosStorage();
+            
+            // Volver a dibujar el popup con los datos nuevos
+            var marcadorAnterior = puntosData[itemIndex].marker;
+            var dataPunto = puntosData[itemIndex];
+            
+            var contenidoNuevo = generarContenidoPopup(dataPunto, markerId);
+            marcadorAnterior.setPopupContent(contenidoNuevo);
+            
+            alert("✅ Información guardada correctamente");
+        }
+
+        function generarContenidoPopup(p, markerId) {
+            var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
             var visitas = localStorage.getItem('visitas_' + p.placa) || 0;
-
             var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir + ", Medellin, Antioquia");
+            
+            // Verifica si tiene foto guardada
+            var imgHtml = '';
+            if (p.foto) {
+                imgHtml = `<img src="${p.foto}" class="car-thumbnail" style="display:block;">`;
+            }
 
-            var popupContent = `
-                <div style="font-family: Arial; font-size: 13px; width: 230px;">
-                    <b>Punto #${idx}</b><br>
-                    <b>Placa:</b> ${p.placa} <span style="background: #27ae60; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">🟢 VERIFICADO</span><br>
-                    <b>Vehículo:</b> ${p.marca} ${p.linea} (${p.modelo} - ${p.color})<br>
-                    <b>Teléfonos:</b> ${p.telefonos}<br>
-                    <b>Estado:</b> ${estadoPicoTxt}<br>
-                    <b>Fecha:</b> ${p.fecha}<br>
-                    <b>Dirección:</b> ${p.dir}<br>
-                    <b>Veces visitada:</b> <span id="contador-${idx}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br><br>
-                    <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 7px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ver en Google Maps</a>
-                    <button onclick="marcarVisitada('${p.placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>
-                    <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" style="background-color: #e67e22; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">3. 📍 Mover/Corregir punto</button>
-                    <button onclick="mostrarOpcionesEliminar('${markerId}', '${p.placa}')" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">4. 🗑️ Eliminar</button>
+            return `
+                <div style="font-family: Arial; font-size: 13px; width: 240px;">
                     
-                    <div id="eliminar-container-${markerId}" style="display: none; margin-top: 8px; background: #f8d7da; padding: 6px; border-radius: 4px; border: 1px solid #f5c6cb;">
-                        <button onclick="eliminarEstaDireccion('${markerId}', '${p.placa}')" style="background-color: #d9534f; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 4px;">❌ Eliminar esta dirección</button>
-                        <button onclick="eliminarTodasDePlaca('${p.placa}')" style="background-color: #721c24; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">🗑️ Eliminar todas las de esta placa</button>
+                    <!-- MODO VISTA NORMAL -->
+                    <div id="view-mode-${markerId}">
+                        ${imgHtml}
+                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: #27ae60; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">🟢</span><br>
+                        <b>Vehículo:</b> ${p.marca} ${p.linea !== '-' ? p.linea : ''} ${p.color !== '-' ? '('+p.color+')' : ''}<br>
+                        <b>Teléfonos:</b> ${p.telefonos}<br>
+                        <b>Estado:</b> ${estadoPicoTxt}<br>
+                        <b>Fecha:</b> ${p.fecha}<br>
+                        <b>Dirección:</b> ${p.dir}<br>
+                        <b>Visitas:</b> <span id="contador-${markerId}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br>
+                        
+                        <div style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 8px;">
+                            <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold; font-size: 12px;">1. 🧭 Google Maps</a>
+                            
+                            <div style="display:flex; gap:5px; margin-bottom:5px;">
+                                <button onclick="marcarVisitada('${p.placa}', '${markerId}')" style="background-color: #4CAF50; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:11px; flex:1;">2. ✅ Visitada</button>
+                                <button onclick="toggleEditMode('${markerId}')" style="background-color: #8e44ad; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:11px; flex:1;">✏️ Editar / Foto</button>
+                            </div>
+                            
+                            <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" style="background-color: #e67e22; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold; font-size: 11px;">3. 📍 Mover punto manual</button>
+                            <button onclick="mostrarOpcionesEliminar('${markerId}')" style="background-color: #f44336; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">4. 🗑️ Eliminar</button>
+                        </div>
+                        
+                        <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #f8d7da; padding: 6px; border-radius: 4px;">
+                            <button onclick="eliminarEstaDireccion('${markerId}')" style="background-color: #d9534f; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 4px;">❌ Borrar esta</button>
+                            <button onclick="eliminarTodasDePlaca('${p.placa}')" style="background-color: #721c24; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">🗑️ Borrar TODAS</button>
+                        </div>
+                    </div>
+
+                    <!-- MODO EDICIÓN -->
+                    <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                        <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
+                        
+                        <label style="font-size:11px; font-weight:bold;">Vehículo / Detalles:</label>
+                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${p.marca}">
+                        
+                        <label style="font-size:11px; font-weight:bold;">Teléfonos:</label>
+                        <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${p.telefonos}">
+                        
+                        <label style="font-size:11px; font-weight:bold;">Dirección:</label>
+                        <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${p.dir}">
+                        
+                        <label style="font-size:11px; font-weight:bold; margin-top:5px; display:block;">📷 Adjuntar/Cambiar Foto:</label>
+                        <input type="file" id="upload-foto-${markerId}" accept="image/*" class="edit-input" style="padding:2px;">
+                        
+                        <div style="display:flex; gap:5px; margin-top:10px;">
+                            <button onclick="guardarEdicionPopup('${markerId}')" style="background-color: #27ae60; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-weight: bold; flex: 1;">💾 Guardar</button>
+                            <button onclick="toggleEditMode('${markerId}')" style="background-color: #7f8c8d; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-weight: bold; flex: 1;">Cancelar</button>
+                        </div>
                     </div>
                 </div>
             `;
+        }
+
+        function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
+            var markerId = p.id || 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+            p.id = markerId; // Asegurar que tenga ID
+            p.pico = tienePicoYPlaca(p.placa);
+            p.esHoy = (p.fecha === hoyStr);
 
             var customIcon = L.divIcon({
                 className: 'custom-marker',
-                html: '<div style="display: flex; align-items: center; cursor: pointer;"><div style="width: 14px; height: 14px; background-color: #27ae60; border: 2px solid black; border-radius: 50%;"></div><div style="font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">#' + idx + ': ' + p.placa + ' (' + p.marca + ') 🟢</div></div>'
+                html: '<div style="display: flex; align-items: center; cursor: pointer;"><div style="width: 14px; height: 14px; background-color: #27ae60; border: 2px solid black; border-radius: 50%;"></div><div style="font-size: 11px; font-weight: bold; color: #000; background-color: rgba(255, 255, 255, 0.95); padding: 2px 6px; border-radius: 3px; border: 1px solid #777; white-space: nowrap; margin-left: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">' + p.placa + '</div></div>'
             });
 
-            var marker = L.marker([p.lat, p.lng], {icon: customIcon}).bindPopup(popupContent).addTo(map);
+            var marker = L.marker([p.lat, p.lng], {icon: customIcon}).addTo(map);
+            p.marker = marker;
             
-            puntosData.push({
-                id: markerId,
-                placa: p.placa,
-                marca: p.marca,
-                linea: p.linea,
-                modelo: p.modelo,
-                color: p.color,
-                telefonos: p.telefonos,
-                dir: p.dir,
-                fecha: p.fecha,
-                marker: marker,
-                pico: pico,
-                esHoy: esHoy,
-                lat: p.lat,
-                lng: p.lng
-            });
-
+            // Bindear el contenido generado dinámicamente
+            marker.bindPopup(generarContenidoPopup(p, markerId));
+            
             if (guardarEnStorage) {
+                puntosData.push(p);
                 guardarPuntosStorage();
+            } else {
+                if(!puntosData.find(d => d.id === p.id)) puntosData.push(p);
             }
         }
 
@@ -640,4 +647,3 @@
     </script>
 </body>
 </html>
-
