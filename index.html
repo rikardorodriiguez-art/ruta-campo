@@ -125,7 +125,7 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa y datos, deja dirección vacía y sube foto.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa y Vehículo, deja dirección vacía y sube foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
@@ -143,7 +143,7 @@
         <div id="seccion-gemini" class="sub-panel">
             <b style="color:#27ae60; font-size:11px;">⚡ IMPORTADOR EXCLUSIVO DE GEMINI</b><br><br>
             <b style="font-size: 10px; display: block; margin-bottom: 6px;">Pega los datos que te di en el chat:</b>
-            <textarea id="txtGemini" placeholder="PLACA: ...&#10;DIRECCIÓN 1: ...&#10;CELULARES: ..." style="height: 120px; font-size: 10px;"></textarea>
+            <textarea id="txtGemini" placeholder="PLACA: ...&#10;VEHÍCULO: ...&#10;DIRECCIÓN 1: ...&#10;CELULARES: ..." style="height: 120px; font-size: 10px;"></textarea>
             <button class="action" onclick="procesarExtraccionGemini()" style="background-color: #27ae60;">Mapear Todo en el Mapa</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -188,7 +188,6 @@
         var placasRegistradas = {};
         var puntosData = [];
         
-        // Variables globales para rescatar datos si falla el OCR
         var actualPlacaFuerza = "";
         var actualMarcaFuerza = "";
         var actualLineaFuerza = "";
@@ -457,7 +456,7 @@
             loadingOverlay.style.display = 'flex';
 
             var placaMatch = texto.match(/PLACA:\s*([A-Za-z0-9]+)/i);
-            var vehMatch = texto.match(/(?:VEH[IÍ]CULO|MARCA):\s*([^\n]+)/i);
+            var vehMatch = texto.match(/(?:VEH[IÍ]CULO|MARCA|CLASE|L[IÍ]NEA|MODELO):\s*([^\n]+)/i);
             var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
             
             var placa = placaMatch ? placaMatch[1].toUpperCase().trim() : "";
@@ -558,12 +557,14 @@
                 var lineas = bloque.split('\n');
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
-                    if (up.includes("MARCA:") || up.includes("VEHÍCULO:") || up.includes("VEHICULO:")) {
+                    if (up.includes("MARCA:") || up.includes("VEH[IÍ]CULO:")) {
                         marca = l.replace(/MARCA:|VEH[IÍ]CULO:/i, '').trim();
                     }
-                    if (up.includes("LÍNEA:") || up.includes("LINEA:")) linea = l.replace(/Línea:|Linea:/i, '').trim();
-                    if (up.includes("MODELO:")) modelo = l.replace(/Modelo:/i, '').trim();
-                    if (up.includes("COLOR:")) color = l.replace(/Color:/i, '').trim();
+                    if (up.includes("LÍNEA:") || up.includes("LINEA:") || up.includes("CLASE:")) {
+                        linea = l.replace(/L[IÍ]NEA:|CLASE:/i, '').trim();
+                    }
+                    if (up.includes("MODELO:")) modelo = l.replace(/MODELO:/i, '').trim();
+                    if (up.includes("COLOR:")) color = l.replace(/COLOR:/i, '').trim();
                 });
 
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
@@ -613,7 +614,6 @@
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
             
-            // Guardar en variables globales en caso de necesitar "Modal Rescate"
             actualPlacaFuerza = placa;
             window.actualMarcaFuerza = marca;
             window.actualLineaFuerza = linea;
@@ -693,7 +693,7 @@
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o link de Maps."); return; }
+            if(!dir) { alert("Ingresa la dirección exacta o coordenadas."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
@@ -826,7 +826,7 @@
             puntosData.forEach(function(p) {
                 if (p.placa === placaEditada) {
                     p.marca = nuevoVehiculo || '-'; 
-                    p.linea = '-'; // Limpiamos para no duplicar al concatenar en futuras ediciones
+                    p.linea = '-'; 
                     p.modelo = '-';
                     p.color = '-';
                     p.telefonos = nuevosTels; 
@@ -847,21 +847,20 @@
             
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
 
-            // LÓGICA CORREGIDA Y DEFINITIVA PARA MOSTRAR LA MARCA DEL VEHÍCULO
-            var vehiculoStr = [];
-            if (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO' && p.marca !== 'REPORTE OCR' && p.marca !== 'REPORTE') vehiculoStr.push(p.marca);
-            if (p.linea && p.linea !== '-') vehiculoStr.push(p.linea);
-            if (p.modelo && p.modelo !== '-') vehiculoStr.push(p.modelo);
-            if (p.color && p.color !== '-') vehiculoStr.push('(' + p.color + ')');
-            
-            var vehiculoTexto = vehiculoStr.length > 0 ? vehiculoStr.join(' ') : '-';
+            var v = [];
+            if (p.marca && p.marca !== '-' && p.marca !== 'REPORTE OCR' && p.marca !== 'REPORTE' && p.marca !== 'VEHÍCULO') v.push(p.marca);
+            if (p.linea && p.linea !== '-') v.push(p.linea);
+            if (p.modelo && p.modelo !== '-') v.push(p.modelo);
+            if (p.color && p.color !== '-') v.push(p.color);
+            var vehiculoTexto = v.length > 0 ? v.join(' ') : 'No especificado (Editar ✏️)';
+            var valEdicion = v.length > 0 ? v.join(' ') : '';
 
             return `
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
                         <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: #27ae60; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">🟢</span><br>
-                        <b>Vehículo:</b> ${vehiculoTexto}<br>
+                        <b>Vehículo:</b> <span style="color:#000;">${vehiculoTexto}</span><br>
                         <b>Teléfonos:</b> ${p.telefonos}<br>
                         <b>Estado:</b> ${estadoPicoTxt}<br>
                         <b>Fecha:</b> ${p.fecha}<br>
@@ -893,7 +892,7 @@
                         <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
                         
                         <label style="font-size:11px; font-weight:bold;">Vehículo / Detalles:</label>
-                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${vehiculoTexto !== '-' ? vehiculoTexto : ''}">
+                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${valEdicion}" placeholder="Ej: Automóvil Mazda 3 Rojo">
                         
                         <label style="font-size:11px; font-weight:bold;">Teléfonos:</label>
                         <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${p.telefonos}">
