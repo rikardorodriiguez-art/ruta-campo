@@ -291,11 +291,12 @@
             if (t.includes('BARRANQUILLA')) return {lat: 10.9685, lng: -74.7813};
             if (t.includes('CARTAGENA')) return {lat: 10.3910, lng: -75.4794};
             if (t.includes('SABANETA')) return {lat: 6.1515, lng: -75.6166};
+            if (t.includes('MEDELLIN') || t.includes('MEDELLÍN')) return {lat: 6.2442, lng: -75.5812};
             
             return {lat: 6.2442, lng: -75.5812}; 
         }
 
-        // NUEVA LÓGICA: RECALCULAR UBICACIÓN AUTOMÁTICA (LIMPIEZA EXTREMA)
+        // NUEVA LÓGICA: PROMPT INTELIGENTE CON "MEMORIA DE CIUDAD"
         async function reubicarPuntoAutomatico(markerId) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex === -1) return;
@@ -303,25 +304,46 @@
             var p = puntosData[itemIndex];
             var dirOriginal = p.dir;
 
-            document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🔄 Limpiando dirección y recalculando...";
+            // 1. Detectar ciudad ANTES de limpiar
+            var ciudad = "";
+            var t = dirOriginal.toUpperCase();
+            if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) ciudad = "Bogota";
+            else if (t.includes('BUCARAMANGA')) ciudad = "Bucaramanga";
+            else if (t.includes('BELLO')) ciudad = "Bello";
+            else if (t.includes('COPACABANA')) ciudad = "Copacabana";
+            else if (t.includes('LA ESTRELLA') || t.includes('ESTRELLA')) ciudad = "La Estrella";
+            else if (t.includes('ENVIGADO')) ciudad = "Envigado";
+            else if (t.includes('ITAGUI') || t.includes('ITAGÜÍ')) ciudad = "Itagui";
+            else if (t.includes('CALI')) ciudad = "Cali";
+            else if (t.includes('BARRANQUILLA')) ciudad = "Barranquilla";
+            else if (t.includes('CARTAGENA')) ciudad = "Cartagena";
+            else if (t.includes('SABANETA')) ciudad = "Sabaneta";
+            else if (t.includes('MEDELLIN') || t.includes('MEDELLÍN')) ciudad = "Medellin";
 
-            // FILTRO AGRESIVO: Borra todo el "ruido" que confunde a Google Maps
+            // 2. Limpieza agresiva de basura (AP, TO, IN...)
             var dirLimpia = dirOriginal.toUpperCase();
-            
-            // 1. Quitar todo lo que esté entre paréntesis (ej: "( ANTIOQUIA )")
-            dirLimpia = dirLimpia.replace(/\([^)]*\)/g, '');
-            
-            // 2. Quitar AP, IN, BL, URB y TODO el texto que le siga hacia la derecha
-            dirLimpia = dirLimpia.replace(/\b(AP|APTO|APT|IN|INT|INTERIOR|BL|BLOQUE|ET|ETAPA|PI|PISO|ED|EDIFICIO|TORRE|LC|LOCAL|LT|LOTE|MZ|MANZANA|URB|URBANIZACION|BARRIO|BR)\b.*/g, '');
-            
-            // 3. Reemplazar nomenclatura
+            dirLimpia = dirLimpia.replace(/\([^)]*\)/g, ''); // quita texto en parentesis
+            dirLimpia = dirLimpia.replace(/\b(AP|APTO|APT|IN|INT|INTERIOR|BL|BLOQUE|ET|ETAPA|PI|PISO|ED|EDIFICIO|TO|TORRE|LC|LOCAL|LT|LOTE|MZ|MANZANA|URB|URBANIZACION|BARRIO|BR)\b.*/g, '');
             dirLimpia = dirLimpia.replace(/\bCL\b/g, 'Calle').replace(/\bKR\b|\bCR\b|\bCRA\b/g, 'Carrera').replace(/\bDG\b|\bDIAG\b/g, 'Diagonal').replace(/\bTV\b|\bTR\b/g, 'Transversal');
-            
-            // 4. Limpiar caracteres raros
-            dirLimpia = dirLimpia.replace(/#/g, ' ').replace(/-/g, ' ');
+            dirLimpia = dirLimpia.replace(/#/g, ' ').replace(/-/g, ' ').trim();
 
-            var query = dirLimpia.trim() + ", Colombia"; 
+            // 3. Volver a pegar la ciudad al final (Si la borró el corte agresivo)
+            if (ciudad !== "" && !dirLimpia.toUpperCase().includes(ciudad.toUpperCase())) {
+                dirLimpia = dirLimpia + ", " + ciudad;
+            }
+
+            // 4. Mostrar PROMPT para que el usuario pueda pulirla aún más antes de buscar
+            var dirEditada = prompt("✏️ Revisa y corrige la dirección antes de recalcular:", dirLimpia);
+            
+            // Si le da Cancelar o lo deja vacío, se cancela el proceso
+            if (dirEditada === null || dirEditada.trim() === "") {
+                return; 
+            }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-texto').innerText = "🔄 Buscando en Google Maps...";
+
+            var query = dirEditada.trim() + ", Colombia"; 
             
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
             var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
@@ -332,21 +354,23 @@
                 if (data.status === "OK" && data.results.length > 0) {
                     var location = data.results[0].geometry.location;
                     
-                    // Actualizar el punto
+                    // Actualizar el punto (Lat, Lng) y la dirección limpia
                     puntosData[itemIndex].lat = parseFloat(location.lat);
                     puntosData[itemIndex].lng = parseFloat(location.lng);
+                    puntosData[itemIndex].dir = dirEditada.trim(); 
                     
-                    // Actualizar mapa y hacer zoom
+                    // Refrescar mapa y popup
                     p.marker.setLatLng([puntosData[itemIndex].lat, puntosData[itemIndex].lng]);
+                    p.marker.setPopupContent(generarContenidoPopup(puntosData[itemIndex], markerId));
                     map.setView([puntosData[itemIndex].lat, puntosData[itemIndex].lng], 16); 
                     
                     guardarPuntosStorage();
                     
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert("✅ ¡Reubicación Inteligente Exitosa!\n\nSe limpió el ruido de la dirección para Google Maps.\nInterpretación: " + dirLimpia.trim());
+                    alert("✅ ¡Reubicación Exitosa!\n\nEl marcador ha sido corregido.");
                 } else {
                     document.getElementById('loading-overlay').style.display = 'none';
-                    alert("⚠️ Google Maps no logró mejorar la ubicación. Te sugiero usar la opción 3 (Mover punto manual).");
+                    alert("⚠️ Google Maps no encontró la dirección: " + dirEditada + ". \nIntenta dejar solo la calle principal y el municipio.");
                 }
             } catch(e) {
                 document.getElementById('loading-overlay').style.display = 'none';
