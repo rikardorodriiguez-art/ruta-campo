@@ -179,7 +179,6 @@
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        // VALIDACIÓN DE NOMENCLATURA VÁLIDA
         function esNomenclaturaValida(dir) {
             var match = dir.match(/#\s*([0-9]+)/);
             if (match) {
@@ -189,7 +188,6 @@
             return true;
         }
 
-        // ASIGNACIÓN GEOGRÁFICA PRECISA POR MUNICIPIO Y SECTOR
         function obtenerCoordenadasExactas(textoDir) {
             var t = textoDir.toUpperCase();
             if (t.includes('NIQUIA') || (t.includes('BELLO') && t.includes('40'))) return {lat: 6.3265, lng: -75.5492};
@@ -202,7 +200,6 @@
             if (t.includes('GIRARDOTA')) return {lat: 6.3795, lng: -75.4452};
             if (t.includes('RIONEGRO')) return {lat: 6.1551, lng: -75.3737};
             if (t.includes('MEDELLIN')) return {lat: 6.2442, lng: -75.5812};
-            // Valor general predeterminado en el Valle de Aburrá
             return {lat: 6.2500, lng: -75.5600};
         }
 
