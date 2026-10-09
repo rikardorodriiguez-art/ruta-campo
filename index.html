@@ -181,19 +181,16 @@
         var placasRegistradas = {};
         var puntosData = [];
 
-        // ANALIZADOR DE REPORTE CON EXTRACCIÓN FILTRADA DE PLACAS
         function procesarReportePreciso() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto del reporte."); return; }
 
-            // Buscar todas las posibles placas (3 letras seguidas de 3 dígitos o letras)
             var matches = texto.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
             if (!matches) {
                 alert("⚠️ No se encontró ninguna placa válida en el texto.");
                 return;
             }
 
-            // Filtrar para evitar palabras prohibidas (UBICAR, PRINCIPAL, etc.)
             var palabrasProhibidas = ["UBICAR", "PRINC", "PARTES", "DETAL"];
             var placa = "";
             for (var i = 0; i < matches.length; i++) {
@@ -231,7 +228,6 @@
             var telsMatch = texto.match(/3[0-9]{9}/g);
             var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-            // Extraer direcciones válidas (máximo 3)
             var direccionesValidas = [];
             var lineas = texto.split('\n');
             lineas.forEach(function(l) {
@@ -390,12 +386,6 @@
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).bindPopup(popupContent).addTo(map);
             puntosData.push({ id: markerId, placa: p.placa, marker: marker, pico: pico, esHoy: esHoy });
         }
-
-        // Punto base inicial
-        placasRegistradas["TTM258"] = true;
-        agregarMarcadorAlMapa({
-            placa: "TTM258", marca: "HYUNDAI", linea: "i 10 GL", modelo: "2013", color: "AMARILLO", telefonos: "3017599649", lat: 6.3400, lng: -75.5100, dir: "CL 42 # 82 - 35, Copacabana", fecha: '2026-10-08'
-        }, 1);
     </script>
 </body>
 </html>
