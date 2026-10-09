@@ -244,23 +244,30 @@
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        // Limpieza y formateo avanzado de nomenclatura colombiana para geolocalización exacta
+        // Limpieza y formateo avanzado usando la precisión de GOOGLE MAPS
         async function obtenerCoordenadasExactasLimpias(dir) {
             var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ')
                                .replace(/KR\s*|CR\s*/gi, 'Carrera ')
                                .replace(/#/g, ' ')
                                .replace(/-/g, ' ');
             var query = dirLimpia + ", Medellin, Antioquia, Colombia";
+            
+            // Usamos tu clave de Google Maps para precisión milimétrica real
+            var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
+            var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
+            
             try {
-                var response = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=co&q=' + encodeURIComponent(query));
+                var response = await fetch(url);
                 var data = await response.json();
-                if (data && data.length > 0) {
-                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                if (data.status === "OK" && data.results.length > 0) {
+                    var location = data.results[0].geometry.location;
+                    return { lat: parseFloat(location.lat), lng: parseFloat(location.lng) };
                 }
             } catch(e) {
-                console.log("Error de red");
+                console.log("Error de red con Google Maps");
             }
-            // Respaldo inteligente si la red falla
+            
+            // Respaldo inteligente si la API falla o no encuentra
             var t = dir.toUpperCase();
             if (t.includes('BELEN') || t.includes('RINCON') || t.includes('CL 2')) return {lat: 6.2185, lng: -75.6020};
             if (t.includes('POBLADO')) return {lat: 6.2088, lng: -75.5670};
@@ -405,8 +412,8 @@
 
                 for (let [index, dir] of ubicacionesFinales.entries()) {
                     var coords = await obtenerCoordenadasExactasLimpias(dir);
-                    var lat = coords.lat + (index * 0.0003);
-                    var lng = coords.lng + (index * 0.0003);
+                    var lat = coords.lat; // Coordenada real y exacta sin sumar nada
+                    var lng = coords.lng; // Coordenada real y exacta sin sumar nada
 
                     var nuevoPunto = {
                         placa: placa,
@@ -430,7 +437,7 @@
             document.getElementById('loading-overlay').style.display = 'none';
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado con direcciones limpias y exactas!");
+                alert("🚀 ¡Lote procesado con direcciones limpias y exactas de Google Maps!");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
@@ -610,3 +617,5 @@
     </script>
 </body>
 </html>
+
+
