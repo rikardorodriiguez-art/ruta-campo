@@ -59,9 +59,9 @@
         <button class="main-opt" onclick="abrirSeccion('manual')">3. ✍️ Ingreso manual</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Pega varios reportes juntos (máx 3 direcciones por placa):</b>
+            <b style="color:#2c3e50; font-size:10px;">Pega varios reportes nacionales (máx 3 por placa):</b>
             <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes múltiples..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarLoteMasivo()">Analizar y Agregar Lote</button>
+            <button class="action" onclick="procesarLoteNacional()">Analizar y Buscar en Colombia</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -79,7 +79,7 @@
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta">
+            <input type="text" id="manDir" placeholder="Dirección y Ciudad (ej: Calle 100, Bogotá)">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -99,7 +99,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
-        var map = L.map('map').setView([6.2442, -75.5812], 12);
+        var map = L.map('map').setView([4.5709, -74.2973], 6); // Vista centrada en Colombia
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -151,11 +151,6 @@
             alert("¡Placa " + placa + " visitada! Total de visitas: " + actual);
         }
 
-        function mostrarOpcionesEliminar(markerId, placa) {
-            var div = document.getElementById('eliminar-container-' + markerId);
-            div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
-        }
-
         function eliminarEstaDireccion(markerId, placa) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex !== -1) {
@@ -179,39 +174,39 @@
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        // COORDENADAS PRECISAS POR SECTOR Y MUNICIPIO
-        function obtenerCoordenadasPorMunicipio(textoDir) {
-            var t = textoDir.toUpperCase();
-            if (t.includes('NIQUIA') || (t.includes('BELLO') && t.includes('40'))) return {lat: 6.3265, lng: -75.5492};
-            if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
-            if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
-            if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
-            if (t.includes('SABANETA')) return {lat: 6.1513, lng: -75.6146};
-            if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
-            if (t.includes('CALDAS')) return {lat: 6.0927, lng: -75.6369};
-            if (t.includes('GIRARDOTA')) return {lat: 6.3795, lng: -75.4452};
-            if (t.includes('RIONEGRO')) return {lat: 6.1551, lng: -75.3737};
-            if (t.includes('CHIGORODO')) return {lat: 8.0538, lng: -76.6738};
-            if (t.includes('FLORENCIA')) return {lat: 1.6144, lng: -75.6062};
-            if (t.includes('PEREIRA')) return {lat: 4.8133, lng: -75.6961};
-            return {lat: 6.2442, lng: -75.5812};
+        // GEOCODIFICADOR NACIONAL AUTOMÁTICO (NOMINATIM)
+        async function obtenerCoordenadasNacionales(direccionTexto) {
+            try {
+                // Limpiar texto para optimizar búsqueda en Colombia
+                var query = encodeURIComponent(direccionTexto + ", Colombia");
+                var response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
+                var data = await response.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                }
+            } catch (e) {
+                console.log("Error de geocodificación:", e);
+            }
+            // Coordenada por defecto (Centro de Colombia) si falla la red
+            return { lat: 4.5709, lng: -74.2973 };
         }
 
         var placasRegistradas = {};
         var puntosData = [];
 
-        function procesarLoteMasivo() {
+        async function procesarLoteNacional() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
 
             var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
             var totalAgregados = 0;
 
-            bloques.forEach(function(bloque) {
-                if (bloque.trim().length < 5) return;
+            for (var k = 0; k < bloques.length; k++) {
+                var bloque = bloques[k];
+                if (bloque.trim().length < 5) continue;
 
                 var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
-                if (!matches) return;
+                if (!matches) continue;
 
                 var placa = "";
                 var ignorar = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELUL", "SOATX"];
@@ -224,7 +219,7 @@
                     if (!bad) { placa = cand; break; }
                 }
 
-                if (!placa) return;
+                if (!placa) continue;
 
                 if (placasRegistradas[placa]) {
                     puntosData.forEach(function(item) {
@@ -263,13 +258,12 @@
 
                 var ubicacionesFinales = direcciones.slice(0, 3);
                 if (ubicacionesFinales.length === 0) {
-                    ubicacionesFinales = ["Dirección reportada en la zona"];
+                    ubicacionesFinales = ["Colombia"];
                 }
 
-                ubicacionesFinales.forEach(function(dir, index) {
-                    var coords = obtenerCoordenadasPorMunicipio(dir);
-                    var lat = coords.lat + (index * 0.001);
-                    var lng = coords.lng + (index * 0.001);
+                for (var idx = 0; idx < ubicacionesFinales.length; idx++) {
+                    var dir = ubicacionesFinales[idx];
+                    var coords = await obtenerCoordenadasNacionales(dir);
 
                     var nuevoPunto = {
                         placa: placa,
@@ -278,28 +272,27 @@
                         modelo: modelo,
                         color: color,
                         telefonos: telefonos,
-                        lat: lat,
-                        lng: lng,
+                        lat: coords.lat,
+                        lng: coords.lng,
                         dir: dir,
                         fecha: new Date().toISOString().split('T')[0]
                     };
 
                     agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
-                });
-
+                }
                 totalAgregados++;
-            });
+            }
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado! Se ubicaron correctamente en Niquía/Bello.");
+                alert("🚀 ¡Lote nacional procesado! Se ubicaron " + totalAgregados + " vehículos en todo el país.");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
-                alert("⚠️ No se pudieron extraer placas con formato válido. Revisa el texto pegado.");
+                alert("⚠️ No se pudieron extraer placas con formato válido.");
             }
         }
 
-        function procesarFoto() {
+        async function procesarFoto() {
             var placa = document.getElementById('txtPlacaFoto').value;
             if(!placa) { alert("Por favor escribe la placa."); return; }
             placa = placa.toUpperCase();
@@ -312,7 +305,7 @@
             }
 
             placasRegistradas[placa] = true;
-            var coords = obtenerCoordenadasPorMunicipio("MEDELLIN");
+            var coords = await obtenerCoordenadasNacionales("Bogotá, Colombia");
             
             agregarMarcadorAlMapa({
                 placa: placa, marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: coords.lat, lng: coords.lng, dir: "Ubicación por foto", fecha: new Date().toISOString().split('T')[0]
@@ -322,7 +315,7 @@
             cerrarSecciones();
         }
 
-        function procesarManual() {
+        async function procesarManual() {
             var placa = document.getElementById('manPlaca').value.toUpperCase();
             var marca = document.getElementById('manMarca').value || "GENÉRICO";
             var linea = document.getElementById('manLinea').value || "LÍNEA";
@@ -340,13 +333,13 @@
             }
 
             placasRegistradas[placa] = true;
-            var coords = obtenerCoordenadasPorMunicipio(dir);
+            var coords = await obtenerCoordenadasNacionales(dir);
 
             agregarMarcadorAlMapa({
                 placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0]
             }, puntosData.length + 1);
 
-            alert("¡Punto manual agregado con éxito!");
+            alert("¡Punto manual nacional agregado con éxito!");
             cerrarSecciones();
         }
 
