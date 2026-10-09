@@ -89,7 +89,6 @@
         </div>
         <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
         <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual (Carro / Punto)</button>
-        <!-- REEMPLAZO BULLETPROOF DEL OCR POR EXTRACCIÓN DE GEMINI -->
         <button class="main-opt" onclick="abrirSeccion('gemini')" style="background-color: #8e44ad; color: white;">3. ⚡ Pegar Extracción de Gemini (IA)</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
@@ -112,7 +111,6 @@
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
-        <!-- SECCIÓN INTELIGENTE DE GEMINI (CERO FALLOS DE OCR) -->
         <div id="seccion-gemini" class="sub-panel">
             <b style="color:#8e44ad; font-size:11px;">⚡ IMPORTADOR EXCLUSIVO DE EXTRAÍDOS DE GEMINI</b><br><br>
             <b style="font-size: 10px; display: block; margin-bottom: 6px;">Pega los datos exactos que copiaste del chat:</b>
@@ -261,6 +259,7 @@
             });
         }
 
+        // LÓGICA DE CIUDADES INTELIGENTE: Soluciona el error del mapa ubicando Bogotá en Medellín
         async function obtenerCoordenadasExactasLimpias(dir) {
             var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ')
                                .replace(/KR\s*|CR\s*/gi, 'Carrera ')
@@ -280,7 +279,22 @@
                 }
             } catch(e) { console.log("Error Google Maps"); }
             
-            return {lat: 6.2442, lng: -75.5812};
+            // SISTEMA INTELIGENTE DE CIUDADES DE RESPALDO (Fallback por si falla la API de Google)
+            var t = dir.toUpperCase();
+            if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) return {lat: 4.6097, lng: -74.0817};
+            if (t.includes('BUCARAMANGA')) return {lat: 7.1254, lng: -73.1198};
+            if (t.includes('BELLO')) return {lat: 6.3373, lng: -75.5580};
+            if (t.includes('COPACABANA')) return {lat: 6.3463, lng: -75.5089};
+            if (t.includes('LA ESTRELLA') || t.includes('ESTRELLA')) return {lat: 6.1583, lng: -75.6444};
+            if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
+            if (t.includes('ITAGUI') || t.includes('ITAGÜÍ')) return {lat: 6.1846, lng: -75.5991};
+            if (t.includes('CALI')) return {lat: 3.4516, lng: -76.5320};
+            if (t.includes('BARRANQUILLA')) return {lat: 10.9685, lng: -74.7813};
+            if (t.includes('CARTAGENA')) return {lat: 10.3910, lng: -75.4794};
+            if (t.includes('SABANETA')) return {lat: 6.1515, lng: -75.6166};
+            
+            // Por defecto si no detecta ciudad, lo deja en Medellín
+            return {lat: 6.2442, lng: -75.5812}; 
         }
 
         function guardarPuntosStorage() {
@@ -330,7 +344,7 @@
             reader.readAsText(file);
         }
 
-        // --- MAPEO DIRECTO DE EXTRAÍDO GEMINI (100% EXENTO DE ERRORES) ---
+        // MAEPEO DIRECTO DE TEXTO DE GEMINI
         async function procesarExtraccionGemini() {
             var texto = document.getElementById('txtGemini').value;
             if(!texto) { alert("Por favor pega el texto extraído primero."); return; }
@@ -346,7 +360,6 @@
             }
             if(!placa) { loadingOverlay.style.display = 'none'; return; }
 
-            // Borramos los puntos antiguos de esta placa si ya existía
             if (placasRegistradas[placa]) {
                 var nuevasPuntos = [];
                 puntosData.forEach(function(item) {
@@ -360,11 +373,9 @@
             }
             placasRegistradas[placa] = true;
 
-            // Extraemos celulares
             var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
             var celulares = telsMatch ? telsMatch[1].trim() : "-";
 
-            // Extraemos direcciones
             var lineas = texto.split('\n');
             var direcciones = [];
             lineas.forEach(function(l) {
@@ -381,7 +392,6 @@
                 return;
             }
 
-            // Mapeamos
             for (let [index, dir] of direcciones.entries()) {
                 var coords = await obtenerCoordenadasExactasLimpias(dir);
                 var nuevoPunto = {
