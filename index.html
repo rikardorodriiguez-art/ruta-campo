@@ -76,10 +76,10 @@
         .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
         .edit-input { width: 100%; margin-bottom: 4px; padding: 3px; font-size: 12px; border: 1px solid #aaa; border-radius: 3px; box-sizing: border-box; }
         
-        /* ESTILO PARA LOS PINES MODERNOS */
+        /* Asegura que el contenedor del icono de Leaflet no distorsione el diseño CSS */
         .leaflet-div-icon {
-            background: transparent;
-            border: none;
+            background: transparent !important;
+            border: none !important;
         }
     </style>
 </head>
@@ -178,10 +178,10 @@
     <script>
         var map = L.map('map').setView([6.2442, -75.5812], 12);
 
-        // NUEVO MAPA ESTILO "VOYAGER" (Más claro, moderno y con mejor contraste)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        // RESTAURADO EL MAPA ORIGINAL CONFIABLE
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap &copy; CARTO'
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
         L.control.locate({
@@ -728,7 +728,7 @@
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta o coordenadas."); return; }
+            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o link de Maps."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
@@ -957,15 +957,16 @@
             p.pico = tienePicoYPlaca(p.placa);
             p.esHoy = (p.fecha === hoyStr);
 
-            // NUEVO DISEÑO MODERNO DE CÁPSULAS PARA LAS PLACAS
-            var estadoColor = p.pico ? '#e74c3c' : '#27ae60'; // Rojo para pico y placa, verde para hábil
+            // NUEVO DISEÑO MODERNO DE CÁPSULAS BLINDADAS (NO SE DESARMAN)
+            var estadoColor = p.pico ? '#e74c3c' : '#27ae60'; 
             var customIcon = L.divIcon({
                 className: 'custom-marker-modern',
-                html: '<div style="background: white; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.25); border: 1px solid #eaeaea; font-family: Arial, sans-serif; font-weight: 900; font-size: 12px; color: #2c3e50; white-space: nowrap; cursor: pointer;">' +
-                        '<div style="width: 10px; height: 10px; background-color: ' + estadoColor + '; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 4px ' + estadoColor + ';"></div>' +
+                html: '<div style="background: white; padding: 4px 8px; border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.3); border: 1px solid #ccc; font-family: Arial, sans-serif; font-weight: 900; font-size: 12px; color: #2c3e50; white-space: nowrap; width: max-content;">' +
+                        '<div style="width: 10px; height: 10px; background-color: ' + estadoColor + '; border-radius: 50%; margin-right: 5px; box-shadow: 0 0 4px ' + estadoColor + ';"></div>' +
                         p.placa +
                       '</div>',
-                iconAnchor: [35, 15] // Centra la cápsula en la coordenada exacta
+                iconSize: null, // Evita que Leaflet le asigne un tamaño cuadrado que rompe la cápsula
+                iconAnchor: [35, 15] 
             });
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).addTo(map);
