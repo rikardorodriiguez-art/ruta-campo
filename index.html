@@ -62,7 +62,7 @@
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
             <textarea id="txtWhatsapp" placeholder="Pega aquí el mensaje completo de WhatsApp..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarReporteFlexible()">Analizar y Agregar</button>
+            <button class="action" onclick="procesarReportePreciso()">Analizar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -181,18 +181,37 @@
         var placasRegistradas = {};
         var puntosData = [];
 
-        // ANALIZADOR TOTALMENTE FLEXIBLE Y SIN BLOQUEOS
-        function procesarReporteFlexible() {
+        // ANALIZADOR DE REPORTE CON EXTRACCIÓN FILTRADA DE PLACAS
+        function procesarReportePreciso() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto del reporte."); return; }
 
-            // Buscar cualquier placa de 6 caracteres (3 letras + 3 dígitos/letras)
-            var matchPlaca = texto.match(/[A-Z]{3}[0-9A-Z]{3}/i);
-            if (!matchPlaca) {
-                alert("⚠️ No se encontró ninguna placa válida en el texto. Asegúrate de incluirla.");
+            // Buscar todas las posibles placas (3 letras seguidas de 3 dígitos o letras)
+            var matches = texto.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
+            if (!matches) {
+                alert("⚠️ No se encontró ninguna placa válida en el texto.");
                 return;
             }
-            var placa = matchPlaca[0].toUpperCase();
+
+            // Filtrar para evitar palabras prohibidas (UBICAR, PRINCIPAL, etc.)
+            var palabrasProhibidas = ["UBICAR", "PRINC", "PARTES", "DETAL"];
+            var placa = "";
+            for (var i = 0; i < matches.length; i++) {
+                var p = matches[i].toUpperCase();
+                var esProhibida = false;
+                for (var j = 0; j < palabrasProhibidas.length; j++) {
+                    if (p.includes(palabrasProhibidas[j])) { esProhibida = true; break; }
+                }
+                if (!esProhibida) {
+                    placa = p;
+                    break;
+                }
+            }
+
+            if (!placa) {
+                alert("⚠️ No se pudo identificar una placa válida en el texto.");
+                return;
+            }
 
             if (placasRegistradas[placa]) {
                 alert("⚠️ La placa " + placa + " ya se encuentra registrada en el mapa.");
@@ -212,7 +231,7 @@
             var telsMatch = texto.match(/3[0-9]{9}/g);
             var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "N/A";
 
-            // Extraer direcciones de forma flexible (líneas que tengan número o nomenclaturas)
+            // Extraer direcciones válidas (máximo 3)
             var direccionesValidas = [];
             var lineas = texto.split('\n');
             lineas.forEach(function(l) {
@@ -224,7 +243,6 @@
                 }
             });
 
-            // Si no encuentra direcciones específicas, toma el texto general como ubicación
             var ubicacionesFinales = direccionesValidas.slice(0, 3);
             if (ubicacionesFinales.length === 0) {
                 ubicacionesFinales = ["Dirección reportada en Antioquia"];
