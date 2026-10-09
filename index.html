@@ -129,6 +129,8 @@
         }).addTo(map);
 
         var puntoEnEdicionId = null;
+        var placasRegistradas = {};
+        var puntosData = [];
 
         map.on('click', function(e) {
             if (puntoEnEdicionId) {
@@ -137,7 +139,8 @@
                     item.marker.setLatLng(e.latlng);
                     item.lat = e.latlng.lat;
                     item.lng = e.latlng.lng;
-                    alert("📍 ¡Punto de la placa " + item.placa + " movido y corregido!");
+                    guardarPuntosStorage();
+                    alert("📍 ¡Punto de la placa " + item.placa + " movido, corregido y guardado!");
                 }
                 cancelarEdicion();
             }
@@ -203,7 +206,8 @@
             if (itemIndex !== -1) {
                 map.removeLayer(puntosData[itemIndex].marker);
                 puntosData.splice(itemIndex, 1);
-                alert("🗑️ Dirección eliminada correctamente.");
+                guardarPuntosStorage();
+                alert("🗑️ Dirección eliminada y guardada.");
             }
         }
 
@@ -218,6 +222,7 @@
             });
             puntosData = nuevasPuntos;
             delete placasRegistradas[placa];
+            guardarPuntosStorage();
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
@@ -235,8 +240,37 @@
             return {lat: 6.2442, lng: -75.5812};
         }
 
-        var placasRegistradas = {};
-        var puntosData = [];
+        function guardarPuntosStorage() {
+            var datosASeguardar = puntosData.map(function(item) {
+                return {
+                    id: item.id,
+                    placa: item.placa,
+                    marca: item.marca,
+                    linea: item.linea,
+                    modelo: item.modelo,
+                    color: item.color,
+                    telefonos: item.telefonos,
+                    dir: item.dir,
+                    fecha: item.fecha,
+                    lat: item.lat,
+                    lng: item.lng
+                };
+            });
+            localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
+        }
+
+        function cargarPuntosStorage() {
+            var guardados = localStorage.getItem('puntos_raptor_guardados');
+            if (guardados) {
+                try {
+                    var lista = JSON.parse(guardados);
+                    lista.forEach(function(p, index) {
+                        placasRegistradas[p.placa] = true;
+                        agregarMarcadorAlMapa(p, index + 1, false);
+                    });
+                } catch(e) { console.error(e); }
+            }
+        }
 
         function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
@@ -264,7 +298,6 @@
 
                 if (!placa) return;
 
-                // Solo eliminamos la anterior de ESTA MISMA PLACA si viene en el nuevo lote, conservando las demás placas intactas
                 if (placasRegistradas[placa]) {
                     var nuevasPuntos = [];
                     puntosData.forEach(function(item) {
@@ -329,14 +362,14 @@
                         fecha: new Date().toISOString().split('T')[0]
                     };
 
-                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1);
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
                 });
 
                 totalAgregados++;
             });
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado! Se acumularon y agregaron los vehículos al mapa.");
+                alert("🚀 ¡Lote procesado y guardado automáticamente!");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
@@ -364,11 +397,12 @@
             placasRegistradas[placa] = true;
             var coords = obtenerCoordenadasPorMunicipio("MEDELLIN");
             
-            agregarMarcadorAlMapa({
+            var nuevoPunto = {
                 placa: placa, marca: "FOTO", linea: "REGISTRO", modelo: "2026", color: "N/A", telefonos: "N/A", lat: coords.lat, lng: coords.lng, dir: "Ubicación por foto", fecha: new Date().toISOString().split('T')[0]
-            }, puntosData.length + 1);
+            };
 
-            alert("¡Foto y placa (" + placa + ") agregadas al mapa en verde!");
+            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+            alert("¡Foto y placa (" + placa + ") agregadas y guardadas!");
             cerrarSecciones();
         }
 
@@ -397,11 +431,12 @@
             placasRegistradas[placa] = true;
             var coords = obtenerCoordenadasPorMunicipio(dir);
 
-            agregarMarcadorAlMapa({
+            var nuevoPunto = {
                 placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "Manual", lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0]
-            }, puntosData.length + 1);
+            };
 
-            alert("¡Punto manual agregado con éxito en verde!");
+            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+            alert("¡Punto manual agregado y guardado con éxito!");
             cerrarSecciones();
         }
 
@@ -445,7 +480,7 @@
             return false;
         }
 
-        function agregarMarcadorAlMapa(p, idx) {
+        function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
             var markerId = 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
             var pico = tienePicoYPlaca(p.placa);
             var esHoy = (p.fecha === hoyStr);
@@ -482,8 +517,33 @@
             });
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).bindPopup(popupContent).addTo(map);
-            puntosData.push({ id: markerId, placa: p.placa, marker: marker, pico: pico, esHoy: esHoy, lat: p.lat, lng: p.lng });
+            
+            puntosData.push({
+                id: markerId,
+                placa: p.placa,
+                marca: p.marca,
+                linea: p.linea,
+                modelo: p.modelo,
+                color: p.color,
+                telefonos: p.telefonos,
+                dir: p.dir,
+                fecha: p.fecha,
+                marker: marker,
+                pico: pico,
+                esHoy: esHoy,
+                lat: p.lat,
+                lng: p.lng
+            });
+
+            if (guardarEnStorage) {
+                guardarPuntosStorage();
+            }
         }
+
+        // Cargar automáticamente los puntos guardados al abrir la página
+        window.onload = function() {
+            cargarPuntosStorage();
+        };
     </script>
 </body>
 </html>
