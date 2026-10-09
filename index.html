@@ -45,6 +45,11 @@
         .filter-option { display: block; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
         .filter-search { width: 100%; padding: 5px; font-size: 11px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
 
+        .backup-section { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #bbb; display: flex; gap: 5px; }
+        .backup-section button { flex: 1; padding: 6px; font-size: 10px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; color: white; }
+        .btn-export { background-color: #27ae60; }
+        .btn-import { background-color: #2980b9; }
+
         #modo-edicion-banner {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
             background: #e67e22; color: white; padding: 10px 20px; border-radius: 30px;
@@ -109,6 +114,12 @@
         <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Pico y Placa</label>
         <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
         <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
+        
+        <div class="backup-section">
+            <button class="btn-export" onclick="exportarRespaldo()">📥 Respaldar</button>
+            <button class="btn-import" onclick="document.getElementById('fileInputBackup').click()">📤 Cargar</button>
+            <input type="file" id="fileInputBackup" style="display:none" accept=".json" onchange="importarRespaldo(event)">
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -140,7 +151,7 @@
                     item.lat = e.latlng.lat;
                     item.lng = e.latlng.lng;
                     guardarPuntosStorage();
-                    alert("📍 ¡Punto de la placa " + item.placa + " movido, corregido y guardado!");
+                    alert("📍 ¡Punto de la placa " + item.placa + " movido, corregido y guardado con éxito!");
                 }
                 cancelarEdicion();
             }
@@ -272,6 +283,33 @@
             }
         }
 
+        function exportarRespaldo() {
+            var datos = localStorage.getItem('puntos_raptor_guardados');
+            if (!datos || datos === "[]") { alert("No hay puntos para respaldar."); return; }
+            var blob = new Blob([datos], {type: "application/json"});
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = "respaldo_rutas_raptor_" + new Date().toISOString().split('T')[0] + ".json";
+            a.click();
+        }
+
+        function importarRespaldo(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var lista = JSON.parse(e.target.result);
+                    localStorage.setItem('puntos_raptor_guardados', JSON.stringify(lista));
+                    location.reload();
+                } catch(err) {
+                    alert("Archivo de respaldo inválido.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
         function procesarLoteMasivo() {
             var texto = document.getElementById('txtWhatsapp').value;
             if(!texto) { alert("Por favor pega el texto con los reportes."); return; }
@@ -369,7 +407,7 @@
             });
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado y guardado automáticamente!");
+                alert("🚀 ¡Lote procesado y guardado! Si algún pin quedó aproximado, usa el botón 'Mover/Corregir punto' para ubicarlo exactamente.");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
@@ -499,7 +537,7 @@
                     <b>Fecha:</b> ${p.fecha}<br>
                     <b>Dirección:</b> ${p.dir}<br>
                     <b>Veces visitada:</b> <span id="contador-${idx}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br><br>
-                    <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir a Google Maps</a>
+                    <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Abrir en Google Maps</a>
                     <button onclick="marcarVisitada('${p.placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">2. ✅ Visitada</button>
                     <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" style="background-color: #e67e22; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold;">3. 📍 Mover/Corregir punto</button>
                     <button onclick="mostrarOpcionesEliminar('${markerId}', '${p.placa}')" style="background-color: #f44336; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">4. 🗑️ Eliminar</button>
@@ -540,7 +578,6 @@
             }
         }
 
-        // Cargar automáticamente los puntos guardados al abrir la página
         window.onload = function() {
             cargarPuntosStorage();
         };
