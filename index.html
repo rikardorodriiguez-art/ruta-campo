@@ -87,7 +87,7 @@
         .btn-import { background: linear-gradient(145deg, #3498db, #2980b9); }
 
         #modo-edicion-banner {
-            position: fixed; top: 150px; left: 50%; transform: translateX(-50%);
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
             background: linear-gradient(145deg, #e67e22, #d35400); color: white; padding: 15px; border-radius: 12px;
             z-index: 999999; font-family: Arial; font-size: 13px; font-weight: bold; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
             display: none; text-align: center; width: 320px; max-width: 90%; border: 1px solid #e67e22;
@@ -123,33 +123,37 @@
         
         .leaflet-div-icon { background: transparent; border: none; }
 
-        /* ESTILOS DEL NUEVO RADAR (PANEL CERCANO) */
+        /* ESTILOS DEL NUEVO RADAR SÚPER COMPACTO Y NO INTRUSIVO */
         #panel-cercano {
-            position: fixed; top: 15px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 350px;
-            background: linear-gradient(145deg, #1a252f, #2c3e50); border: 2px solid #00ff87; border-radius: 15px;
-            padding: 15px; color: white; text-align: center; z-index: 999999; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-            display: none; font-family: Arial, sans-serif;
+            position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 360px;
+            background: rgba(26, 37, 47, 0.95); border: 1.5px solid #00ff87; border-radius: 10px;
+            padding: 8px 12px; color: white; z-index: 999999; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none; font-family: Arial, sans-serif; backdrop-filter: blur(5px);
         }
-        .radar-title { font-size: 11px; color: #bdc3c7; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-        .radar-placa { font-size: 24px; font-weight: 900; color: #ffffff; text-shadow: 0 0 12px rgba(255,255,255,0.5); margin-bottom: 4px; }
-        .radar-info { font-size: 12px; color: #ecf0f1; margin-bottom: 12px; }
-        .btn-visitar-radar {
-            width: 100%; background: linear-gradient(145deg, #27ae60, #2ecc71); border: 1px solid #2ecc71; border-radius: 8px;
-            padding: 12px; color: white; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(39, 174, 96, 0.5), inset 0 2px 2px rgba(255,255,255,0.3); transition: all 0.2s ease;
-        }
-        .btn-visitar-radar:active { transform: translateY(3px); box-shadow: 0 1px 3px rgba(39, 174, 96, 0.5); }
+        .radar-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .radar-placa { font-size: 14px; font-weight: 900; color: #00ff87; text-shadow: 0 0 5px rgba(0,255,135,0.4); }
+        .radar-dist { font-size: 11px; color: #ecf0f1; font-weight: normal; margin-left: 4px; }
+        .radar-info { font-size: 10px; color: #bdc3c7; text-align: right; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .radar-buttons { display: flex; gap: 8px; }
+        .btn-radar-ir { flex: 1; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; padding: 7px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; }
+        .btn-radar-ir:active { transform: translateY(2px); }
+        .btn-radar-ok { flex: 1; background: linear-gradient(145deg, #27ae60, #229954); color: white; border: none; padding: 7px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; }
+        .btn-radar-ok:active { transform: translateY(2px); }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
-    <!-- EL NUEVO PANEL DEL VEHÍCULO MÁS CERCANO -->
+    <!-- EL NUEVO PANEL SÚPER COMPACTO DEL VEHÍCULO MÁS CERCANO -->
     <div id="panel-cercano">
-        <div class="radar-title">🚨 Vehículo más cercano</div>
-        <div id="cercano-placa" class="radar-placa">--</div>
-        <div id="cercano-datos" class="radar-info">--</div>
-        <button onclick="visitarCercanoDesdeRadar()" class="btn-visitar-radar">✅ Marcar Visitada<br><span style="font-size: 9px; opacity: 0.8; font-weight: normal; display: block; margin-top: 2px;">(Ir al siguiente más cercano)</span></button>
+        <div class="radar-top-row">
+            <div class="radar-placa">🚨 <span id="cercano-placa"></span><span id="cercano-dist" class="radar-dist"></span></div>
+            <div id="cercano-info" class="radar-info"></div>
+        </div>
+        <div class="radar-buttons">
+            <button onclick="irCercanoMaps()" class="btn-radar-ir">🧭 IR</button>
+            <button onclick="visitarCercanoDesdeRadar()" class="btn-radar-ok">✅ VISITADA</button>
+        </div>
     </div>
 
     <div id="loading-overlay">
@@ -257,7 +261,7 @@
         var locateControl = L.control.locate({
             position: 'topleft',
             strings: { title: "Mi ubicación actual" },
-            locateOptions: { maxZoom: 16, enableHighAccuracy: true, watch: true }, // WATCH: Sigue tu posición siempre
+            locateOptions: { maxZoom: 16, enableHighAccuracy: true, watch: true },
             autoStart: true
         }).addTo(map);
 
@@ -279,24 +283,22 @@
         var userLng = null;
         var placaMasCercanaObj = null;
 
-        // SE DETECTA LA UBICACIÓN Y SE ACTUALIZA EL RADAR AUTOMÁTICAMENTE
         map.on('locationfound', function(e) {
             userLat = e.latlng.lat;
             userLng = e.latlng.lng;
             actualizarPanelCercano();
         });
 
-        // FÓRMULA PARA CALCULAR DISTANCIAS EN METROS
         function calcularDistancia(lat1, lon1, lat2, lon2) {
-            var R = 6371; // km
+            var R = 6371; 
             var dLat = (lat2-lat1) * Math.PI / 180;
             var dLon = (lon2-lon1) * Math.PI / 180;
             var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c * 1000; // en metros
+            return R * c * 1000; 
         }
 
-        // LÓGICA PRINCIPAL DEL RADAR: ENCONTRAR LA PLACA PENDIENTE MÁS CERCANA
+        // LÓGICA DEL RADAR SÚPER COMPACTO
         function actualizarPanelCercano() {
             if (!userLat || !userLng || puntosData.length === 0) {
                 document.getElementById('panel-cercano').style.display = 'none';
@@ -308,7 +310,7 @@
             
             puntosData.forEach(function(p) {
                 var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-                if (visitas === 0) { // Solo busca las que NO han sido visitadas (Punto Rojo)
+                if (visitas === 0) { 
                     var dist = calcularDistancia(userLat, userLng, p.lat, p.lng);
                     if (dist < distMinima) {
                         distMinima = dist;
@@ -322,27 +324,39 @@
                 document.getElementById('panel-cercano').style.display = 'block';
                 var distStr = distMinima > 1000 ? (distMinima/1000).toFixed(1) + ' km' : Math.round(distMinima) + ' m';
                 
-                document.getElementById('cercano-placa').innerHTML = '🚗 ' + puntoCercano.placa + ' (a ' + distStr + ')';
-                var s = puntoCercano.soat || 'NO';
-                var t = puntoCercano.tecnomecanica || 'NO';
-                var dirCorta = puntoCercano.dir.length > 35 ? puntoCercano.dir.substring(0, 35) + '...' : puntoCercano.dir;
-                document.getElementById('cercano-datos').innerHTML = 'SOAT: ' + s + ' | Tecno: ' + t + '<br><span style="font-size:10px; color:#bdc3c7;">' + dirCorta + '</span>';
+                document.getElementById('cercano-placa').innerText = puntoCercano.placa;
+                document.getElementById('cercano-dist').innerText = '(' + distStr + ')';
+                
+                // Unir Vehículo y Línea
+                var v = [];
+                if (puntoCercano.marca && puntoCercano.marca !== '-') v.push(puntoCercano.marca);
+                if (puntoCercano.linea && puntoCercano.linea !== '-') v.push(puntoCercano.linea);
+                var vehStr = v.length > 0 ? v.join(' ') : 'Vehículo N/A';
+                
+                var soatStr = puntoCercano.soat || 'NO';
+                var tecnoStr = puntoCercano.tecnomecanica || 'NO';
+                
+                document.getElementById('cercano-info').innerText = vehStr + ' | SOAT: ' + soatStr + ' | Tecno: ' + tecnoStr;
             } else {
-                // Si ya visitaste todas, se oculta el panel
                 document.getElementById('panel-cercano').style.display = 'none';
                 placaMasCercanaObj = null;
             }
         }
 
-        // BOTÓN DEL RADAR PARA VISITAR LA ACTUAL E IR A LA SIGUIENTE
-        function visitarCercanoDesdeRadar() {
+        // BOTÓN "IR" QUE ABRE MAPS DIRECTO
+        function irCercanoMaps() {
             if (placaMasCercanaObj) {
-                marcarVisitada(placaMasCercanaObj.placa, placaMasCercanaObj.id);
-                // El panel se actualizará automáticamente dentro de la función marcarVisitada
+                var urlMaps = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(placaMasCercanaObj.dir);
+                window.open(urlMaps, '_blank');
             }
         }
 
-        // ---- GENERADOR DE MARCADORES (BURBUJA BLANCA CON PUNTO ROJO O VERDE) ----
+        function visitarCercanoDesdeRadar() {
+            if (placaMasCercanaObj) {
+                marcarVisitada(placaMasCercanaObj.placa, placaMasCercanaObj.id);
+            }
+        }
+
         function generarMarcadorProfesional(placa, esVisitada) {
             var colorDot = esVisitada ? '#27ae60' : '#e74c3c'; 
             var shadowDot = esVisitada ? 'rgba(39, 174, 96, 0.8)' : 'rgba(231, 76, 60, 0.8)';
@@ -357,18 +371,14 @@
                    '</div>';
         }
 
-        // FUNCIÓN LIMPIADORA BLINDADA (EVITA EL DESBORDE DE TEXTO)
         function limpiarCampoFiltro(texto) {
             if(!texto) return "-";
             var limpio = texto.replace(/[:\-;]/g, '').trim();
-            // Esto evita que lea direcciones o teléfonos que estén después de la palabra clave
             limpio = limpio.split(/\s+(TEL|CEL|DIR|UBIC|ESTRELLA|MEDELLIN|BELLO|ITAGUI|SABANETA|SOAT|TECNO|RTM|MODELO|COLOR)/i)[0].trim();
-            // LÍMITE DE SEGURIDAD ABSOLUTO: Nunca dejará pasar más de 30 letras
             if (limpio.length > 30) limpio = limpio.substring(0, 30).trim();
             return limpio || "-";
         }
 
-        // EXTRACTOR SEGURO Y FLEXIBLE
         function extraerInfoVehiculoUniversal(texto) {
             var m = "-", l = "-", mod = "-", c = "-", s = "NO", t = "NO";
             var lineas = texto.split('\n');
@@ -407,7 +417,7 @@
                     item.lng = e.latlng.lng;
                     guardarPuntosStorage();
                     alert("📍 ¡Punto movido y corregido exactamente!");
-                    actualizarPanelCercano(); // Actualizar si el punto movido cambió distancias
+                    actualizarPanelCercano();
                 }
                 cancelarEdicion();
             }
@@ -492,10 +502,9 @@
             if (itemIndex !== -1) {
                 var p = puntosData[itemIndex];
                 
-                // ACTUALIZAR A VERDE CUANDO SE MARCA COMO VISITADA
                 var customIcon = L.divIcon({
                     className: '', 
-                    html: generarMarcadorProfesional(p.placa, true), // true = verde
+                    html: generarMarcadorProfesional(p.placa, true),
                     iconAnchor: [40, 35],
                     popupAnchor: [0, -35]
                 });
@@ -503,13 +512,11 @@
                 
                 p.marker.setPopupContent(generarContenidoPopup(p, markerId));
                 
-                // Si la marcamos desde el popup abierto, lo dejamos abierto. Si fue del radar, se cierra.
                 if(!placaMasCercanaObj || placaMasCercanaObj.id !== markerId) {
                     p.marker.openPopup();
                 }
             }
             
-            // ACTUALIZAR RADAR AUTOMÁTICAMENTE PARA ENCONTRAR LA SIGUIENTE
             actualizarPanelCercano();
         }
 
@@ -953,8 +960,8 @@
             var coords = await obtenerCoordenadasExactasLimpias(dir);
 
             var nuevoPunto = {
-                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-", 
-                soat: msoat, tecnomecanica: mtecno,
+                placa: placa, marca: window.actualMarcaFuerza, linea: window.actualLineaFuerza, modelo: window.actualModeloFuerza, color: window.actualColorFuerza, telefonos: "-", 
+                soat: window.actualSoatFuerza, tecnomecanica: window.actualTecnoFuerza,
                 lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: fotoBase64
             };
 
@@ -1214,7 +1221,6 @@
 
         window.onload = function() {
             cargarPuntosStorage();
-            // Retrasar el cálculo inicial del radar para asegurar que el GPS haya cargado
             setTimeout(actualizarPanelCercano, 1500);
         };
     </script>
