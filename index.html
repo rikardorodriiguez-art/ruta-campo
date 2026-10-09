@@ -255,6 +255,46 @@
             });
         }
 
+        // PRE-PROCESAMIENTO DE IMAGEN PARA OCR DE ALTA DEFINICIÓN (Resuelve el error "No se detectaron direcciones")
+        function preprocesarImagen(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Escalar para aumentar la nitidez de letras pequeñas
+                        canvas.width = img.width * 2;
+                        canvas.height = img.height * 2;
+                        
+                        // Dibujar con suavizado
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        // Aplicar filtro de Blanco y Negro + Alto Contraste
+                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imgData.data;
+                        for (let i = 0; i < data.length; i += 4) {
+                            // Grayscale
+                            const grayscale = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
+                            // Contrast thresholding (hacer que el fondo sea blanco puro y letras negro puro)
+                            const v = (grayscale < 140) ? 0 : 255; 
+                            data[i] = v;
+                            data[i + 1] = v;
+                            data[i + 2] = v;
+                        }
+                        ctx.putImageData(imgData, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg', 1.0));
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
         async function obtenerCoordenadasExactasLimpias(dir) {
             var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ')
                                .replace(/KR\s*|CR\s*/gi, 'Carrera ')
@@ -422,60 +462,70 @@
             
             if(!placa) { alert("Por favor ingresa la placa."); return; }
 
-            // LÓGICA INTELIGENTE: ESCANEO OCR FILTRADO EXCLUSIVO (MÁX 3 DIR DE 2026 ACTIVAS, 2 PRIMEROS CELULARES)
+            // LÓGICA INTELIGENTE: ESCANEO OCR ULTRA-RESISTENTE
             if (!dir && fileInput.files && fileInput.files[0]) {
                 
                 var loadingOverlay = document.getElementById('loading-overlay');
                 var loadingTexto = document.getElementById('loading-texto');
                 loadingOverlay.style.display = 'flex';
-                loadingTexto.innerText = "⏳ Extrayendo direcciones de la foto... (Buscando reporte del 2026)";
+                loadingTexto.innerText = "⏳ Optimizando calidad y leyendo de la foto... (Buscando reporte)";
+
+                // Preprocesar con canvas para mejorar drásticamente el OCR de capturas borrosas
+                const imagenMejoradaUrl = await preprocesarImagen(fileInput.files[0]);
 
                 Tesseract.recognize(
-                    fileInput.files[0],
-                    'spa',
+                    imagenMejoradaUrl,
+                    'spa+eng', // Carga doble de diccionarios
                     { logger: m => {
                         if (m.status === 'recognizing text') {
-                            loadingTexto.innerText = "⏳ Leyendo foto... " + Math.round(m.progress * 100) + "%";
+                            loadingTexto.innerText = "⏳ Leyendo foto optimizada... " + Math.round(m.progress * 100) + "%";
                         }
                     }}
                 ).then(async ({ data: { text } }) => {
-                    loadingTexto.innerText = "🎯 Aplicando filtros inteligentes en Google Maps...";
+                    loadingTexto.innerText = "🎯 Filtrando por las reglas (2026 Vigentes y Activos)...";
                     
                     var lineas = text.split('\n');
                     var direccionesVigentes2026 = [];
                     var direccionesCualquiera = [];
 
-                    // Extraer los 2 primeros celulares que inicien con 3 (10 dígitos)
-                    var telsMatch = text.match(/3[0-9]{9}/g);
-                    var celularesExtract = telsMatch ? telsMatch.slice(0, 2).join(', ') : "-";
+                    // Extraer celulares válidos (inician con 3, largo 10)
+                    var telsMatch = text.match(/\b3[0-9]{9}\b/g) || [];
+                    var mobileNumbers = [];
+                    for(var i=0; i<telsMatch.length; i++) {
+                        if(!mobileNumbers.includes(telsMatch[i])) {
+                            mobileNumbers.push(telsMatch[i]);
+                        }
+                    }
+                    var celularesExtract = mobileNumbers.slice(0, 2).join(', ') || "-";
 
-                    // Procesar líneas buscando direcciones de Medellín y alrededores
+                    // Procesar líneas buscando nomenclatura de direcciones
                     lineas.forEach(function(l) {
                         var dirLimpia = l.trim().replace(/\s+/g, ' ');
                         var up = dirLimpia.toUpperCase();
                         
-                        // Reconocer nomenclaturas de Colombia
-                        if ((/(\b(CL|KR|CR|TR|TV|AV|KM|CLL|CARRERA|CALLE|TRANSVERSAL|AVENIDA|DG|DIAG|DIAGONAL|LAB|RES)\b)/i.test(up) || up.includes("#")) && up.length > 5) {
+                        // Detectar nomenclatura con holgura
+                        var tieneNomenclatura = /(\b(CL|KR|CRA?|CR|TV|AV|KM|CLL|CARRERA|CALLE|TRANSVERSAL|AVENIDA|DG|DIAG|DIAGONAL|LAB|RES)\b)/i.test(up) || up.includes("#");
+                        
+                        if (tieneNomenclatura && up.length > 5) {
                             if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE") && !up.includes("ACTIVO") && !up.includes("CÓDIGO") && !up.includes("CLIENTE") && !up.includes("HISTÓRICOS") && !up.includes("CELULAR") && !up.includes("NO. DE") && !up.includes("PRIMER") && !up.includes("ÚLTIMO") && !up.includes("CONTEO") && !up.includes("EST ") && !up.includes("BÁSICA")) {
                                 
                                 // Limpieza rápida de datos a la derecha de la dirección
-                                var corte = dirLimpia.match(/(CL\s*\d+|KR\s*\d+|CARRERA\s*\d+|CALLE\s*\d+|KM\s*\d+|TRANSVERSAL\s*\d+|AV\s*\d+|AVENIDA\s*\d+|DG\s*\d+|DIAG\s*\d+).*?(\d+-\d+|\d+\s*A\s*#|\s*#\s*\d+)/i);
+                                var corte = dirLimpia.match(/(CL\s*\d+|KR\s*\d+|CRA?\s*\d+|CR\s*\d+|CARRERA\s*\d+|CALLE\s*\d+|KM\s*\d+|TRANSVERSAL\s*\d+|AV\s*\d+|AVENIDA\s*\d+|DG\s*\d+|DIAG\s*\d+).*?(\d+-\d+|\d+\s*A\s*#|\s*#\s*\d+)/i);
                                 var dirFiltrada = corte ? corte[0] : dirLimpia;
                                 
-                                // Conservar municipio si el OCR lo pegó
+                                // Pegar municipio si se encuentra para facilitar el geocode
                                 if (up.includes("MEDELLIN")) dirFiltrada += ", Medellin";
                                 else if (up.includes("COPACABANA")) dirFiltrada += ", Copacabana";
                                 else if (up.includes("ITAGUI")) dirFiltrada += ", Itagui";
                                 else if (up.includes("ENVIGADO")) dirFiltrada += ", Envigado";
                                 else if (up.includes("BELLO")) dirFiltrada += ", Bello";
-                                else if (up.includes("LA ESTRELLA")) dirFiltrada += ", La Estrella";
+                                else if (up.includes("LA ESTRELLA") || up.includes("ESTRELLA")) dirFiltrada += ", La Estrella";
 
-                                // Guardar como dirección cualquiera
                                 direccionesCualquiera.push(dirFiltrada);
 
-                                // Validar estricto: año '26' o '2026' y 'SI', 'S1', 'SL', 'S|', 'S!' (Frecuentes en OCR de Datacrédito)
+                                // Validar estricto: año '26' o '2026' y 'SI', 'S1', 'SL', 'S|', 'S!'
                                 var esVigente = (up.includes("26") || up.includes("2026")) && 
-                                                (up.includes("SI") || up.includes("S1") || up.includes("SL") || up.includes("S|") || up.includes("S!"));
+                                                (up.includes("SI") || up.includes("S1") || up.includes("SL") || up.includes("S|") || up.includes("S!") || up.includes(" S1 "));
                                 
                                 if (esVigente) {
                                     direccionesVigentes2026.push(dirFiltrada);
@@ -484,16 +534,29 @@
                         }
                     });
 
-                    // SISTEMA MULTITIER: Si no halla vigentes estrictas (por culpa del OCR), halla cualquiera
+                    // SISTEMA MULTITIER: Prioriza vigentes; fallback a cualquiera de la foto; fallback a manual
                     var ubicacionesFinales = [];
                     var alertaFiltroText = "";
 
                     if (direccionesVigentes2026.length > 0) {
-                        ubicacionesFinales = direccionesVigentes2026.slice(0, 3); // Máximo 3 de 2026
+                        ubicacionesFinales = direccionesVigentes2026.slice(0, 3); // Máximo 3 de 2026 activas
                         alertaFiltroText = "Se ubicaron las direcciones vigentes (2026 activas) de la placa: " + placa;
                     } else if (direccionesCualquiera.length > 0) {
-                        ubicacionesFinales = direccionesCualquiera.slice(0, 3); // Máximo 3 genéricas (Failsafe)
-                        alertaFiltroText = "⚠️ No encontramos filtros 2026 (SI) legibles. En su lugar, se extrajeron " + ubicacionesFinales.length + " ubicaciones de la captura para la placa: " + placa;
+                        ubicacionesFinales = direccionesCualquiera.slice(0, 3); // Fallback: Máximo 3 genéricas
+                        alertaFiltroText = "⚠️ No logramos detectar filtros 2026 y SI. Ubicamos las primeras " + ubicacionesFinales.length + " direcciones detectadas para la placa: " + placa;
+                    }
+
+                    // FALLBACK ABSOLUTO: Si la imagen fue indescifrable, permitir escribir el texto de forma ágil sin error
+                    if (ubicacionesFinales.length === 0) {
+                        var manualPaste = prompt("La foto no se pudo leer automáticamente. Por favor pega las líneas de dirección del reporte o escríbela a continuación (ej: KR 48 # 10-45, Medellin):");
+                        if (manualPaste) {
+                            var chunks = manualPaste.split('\n');
+                            chunks.forEach(function(ch) {
+                                if(ch.trim().length > 5) ubicacionesFinales.push(ch.trim());
+                            });
+                            ubicacionesFinales = ubicacionesFinales.slice(0, 3);
+                            alertaFiltroText = "Se agregaron las ubicaciones ingresadas manualmente.";
+                        }
                     }
 
                     if (ubicacionesFinales.length === 0) {
@@ -523,7 +586,7 @@
                     cerrarSecciones();
                 }).catch(error => {
                     console.error(error);
-                    alert("❌ Error al procesar el reporte.");
+                    alert("❌ Ocurrió un error al procesar el reporte con OCR. Intente con una mejor captura o ingresando de forma manual.");
                     loadingOverlay.style.display = 'none';
                 });
                 return;
