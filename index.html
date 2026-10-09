@@ -4,120 +4,57 @@
     <meta charset="utf-8">
     <title>Ruta de Campo - Raptor S.A.S.</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
     <style>
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: #e5e3df; }
-        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; font-family: Arial, sans-serif; background: #f4f6f9; }
+        header { background-color: #2c3e50; color: white; padding: 12px; text-align: center; font-size: 15px; font-weight: bold; z-index: 10; }
         
-        .floating-btn-add {
-            position: fixed; bottom: 25px; left: 20px; z-index: 99999;
-            background-color: #2c3e50; color: white; border: none; padding: 14px 22px;
-            border-radius: 50px; font-size: 15px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.4); cursor: pointer;
-        }
-        
-        .floating-menu {
-            position: fixed; bottom: 90px; left: 20px; z-index: 99999;
-            background: white; padding: 14px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px;
-        }
+        #map-container { flex: 1; width: 100%; position: relative; }
+        #googleMap { width: 100%; height: 100%; border: none; }
 
-        .floating-menu button.main-opt { background-color: #34495e; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-bottom: 6px; font-weight: bold; cursor: pointer; text-align: left; }
-        .sub-panel { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; }
-        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 4px; font-size: 11px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .sub-panel button.action { background-color: #ff9800; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; margin-top: 6px; font-weight: bold; cursor: pointer; }
-        .sub-panel button.close-sub { background-color: #e74c3c; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; margin-top: 4px; font-weight: bold; cursor: pointer; }
-        .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 14px; }
+        .floating-panel {
+            position: absolute; top: 10px; left: 10px; z-index: 99;
+            background: white; padding: 12px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 280px; max-height: 75vh; overflow-y: auto;
+        }
+        
+        textarea { width: 100%; height: 80px; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 11px; }
+        .btn { background-color: #ff9800; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 6px; font-size: 12px; }
+        
+        .card-punto { background: #fdfdfd; border-left: 4px solid #2196F3; padding: 8px; margin-top: 8px; border-radius: 4px; font-size: 11px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card-punto h4 { margin: 0 0 4px 0; color: #2c3e50; font-size: 12px; }
+        .btn-ir { background-color: #2196F3; color: white; text-decoration: none; padding: 6px; display: block; text-align: center; border-radius: 3px; font-weight: bold; margin-top: 4px; font-size: 11px; }
+        .btn-visit { background-color: #4CAF50; color: white; border: none; padding: 6px; width: 100%; border-radius: 3px; font-weight: bold; cursor: pointer; margin-top: 3px; font-size: 11px; }
+        .counter { color: #d9534f; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div id="map"></div>
 
-    <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
-    
-    <div id="menuOpciones" class="floating-menu">
-        <div class="header-menu">
-            <b style="color: #2c3e50; font-size: 13px;">Agregar Ubicaciones:</b>
-            <button onclick="toggleMenuAdd()">✖</button>
-        </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar múltiples reportes</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual</button>
+    <header>📍 Ruta de Campo - Raptor S.A.S.</header>
 
-        <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:11px;">Pega varios reportes juntos:</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarLote()">Analizar y Agregar</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Cerrar</button>
+    <div id="map-container">
+        <!-- Panel flotante para pegar reportes y ver las rutas -->
+        <div class="floating-panel">
+            <b style="color: #2c3e50; font-size: 12px;">📱 Pegar Lote de WhatsApp:</b>
+            <textarea id="txtWhatsapp" placeholder="Pega aquí todos los reportes..."></textarea>
+            <button class="btn" onclick="procesarLote()">Analizar y Mostrar en Mapa</button>
+            
+            <div id="listaPuntos" style="margin-top: 10px;">
+                <p style="text-align: center; color: #777; font-size: 11px;">Sin rutas cargadas.</p>
+            </div>
         </div>
 
-        <div id="seccion-manual" class="sub-panel">
-            <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
-            <input type="text" id="manDir" placeholder="Dirección exacta">
-            <button class="action" onclick="procesarManual()">Agregar Punto</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Cerrar</button>
-        </div>
+        <!-- Visor Oficial de Google Maps -->
+        <iframe id="googleMap" src="https://www.google.com/maps?q=Medellin,Antioquia&output=embed" allowfullscreen="" loading="lazy"></iframe>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
-        var map = L.map('map').setView([6.2442, -75.5812], 12);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-
-        L.control.locate({
-            position: 'topleft',
-            strings: { title: "Mi ubicación actual" },
-            locateOptions: { maxZoom: 16, enableHighAccuracy: true },
-            autoStart: true
-        }).addTo(map);
-
-        function toggleMenuAdd() {
-            var m = document.getElementById('menuOpciones');
-            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
-        }
-
-        function abrirSeccion(tipo) {
-            document.getElementById('seccion-whatsapp').style.display = 'none';
-            document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('seccion-' + tipo).style.display = 'block';
-        }
-
-        function cerrarSecciones() {
-            document.getElementById('seccion-whatsapp').style.display = 'none';
-            document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('menuOpciones').style.display = 'none';
-        }
-
-        function marcarVisitada(placa, idx) {
-            var key = 'visitas_' + placa;
-            var actual = parseInt(localStorage.getItem(key) || 0) + 1;
-            localStorage.setItem(key, actual);
-            var span = document.getElementById('contador-' + idx);
-            if (span) { span.innerText = actual; }
-            alert("¡Placa " + placa + " visitada! Total: " + actual);
-        }
-
-        var puntosData = [];
-
-        function obtenerCoordenadas(textoDir) {
-            var t = textoDir.toUpperCase();
-            if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
-            if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
-            if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
-            if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
-            return {lat: 6.2442, lng: -75.5812};
-        }
+        var puntosGlobales = [];
 
         function procesarLote() {
             var texto = document.getElementById('txtWhatsapp').value;
-            if(!texto) { alert("Pega el texto del reporte."); return; }
+            if(!texto) { alert("Por favor pega el texto del reporte."); return; }
 
             var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
-            var total = 0;
+            var agregados = 0;
 
             bloques.forEach(function(bloque) {
                 if (bloque.trim().length < 5) return;
@@ -125,7 +62,7 @@
                 if (!matches) return;
                 var placa = matches[0].toUpperCase();
 
-                var dir = "Medellin";
+                var dir = "Medellin, Antioquia";
                 var lineas = bloque.split('\n');
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
@@ -134,46 +71,55 @@
                     }
                 });
 
-                var coords = obtenerCoordenadas(dir + " " + bloque);
-                agregarMarcador(placa, dir, coords.lat, coords.lng, puntosData.length + 1);
-                total++;
+                puntosGlobales.push({
+                    id: Math.random().toString(36).substr(2, 5),
+                    placa: placa,
+                    dir: dir
+                });
+                agregados++;
             });
 
-            if (total > 0) {
-                alert("¡Lote procesado con éxito!");
+            if (agregados > 0) {
+                actualizarMapa();
+                alert("🚀 ¡Lote cargado correctamente en el mapa!");
                 document.getElementById('txtWhatsapp').value = '';
-                cerrarSecciones();
             } else {
-                alert("No se encontraron placas válidas.");
+                alert("⚠️ No se pudieron extraer placas válidas.");
             }
         }
 
-        function procesarManual() {
-            var placa = document.getElementById('manPlaca').value.toUpperCase();
-            var dir = document.getElementById('manDir').value;
-            if(!placa || !dir) { alert("Ingresa placa y dirección."); return; }
-            var coords = obtenerCoordenadas(dir);
-            agregarMarcador(placa, dir, coords.lat, coords.lng, puntosData.length + 1);
-            alert("Punto agregado.");
-            cerrarSecciones();
+        function marcarVisitada(id) {
+            var key = 'visitas_' + id;
+            var actual = parseInt(localStorage.getItem(key) || 0) + 1;
+            localStorage.setItem(key, actual);
+            document.getElementById('visitas-' + id).innerText = actual;
         }
 
-        function agregarMarcador(placa, dir, lat, lng, idx) {
-            var visitas = localStorage.getItem('visitas_' + placa) || 0;
-            var mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(dir);
+        function actualizarMapa() {
+            if (puntosGlobales.length === 0) return;
 
-            var popupContent = `
-                <div style="font-family: Arial; font-size: 13px; width: 220px;">
-                    <b>Placa:</b> ${placa}<br>
-                    <b>Dir:</b> ${dir}<br>
-                    <b>Visitas:</b> <span id="contador-${idx}">${visitas}</span><br><br>
-                    <a href="${mapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold;">1. 🧭 Ir a Google Maps</a>
-                    <button onclick="marcarVisitada('${placa}', '${idx}')" style="background-color: #4CAF50; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold;">2. ✅ Visitada</button>
-                </div>
-            `;
+            // Centrar el mapa de Google en la primera dirección del lote
+            var primeraDir = puntosGlobales[0].dir;
+            document.getElementById('googleMap').src = "https://www.google.com/maps?q=" + encodeURIComponent(primeraDir) + "&output=embed";
 
-            var marker = L.marker([lat, lng]).bindPopup(popupContent).addTo(map);
-            puntosData.push({ marker: marker });
+            var contenedor = document.getElementById('listaPuntos');
+            var html = '';
+
+            puntosGlobales.forEach(function(item, idx) {
+                var visitas = localStorage.getItem('visitas_' + item.id) || 0;
+                var mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(item.dir);
+
+                html += `
+                    <div class="card-punto">
+                        <h4>#${idx + 1} - Placa: ${item.placa}</h4>
+                        <div style="margin-bottom: 2px;"><b>Dir:</b> ${item.dir}</div>
+                        <div style="margin-bottom: 4px;"><b>Visitas:</b> <span class="counter" id="visitas-${item.id}">${visitas}</span></div>
+                        <a href="${mapsUrl}" target="_blank" class="btn-ir">🧭 Abrir Navegación GPS</a>
+                        <button class="btn-visit" onclick="marcarVisitada('${item.id}')">✅ Marcar Visitada</button>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
         }
     </script>
 </body>
