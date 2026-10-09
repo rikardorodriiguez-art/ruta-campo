@@ -123,6 +123,8 @@
         .pb-teal { background: linear-gradient(145deg, #1abc9c, #16a085); }
         .pb-red { background: linear-gradient(145deg, #e74c3c, #c0392b); }
         .pb-darkred { background: linear-gradient(145deg, #922b21, #7b241c); }
+        
+        .leaflet-div-icon { background: transparent; border: none; }
     </style>
 </head>
 <body>
@@ -218,6 +220,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
+        // MAPA CLÁSICO DE OPENSTREETMAP INTACTO
         var map = L.map('map').setView([6.2442, -75.5812], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -242,8 +245,7 @@
         var actualModeloFuerza = "";
         var actualColorFuerza = "";
 
-        // ---- NUEVO GENERADOR DE MARCADORES (BLANCO, LIMPIO, PROFESIONAL) ----
-        // Cumple la regla: Punto rojo por defecto, cambia a verde si es visitada.
+        // ---- GENERADOR DE MARCADORES (BLANCO, LIMPIO, PROFESIONAL) ----
         function generarMarcadorProfesional(placa, esVisitada) {
             var colorDot = esVisitada ? '#27ae60' : '#e74c3c'; // Verde o Rojo
             var shadowDot = esVisitada ? 'rgba(39, 174, 96, 0.8)' : 'rgba(231, 76, 60, 0.8)';
@@ -367,7 +369,8 @@
         }
 
         function marcarVisitada(placa, markerId) {
-            var key = 'visitas_' + placa;
+            // CORRECCIÓN: Guardamos la visita usando el ID único del marcador
+            var key = 'visitas_' + markerId;
             var actual = parseInt(localStorage.getItem(key) || 0) + 1;
             localStorage.setItem(key, actual);
             
@@ -375,9 +378,8 @@
             if (itemIndex !== -1) {
                 var p = puntosData[itemIndex];
                 
-                // ACTUALIZAR A VERDE CUANDO SE MARCA COMO VISITADA
                 var customIcon = L.divIcon({
-                    className: '', // Limpiamos clase por defecto
+                    className: '', 
                     html: generarMarcadorProfesional(p.placa, true), // true = verde
                     iconAnchor: [40, 35],
                     popupAnchor: [0, -35]
@@ -948,9 +950,12 @@
 
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
-            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
             
+            // VERIFICAMOS VISITAS USANDO EL ID DEL MARCADOR
+            var visitas = parseInt(localStorage.getItem('visitas_' + markerId) || 0);
+            var dotEmoji = visitas > 0 ? '🟢 (Visitada)' : '🔴 (Pendiente)';
+            
+            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
 
             var v = [];
@@ -969,7 +974,7 @@
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span><br>
+                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-size: 11px;">${dotEmoji}</span><br>
                         <b>Vehículo:</b> <span style="color:#000;">${vehiculoTexto}</span><br>
                         <b>Teléfonos:</b> ${p.telefonos}<br>
                         <b>Estado:</b> ${estadoPicoTxt}<br>
@@ -1027,14 +1032,14 @@
             p.pico = tienePicoYPlaca(p.placa);
             p.esHoy = (p.fecha === hoyStr);
 
-            // RENDERIZA CON ESTILO PROFESIONAL
-            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+            // COMPROBAR VISITAS USANDO EL ID DEL MARCADOR
+            var visitas = parseInt(localStorage.getItem('visitas_' + p.id) || 0);
             var esVisitada = visitas > 0;
 
             var customIcon = L.divIcon({
-                className: '', // Usar className vacío para no heredar estilos de Leaflet
+                className: '', 
                 html: generarMarcadorProfesional(p.placa, esVisitada),
-                iconAnchor: [40, 35], // Ajustado para que la punta toque la calle exacta
+                iconAnchor: [40, 35], 
                 popupAnchor: [0, -35]
             });
 
