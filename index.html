@@ -14,73 +14,117 @@
         html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
+        /* BOTONES FLOTANTES PRINCIPALES - ESTILO 3D MODERNO */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
-            background-color: #2c3e50; color: white; border: none; padding: 12px 18px;
-            border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
+            background: linear-gradient(145deg, #34495e, #1a252f); color: white; border: none; padding: 14px 22px;
+            border-radius: 50px; font-size: 15px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.35), inset 0 2px 2px rgba(255,255,255,0.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease; text-transform: uppercase;
         }
-        
+        .floating-btn-add:active { transform: translateY(3px) scale(0.96); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+
         .floating-btn-filter {
             position: fixed; top: 20px; right: 20px; z-index: 99999;
-            background-color: #2c3e50; color: white; border: none; padding: 10px 14px;
-            border-radius: 50px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;
+            background: linear-gradient(145deg, #34495e, #1a252f); color: white; border: none; padding: 12px 18px;
+            border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.35), inset 0 2px 2px rgba(255,255,255,0.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease;
         }
+        .floating-btn-filter:active { transform: translateY(3px) scale(0.96); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
 
         .floating-menu {
             position: fixed; bottom: 80px; left: 20px; z-index: 99999;
-            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 290px; display: none; font-family: Arial; font-size: 12px; max-height: 70vh; overflow-y: auto;
+            background: white; padding: 15px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); width: 290px; display: none; font-family: Arial; font-size: 12px; max-height: 70vh; overflow-y: auto;
         }
         
         .floating-filter-panel {
             position: fixed; top: 70px; right: 20px; z-index: 99999;
-            background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 230px; display: none; font-family: Arial; font-size: 12px;
+            background: white; padding: 15px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); width: 230px; display: none; font-family: Arial; font-size: 12px;
         }
 
-        .floating-menu button.main-opt { background-color: #34495e; color: white; border: none; padding: 8px; width: 100%; border-radius: 5px; margin-bottom: 6px; font-weight: bold; cursor: pointer; text-align: left; }
-        .floating-menu button.main-opt:hover { background-color: #2c3e50; }
+        /* BOTONES DEL MENÚ DE OPCIONES 3D */
+        .floating-menu button.main-opt { 
+            color: white; border: none; padding: 12px 10px; width: 100%; border-radius: 8px; margin-bottom: 8px; font-weight: bold; font-size: 13px; cursor: pointer; text-align: left; 
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease;
+        }
+        .floating-menu button.main-opt:active { transform: translateY(3px); box-shadow: 0 2px 3px rgba(0,0,0,0.2); }
+        .mo-1 { background: linear-gradient(145deg, #34495e, #2c3e50); }
+        .mo-2 { background: linear-gradient(145deg, #9b59b6, #8e44ad); }
+        .mo-3 { background: linear-gradient(145deg, #2ecc71, #27ae60); }
         
-        .sub-panel { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; }
-        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 4px; font-size: 11px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .sub-panel button.action { background-color: #ff9800; color: white; border: none; padding: 7px; width: 100%; border-radius: 4px; margin-top: 6px; font-weight: bold; cursor: pointer; }
-        .sub-panel button.close-sub { background-color: #e74c3c; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; margin-top: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .sub-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
+        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 6px; font-size: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        
+        /* BOTONES DE ACCIÓN 3D */
+        .sub-panel button.action, #modo-edicion-banner button { 
+            color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px; font-weight: bold; cursor: pointer; font-size: 13px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: all 0.2s ease; text-transform: uppercase;
+        }
+        .sub-panel button.action:active, #modo-edicion-banner button:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        
+        .act-blue { background: linear-gradient(145deg, #3498db, #2980b9); }
+        .act-purple { background: linear-gradient(145deg, #9b59b6, #8e44ad); }
+        .act-green { background: linear-gradient(145deg, #2ecc71, #27ae60); }
+        .act-red { background: linear-gradient(145deg, #e74c3c, #c0392b); }
+        .act-gray { background: linear-gradient(145deg, #95a5a6, #7f8c8d); }
+
+        .sub-panel button.close-sub { 
+            background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; margin-top: 6px; font-weight: bold; cursor: pointer; font-size: 12px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: all 0.2s ease;
+        }
+        .sub-panel button.close-sub:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         
         .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 14px; }
+        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 16px; transition: transform 0.2s; }
+        .header-menu button:hover { transform: scale(1.2); }
+        
         .filter-option { display: block; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
-        .filter-search { width: 100%; padding: 5px; font-size: 11px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .filter-search { width: 100%; padding: 6px; font-size: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
 
-        .backup-section { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #bbb; display: flex; gap: 5px; }
-        .backup-section button { flex: 1; padding: 6px; font-size: 10px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; color: white; }
-        .btn-export { background-color: #27ae60; }
-        .btn-import { background-color: #2980b9; }
+        .backup-section { margin-top: 10px; padding-top: 12px; border-top: 1px dashed #bbb; display: flex; gap: 6px; }
+        .backup-section button { flex: 1; padding: 8px; font-size: 11px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.2); transition: all 0.2s ease;}
+        .backup-section button:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .btn-export { background: linear-gradient(145deg, #2ecc71, #27ae60); }
+        .btn-import { background: linear-gradient(145deg, #3498db, #2980b9); }
 
         #modo-edicion-banner {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            background: #e67e22; color: white; padding: 12px 18px; border-radius: 15px;
-            z-index: 999999; font-family: Arial; font-size: 12px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            display: none; text-align: center; width: 300px; max-width: 90%;
+            background: linear-gradient(145deg, #e67e22, #d35400); color: white; padding: 15px; border-radius: 12px;
+            z-index: 999999; font-family: Arial; font-size: 13px; font-weight: bold; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            display: none; text-align: center; width: 320px; max-width: 90%; border: 1px solid #e67e22;
         }
 
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
-            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 15px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column;
+            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 16px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column;
         }
 
         #modal-asistente {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.4);
-            width: 310px; z-index: 9999999; display: none; font-family: Arial; font-size: 12px;
+            background: white; padding: 18px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 320px; z-index: 9999999; display: none; font-family: Arial; font-size: 12px;
         }
 
-        .leaflet-popup-content { margin: 10px; line-height: 1.4; }
-        .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
-        .edit-input { width: 100%; margin-bottom: 4px; padding: 3px; font-size: 12px; border: 1px solid #aaa; border-radius: 3px; box-sizing: border-box; }
-        
-        /* Asegura que el contenedor del icono de Leaflet no distorsione el diseño CSS */
-        .leaflet-div-icon {
-            background: transparent !important;
-            border: none !important;
+        .leaflet-popup-content { margin: 10px; line-height: 1.5; }
+        .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
+        .edit-input { width: 100%; margin-bottom: 6px; padding: 5px; font-size: 12px; border: 1px solid #aaa; border-radius: 4px; box-sizing: border-box; }
+
+        /* ESTILOS DE BOTONES DE TARJETA POPUP */
+        .pop-btn {
+            color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-weight: bold; font-size: 13px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 2px 2px rgba(255,255,255,0.2); text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.15s ease;
         }
+        .pop-btn:active { transform: translateY(3px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .pb-blue { background: linear-gradient(145deg, #2980b9, #2471a3); }
+        .pb-green { background: linear-gradient(145deg, #27ae60, #229954); }
+        .pb-purple { background: linear-gradient(145deg, #8e44ad, #7d3c98); }
+        .pb-orange { background: linear-gradient(145deg, #e67e22, #d35400); }
+        .pb-teal { background: linear-gradient(145deg, #1abc9c, #16a085); }
+        .pb-red { background: linear-gradient(145deg, #c0392b, #a93226); }
+        .pb-darkred { background: linear-gradient(145deg, #922b21, #7b241c); }
+        
+        .leaflet-div-icon { background: transparent; border: none; }
     </style>
 </head>
 <body>
@@ -91,23 +135,23 @@
     </div>
 
     <div id="modal-asistente">
-        <b style="color: #c0392b; font-size: 13px; display: block; margin-bottom: 8px;">✏️ Revisar Texto de Consulta:</b>
-        <span style="font-size: 10px; color:#555; display:block; margin-bottom:6px;">Corrige las líneas de las direcciones aquí:</span>
-        <textarea id="asistente-texto" placeholder="" style="width:100%; height:110px; font-size:11px; padding:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:none;"></textarea>
-        <div style="display:flex; gap:6px; margin-top:10px;">
-            <button onclick="procesarModalRescate()" style="flex:1; background:#27ae60; color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer;">Mapear</button>
-            <button onclick="cerrarAsistente()" style="flex:1; background:#7f8c8d; color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer;">Cancelar</button>
+        <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 8px;">✏️ Revisar Texto de Consulta:</b>
+        <span style="font-size: 11px; color:#555; display:block; margin-bottom:6px;">Corrige las líneas de las direcciones aquí:</span>
+        <textarea id="asistente-texto" placeholder="" style="width:100%; height:110px; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:none;"></textarea>
+        <div style="display:flex; gap:6px; margin-top:12px;">
+            <button onclick="procesarModalRescate()" class="act-green" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1; box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: transform 0.2s;">✅ Mapear</button>
+            <button onclick="cerrarAsistente()" class="act-gray" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1; box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: transform 0.2s;">❌ Cancelar</button>
         </div>
     </div>
 
     <div id="modo-edicion-banner">
         📍 Moviendo punto:<br>
-        <span id="info-edicion-texto" style="font-size: 11px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px;"></span><br>
-        <div style="margin-top: 8px; background: white; padding: 6px; border-radius: 6px;">
-            <input type="text" id="input-link-maps-rapido" placeholder="Pega Coordenadas o Dirección exacta..." style="width:100%; font-size:11px; padding:5px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:5px; color:#000;">
-            <div style="display:flex; gap:4px;">
-                <button onclick="confirmarLinkRapido()" style="flex:1; background:#27ae60; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">✅ Confirmar</button>
-                <button onclick="cancelarEdicion()" style="flex:1; background:#c0392b; color:white; border:none; padding:5px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">❌ Cancelar</button>
+        <span id="info-edicion-texto" style="font-size: 12px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 5px; margin-bottom: 5px;"></span><br>
+        <div style="margin-top: 8px; background: white; padding: 10px; border-radius: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+            <input type="text" id="input-link-maps-rapido" placeholder="Pega Coordenadas o Dirección exacta..." style="width:100%; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:8px; color:#000;">
+            <div style="display:flex; gap:6px;">
+                <button onclick="confirmarLinkRapido()" class="act-green">✅ Confirmar</button>
+                <button onclick="cancelarEdicion()" class="act-red">❌ Cancelar</button>
             </div>
         </div>
     </div>
@@ -115,17 +159,17 @@
     <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
     <div id="menuOpciones" class="floating-menu">
         <div class="header-menu">
-            <b style="color: #2c3e50;">Agregar Ubicaciones:</b>
+            <b style="color: #2c3e50; font-size: 14px;">Agregar Ubicaciones:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')" style="background-color: #8e44ad; color: white;">2. ✍️/📄 Ingreso manual / Coordenadas / Foto</button>
-        <button class="main-opt" onclick="abrirSeccion('gemini')" style="background-color: #27ae60; color: white;">3. ⚡ Pegar Extracción de Gemini (IA)</button>
+        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
+        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️/📄 Ingreso manual / Coordenadas / Foto</button>
+        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">3. ⚡ Pegar Extracción IA</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:10px;">Pega tu reporte (máx 3 direcciones por placa):</b>
+            <b style="color:#2c3e50; font-size:11px;">Pega tu reporte (máx 3 direcciones por placa):</b>
             <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes múltiples..." style="height: 100px;"></textarea>
-            <button class="action" onclick="procesarLoteMasivo()">Analizar y Agregar</button>
+            <button class="action act-blue" onclick="procesarLoteMasivo()">Procesar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
@@ -140,17 +184,17 @@
             <input type="text" id="manColor" placeholder="Color">
             <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
             
-            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Reporte (Opcional):</b>
-            <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
-            <button class="action" onclick="procesarManual()" style="background-color: #8e44ad;">Procesar y Agregar</button>
+            <b style="font-size: 11px; margin-top: 10px; display: block; color:#2c3e50;">Adjuntar Foto de Reporte (Opcional):</b>
+            <input type="file" id="manFoto" accept="image/*" style="font-size:11px; margin-top:4px;">
+            <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
 
         <div id="seccion-gemini" class="sub-panel">
-            <b style="color:#27ae60; font-size:11px;">⚡ IMPORTADOR EXCLUSIVO DE GEMINI</b><br><br>
-            <b style="font-size: 10px; display: block; margin-bottom: 6px;">Pega los datos que te di en el chat:</b>
-            <textarea id="txtGemini" placeholder="PLACA: ...&#10;VEHÍCULO: ...&#10;DIRECCIÓN 1: ...&#10;CELULARES: ..." style="height: 120px; font-size: 10px;"></textarea>
-            <button class="action" onclick="procesarExtraccionGemini()" style="background-color: #27ae60;">Mapear Todo en el Mapa</button>
+            <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI</b><br><br>
+            <b style="font-size: 11px; display: block; margin-bottom: 6px;">Pega los datos que te di en el chat:</b>
+            <textarea id="txtGemini" placeholder="PLACA: ...&#10;VEHÍCULO: ...&#10;DIRECCIÓN 1: ...&#10;CELULARES: ..." style="height: 120px; font-size: 11px;"></textarea>
+            <button class="action act-green" onclick="procesarExtraccionGemini()">Mapear Todo en el Mapa</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
     </div>
@@ -158,7 +202,7 @@
     <button class="floating-btn-filter" onclick="toggleMenuFilter()">🗺️ Filtros</button>
     <div id="panelFiltros" class="floating-filter-panel">
         <div class="header-menu">
-            <b style="color: #2c3e50;">Filtrar Placas:</b>
+            <b style="color: #2c3e50; font-size: 14px;">Filtrar Placas:</b>
             <button onclick="toggleMenuFilter()">✖</button>
         </div>
         <input type="text" id="inputBuscarPlaca" class="filter-search" placeholder="🔍 Buscar placa..." oninput="actualizarFiltros()">
@@ -176,9 +220,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
+        // EL MAPA ORIGINAL CLÁSICO DE OPENSTREETMAP INTACTO
         var map = L.map('map').setView([6.2442, -75.5812], 12);
 
-        // RESTAURADO EL MAPA ORIGINAL CONFIABLE
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
@@ -201,7 +245,6 @@
         var actualModeloFuerza = "";
         var actualColorFuerza = "";
 
-        // --- EXTRACTOR UNIVERSAL BLINDADO DE VEHÍCULOS ---
         function extraerInfoVehiculoUniversal(texto) {
             var m = "-", l = "-", mod = "-", c = "-";
             var lineas = texto.split('\n');
@@ -225,6 +268,17 @@
             if (mod === "") mod = "-";
             if (c === "") c = "-";
             return { marca: m, linea: l, modelo: mod, color: c };
+        }
+
+        // GENERADOR DE PINES MODERNOS: Color según visita (Rojo -> Verde)
+        function generarMarcadorHtml(placa, esVisitada) {
+            var colorGrad = esVisitada ? 'radial-gradient(circle, #2ecc71, #27ae60)' : 'radial-gradient(circle, #ff6b6b, #c0392b)';
+            var shadowColor = esVisitada ? 'rgba(46, 204, 113, 0.8)' : 'rgba(231, 76, 60, 0.8)';
+            
+            return '<div style="display: flex; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">' +
+                   '<div style="width: 18px; height: 18px; background: ' + colorGrad + '; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px ' + shadowColor + '; z-index: 2; position: relative;"></div>' +
+                   '<div style="font-size: 12px; font-weight: 900; color: #2c3e50; background: linear-gradient(180deg, #ffffff, #f0f0f0); padding: 4px 8px 4px 12px; border-radius: 0 6px 6px 0; border: 1px solid #ccc; border-left: none; white-space: nowrap; margin-left: -8px; position: relative; z-index: 1;">' + placa + '</div>' +
+                   '</div>';
         }
 
         map.on('click', function(e) {
@@ -310,12 +364,28 @@
             document.getElementById('menuOpciones').style.display = 'none';
         }
 
-        function marcarVisitada(placa, idx) {
+        // LÓGICA DE VISITA: Incrementa cuenta, actualiza ícono a verde y recarga popup
+        function marcarVisitada(placa, markerId) {
             var key = 'visitas_' + placa;
             var actual = parseInt(localStorage.getItem(key) || 0) + 1;
             localStorage.setItem(key, actual);
-            var span = document.getElementById('contador-' + idx);
-            if (span) { span.innerText = actual; }
+            
+            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
+            if (itemIndex !== -1) {
+                var p = puntosData[itemIndex];
+                
+                // ACTUALIZA EL ÍCONO DEL MAPA (AHORA EN VERDE)
+                var customIcon = L.divIcon({
+                    className: 'custom-marker-modern',
+                    html: generarMarcadorHtml(p.placa, true), // true = verde
+                    iconAnchor: [9, 15]
+                });
+                p.marker.setIcon(customIcon);
+                
+                // ACTUALIZA EL POPUP
+                p.marker.setPopupContent(generarContenidoPopup(p, markerId));
+                p.marker.openPopup();
+            }
         }
 
         function mostrarOpcionesEliminar(markerId) {
@@ -728,7 +798,7 @@
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o link de Maps."); return; }
+            if(!dir) { alert("Ingresa la dirección exacta o coordenadas."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
@@ -877,9 +947,12 @@
 
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
-            var visitas = localStorage.getItem('visitas_' + p.placa) || 0;
-            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
             
+            // VERIFICAMOS VISITAS PARA EL PUNTO VERDE O ROJO DEL POPUP
+            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+            var dotEmoji = visitas > 0 ? '🟢 (Visitada)' : '🔴 (Pendiente)';
+            
+            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
 
             var v = [];
@@ -898,7 +971,7 @@
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: #27ae60; color: white; padding: 1px 4px; border-radius: 3px; font-size: 10px;">🟢</span><br>
+                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span> <span style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-size: 11px;">${dotEmoji}</span><br>
                         <b>Vehículo:</b> <span style="color:#000;">${vehiculoTexto}</span><br>
                         <b>Teléfonos:</b> ${p.telefonos}<br>
                         <b>Estado:</b> ${estadoPicoTxt}<br>
@@ -906,28 +979,28 @@
                         <b>Dirección:</b> ${p.dir}<br>
                         <b>Visitas:</b> <span id="contador-${markerId}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br>
                         
-                        <div style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 8px;">
-                            <a href="${googleMapsUrl}" target="_blank" style="background-color: #2196F3; color: white; padding: 6px; text-decoration: none; border-radius: 4px; display: block; text-align: center; margin-bottom: 5px; font-weight: bold; font-size: 12px;">1. 🧭 Google Maps</a>
+                        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                            <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="display:block; text-align:center; text-decoration:none; box-sizing:border-box;">1. 🧭 Google Maps</a>
                             
-                            <div style="display:flex; gap:5px; margin-bottom:5px;">
-                                <button onclick="marcarVisitada('${p.placa}', '${markerId}')" style="background-color: #4CAF50; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:11px; flex:1;">2. ✅ Visitada</button>
-                                <button onclick="toggleEditMode('${markerId}')" style="background-color: #8e44ad; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:11px; flex:1;">✏️ Editar</button>
+                            <div style="display:flex; gap:6px; margin-bottom:0px;">
+                                <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1;">2. ✅ Visitada</button>
+                                <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>
                             </div>
                             
-                            <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" style="background-color: #e67e22; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold; font-size: 11px;">3. 📍 Mover punto manual</button>
+                            <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" class="pop-btn pb-orange">3. 📍 Mover punto manual</button>
                             
-                            <button onclick="reubicarEnGoogleMapsDirecto('${markerId}')" style="background-color: #1abc9c; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-weight: bold; font-size: 11px;">5. 🔄 Recalcular Ubicación Exacta</button>
+                            <button onclick="reubicarEnGoogleMapsDirecto('${markerId}')" class="pop-btn pb-teal">5. 🔄 Recalcular Ubicación Exacta</button>
                             
-                            <button onclick="mostrarOpcionesEliminar('${markerId}')" style="background-color: #f44336; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">4. 🗑️ Eliminar</button>
+                            <button onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red">4. 🗑️ Eliminar</button>
                         </div>
                         
-                        <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #f8d7da; padding: 6px; border-radius: 4px;">
-                            <button onclick="eliminarEstaDireccion('${markerId}')" style="background-color: #d9534f; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 4px;">❌ Borrar esta</button>
-                            <button onclick="eliminarTodasDePlaca('${p.placa}')" style="background-color: #721c24; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">🗑️ Borrar TODAS</button>
+                        <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #f8d7da; padding: 8px; border-radius: 6px;">
+                            <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 6px;">❌ Borrar esta</button>
+                            <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS</button>
                         </div>
                     </div>
 
-                    <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                    <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
                         <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
                         
                         <label style="font-size:11px; font-weight:bold;">Vehículo / Detalles:</label>
@@ -942,9 +1015,9 @@
                         <label style="font-size:11px; font-weight:bold; margin-top:5px; display:block;">📷 Adjuntar/Cambiar Foto:</label>
                         <input type="file" id="upload-foto-${markerId}" accept="image/*" class="edit-input" style="padding:2px;">
                         
-                        <div style="display:flex; gap:5px; margin-top:10px;">
-                            <button onclick="guardarEdicionPopup('${markerId}')" style="background-color: #27ae60; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-weight: bold; flex: 1;">💾 Guardar Todo</button>
-                            <button onclick="toggleEditMode('${markerId}')" style="background-color: #7f8c8d; color: white; border: none; padding: 6px; border-radius: 3px; cursor: pointer; font-weight: bold; flex: 1;">Cancelar</button>
+                        <div style="display:flex; gap:6px; margin-top:10px;">
+                            <button onclick="guardarEdicionPopup('${markerId}')" class="act-green" style="flex: 1;">💾 Guardar Todo</button>
+                            <button onclick="toggleEditMode('${markerId}')" class="act-gray" style="flex: 1;">Cancelar</button>
                         </div>
                     </div>
                 </div>
@@ -957,16 +1030,14 @@
             p.pico = tienePicoYPlaca(p.placa);
             p.esHoy = (p.fecha === hoyStr);
 
-            // NUEVO DISEÑO MODERNO DE CÁPSULAS BLINDADAS (NO SE DESARMAN)
-            var estadoColor = p.pico ? '#e74c3c' : '#27ae60'; 
+            // COMPROBAMOS VISITAS PARA EL MAPA (ROJO POR DEFECTO, VERDE SI VISITADA)
+            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+            var esVisitada = visitas > 0;
+
             var customIcon = L.divIcon({
                 className: 'custom-marker-modern',
-                html: '<div style="background: white; padding: 4px 8px; border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.3); border: 1px solid #ccc; font-family: Arial, sans-serif; font-weight: 900; font-size: 12px; color: #2c3e50; white-space: nowrap; width: max-content;">' +
-                        '<div style="width: 10px; height: 10px; background-color: ' + estadoColor + '; border-radius: 50%; margin-right: 5px; box-shadow: 0 0 4px ' + estadoColor + ';"></div>' +
-                        p.placa +
-                      '</div>',
-                iconSize: null, // Evita que Leaflet le asigne un tamaño cuadrado que rompe la cápsula
-                iconAnchor: [35, 15] 
+                html: generarMarcadorHtml(p.placa, esVisitada),
+                iconAnchor: [9, 15] // Centra el marcador perfectamente en el mapa
             });
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).addTo(map);
