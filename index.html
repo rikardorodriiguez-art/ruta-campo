@@ -175,7 +175,7 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa y Vehículo, deja dirección vacía y sube foto.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa, deja dirección vacía y sube foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
@@ -266,37 +266,61 @@
                    '</div>';
         }
 
-        // EXTRACTOR CON SOAT Y TECNOMECÁNICA
+        // EXTRACTOR ULTRA-FLEXIBLE CON SOAT Y TECNOMECÁNICA
         function extraerInfoVehiculoUniversal(texto) {
-            var m = "-", l = "-", mod = "-", c = "-", s = "-", t = "-";
-            var lineas = texto.split('\n');
-            for (var i = 0; i < lineas.length; i++) {
-                var up = lineas[i].toUpperCase();
-                if (m === "-" && (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO"))) {
-                    m = lineas[i].replace(/.*(MARCA|VEH[IÍ]CULO)\s*[:\-]?\s*/i, '').trim();
-                }
-                if (l === "-" && (up.includes("CLASE") || up.includes("LINEA") || up.includes("LÍNEA"))) {
-                    l = lineas[i].replace(/.*(CLASE|L[IÍ]NEA)\s*[:\-]?\s*/i, '').trim();
-                }
-                if (mod === "-" && up.includes("MODELO")) {
-                    mod = lineas[i].replace(/.*MODELO\s*[:\-]?\s*/i, '').trim();
-                }
-                if (c === "-" && up.includes("COLOR")) {
-                    c = lineas[i].replace(/.*COLOR\s*[:\-]?\s*/i, '').trim();
-                }
-                if (s === "-" && (up.includes("SOAT") || up.includes("SEGURO"))) {
-                    s = lineas[i].replace(/.*(SOAT|SEGURO)\s*[:\-]?\s*/i, '').trim();
-                }
-                if (t === "-" && (up.includes("TECNO") || up.includes("RTM") || up.includes("REVISI"))) {
-                    t = lineas[i].replace(/.*(TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISI[OÓ]N)\s*[:\-]?\s*/i, '').trim();
-                }
+            var m = "-", l = "-", mod = "-", c = "-", s = "NO", t = "NO";
+            
+            // Reemplazar saltos de línea para buscar en todo el bloque si es necesario
+            var textFlat = texto.replace(/\n/g, ' ').toUpperCase();
+            
+            // Buscar Marca/Vehículo/Clase (captura todo hasta la siguiente palabra clave común o fin de línea si se usa split)
+            var marcaMatch = textFlat.match(/(?:MARCA|VEHICULO|VEHÍCULO|CLASE)\s*[:\-]?\s*([^MCLSC\n]*)/i);
+            if (marcaMatch && marcaMatch[1].trim() !== "") {
+                m = marcaMatch[1].trim().split(/(LÍNEA|LINEA|MODELO|COLOR|SOAT|TECNO|CEL|DIR)/i)[0].trim();
             }
+
+            // Buscar Línea
+            var lineaMatch = textFlat.match(/(?:LÍNEA|LINEA)\s*[:\-]?\s*([^MCLSC\n]*)/i);
+            if (lineaMatch && lineaMatch[1].trim() !== "") {
+                l = lineaMatch[1].trim().split(/(MARCA|VEHICULO|MODELO|COLOR|SOAT|TECNO|CEL|DIR)/i)[0].trim();
+            }
+
+            // Buscar Modelo
+            var modeloMatch = textFlat.match(/MODELO\s*[:\-]?\s*(\d{4})/i);
+            if (modeloMatch && modeloMatch[1].trim() !== "") {
+                mod = modeloMatch[1].trim();
+            } else {
+                 var modeloMatch2 = textFlat.match(/MODELO\s*[:\-]?\s*([^CST\n]*)/i);
+                 if(modeloMatch2 && modeloMatch2[1].trim() !== ""){
+                    mod = modeloMatch2[1].trim().split(/(COLOR|SOAT|TECNO|CEL|DIR)/i)[0].trim();
+                 }
+            }
+
+            // Buscar Color
+            var colorMatch = textFlat.match(/COLOR\s*[:\-]?\s*([^MST\n]*)/i);
+            if (colorMatch && colorMatch[1].trim() !== "") {
+                c = colorMatch[1].trim().split(/(MARCA|VEHICULO|LINEA|MODELO|SOAT|TECNO|CEL|DIR)/i)[0].trim();
+            }
+
+            // Buscar SOAT y Tecno (Busca la palabra y captura lo que sigue, ej. "Vigente", fechas)
+            var soatMatch = textFlat.match(/(?:SOAT|SEGURO)\s*[:\-]?\s*([^T\n]*)/i);
+            if(soatMatch && soatMatch[1].trim() !== "") {
+                s = soatMatch[1].trim().split(/(TECNO|RTM|REVISI|CEL|DIR)/i)[0].trim();
+            }
+
+            var tecnoMatch = textFlat.match(/(?:TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISI[OÓ]N)\s*[:\-]?\s*([^\n]*)/i);
+            if(tecnoMatch && tecnoMatch[1].trim() !== "") {
+                 t = tecnoMatch[1].trim().split(/(SOAT|SEGURO|CEL|DIR)/i)[0].trim();
+            }
+            
+            // Limpieza final
             if (m === "") m = "-";
             if (l === "") l = "-";
             if (mod === "") mod = "-";
             if (c === "") c = "-";
-            if (s === "") s = "-";
-            if (t === "") t = "-";
+            if (s === "") s = "NO";
+            if (t === "") t = "NO";
+
             return { marca: m, linea: l, modelo: mod, color: c, soat: s, tecnomecanica: t };
         }
 
@@ -392,6 +416,7 @@
             if (itemIndex !== -1) {
                 var p = puntosData[itemIndex];
                 
+                // ACTUALIZAR A VERDE CUANDO SE MARCA COMO VISITADA
                 var customIcon = L.divIcon({
                     className: '', 
                     html: generarMarcadorProfesional(p.placa, true), // true = verde
@@ -577,14 +602,6 @@
             loadingOverlay.style.display = 'flex';
 
             var placaMatch = texto.match(/PLACA:\s*([A-Za-z0-9]+)/i);
-            
-            var infoVeh = extraerInfoVehiculoUniversal(texto);
-            var vehiculo = infoVeh.marca;
-            if (infoVeh.linea !== "-") vehiculo += " " + infoVeh.linea;
-            if (infoVeh.modelo !== "-") vehiculo += " " + infoVeh.modelo;
-
-            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
-            var celulares = telsMatch ? telsMatch[1].trim() : "-";
             var placa = placaMatch ? placaMatch[1].toUpperCase().trim() : "";
             
             if(!placa) {
@@ -592,6 +609,11 @@
             }
             if(!placa) { loadingOverlay.style.display = 'none'; return; }
 
+            var infoVeh = extraerInfoVehiculoUniversal(texto);
+
+            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
+            var celulares = telsMatch ? telsMatch[1].trim() : "-";
+            
             if (placasRegistradas[placa]) {
                 var nuevasPuntos = [];
                 puntosData.forEach(function(item) {
@@ -624,7 +646,7 @@
             for (let [index, dir] of direcciones.entries()) {
                 var coords = await obtenerCoordenadasExactasLimpias(dir);
                 var nuevoPunto = {
-                    placa: placa, marca: vehiculo, linea: "-", modelo: "-", color: "-", telefonos: celulares,
+                    placa: placa, marca: infoVeh.marca, linea: infoVeh.linea, modelo: infoVeh.modelo, color: infoVeh.color, telefonos: celulares,
                     soat: infoVeh.soat, tecnomecanica: infoVeh.tecnomecanica,
                     lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
                 };
@@ -679,7 +701,6 @@
                 placasRegistradas[placa] = true;
 
                 var infoVeh = extraerInfoVehiculoUniversal(bloque);
-                var marca = infoVeh.marca, linea = infoVeh.linea, modelo = infoVeh.modelo, color = infoVeh.color, soat = infoVeh.soat, tecno = infoVeh.tecnomecanica;
 
                 var lineas = bloque.split('\n');
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
@@ -690,7 +711,6 @@
                     var dirLimpia = l.trim();
                     var up = dirLimpia.toUpperCase();
                     if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ")) && up.length > 5) {
-                        // IGNORAR PALABRAS DE SEGURO PARA NO CONFUNDIRLAS CON DIRECCIONES
                         if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("SEGURO") && !up.includes("TECNO") && !up.includes("RTM") && !up.includes("CEL")) {
                             direcciones.push(dirLimpia);
                         }
@@ -703,8 +723,8 @@
                 for (let [index, dir] of ubicacionesFinales.entries()) {
                     var coords = await obtenerCoordenadasExactasLimpias(dir);
                     var nuevoPunto = {
-                        placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: telefonos,
-                        soat: soat, tecnomecanica: tecno,
+                        placa: placa, marca: infoVeh.marca, linea: infoVeh.linea, modelo: infoVeh.modelo, color: infoVeh.color, telefonos: telefonos,
+                        soat: infoVeh.soat, tecnomecanica: infoVeh.tecnomecanica,
                         lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
                     };
                     agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -733,6 +753,7 @@
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
             
+            // Asignar variables globales correctamente
             actualPlacaFuerza = placa;
             window.actualMarcaFuerza = marca;
             window.actualLineaFuerza = linea;
@@ -768,6 +789,8 @@
 
                     window.actualMarcaFuerza = fMarca;
                     window.actualLineaFuerza = fLinea;
+                    window.actualModeloFuerza = fModelo;
+                    window.actualColorFuerza = fColor;
                     window.actualSoatFuerza = fSoat;
                     window.actualTecnoFuerza = fTecno;
 
@@ -843,8 +866,8 @@
             var coords = await obtenerCoordenadasExactasLimpias(dir);
 
             var nuevoPunto = {
-                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-", 
-                soat: msoat, tecnomecanica: mtecno,
+                placa: placa, marca: window.actualMarcaFuerza, linea: window.actualLineaFuerza, modelo: window.actualModeloFuerza, color: window.actualColorFuerza, telefonos: "-", 
+                soat: window.actualSoatFuerza, tecnomecanica: window.actualTecnoFuerza,
                 lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: fotoBase64
             };
 
@@ -869,12 +892,6 @@
             });
 
             var placa = actualPlacaFuerza || "RAPTOR";
-            var marca = window.actualMarcaFuerza || "-";
-            var linea = window.actualLineaFuerza || "-";
-            var modelo = window.actualModeloFuerza || "-";
-            var color = window.actualColorFuerza || "-";
-            var msoat = window.actualSoatFuerza || "-";
-            var mtecno = window.actualTecnoFuerza || "-";
 
             if (placasRegistradas[placa]) eliminarTodasDePlaca(placa);
             placasRegistradas[placa] = true;
@@ -882,8 +899,8 @@
             for (let d of ubiFinales.slice(0, 3)) {
                 var coords = await obtenerCoordenadasExactasLimpias(d);
                 var nuevoPunto = {
-                    placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-",
-                    soat: msoat, tecnomecanica: mtecno,
+                    placa: placa, marca: window.actualMarcaFuerza, linea: window.actualLineaFuerza, modelo: window.actualModeloFuerza, color: window.actualColorFuerza, telefonos: "-",
+                    soat: window.actualSoatFuerza, tecnomecanica: window.actualTecnoFuerza,
                     lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
                 };
                 agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -974,8 +991,8 @@
                     p.modelo = '-';
                     p.color = '-';
                     p.telefonos = nuevosTels; 
-                    p.soat = nuevoSoat || '-';
-                    p.tecnomecanica = nuevaTecno || '-';
+                    p.soat = nuevoSoat || 'NO';
+                    p.tecnomecanica = nuevaTecno || 'NO';
                     if (nuevaFotoBase64) p.foto = nuevaFotoBase64; 
                     if (p.id === markerId) p.dir = nuevaDir;
                     if (p.marker) p.marker.setPopupContent(generarContenidoPopup(p, p.id));
@@ -1004,8 +1021,8 @@
             var valEdicionSeguro = valEdicion.replace(/"/g, '&quot;');
             var dirSegura = p.dir.replace(/"/g, '&quot;');
             var telSeguro = p.telefonos.replace(/"/g, '&quot;');
-            var valSoatSeguro = (p.soat || '-').replace(/"/g, '&quot;');
-            var valTecnoSeguro = (p.tecnomecanica || '-').replace(/"/g, '&quot;');
+            var valSoatSeguro = (p.soat || 'NO').replace(/"/g, '&quot;');
+            var valTecnoSeguro = (p.tecnomecanica || 'NO').replace(/"/g, '&quot;');
 
             return `
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
@@ -1013,7 +1030,7 @@
                         ${imgHtml}
                         <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span><br>
                         <b>Vehículo:</b> <span style="color:#000;">${vehiculoTexto}</span><br>
-                        <b>SOAT:</b> ${p.soat || '-'} | <b>Tecno:</b> ${p.tecnomecanica || '-'}<br>
+                        <b>SOAT:</b> ${p.soat || 'NO'} | <b>Tecno:</b> ${p.tecnomecanica || 'NO'}<br>
                         <b>Teléfonos:</b> ${p.telefonos}<br>
                         <b>Estado:</b> ${estadoPicoTxt}<br>
                         <b>Fecha:</b> ${p.fecha}<br>
@@ -1085,7 +1102,7 @@
             var esVisitada = visitas > 0;
 
             var customIcon = L.divIcon({
-                className: '', 
+                className: '', // Limpiamos clase por defecto
                 html: generarMarcadorProfesional(p.placa, esVisitada),
                 iconAnchor: [40, 35],
                 popupAnchor: [0, -35]
