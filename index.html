@@ -79,7 +79,7 @@
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta con Municipio (ej: CL 46 # 41, ITAGUI)">
+            <input type="text" id="manDir" placeholder="Dirección exacta con Municipio (ej: AV 40 C, BELLO)">
             <button class="action" onclick="procesarManual()">Agregar Punto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
         </div>
@@ -157,30 +157,33 @@
         }
 
         function eliminarEstaDireccion(markerId, placa) {
-            var item = puntosData.find(function(d) { return d.id === markerId; });
-            if (item) {
-                map.removeLayer(item.marker);
+            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
+            if (itemIndex !== -1) {
+                map.removeLayer(puntosData[itemIndex].marker);
+                puntosData.splice(itemIndex, 1);
                 alert("🗑️ Dirección eliminada correctamente.");
             }
         }
 
         function eliminarTodasDePlaca(placa) {
-            var eliminadas = 0;
+            var nuevasPuntos = [];
             puntosData.forEach(function(item) {
                 if (item.placa === placa) {
                     map.removeLayer(item.marker);
-                    eliminadas++;
+                } else {
+                    nuevasPuntos.push(item);
                 }
             });
+            puntosData = nuevasPuntos;
             delete placasRegistradas[placa];
-            alert("🗑️ Se eliminaron todas las ubicaciones (" + eliminadas + ") de la placa " + placa + ".");
+            alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        // COORDENADAS BASE DE MUNICIPIOS DE ANTIOQUIA
+        // COORDENADAS EXACTAS POR MUNICIPIO
         function obtenerCoordenadasPorMunicipio(textoDir) {
             var t = textoDir.toUpperCase();
-            if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
             if (t.includes('BELLO')) return {lat: 6.3355, lng: -75.5559};
+            if (t.includes('ITAGUI')) return {lat: 6.1848, lng: -75.6025};
             if (t.includes('ENVIGADO')) return {lat: 6.1696, lng: -75.5857};
             if (t.includes('SABANETA')) return {lat: 6.1513, lng: -75.6146};
             if (t.includes('COPACABANA')) return {lat: 6.3475, lng: -75.5078};
@@ -189,8 +192,10 @@
             if (t.includes('RIONEGRO')) return {lat: 6.1551, lng: -75.3737};
             if (t.includes('CHIGORODO')) return {lat: 8.0538, lng: -76.6738};
             if (t.includes('PEREIRA')) return {lat: 4.8133, lng: -75.6961};
-            // Por defecto Medellín con pequeña variación
-            return {lat: 6.2442 + (Math.random() - 0.5) * 0.05, lng: -75.5812 + (Math.random() - 0.5) * 0.05};
+            if (t.includes('FLORENCIA')) return {lat: 1.6144, lng: -75.6062};
+            if (t.includes('PEREIRA')) return {lat: 4.8133, lng: -75.6961};
+            // Valor predeterminado para Medellín centro
+            return {lat: 6.2442, lng: -75.5812};
         }
 
         var placasRegistradas = {};
@@ -226,6 +231,7 @@
                     puntosData.forEach(function(item) {
                         if (item.placa === placa) { map.removeLayer(item.marker); }
                     });
+                    puntosData = puntosData.filter(function(item) { return item.placa !== placa; });
                 }
                 placasRegistradas[placa] = true;
 
@@ -263,8 +269,8 @@
 
                 ubicacionesFinales.forEach(function(dir, index) {
                     var coords = obtenerCoordenadasPorMunicipio(dir);
-                    var lat = coords.lat + (index * 0.003);
-                    var lng = coords.lng + (index * 0.003);
+                    var lat = coords.lat + (index * 0.002);
+                    var lng = coords.lng + (index * 0.002);
 
                     var nuevoPunto = {
                         placa: placa,
@@ -286,7 +292,7 @@
             });
 
             if (totalAgregados > 0) {
-                alert("🚀 ¡Lote procesado! Se agregaron " + totalAgregados + " vehículos correctamente en sus municipios reales.");
+                alert("🚀 ¡Lote procesado! Se agregaron " + totalAgregados + " vehículos en sus ubicaciones reales.");
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
             } else {
@@ -303,6 +309,7 @@
                 puntosData.forEach(function(item) {
                     if (item.placa === placa) { map.removeLayer(item.marker); }
                 });
+                puntosData = puntosData.filter(function(item) { return item.placa !== placa; });
             }
 
             placasRegistradas[placa] = true;
@@ -330,6 +337,7 @@
                 puntosData.forEach(function(item) {
                     if (item.placa === placa) { map.removeLayer(item.marker); }
                 });
+                puntosData = puntosData.filter(function(item) { return item.placa !== placa; });
             }
 
             placasRegistradas[placa] = true;
