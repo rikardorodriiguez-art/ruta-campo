@@ -95,7 +95,6 @@
             <b>Subir o tomar foto:</b>
             <input type="file" id="inputFile" accept="image/*" style="font-size:10px; margin-top:4px;">
             <input type="text" id="txtPlacaFoto" placeholder="Escribir placa">
-            <!-- AQUÍ AGREGAMOS EL CAMPO DE DIRECCIÓN QUE FALTABA -->
             <input type="text" id="txtDirFoto" placeholder="Dirección exacta (ej: Calle 10 # 43-20)">
             <button class="action" onclick="procesarFoto()">Guardar con Foto</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
@@ -246,7 +245,6 @@
             alert("🗑️ Se eliminaron todas las ubicaciones de la placa " + placa + ".");
         }
 
-        // Limpieza y formateo avanzado usando la precisión de GOOGLE MAPS
         async function obtenerCoordenadasExactasLimpias(dir) {
             var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ')
                                .replace(/KR\s*|CR\s*/gi, 'Carrera ')
@@ -254,7 +252,6 @@
                                .replace(/-/g, ' ');
             var query = dirLimpia + ", Medellin, Antioquia, Colombia";
             
-            // Usamos tu clave de Google Maps para precisión milimétrica real
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
             var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
             
@@ -269,7 +266,6 @@
                 console.log("Error de red con Google Maps");
             }
             
-            // Respaldo inteligente si la API falla o no encuentra
             var t = dir.toUpperCase();
             if (t.includes('BELEN') || t.includes('RINCON') || t.includes('CL 2')) return {lat: 6.2185, lng: -75.6020};
             if (t.includes('POBLADO')) return {lat: 6.2088, lng: -75.5670};
@@ -414,8 +410,8 @@
 
                 for (let [index, dir] of ubicacionesFinales.entries()) {
                     var coords = await obtenerCoordenadasExactasLimpias(dir);
-                    var lat = coords.lat; // Coordenada real y exacta sin sumar nada
-                    var lng = coords.lng; // Coordenada real y exacta sin sumar nada
+                    var lat = coords.lat; 
+                    var lng = coords.lng; 
 
                     var nuevoPunto = {
                         placa: placa,
@@ -449,11 +445,11 @@
 
         async function procesarFoto() {
             var placa = document.getElementById('txtPlacaFoto').value.toUpperCase();
-            var dir = document.getElementById('txtDirFoto').value; // Saca la dirección que escribas
+            var dir = document.getElementById('txtDirFoto').value; 
 
             if(!placa || !dir) { alert("Por favor escribe la placa y la dirección."); return; }
 
-            document.getElementById('loading-overlay').style.display = 'flex'; // Pantalla de carga
+            document.getElementById('loading-overlay').style.display = 'flex'; 
 
             if(placasRegistradas[placa]) {
                 var nuevasPuntos = [];
@@ -469,7 +465,6 @@
 
             placasRegistradas[placa] = true;
             
-            // ¡Ya no dice "Medellin"! Ahora usa la dirección real conectada a Google Maps
             var coords = await obtenerCoordenadasExactasLimpias(dir);
             
             var nuevoPunto = {
@@ -481,7 +476,7 @@
                 telefonos: "N/A", 
                 lat: coords.lat, 
                 lng: coords.lng, 
-                dir: dir, // Guarda la dirección que escribiste
+                dir: dir, 
                 fecha: new Date().toISOString().split('T')[0]
             };
 
@@ -540,23 +535,18 @@
                 
                 var pasaFiltroEstado = false;
                 
-                // Si "Ver todas" está marcado, mostramos todo sin importar lo demás
                 if (verTodas) {
                     pasaFiltroEstado = true;
                 } else {
-                    // Si no está "Ver todas", evaluamos Pico y Placa / Subidas Hoy
                     if (verPico && item.pico) pasaFiltroEstado = true;
                     if (verHoy && item.esHoy) pasaFiltroEstado = true;
-                    // Si un punto no es pico ni es hoy, y "Ver todas" está apagado, se oculta
                 }
 
                 if (coincideBusqueda && pasaFiltroEstado) {
-                    // Verificamos que el marcador no esté ya en el mapa antes de agregarlo
                     if (!map.hasLayer(item.marker)) {
                         map.addLayer(item.marker);
                     }
                 } else {
-                    // Lo removemos del mapa si no cumple las condiciones
                     if (map.hasLayer(item.marker)) {
                         map.removeLayer(item.marker);
                     }
@@ -566,12 +556,14 @@
 
         var hoyStr = new Date().toISOString().split('T')[0];
         var diaSemana = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+        
+        // REGLAS DE PICO Y PLACA ACTUALIZADAS (2026 - SEMESTRE 2)
         var reglasPico = {
-            0: ['0', '2'],
-            1: ['1', '4'],
-            2: ['8', '9'],
-            3: ['3', '6'],
-            4: ['5', '7']
+            0: ['5', '8'], // Lunes
+            1: ['1', '4'], // Martes
+            2: ['0', '2'], // Miércoles
+            3: ['3', '6'], // Jueves
+            4: ['7', '9']  // Viernes
         };
 
         function tienePicoYPlaca(placa) {
@@ -648,3 +640,4 @@
     </script>
 </body>
 </html>
+
