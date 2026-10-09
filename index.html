@@ -14,7 +14,6 @@
         html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* BOTONES FLOTANTES Y PANELES MANTIENEN SU ESTILO 3D MODERNO */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
             background: linear-gradient(145deg, #34495e, #1a252f); color: white; border: none; padding: 14px 22px;
@@ -123,7 +122,7 @@
         
         .leaflet-div-icon { background: transparent; border: none; }
 
-        /* ESTILOS DEL NUEVO RADAR SÚPER COMPACTO Y NO INTRUSIVO */
+        /* ESTILOS DEL RADAR SÚPER COMPACTO Y NO INTRUSIVO */
         #panel-cercano {
             position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 360px;
             background: rgba(26, 37, 47, 0.95); border: 1.5px solid #00ff87; border-radius: 10px;
@@ -144,7 +143,6 @@
 <body>
     <div id="map"></div>
 
-    <!-- EL NUEVO PANEL SÚPER COMPACTO DEL VEHÍCULO MÁS CERCANO -->
     <div id="panel-cercano">
         <div class="radar-top-row">
             <div class="radar-placa">🚨 <span id="cercano-placa"></span><span id="cercano-dist" class="radar-dist"></span></div>
@@ -201,7 +199,7 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa, deja dirección vacía y sube foto.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa y Vehículo, deja dirección vacía y sube foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
@@ -257,7 +255,6 @@
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // CONFIGURACIÓN DE UBICACIÓN ACTIVA (GPS)
         var locateControl = L.control.locate({
             position: 'topleft',
             strings: { title: "Mi ubicación actual" },
@@ -269,7 +266,6 @@
         var placasRegistradas = {};
         var puntosData = [];
         
-        // VARIABLES GLOBALES
         var actualPlacaFuerza = "";
         var actualMarcaFuerza = "";
         var actualLineaFuerza = "";
@@ -278,7 +274,6 @@
         var actualSoatFuerza = "";
         var actualTecnoFuerza = "";
         
-        // VARIABLES DEL RADAR
         var userLat = null;
         var userLng = null;
         var placaMasCercanaObj = null;
@@ -298,7 +293,6 @@
             return R * c * 1000; 
         }
 
-        // LÓGICA DEL RADAR SÚPER COMPACTO
         function actualizarPanelCercano() {
             if (!userLat || !userLng || puntosData.length === 0) {
                 document.getElementById('panel-cercano').style.display = 'none';
@@ -327,10 +321,10 @@
                 document.getElementById('cercano-placa').innerText = puntoCercano.placa;
                 document.getElementById('cercano-dist').innerText = '(' + distStr + ')';
                 
-                // Unir Vehículo y Línea
                 var v = [];
                 if (puntoCercano.marca && puntoCercano.marca !== '-') v.push(puntoCercano.marca);
                 if (puntoCercano.linea && puntoCercano.linea !== '-') v.push(puntoCercano.linea);
+                if (puntoCercano.modelo && puntoCercano.modelo !== '-') v.push(puntoCercano.modelo);
                 var vehStr = v.length > 0 ? v.join(' ') : 'Vehículo N/A';
                 
                 var soatStr = puntoCercano.soat || 'NO';
@@ -343,7 +337,6 @@
             }
         }
 
-        // BOTÓN "IR" QUE ABRE MAPS DIRECTO
         function irCercanoMaps() {
             if (placaMasCercanaObj) {
                 var urlMaps = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(placaMasCercanaObj.dir);
@@ -371,38 +364,38 @@
                    '</div>';
         }
 
-        function limpiarCampoFiltro(texto) {
-            if(!texto) return "-";
-            var limpio = texto.replace(/[:\-;]/g, '').trim();
-            limpio = limpio.split(/\s+(TEL|CEL|DIR|UBIC|ESTRELLA|MEDELLIN|BELLO|ITAGUI|SABANETA|SOAT|TECNO|RTM|MODELO|COLOR)/i)[0].trim();
-            if (limpio.length > 30) limpio = limpio.substring(0, 30).trim();
-            return limpio || "-";
-        }
-
+        // EXTRACTOR ROBUSTO Y SEGURO (RECUPERADO Y MEJORADO)
         function extraerInfoVehiculoUniversal(texto) {
             var m = "-", l = "-", mod = "-", c = "-", s = "NO", t = "NO";
             var lineas = texto.split('\n');
             
             for (var i = 0; i < lineas.length; i++) {
-                var linea = lineas[i].toUpperCase();
+                var lText = lineas[i].trim();
+                var up = lText.toUpperCase();
                 
-                if (m === "-" && /(MARCA|VEHICULO|VEHÍCULO)/.test(linea)) {
-                    m = limpiarCampoFiltro(linea.replace(/.*(MARCA|VEHICULO|VEHÍCULO)/, ''));
+                if (m === "-" && (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO") || up.includes("CLASE"))) {
+                    var val = lText.replace(/.*(MARCA|VEHICULO|VEHÍCULO|CLASE)\s*[:\-]?\s*/i, '').trim();
+                    if(val) m = val.split(/\s{2,}/)[0];
                 }
-                if (l === "-" && /(CLASE|LÍNEA|LINEA)/.test(linea)) {
-                    l = limpiarCampoFiltro(linea.replace(/.*(CLASE|LÍNEA|LINEA)/, ''));
+                if (l === "-" && (up.includes("LÍNEA") || up.includes("LINEA"))) {
+                    var val = lText.replace(/.*(LÍNEA|LINEA)\s*[:\-]?\s*/i, '').trim();
+                    if(val) l = val.split(/\s{2,}/)[0];
                 }
-                if (mod === "-" && /MODELO/.test(linea)) {
-                    mod = limpiarCampoFiltro(linea.replace(/.*MODELO/, ''));
+                if (mod === "-" && up.includes("MODELO")) {
+                    var val = lText.replace(/.*MODELO\s*[:\-]?\s*/i, '').trim();
+                    if(val) mod = val.split(/\s{2,}/)[0];
                 }
-                if (c === "-" && /COLOR/.test(linea)) {
-                    c = limpiarCampoFiltro(linea.replace(/.*COLOR/, ''));
+                if (c === "-" && up.includes("COLOR")) {
+                    var val = lText.replace(/.*COLOR\s*[:\-]?\s*/i, '').trim();
+                    if(val) c = val.split(/\s{2,}/)[0];
                 }
-                if (s === "NO" && /(SOAT|SEGURO)/.test(linea)) {
-                    s = limpiarCampoFiltro(linea.replace(/.*(SOAT|SEGURO)/, ''));
+                if (s === "NO" && (up.includes("SOAT") || up.includes("SEGURO"))) {
+                    var val = lText.replace(/.*(SOAT|SEGURO)\s*[:\-]?\s*/i, '').trim();
+                    if(val) s = val.split(/\s{2,}/)[0];
                 }
-                if (t === "NO" && /(TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISIÓN|REVISION)/.test(linea)) {
-                    t = limpiarCampoFiltro(linea.replace(/.*(TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISIÓN|REVISION)/, ''));
+                if (t === "NO" && (up.includes("TECNO") || up.includes("RTM") || up.includes("REVISIÓN") || up.includes("REVISION"))) {
+                    var val = lText.replace(/.*(TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISIÓN|REVISION)\s*[:\-]?\s*/i, '').trim();
+                    if(val) t = val.split(/\s{2,}/)[0];
                 }
             }
             return { marca: m, linea: l, modelo: mod, color: c, soat: s, tecnomecanica: t };
@@ -960,8 +953,8 @@
             var coords = await obtenerCoordenadasExactasLimpias(dir);
 
             var nuevoPunto = {
-                placa: placa, marca: window.actualMarcaFuerza, linea: window.actualLineaFuerza, modelo: window.actualModeloFuerza, color: window.actualColorFuerza, telefonos: "-", 
-                soat: window.actualSoatFuerza, tecnomecanica: window.actualTecnoFuerza,
+                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-", 
+                soat: msoat, tecnomecanica: mtecno,
                 lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: fotoBase64
             };
 
