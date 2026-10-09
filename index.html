@@ -62,7 +62,7 @@
         }
 
         #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
             z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 15px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column;
         }
 
@@ -102,14 +102,14 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Para Manual: escribe Placa, Dirección y más.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Para Foto de CIFIN/RUNT: Escribe solo la Placa y sube la captura de la tabla abajo.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Para Foto de CIFIN/RUNT (2026 Vigentes): Escribe solo la Placa y sube la captura de la tabla abajo.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (ej: XYZ123)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta (Dejar en blanco para Escaneo)">
+            <input type="text" id="manDir" placeholder="Dirección exacta (Dejar vacío para escanear foto)">
             
             <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Carro / Foto de CIFIN-Reporte:</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
@@ -442,44 +442,62 @@
                     loadingTexto.innerText = "🎯 Aplicando filtros inteligentes en Google Maps...";
                     
                     var lineas = text.split('\n');
-                    var direccionesEncontradas = [];
+                    var direccionesVigentes2026 = [];
+                    var direccionesCualquiera = [];
 
                     // Extraer los 2 primeros celulares que inicien con 3 (10 dígitos)
                     var telsMatch = text.match(/3[0-9]{9}/g);
                     var celularesExtract = telsMatch ? telsMatch.slice(0, 2).join(', ') : "-";
 
-                    // Procesar líneas buscando direcciones que tengan año 2026 (/26) y estén Activas (SI)
+                    // Procesar líneas buscando direcciones de Medellín y alrededores
                     lineas.forEach(function(l) {
                         var dirLimpia = l.trim().replace(/\s+/g, ' ');
                         var up = dirLimpia.toUpperCase();
                         
-                        // Validar que sea una dirección y contenga el año '26' o '2026' y 'SI'
+                        // Reconocer nomenclaturas de Colombia
                         if ((/(\b(CL|KR|CR|TR|TV|AV|KM|CLL|CARRERA|CALLE|TRANSVERSAL|AVENIDA|DG|DIAG|DIAGONAL|LAB|RES)\b)/i.test(up) || up.includes("#")) && up.length > 5) {
-                            if (up.includes("SI") && (up.includes("26") || up.includes("2026"))) {
-                                if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE") && !up.includes("ACTIVO") && !up.includes("CÓDIGO") && !up.includes("CLIENTE") && !up.includes("HISTÓRICOS") && !up.includes("CELULAR") && !up.includes("NO. DE") && !up.includes("PRIMER") && !up.includes("ÚLTIMO") && !up.includes("CONTEO") && !up.includes("EST ") && !up.includes("BÁSICA")) {
-                                    
-                                    // Limpieza rápida de datos innecesarios a la derecha de la dirección
-                                    var corte = dirLimpia.match(/(CL\s*\d+|KR\s*\d+|CARRERA\s*\d+|CALLE\s*\d+|KM\s*\d+|TRANSVERSAL\s*\d+|AV\s*\d+|AVENIDA\s*\d+|DG\s*\d+|DIAG\s*\d+).*?(\d+-\d+|\d+\s*A\s*#|\s*#\s*\d+)/i);
-                                    var dirFiltrada = corte ? corte[0] : dirLimpia;
-                                    
-                                    // Conservar el municipio si el OCR lo pegó
-                                    if (up.includes("MEDELLIN")) dirFiltrada += ", Medellin";
-                                    else if (up.includes("COPACABANA")) dirFiltrada += ", Copacabana";
-                                    else if (up.includes("ITAGUI")) dirFiltrada += ", Itagui";
-                                    else if (up.includes("ENVIGADO")) dirFiltrada += ", Envigado";
-                                    else if (up.includes("BELLO")) dirFiltrada += ", Bello";
+                            if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE") && !up.includes("ACTIVO") && !up.includes("CÓDIGO") && !up.includes("CLIENTE") && !up.includes("HISTÓRICOS") && !up.includes("CELULAR") && !up.includes("NO. DE") && !up.includes("PRIMER") && !up.includes("ÚLTIMO") && !up.includes("CONTEO") && !up.includes("EST ") && !up.includes("BÁSICA")) {
+                                
+                                // Limpieza rápida de datos a la derecha de la dirección
+                                var corte = dirLimpia.match(/(CL\s*\d+|KR\s*\d+|CARRERA\s*\d+|CALLE\s*\d+|KM\s*\d+|TRANSVERSAL\s*\d+|AV\s*\d+|AVENIDA\s*\d+|DG\s*\d+|DIAG\s*\d+).*?(\d+-\d+|\d+\s*A\s*#|\s*#\s*\d+)/i);
+                                var dirFiltrada = corte ? corte[0] : dirLimpia;
+                                
+                                // Conservar municipio si el OCR lo pegó
+                                if (up.includes("MEDELLIN")) dirFiltrada += ", Medellin";
+                                else if (up.includes("COPACABANA")) dirFiltrada += ", Copacabana";
+                                else if (up.includes("ITAGUI")) dirFiltrada += ", Itagui";
+                                else if (up.includes("ENVIGADO")) dirFiltrada += ", Envigado";
+                                else if (up.includes("BELLO")) dirFiltrada += ", Bello";
+                                else if (up.includes("LA ESTRELLA")) dirFiltrada += ", La Estrella";
 
-                                    direccionesEncontradas.push(dirFiltrada);
+                                // Guardar como dirección cualquiera
+                                direccionesCualquiera.push(dirFiltrada);
+
+                                // Validar estricto: año '26' o '2026' y 'SI', 'S1', 'SL', 'S|', 'S!' (Frecuentes en OCR de Datacrédito)
+                                var esVigente = (up.includes("26") || up.includes("2026")) && 
+                                                (up.includes("SI") || up.includes("S1") || up.includes("SL") || up.includes("S|") || up.includes("S!"));
+                                
+                                if (esVigente) {
+                                    direccionesVigentes2026.push(dirFiltrada);
                                 }
                             }
                         }
                     });
 
-                    // Limitar estrictamente a las 3 primeras que cumplan
-                    var ubicacionesFinales = direccionesEncontradas.slice(0, 3);
+                    // SISTEMA MULTITIER: Si no halla vigentes estrictas (por culpa del OCR), halla cualquiera
+                    var ubicacionesFinales = [];
+                    var alertaFiltroText = "";
+
+                    if (direccionesVigentes2026.length > 0) {
+                        ubicacionesFinales = direccionesVigentes2026.slice(0, 3); // Máximo 3 de 2026
+                        alertaFiltroText = "Se ubicaron las direcciones vigentes (2026 activas) de la placa: " + placa;
+                    } else if (direccionesCualquiera.length > 0) {
+                        ubicacionesFinales = direccionesCualquiera.slice(0, 3); // Máximo 3 genéricas
+                        alertaFiltroText = "⚠️ No encontramos filtros 2026 (SI) legibles. En su lugar, se extrajeron " + ubicacionesFinales.length + " ubicaciones encontradas para la placa: " + placa;
+                    }
 
                     if (ubicacionesFinales.length === 0) {
-                        alert("⚠️ No encontramos direcciones activas de 2026. Prueba registrando manualmente.");
+                        alert("⚠️ No fue posible leer direcciones en la captura. Prueba con una imagen más nítida o escribe la dirección manual.");
                         loadingOverlay.style.display = 'none';
                         return;
                     }
@@ -492,13 +510,13 @@
                     for (let [index, d] of ubicacionesFinales.entries()) {
                         var coords = await obtenerCoordenadasExactasLimpias(d);
                         var nuevoPunto = {
-                            placa: placa, marca: "REPORTE OCR 2026 (SI)", linea: "-", modelo: "-", color: "-", telefonos: celularesExtract,
+                            placa: placa, marca: "REPORTE OCR", linea: "-", modelo: "-", color: "-", telefonos: celularesExtract,
                             lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
                         };
                         agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
                     }
 
-                    alert("🚀 ¡Procesado con éxito! Se ubicaron las direcciones vigentes (2026 activas) para la placa " + placa);
+                    alert("🚀 " + alertaFiltroText);
                     document.getElementById('manPlaca').value = '';
                     fileInput.value = '';
                     loadingOverlay.style.display = 'none';
