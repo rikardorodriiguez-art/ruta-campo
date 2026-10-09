@@ -187,7 +187,13 @@
         var puntoEnEdicionId = null;
         var placasRegistradas = {};
         var puntosData = [];
+        
+        // Variables globales para rescatar datos si falla el OCR
         var actualPlacaFuerza = "";
+        var actualMarcaFuerza = "";
+        var actualLineaFuerza = "";
+        var actualModeloFuerza = "";
+        var actualColorFuerza = "";
 
         map.on('click', function(e) {
             if (puntoEnEdicionId) {
@@ -347,7 +353,20 @@
                 return { lat: parseFloat(matchCoord[1]), lng: parseFloat(matchCoord[2]) };
             }
 
-            var query = dir + ", Colombia"; 
+            var t = dir.toUpperCase();
+            var centroMunicipio = null;
+            if (t.includes('BELLO')) centroMunicipio = {lat: 6.3373, lng: -75.5580};
+            else if (t.includes('ITAGUI') || t.includes('ITAGÜÍ')) centroMunicipio = {lat: 6.1846, lng: -75.5991};
+            else if (t.includes('ENVIGADO')) centroMunicipio = {lat: 6.1696, lng: -75.5857};
+            else if (t.includes('SABANETA')) centroMunicipio = {lat: 6.1515, lng: -75.6166};
+            else if (t.includes('LA ESTRELLA') || t.includes('ESTRELLA')) centroMunicipio = {lat: 6.1583, lng: -75.6444};
+            else if (t.includes('COPACABANA')) centroMunicipio = {lat: 6.3463, lng: -75.5089};
+            else if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) centroMunicipio = {lat: 4.6097, lng: -74.0817};
+            else if (t.includes('CALI')) centroMunicipio = {lat: 3.4516, lng: -76.5320};
+
+            var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ').replace(/KR\s*|CR\s*/gi, 'Carrera ').replace(/#/g, ' ').replace(/-/g, ' ');
+            var query = dirLimpia + ", Antioquia, Colombia"; 
+            
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
             var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
             
@@ -356,9 +375,20 @@
                 var data = await response.json();
                 if (data.status === "OK" && data.results.length > 0) {
                     var location = data.results[0].geometry.location;
-                    return { lat: parseFloat(location.lat), lng: parseFloat(location.lng) };
+                    var latRes = parseFloat(location.lat);
+                    var lngRes = parseFloat(location.lng);
+                    
+                    if (centroMunicipio) {
+                        if (Math.abs(latRes - centroMunicipio.lat) > 0.06) {
+                            return centroMunicipio;
+                        }
+                    }
+                    return { lat: latRes, lng: lngRes };
                 }
             } catch(e) { console.log("Error Google Maps"); }
+
+            if (centroMunicipio) return centroMunicipio;
+            if (t.includes('MEDELLIN') || t.includes('MEDELLÍN')) return {lat: 6.2442, lng: -75.5812};
             
             return {lat: 6.2442, lng: -75.5812}; 
         }
@@ -427,7 +457,12 @@
             loadingOverlay.style.display = 'flex';
 
             var placaMatch = texto.match(/PLACA:\s*([A-Za-z0-9]+)/i);
+            var vehMatch = texto.match(/(?:VEH[IÍ]CULO|MARCA):\s*([^\n]+)/i);
+            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
+            
             var placa = placaMatch ? placaMatch[1].toUpperCase().trim() : "";
+            var vehiculo = vehMatch ? vehMatch[1].trim() : "-";
+            var celulares = telsMatch ? telsMatch[1].trim() : "-";
             
             if(!placa) {
                 placa = prompt("Por favor ingresa la placa para esta ruta:").toUpperCase();
@@ -446,9 +481,6 @@
                 puntosData = nuevasPuntos;
             }
             placasRegistradas[placa] = true;
-
-            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
-            var celulares = telsMatch ? telsMatch[1].trim() : "-";
 
             var lineas = texto.split('\n');
             var direcciones = [];
@@ -469,7 +501,7 @@
             for (let [index, dir] of direcciones.entries()) {
                 var coords = await obtenerCoordenadasExactasLimpias(dir);
                 var nuevoPunto = {
-                    placa: placa, marca: "EXTRACCIÓN IA GEMINI", linea: "-", modelo: "-", color: "-", telefonos: celulares,
+                    placa: placa, marca: vehiculo, linea: "-", modelo: "-", color: "-", telefonos: celulares,
                     lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
                 };
                 agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -522,11 +554,13 @@
                 }
                 placasRegistradas[placa] = true;
 
-                var marca = "VEHÍCULO", linea = "-", modelo = "-", color = "-";
+                var marca = "-", linea = "-", modelo = "-", color = "-";
                 var lineas = bloque.split('\n');
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
-                    if (up.includes("MARCA:")) marca = l.replace(/Marca:/i, '').trim();
+                    if (up.includes("MARCA:") || up.includes("VEHÍCULO:") || up.includes("VEHICULO:")) {
+                        marca = l.replace(/MARCA:|VEH[IÍ]CULO:/i, '').trim();
+                    }
                     if (up.includes("LÍNEA:") || up.includes("LINEA:")) linea = l.replace(/Línea:|Linea:/i, '').trim();
                     if (up.includes("MODELO:")) modelo = l.replace(/Modelo:/i, '').trim();
                     if (up.includes("COLOR:")) color = l.replace(/Color:/i, '').trim();
@@ -578,7 +612,13 @@
             var fotoBase64 = null;
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
+            
+            // Guardar en variables globales en caso de necesitar "Modal Rescate"
             actualPlacaFuerza = placa;
+            window.actualMarcaFuerza = marca;
+            window.actualLineaFuerza = linea;
+            window.actualModeloFuerza = modelo;
+            window.actualColorFuerza = color;
 
             if (!dir && fileInput.files && fileInput.files[0]) {
                 var loadingOverlay = document.getElementById('loading-overlay');
@@ -653,7 +693,7 @@
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta o coordenadas."); return; }
+            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o link de Maps."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
@@ -692,13 +732,18 @@
             });
 
             var placa = actualPlacaFuerza || "RAPTOR";
+            var marca = window.actualMarcaFuerza || "-";
+            var linea = window.actualLineaFuerza || "-";
+            var modelo = window.actualModeloFuerza || "-";
+            var color = window.actualColorFuerza || "-";
+
             if (placasRegistradas[placa]) eliminarTodasDePlaca(placa);
             placasRegistradas[placa] = true;
 
             for (let d of ubiFinales.slice(0, 3)) {
                 var coords = await obtenerCoordenadasExactasLimpias(d);
                 var nuevoPunto = {
-                    placa: placa, marca: "REPORTE", linea: "-", modelo: "-", color: "-", telefonos: "-",
+                    placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-",
                     lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
                 };
                 agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -768,9 +813,9 @@
             if (itemIndex === -1) return;
 
             var placaEditada = puntosData[itemIndex].placa;
-            var nuevoVehiculo = document.getElementById('edit-vehiculo-' + markerId).value;
-            var nuevosTels = document.getElementById('edit-telefonos-' + markerId).value;
-            var nuevaDir = document.getElementById('edit-dir-' + markerId).value;
+            var nuevoVehiculo = document.getElementById('edit-vehiculo-' + markerId).value.trim();
+            var nuevosTels = document.getElementById('edit-telefonos-' + markerId).value.trim();
+            var nuevaDir = document.getElementById('edit-dir-' + markerId).value.trim();
             var fileInput = document.getElementById('upload-foto-' + markerId);
             
             var nuevaFotoBase64 = puntosData[itemIndex].foto;
@@ -780,7 +825,10 @@
 
             puntosData.forEach(function(p) {
                 if (p.placa === placaEditada) {
-                    p.marca = nuevoVehiculo; 
+                    p.marca = nuevoVehiculo || '-'; 
+                    p.linea = '-'; // Limpiamos para no duplicar al concatenar en futuras ediciones
+                    p.modelo = '-';
+                    p.color = '-';
                     p.telefonos = nuevosTels; 
                     if (nuevaFotoBase64) p.foto = nuevaFotoBase64; 
                     if (p.id === markerId) p.dir = nuevaDir;
@@ -799,12 +847,14 @@
             
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
 
-            // Construir texto de vehículo de manera segura
-            var vehiculoTexto = (p.marca && p.marca !== '-' ? p.marca : '') + 
-                                (p.linea && p.linea !== '-' ? ' ' + p.linea : '') + 
-                                (p.modelo && p.modelo !== '-' ? ' ' + p.modelo : '') + 
-                                (p.color && p.color !== '-' ? ' (' + p.color + ')' : '');
-            if (!vehiculoTexto.trim()) vehiculoTexto = '-';
+            // LÓGICA CORREGIDA Y DEFINITIVA PARA MOSTRAR LA MARCA DEL VEHÍCULO
+            var vehiculoStr = [];
+            if (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO' && p.marca !== 'REPORTE OCR' && p.marca !== 'REPORTE') vehiculoStr.push(p.marca);
+            if (p.linea && p.linea !== '-') vehiculoStr.push(p.linea);
+            if (p.modelo && p.modelo !== '-') vehiculoStr.push(p.modelo);
+            if (p.color && p.color !== '-') vehiculoStr.push('(' + p.color + ')');
+            
+            var vehiculoTexto = vehiculoStr.length > 0 ? vehiculoStr.join(' ') : '-';
 
             return `
                 <div style="font-family: Arial; font-size: 13px; width: 240px;">
@@ -843,7 +893,7 @@
                         <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
                         
                         <label style="font-size:11px; font-weight:bold;">Vehículo / Detalles:</label>
-                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${p.marca}">
+                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${vehiculoTexto !== '-' ? vehiculoTexto : ''}">
                         
                         <label style="font-size:11px; font-weight:bold;">Teléfonos:</label>
                         <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${p.telefonos}">
@@ -893,4 +943,3 @@
     </script>
 </body>
 </html>
-
