@@ -74,8 +74,7 @@
 
         .leaflet-popup-content { margin: 10px; line-height: 1.4; }
         .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
-        .edit-input { width: 100%
-        margin-bottom: 4px; padding: 3px; font-size: 12px; border: 1px solid #aaa; border-radius: 3px; box-sizing: border-box; }
+        .edit-input { width: 100%; margin-bottom: 4px; padding: 3px; font-size: 12px; border: 1px solid #aaa; border-radius: 3px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -108,7 +107,7 @@
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
         <button class="main-opt" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
-        <button class="main-opt" onclick="abrirSeccion('manual')" style="background-color: #8e44ad; color: white;">2. ✍️/📄 Ingreso manual o Foto</button>
+        <button class="main-opt" onclick="abrirSeccion('manual')" style="background-color: #8e44ad; color: white;">2. ✍️/📄 Ingreso manual / Link Maps / Foto</button>
         <button class="main-opt" onclick="abrirSeccion('gemini')" style="background-color: #27ae60; color: white;">3. ⚡ Pegar Extracción de Gemini (IA)</button>
 
         <div id="seccion-whatsapp" class="sub-panel">
@@ -119,17 +118,16 @@
         </div>
 
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe la Placa, deja dirección vacía y sube la foto.</b>
+            <b style="font-size: 11px; color:#2980b9;">Ingresa Placa y Dirección, o pega tu Link de Google Maps:</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
             <input type="text" id="manLinea" placeholder="Línea">
             <input type="text" id="manModelo" placeholder="Modelo">
             <input type="text" id="manColor" placeholder="Color">
-            <input type="text" id="manDir" placeholder="Dirección exacta o Link Maps">
+            <input type="text" id="manDir" placeholder="Dirección exacta (ej: Itagui) o Link Maps">
             
-            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Reporte (Datacrédito/CIFIN):</b>
+            <b style="font-size: 10px; margin-top: 8px; display: block;">Adjuntar Foto de Reporte (Opcional):</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:10px; margin-top:4px;">
             <button class="action" onclick="procesarManual()" style="background-color: #8e44ad;">Procesar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
@@ -305,15 +303,38 @@
             });
         }
 
+        // LÓGICA DE GEOLOCALIZACIÓN CON SOPORTE DE LINKS DE GOOGLE MAPS Y CIUDADES INDEPENDIENTES
         async function obtenerCoordenadasExactasLimpias(dir) {
-            var coordRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
-            if (coordRegex.test(dir.trim())) {
-                var match = dir.trim().match(coordRegex);
-                return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+            dir = dir.trim();
+
+            // 1. Si pegan un link de Google Maps (ej: https://maps.app.goo.gl/...)
+            if (dir.includes("maps.app.goo.gl") || dir.includes("goo.gl/maps") || dir.includes("google.com/maps")) {
+                try {
+                    // Extraer coordenadas si ya vienen en el link (ej: @6.18,-75.59)
+                    var coordMatch = dir.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (coordMatch) {
+                        return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+                    }
+                    // Si es link corto, intentamos resolverlo
+                    var res = await fetch(dir, { method: 'HEAD', redirect: 'follow' });
+                    var finalUrl = res.url;
+                    var matchUrl = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (matchUrl) {
+                        return { lat: parseFloat(matchUrl[1]), lng: parseFloat(matchUrl[2]) };
+                    }
+                } catch(e) { console.log("No se pudo expandir el link de Maps automáticamente, usando dirección textual"); }
             }
 
+            // 2. Soporte si pegan coordenadas numéricas directas (lat, lng)
+            var coordRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
+            if (coordRegex.test(dir)) {
+                var matchCoord = dir.match(coordRegex);
+                return { lat: parseFloat(matchCoord[1]), lng: parseFloat(matchCoord[2]) };
+            }
+
+            // 3. Geocodificación estándar con ciudades independientes estrictas
             var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ').replace(/KR\s*|CR\s*/gi, 'Carrera ').replace(/#/g, ' ').replace(/-/g, ' ');
-            var query = dirLimpia + ", Colombia"; 
+            var query = dirLimpia + ", Antioquia, Colombia"; 
             
             var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
             var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
@@ -327,6 +348,7 @@
                 }
             } catch(e) { console.log("Error Google Maps"); }
             
+            // 4. Catálogo independiente de municipios (Evita que se confundan)
             var t = dir.toUpperCase();
             if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) return {lat: 4.6097, lng: -74.0817};
             if (t.includes('BUCARAMANGA')) return {lat: 7.1254, lng: -73.1198};
@@ -562,7 +584,6 @@
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
             actualPlacaFuerza = placa;
 
-            // SI HAY FOTO DE REPORTE Y NO DIR -> ESCANEO OCR
             if (!dir && fileInput.files && fileInput.files[0]) {
                 var loadingOverlay = document.getElementById('loading-overlay');
                 var loadingTexto = document.getElementById('loading-texto');
@@ -636,7 +657,7 @@
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta o sube una foto de reporte sin dirección."); return; }
+            if(!dir) { alert("Ingresa la dirección exacta, coordenadas o pega un Link de Google Maps."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
@@ -811,7 +832,7 @@
                         
                         <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #f8d7da; padding: 6px; border-radius: 4px;">
                             <button onclick="eliminarEstaDireccion('${markerId}')" style="background-color: #d9534f; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; margin-bottom: 4px;">❌ Borrar esta</button>
-                            <button onclick="eliminarTodasDePlaca('${p.placa}')" style="background-color: #721c24; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 11px;">🗑️ Borrar TODAS</button>
+                            <button onclick="eliminarTodasDePlaca('${p.placa}')" style="background-color: #721c24; color: white; border: none; padding: 5px; width: 100%; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold;">🗑️ Borrar TODAS</button>
                         </div>
                     </div>
 
@@ -869,4 +890,3 @@
     </script>
 </body>
 </html>
-
