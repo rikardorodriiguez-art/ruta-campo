@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.4</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.5</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -810,6 +810,7 @@
             <b style="color: #2c3e50; font-size: 14px;">Opciones de Carga:</b>
             <button onclick="cerrarMenuAdd()">✖</button>
         </div>
+        <button class="main-opt" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:white; font-weight:bold; margin-bottom:8px; border:1px solid #38bdf8;" onclick="abrirCentroRecuperacion()">🛡️ Recuperar Trabajo / Historial</button>
         <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto (WhatsApp)</button>
         <button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual completo</button>
         <button class="main-opt mo-maps" onclick="abrirSeccion('link-maps')">3. 🧭 Agregar por Link de Google Maps</button>
@@ -3499,12 +3500,68 @@
             }
         ];
 
+        function escanearTodasLasFuentesLocales() {
+            var candidatos = [];
+            var clavesPosibles = [
+                'puntos_ubica_rick_guardados',
+                'puntos_raptor_guardados',
+                'backup_seguridad_puntos_permanente',
+                'puntos_guardados',
+                'respaldo_ubica_rick'
+            ];
+
+            // 1. Escanear claves conocidas
+            clavesPosibles.forEach(function(k) {
+                var raw = localStorage.getItem(k);
+                if (raw && raw !== '[]') {
+                    try {
+                        var parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].placa) {
+                            candidatos.push({ key: k, lista: parsed, count: parsed.length });
+                        }
+                    } catch(e) {}
+                }
+            });
+
+            // 2. Escanear cualquier otra clave en localStorage
+            try {
+                for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && !clavesPosibles.includes(k) && (k.includes('punto') || k.includes('rick') || k.includes('raptor') || k.includes('backup') || k.includes('respaldo'))) {
+                        var raw = localStorage.getItem(k);
+                        if (raw && raw !== '[]') {
+                            try {
+                                var parsed = JSON.parse(raw);
+                                if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].placa) {
+                                    candidatos.push({ key: k, lista: parsed, count: parsed.length });
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                }
+            } catch(eScan) {}
+
+            return candidatos;
+        }
+
         function cargarPuntosStorage() {
-            var guardados = localStorage.getItem('puntos_raptor_guardados');
+            var candidatos = escanearTodasLasFuentesLocales();
             var lista = null;
-            if (guardados && guardados !== '[]') {
-                try { lista = JSON.parse(guardados); } catch(e) {}
+
+            if (candidatos.length > 0) {
+                // Preferir listas que tengan placas diferentes a las 4 iniciales de prueba
+                var placasDefault = ['GCV922', 'LRW993', 'TTN168', 'EQW167'];
+                candidatos.sort(function(a, b) {
+                    var aTieneReales = a.lista.some(function(item) { return !placasDefault.includes((item.placa || '').toUpperCase().trim()); });
+                    var bTieneReales = b.lista.some(function(item) { return !placasDefault.includes((item.placa || '').toUpperCase().trim()); });
+                    if (aTieneReales && !bTieneReales) return -1;
+                    if (!aTieneReales && bTieneReales) return 1;
+                    return b.count - a.count;
+                });
+                lista = candidatos[0].lista;
+                console.log("📦 Datos cargados automáticamente desde:", candidatos[0].key, "(" + candidatos[0].count + " puntos)");
             }
+
             if (!lista || lista.length === 0) {
                 lista = puntosInicialesPrecargados;
             }
@@ -3515,7 +3572,7 @@
 
             lista.forEach(function(p) {
                 if (!p.placa) return;
-                var placa = p.placa.toUpperCase();
+                var placa = p.placa.toUpperCase().trim();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
                 if (conteoPorPlaca[placa] >= 4) return;
 
@@ -3538,19 +3595,18 @@
                 if (esDuplicadoFisico) return;
 
                 var kDir = placa + "_" + normalizarClaveDireccion(p.dirOriginal);
-                var kCoord = placa + "_" + (p.lat ? p.lat.toFixed(3) : '') + "_" + (p.lng ? p.lng.toFixed(3) : '');
-
-                if (llavesVistasStorage[kDir] || (p.lat && llavesVistasStorage[kCoord])) {
-                    return;
-                }
-
+                if (llavesVistasStorage[kDir]) return;
                 llavesVistasStorage[kDir] = true;
-                if (p.lat) llavesVistasStorage[kCoord] = true;
+
                 conteoPorPlaca[placa]++;
                 listaLimpia.push(p);
             });
 
-            localStorage.setItem('puntos_raptor_guardados', JSON.stringify(listaLimpia));
+            // Respaldo de seguridad en múltiples claves para inmunidad contra borrado
+            var jsonLimpio = JSON.stringify(listaLimpia);
+            localStorage.setItem('puntos_raptor_guardados', jsonLimpio);
+            localStorage.setItem('puntos_ubica_rick_guardados', jsonLimpio);
+            localStorage.setItem('backup_seguridad_puntos_permanente', jsonLimpio);
 
             listaLimpia.forEach(function(p, index) {
                 placasRegistradas[p.placa] = true;
@@ -4479,6 +4535,33 @@
         }
 
         function actualizarPuntosDesdeNube(puntosNube) {
+            if (!puntosNube || puntosNube.length === 0) return;
+
+            // FUSIÓN INTELIGENTE NO DESTRUCTIVA:
+            // Combinar puntos de la nube con puntos locales para nunca borrar trabajo local
+            var mapaPorId = {};
+            var puntosCombinados = [];
+
+            puntosNube.forEach(function(pn) {
+                mapaPorId[pn.id] = pn;
+                puntosCombinados.push(pn);
+            });
+
+            // Conservar puntos locales que el usuario haya agregado
+            puntosData.forEach(function(plocal) {
+                if (!mapaPorId[plocal.id]) {
+                    var yaExistePlaca = puntosCombinados.some(function(pc) {
+                        return pc.placa && plocal.placa && pc.placa.toUpperCase().trim() === plocal.placa.toUpperCase().trim();
+                    });
+                    if (!yaExistePlaca) {
+                        puntosCombinados.push(plocal);
+                        if (fbDb && usuarioActual && rolUsuarioActual === 'admin') {
+                            sincronizarPuntoFirestore(plocal);
+                        }
+                    }
+                }
+            });
+
             puntosData.forEach(function(p) {
                 if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
             });
@@ -4489,15 +4572,13 @@
             var conteoPorPlaca = {};
             var llavesVistasNube = {};
 
-            puntosNube.forEach(function(p) {
+            puntosCombinados.forEach(function(p) {
                 if (!p.placa) return;
                 var placa = p.placa.toUpperCase().trim();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
 
-                // MÁXIMO 4 DIRECCIONES POR PLACA
                 if (conteoPorPlaca[placa] >= 4) return;
 
-                // Evitar duplicados físicos a menos de 70 metros para la misma placa
                 var esDuplicadoFisico = listaLimpiaNube.some(function(existente) {
                     if (existente.placa.toUpperCase().trim() !== placa) return false;
                     if (existente.lat && existente.lng && p.lat && p.lng) {
@@ -4521,7 +4602,6 @@
                 agregarMarcadorAlMapa(p, idx, false);
             });
 
-            // Guardar copia local en caché para modo sin internet
             var datosCache = puntosData.map(function(item) {
                 return {
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
@@ -4534,8 +4614,90 @@
             });
             localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosCache));
             localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosCache));
+            localStorage.setItem('backup_seguridad_puntos_permanente', JSON.stringify(datosCache));
             actualizarKPIs();
             actualizarPanelCercano();
+        }
+
+        // FUNCIONES DE CONTROL DEL CENTRO DE RECUPERACIÓN
+        function abrirCentroRecuperacion() {
+            var modal = document.getElementById('modal-recuperacion');
+            var contenedor = document.getElementById('lista-respaldos-encontrados');
+            if (!modal || !contenedor) return;
+
+            var candidatos = escanearTodasLasFuentesLocales();
+            contenedor.innerHTML = "";
+
+            if (candidatos.length === 0) {
+                contenedor.innerHTML = '<div style="padding:10px; background:#f8fafc; border-radius:8px; font-size:12px; color:#64748b; text-align:center;">No se encontraron copias en este navegador. Puedes restaurar desde la nube o pegar tus reportes.</div>';
+            } else {
+                candidatos.forEach(function(c, i) {
+                    var div = document.createElement('div');
+                    div.style.cssText = "background:#f1f5f9; padding:8px 10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; border:1px solid #cbd5e1;";
+                    div.innerHTML = '<div><b style="font-size:12px; color:#0f172a;">Copia ' + (i+1) + ': ' + c.count + ' vehículos</b><div style="font-size:10px; color:#64748b;">Clave: ' + c.key + '</div></div>' +
+                                    '<button onclick="restaurarCopiaLocal(\'' + c.key + '\')" class="pop-btn pb-green" style="margin:0; padding:6px 10px; font-size:11px;">Restaurar</button>';
+                    contenedor.appendChild(div);
+                });
+            }
+
+            modal.style.display = 'block';
+            cerrarMenuAdd();
+        }
+
+        function cerrarCentroRecuperacion() {
+            var modal = document.getElementById('modal-recuperacion');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function restaurarCopiaLocal(clave) {
+            try {
+                var raw = localStorage.getItem(clave);
+                if (!raw) return;
+                var lista = JSON.parse(raw);
+                if (Array.isArray(lista) && lista.length > 0) {
+                    puntosData.forEach(function(p) {
+                        if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
+                    });
+                    puntosData = [];
+                    placasRegistradas = {};
+
+                    lista.forEach(function(p, idx) {
+                        placasRegistradas[p.placa.toUpperCase().trim()] = true;
+                        agregarMarcadorAlMapa(p, idx + 1, false);
+                    });
+
+                    guardarPuntosStorage();
+                    cerrarCentroRecuperacion();
+                    mostrarToastNotificacion("✅ ¡Restaurados " + lista.length + " vehículos con éxito!");
+                }
+            } catch(e) {
+                alert("Error restaurando copia: " + e.message);
+            }
+        }
+
+        function restaurarDesdeNubeFirestore() {
+            if (!fbDb) {
+                alert("La conexión con la nube no está configurada o estás sin conexión.");
+                return;
+            }
+            mostrarToastNotificacion("☁️ Consultando nube...");
+            fbDb.collection('puntos_ubica_rick').get().then(function(snapshot) {
+                if (snapshot.empty) {
+                    alert("No hay vehículos almacenados en la nube actualmente.");
+                    return;
+                }
+                var puntosNube = [];
+                snapshot.forEach(function(doc) {
+                    var data = doc.data();
+                    data.id = doc.id;
+                    puntosNube.push(data);
+                });
+                actualizarPuntosDesdeNube(puntosNube);
+                cerrarCentroRecuperacion();
+                mostrarToastNotificacion("✅ ¡Descargados " + puntosNube.length + " vehículos de la nube!");
+            }).catch(function(err) {
+                alert("Error al consultar la nube: " + err.message);
+            });
         }
 
         function subirPuntosLocalesAFirebase() {
@@ -4641,5 +4803,27 @@
             setTimeout(actualizarPanelCercano, 1200);
         };
     </script>
+
+    <!-- MODAL DE RECUPERACIÓN DE TRABAJO Y COPIAS DE SEGURIDAD -->
+    <div id="modal-recuperacion" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:16px; box-shadow:0 12px 35px rgba(0,0,0,0.5); z-index:10000000;
+        width:92%; max-width:440px; max-height:85vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px;">
+            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">🛡️ Recuperar Trabajo y Datos</b>
+            <button onclick="cerrarCentroRecuperacion()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+        <p style="font-size:12px; color:#475569; margin:0 0 12px 0; line-height:1.4;">
+            Si al actualizar no ves tus vehículos o placas, no te preocupes: el sistema analiza la memoria del navegador y la nube para restaurar tu trabajo.
+        </p>
+        <div id="lista-respaldos-encontrados" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+            <!-- Generado dinámicamente -->
+        </div>
+        <div style="border-top:1px dashed #cbd5e1; padding-top:12px;">
+            <b style="font-size:12px; color:#1e293b; display:block; margin-bottom:6px;">☁️ Opciones Adicionales:</b>
+            <button onclick="restaurarDesdeNubeFirestore()" class="pop-btn pb-teal" style="width:100%; margin-bottom:6px; padding:8px; font-size:12px;">☁️ Descargar y Restaurar desde la Nube</button>
+            <button onclick="exportarRespaldo()" class="pop-btn pb-blue" style="width:100%; margin-bottom:6px; padding:8px; font-size:12px;">📥 Descargar Respaldo JSON en tu equipo</button>
+        </div>
+    </div>
+
 </body>
 </html>
