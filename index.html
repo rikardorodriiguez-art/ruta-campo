@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v3.2</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v3.3</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -1982,7 +1982,7 @@
 
         function analizarMultiplesVehiculos(texto) {
             if (!texto) return [];
-            
+
             // 1. Separar bloques por encabezados típicos de WhatsApp: timestamp [4:44 p.m.], 'UBICAR', o 'PLACA'
             var regexSplit = /(?:^|\n)(?=\s*(?:\[\d{1,2}:\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|\bUBICAR\b|\bPLACA\b))/i;
             var bloques = texto.split(regexSplit).map(b => b.trim()).filter(b => b.length > 0);
@@ -2013,10 +2013,12 @@
                 var placa = (pMatch[1] + pMatch[2]).toUpperCase();
                 if (['UBICAR', 'PARTES', 'DETALLE'].includes(placa)) return;
 
-                var lineas = b.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
+                // Pre-limpieza para análisis de especificaciones: remover asteriscos, guiones bajos y timestamps de WhatsApp
+                var bClean = b.replace(/\[\d{1,2}:\d{2}[\s\S]*?\]/g, ' ')
+                              .replace(/\*/g, ' ')
+                              .replace(/_/g, ' ');
 
-                // Detectar si el bloque tiene etiquetas (MARCA:, MODELO:, etc.) o es una lista secuencial de WhatsApp
-                var tieneEtiquetas = lineas.some(l => /^(?:MARCA|L[IÍ]NEA|MODELO|COLOR|SOAT|TECNO|TEL|CEL|DIR|DIRECCI[OÓ]N)\s*[:\-]/i.test(l));
+                var lineas = b.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
                 var telefonosArr = [];
                 var telsMatch = b.match(/\b3[0-9]{9}\b/g) || [];
@@ -2058,47 +2060,99 @@
                     }
                 });
 
-                var marca = '-', linea = '-', modelo = '-', color = '-', soat = 'NO', tecno = 'NO';
+                // Extracción flexible de especificaciones del vehículo (Marca, Línea, Modelo, Color, SOAT, Tecno)
+                function buscarValCampo(keys) {
+                    for (var i = 0; i < keys.length; i++) {
+                        var k = keys[i];
+                        var reg = new RegExp('(?:^|[^\\w])' + k + '\\s*[:\\-]\\s*([^\\r\\n\\|,]+)', 'i');
+                        var m = bClean.match(reg);
+                        if (m) {
+                            var v = m[1].trim();
+                            if (v && !['VEHICULO', 'MARCA', 'LINEA', 'MODELO', 'COLOR', 'SOAT', 'TECNO', 'PLACA'].includes(v.toUpperCase())) {
+                                return v;
+                            }
+                        }
+                    }
+                    return null;
+                }
 
-                if (tieneEtiquetas) {
-                    // Mapeo por etiquetas
-                    lineas.forEach(function(l) {
-                        if (/^MARCA\s*[:\-]/i.test(l)) marca = l.replace(/^MARCA\s*[:\-]\s*/i, '').trim() || '-';
-                        else if (/^L[IÍ]NEA\s*[:\-]/i.test(l)) linea = l.replace(/^L[IÍ]NEA\s*[:\-]\s*/i, '').trim() || '-';
-                        else if (/^MODELO\s*[:\-]/i.test(l)) modelo = l.replace(/^MODELO\s*[:\-]\s*/i, '').trim() || '-';
-                        else if (/^COLOR\s*[:\-]/i.test(l)) color = l.replace(/^COLOR\s*[:\-]\s*/i, '').trim() || '-';
-                        else if (/^SOAT\s*[:\-]/i.test(l)) soat = /(?:SI|VIGENTE)/i.test(l) ? 'SI' : 'NO';
-                        else if (/^(?:TECNO|RTM)\s*[:\-]/i.test(l)) tecno = /(?:SI|VIGENTE)/i.test(l) ? 'SI' : 'NO';
-                    });
-                } else {
-                    // Mapeo posicional limpio para mensajes sin etiquetas de WhatsApp
-                    var lineasDatos = lineas.filter(function(l) {
-                        if (/^\[\d{1,2}:\d{2}/.test(l) || /^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(l) || l.toUpperCase() === 'UBICAR') return false;
-                        if (new RegExp('\\b' + placa + '\\b', 'i').test(l)) return false;
-                        if (direcciones.includes(l)) return false;
-                        if (telefonosArr.some(t => l.includes(t))) return false;
-                        return true;
-                    });
+                var marca = buscarValCampo(['MARCA']);
+                var linea = buscarValCampo(['L[IÍ]NEA', 'LINEA']);
+                var modelo = buscarValCampo(['MODELO', 'A[NÑ]O']);
+                var color = buscarValCampo(['COLOR']);
 
-                    var idxPos = 0;
-                    if (idxPos < lineasDatos.length && !/^(?:SI|NO)$/i.test(lineasDatos[idxPos]) && !/^\d{4}$/.test(lineasDatos[idxPos])) {
-                        marca = lineasDatos[idxPos++];
+                // Si no se encontró marca ni línea pero hay 'VEHICULO' o 'DESCRIPCION'
+                if (!marca || !linea) {
+                    var vehTxt = buscarValCampo(['VEH[IÍ]CULO', 'DESCRIPCI[OÓ]N', 'CLASE']);
+                    if (vehTxt) {
+                        var partsVeh = vehTxt.split(/\s+/);
+                        if (partsVeh.length >= 1 && !marca) marca = partsVeh[0];
+                        if (partsVeh.length >= 2 && !linea) linea = partsVeh.slice(1).join(' ');
                     }
-                    if (idxPos < lineasDatos.length && !/^(?:SI|NO)$/i.test(lineasDatos[idxPos]) && !/^\d{4}$/.test(lineasDatos[idxPos])) {
-                        linea = lineasDatos[idxPos++];
+                }
+
+                // Diccionario de marcas reconocidas en Colombia si la marca sigue sin detectarse
+                var marcasComunes = ['RENAULT', 'CHEVROLET', 'MAZDA', 'KIA', 'TOYOTA', 'HYUNDAI', 'NISSAN', 'FORD', 'VOLKSWAGEN', 'SUZUKI', 'HONDA', 'MITSUBISHI', 'JEEP', 'BYD', 'CHERY', 'JAC', 'CHANGAN', 'FOTON', 'HINO', 'ISUZU', 'MERCEDES', 'BMW', 'AUDI', 'SEAT', 'PEUGEOT', 'CITROEN', 'SUBARU', 'YAMAHA', 'BAJAJ', 'AKT', 'AUTECO', 'DODGE', 'RAM', 'FIAT'];
+                if (!marca) {
+                    for (var mIdx = 0; mIdx < marcasComunes.length; mIdx++) {
+                        var mc = marcasComunes[mIdx];
+                        if (new RegExp('\\b' + mc + '\\b', 'i').test(bClean)) {
+                            marca = mc;
+                            // Buscar palabras acompañantes en esa misma línea
+                            var lineasClean = bClean.split(/[\r\n]+/);
+                            for (var lIdx = 0; lIdx < lineasClean.length; lIdx++) {
+                                var lc = lineasClean[lIdx];
+                                if (new RegExp('\\b' + mc + '\\b', 'i').test(lc)) {
+                                    var wds = lc.trim().split(/\s+/);
+                                    var fIdx = wds.findIndex(w => w.toUpperCase() === mc);
+                                    if (fIdx !== -1) {
+                                        var cands = wds.slice(fIdx + 1).filter(w => !/^\d{4}$/.test(w) && !['GRIS', 'BLANCO', 'NEGRO', 'ROJO', 'AZUL', 'PLATA', 'SI', 'NO', 'SOAT', 'TECNO'].includes(w.toUpperCase()));
+                                        if (cands.length > 0 && !linea) {
+                                            linea = cands.join(' ');
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        }
                     }
-                    if (idxPos < lineasDatos.length && /^\d{4}$/.test(lineasDatos[idxPos])) {
-                        modelo = lineasDatos[idxPos++];
+                }
+
+                // Detección de año / modelo (4 dígitos entre 1980 y 2030)
+                if (!modelo) {
+                    var mYr = bClean.match(/\b(19\d{2}|20[0-3]\d)\b/);
+                    if (mYr) modelo = mYr[1];
+                }
+
+                // Detección de color
+                if (!color) {
+                    var coloresComunes = ['BLANCO', 'NEGRO', 'GRIS', 'PLATA', 'ROJO', 'AZUL', 'VERDE', 'BEIGE', 'AMARILLO', 'MARRON', 'CAFE', 'VINOTINTO', 'NARANJA', 'DORADO'];
+                    for (var cIdx = 0; cIdx < coloresComunes.length; cIdx++) {
+                        var colName = coloresComunes[cIdx];
+                        var mCol = bClean.match(new RegExp('\\b(' + colName + '(?:\\s+(?:ESTRELLA|METALICO|METÁLICO|PERLADO|OSCURO|CLARO))?)\\b', 'i'));
+                        if (mCol) {
+                            color = mCol[1].toUpperCase();
+                            break;
+                        }
                     }
-                    if (idxPos < lineasDatos.length && !/^(?:SI|NO)$/i.test(lineasDatos[idxPos])) {
-                        color = lineasDatos[idxPos++];
-                    }
-                    if (idxPos < lineasDatos.length && /^(?:SI|NO)$/i.test(lineasDatos[idxPos])) {
-                        soat = lineasDatos[idxPos++].toUpperCase();
-                    }
-                    if (idxPos < lineasDatos.length && /^(?:SI|NO)$/i.test(lineasDatos[idxPos])) {
-                        tecno = lineasDatos[idxPos++].toUpperCase();
-                    }
+                }
+
+                // SOAT
+                var soat = 'NO';
+                var mSoatVal = buscarValCampo(['SOAT']);
+                if (mSoatVal) {
+                    soat = /(?:SI|VIGENTE|ACTIVO|OK|AL DIA)/i.test(mSoatVal) ? 'SI' : 'NO';
+                } else if (/SOAT[^\r\n]*(?:SI|VIGENTE|ACTIVO|AL DIA)/i.test(bClean)) {
+                    soat = 'SI';
+                }
+
+                // TECNOMECÁNICA
+                var tecno = 'NO';
+                var mTecVal = buscarValCampo(['TECNO', 'TECNOMECANICA', 'TECNOMECÁNICA', 'RTM']);
+                if (mTecVal) {
+                    tecno = /(?:SI|VIGENTE|ACTIVO|OK|AL DIA)/i.test(mTecVal) ? 'SI' : 'NO';
+                } else if (/(?:TECNO|RTM)[^\r\n]*(?:SI|VIGENTE|ACTIVO|AL DIA)/i.test(bClean)) {
+                    tecno = 'SI';
                 }
 
                 // Asegurar al menos una dirección si no se detectó
@@ -2108,12 +2162,12 @@
 
                 resultados.push({
                     placa: placa,
-                    marca: marca || '-',
-                    linea: linea || '-',
-                    modelo: modelo || '-',
-                    color: color || '-',
-                    soat: soat || 'NO',
-                    tecnomecanica: tecno || 'NO',
+                    marca: (marca || '-').toUpperCase().trim(),
+                    linea: (linea || '-').toUpperCase().trim(),
+                    modelo: (modelo || '-').toUpperCase().trim(),
+                    color: (color || '-').toUpperCase().trim(),
+                    soat: soat,
+                    tecnomecanica: tecno,
                     telefonos: telefonos,
                     direcciones: direcciones.slice(0, 4)
                 });
@@ -3435,7 +3489,7 @@
             scale = Math.round(scale * 100) / 100;
             contenedor.setAttribute('data-scale', scale);
 
-            var anchoBase = Math.round(270 * scale);
+            var anchoBase = Math.round(295 * scale);
             var maxWidth = Math.min(window.innerWidth * 0.95, 480);
             var targetWidth = Math.max(Math.min(anchoBase, maxWidth), 160);
             contenedor.style.width = targetWidth + 'px';
@@ -3746,19 +3800,19 @@
             var txtBtnVisitada = esVisitada ? "2. ↩️ Desmarcar Visitada" : "2. ✅ Marcar Visitada";
 
             return `
-                <div id="popup-zoomable-${markerId}" class="popup-zoom-container" data-scale="1" ontouchstart="inicializarZoomDosDedos('${markerId}', this)" style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; width: 270px; max-width: 94vw; transition: width 0.15s ease, font-size 0.15s ease;">
+                <div id="popup-zoomable-${markerId}" class="popup-zoom-container" data-scale="1" ontouchstart="inicializarZoomDosDedos('${markerId}', this)" style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; width: 295px; max-width: 95vw; box-sizing: border-box; transition: width 0.15s ease, font-size 0.15s ease;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <div class="popup-header-bar" style="background:#0f172a; color:white; padding:6px 8px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; width:100%; border:1px solid #334155;">
-                            <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <div class="popup-header-bar" style="background:#0f172a; color:white; padding:5px 8px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; width:100%; border:1px solid #334155; gap:4px;">
+                            <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
                                 <span style="font-size:15px; font-weight:900; letter-spacing:0.5px; color:#ffffff; white-space:nowrap;">${p.placa}</span>
-                                <span style="font-size:9.5px; font-weight:bold; background:${p.pico ? '#d35400' : '#16a34a'}; color:#ffffff; padding:2px 5px; border-radius:4px; white-space:nowrap; text-transform:uppercase;">${estadoPicoTxt}</span>
+                                <span style="font-size:9px; font-weight:bold; background:${p.pico ? '#d35400' : '#16a34a'}; color:#ffffff; padding:2px 5px; border-radius:4px; white-space:nowrap; text-transform:uppercase;">${estadoPicoTxt}</span>
                             </div>
-                            <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+                            <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                                 <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', -0.2);" ontouchend="event.stopPropagation(); event.preventDefault(); ajustarZoomPopup('${markerId}', -0.2);" class="btn-zoom-pop" title="Reducir tamaño">−</button>
-                                <span id="zoom-val-${markerId}" style="font-size:10px; font-weight:bold; color:#38bdf8; min-width:28px; text-align:center; user-select:none;">100%</span>
+                                <span id="zoom-val-${markerId}" style="font-size:9.5px; font-weight:bold; color:#38bdf8; min-width:26px; text-align:center; user-select:none;">100%</span>
                                 <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', 0.2);" ontouchend="event.stopPropagation(); event.preventDefault(); ajustarZoomPopup('${markerId}', 0.2);" class="btn-zoom-pop" title="Aumentar tamaño">+</button>
-                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}');" ontouchend="event.stopPropagation(); event.preventDefault(); toggleMinimizarPopup('${markerId}');" id="btn-min-${markerId}" class="btn-min-pop" title="Minimizar o expandir ventana">➖ Minimizar</button>
+                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}');" ontouchend="event.stopPropagation(); event.preventDefault(); toggleMinimizarPopup('${markerId}');" id="btn-min-${markerId}" class="btn-min-pop" style="padding:0 6px; font-size:9.5px;" title="Minimizar o expandir ventana">➖ Min</button>
                             </div>
                         </div>
 
