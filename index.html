@@ -122,7 +122,7 @@
         
         .leaflet-div-icon { background: transparent; border: none; }
 
-        /* ESTILOS DEL RADAR SÚPER COMPACTO Y NO INTRUSIVO */
+        /* RADAR COMPACTO */
         #panel-cercano {
             position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 360px;
             background: rgba(26, 37, 47, 0.95); border: 1.5px solid #00ff87; border-radius: 10px;
@@ -199,7 +199,7 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa y Vehículo, deja dirección vacía y sube foto.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa, deja dirección vacía y sube foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
@@ -364,7 +364,7 @@
                    '</div>';
         }
 
-        // EXTRACTOR ROBUSTO Y SEGURO (RECUPERADO Y MEJORADO)
+        // ---- EXTRACTOR 100% BLINDADO Y ROBUSTO (Basado en tus ejemplos exactos) ----
         function extraerInfoVehiculoUniversal(texto) {
             var m = "-", l = "-", mod = "-", c = "-", s = "NO", t = "NO";
             var lineas = texto.split('\n');
@@ -373,32 +373,68 @@
                 var lText = lineas[i].trim();
                 var up = lText.toUpperCase();
                 
-                if (m === "-" && (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO") || up.includes("CLASE"))) {
-                    var val = lText.replace(/.*(MARCA|VEHICULO|VEHÍCULO|CLASE)\s*[:\-]?\s*/i, '').trim();
-                    if(val) m = val.split(/\s{2,}/)[0];
+                // Si la línea contiene la etiqueta exacta o viene estilo "Marca: FORD"
+                if (m === "-" && (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO"))) {
+                    if (up.includes(":") || up.includes("-")) {
+                        var val = lText.split(/[:\-]/)[1];
+                        if (val && val.trim()) m = val.trim();
+                    } else if (i + 1 < lineas.length) {
+                        m = lineas[i + 1].trim();
+                    }
                 }
-                if (l === "-" && (up.includes("LÍNEA") || up.includes("LINEA"))) {
-                    var val = lText.replace(/.*(LÍNEA|LINEA)\s*[:\-]?\s*/i, '').trim();
-                    if(val) l = val.split(/\s{2,}/)[0];
+                
+                if (l === "-" && (up.includes("LÍNEA") || up.includes("LINEA") || up.includes("CLASE"))) {
+                    if (up.includes(":") || up.includes("-")) {
+                        var val = lText.split(/[:\-]/)[1];
+                        if (val && val.trim()) l = val.trim();
+                    } else if (i + 1 < lineas.length) {
+                        l = lineas[i + 1].trim();
+                    }
                 }
+                
                 if (mod === "-" && up.includes("MODELO")) {
-                    var val = lText.replace(/.*MODELO\s*[:\-]?\s*/i, '').trim();
-                    if(val) mod = val.split(/\s{2,}/)[0];
+                    if (up.includes(":") || up.includes("-")) {
+                        var val = lText.split(/[:\-]/)[1];
+                        if (val && val.trim()) mod = val.trim();
+                    } else if (i + 1 < lineas.length) {
+                        mod = lineas[i + 1].trim();
+                    }
                 }
+                
                 if (c === "-" && up.includes("COLOR")) {
-                    var val = lText.replace(/.*COLOR\s*[:\-]?\s*/i, '').trim();
-                    if(val) c = val.split(/\s{2,}/)[0];
+                    if (up.includes(":") || up.includes("-")) {
+                        var val = lText.split(/[:\-]/)[1];
+                        if (val && val.trim()) c = val.trim();
+                    } else if (i + 1 < lineas.length) {
+                        c = lineas[i + 1].trim();
+                    }
                 }
+                
                 if (s === "NO" && (up.includes("SOAT") || up.includes("SEGURO"))) {
-                    var val = lText.replace(/.*(SOAT|SEGURO)\s*[:\-]?\s*/i, '').trim();
-                    if(val) s = val.split(/\s{2,}/)[0];
+                    if (up.includes(":") || up.includes("-")) {
+                        var val = lText.split(/[:\-]/)[1];
+                        if (val && val.trim()) s = val.trim();
+                    } else {
+                        // Formatos pegados como SOAT:SI o SOATSI o SOAT    NO
+                        var matchSoat = lText.match(/(?:SOAT|SEGURO)\s*[:\-]?\s*([A-Z0-9\/]+)/i);
+                        if (matchSoat && matchSoat[1]) s = matchSoat[1].trim();
+                        else s = "SI";
+                    }
                 }
+                
                 if (t === "NO" && (up.includes("TECNO") || up.includes("RTM") || up.includes("REVISIÓN") || up.includes("REVISION"))) {
-                    var val = lText.replace(/.*(TECNOMECANICA|TECNO MECANICA|TECNO|RTM|REVISIÓN|REVISION)\s*[:\-]?\s*/i, '').trim();
-                    if(val) t = val.split(/\s{2,}/)[0];
+                    if (up.includes(":") || up.includes("-")) {
+                        var val = lText.split(/[:\-]/)[1];
+                        if (val && val.trim()) t = val.trim();
+                    } else {
+                        var matchTecno = lText.match(/(?:TECNOMECANICA|TECNO|RTM)\s*[:\-]?\s*([A-Z0-9\/]+)/i);
+                        if (matchTecno && matchTecno[1]) t = matchTecno[1].trim();
+                        else t = "SI";
+                    }
                 }
             }
-            return { marca: m, linea: l, modelo: mod, color: c, soat: s, tecnomecanica: t };
+            
+            return { marca: m !== "-" ? m : "VEHÍCULO", linea: l !== "-" ? l : "", modelo: mod !== "-" ? mod : "", color: c !== "-" ? c : "", soat: s, tecnomecanica: t };
         }
 
         map.on('click', function(e) {
@@ -752,7 +788,8 @@
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Analizando texto y ubicando...";
 
-            var bloques = texto.split(/UBICAR|\[\d+\/\d+.*Principal:/gi);
+            // Separador exacto para detectar cada reporte por su placa o la palabra UBICAR
+            var bloques = texto.split(/(?=[A-Z]{3}[0-9A-Z]{3}\s+(?:CC|NIT|CE)|UBICAR)/g);
             var totalAgregados = 0;
 
             for (let bloque of bloques) {
