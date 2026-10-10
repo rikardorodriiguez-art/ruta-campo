@@ -1385,10 +1385,14 @@
             var enAlerta = (menorDistanciaMetros <= 500);
 
             // Vista Cápsula
-            document.getElementById('hud-cap-placa').innerText = p.placa;
-            document.getElementById('hud-cap-dist').innerText = '🎯 ' + distTxt;
-            document.getElementById('hud-cap-carro-txt').innerText = carroDesc;
-            document.getElementById('hud-cap-color-txt').innerText = colorDesc;
+            var elPlaca = document.getElementById('hud-cap-placa');
+            var elDist = document.getElementById('hud-cap-dist');
+            var elCarro = document.getElementById('hud-cap-carro-txt');
+            var elColor = document.getElementById('hud-cap-color-txt');
+            if (elPlaca) elPlaca.innerText = p.placa;
+            if (elDist) elDist.innerText = '🎯 ' + distTxt;
+            if (elCarro) elCarro.innerText = carroDesc;
+            if (elColor) elColor.innerText = colorDesc;
 
             if (enAlerta) {
                 cap.classList.add('alerta-rango');
@@ -1400,11 +1404,16 @@
 
             // Vista Expandida
             if (pan) {
-                document.getElementById('hud-exp-placa').innerText = p.placa;
-                document.getElementById('hud-exp-dist').innerText = distTxt;
-                document.getElementById('hud-exp-carro').innerText = carroDesc + (p.modelo && p.modelo !== '-' ? ' ' + p.modelo : '');
-                document.getElementById('hud-exp-color').innerText = colorDesc.toUpperCase();
-                document.getElementById('hud-exp-dir').innerText = p.dirOriginal || p.dir || 'Dirección registrada';
+                var elExpPlaca = document.getElementById('hud-exp-placa');
+                var elExpDist = document.getElementById('hud-exp-dist');
+                var elExpCarro = document.getElementById('hud-exp-carro');
+                var elExpColor = document.getElementById('hud-exp-color');
+                var elExpDir = document.getElementById('hud-exp-dir');
+                if (elExpPlaca) elExpPlaca.innerText = p.placa;
+                if (elExpDist) elExpDist.innerText = distTxt;
+                if (elExpCarro) elExpCarro.innerText = carroDesc + (p.modelo && p.modelo !== '-' ? ' ' + p.modelo : '');
+                if (elExpColor) elExpColor.innerText = colorDesc.toUpperCase();
+                if (elExpDir) elExpDir.innerText = p.dirOriginal || p.dir || 'Dirección registrada';
                 
                 var badge = document.getElementById('hud-status-badge');
                 if (badge) {
@@ -2431,10 +2440,11 @@
         }
 
         async function procesarFotoTablaDirecta() {
-            var placa = document.getElementById('fotoTablaPlaca').value.toUpperCase().trim();
+            var inputPlacaEl = document.getElementById('fotoTablaPlaca');
+            var placa = (inputPlacaEl ? inputPlacaEl.value : "").toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
             var fileInput = document.getElementById('fotoTablaInput');
 
-            if (!fileInput.files || !fileInput.files[0]) { 
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) { 
                 alert("Por favor adjunta la foto o captura de la tabla."); 
                 return; 
             }
@@ -2443,7 +2453,7 @@
             var loadingTexto = document.getElementById('loading-texto');
             if (loadingOverlay) {
                 loadingOverlay.style.display = 'flex';
-                if (loadingTexto) loadingTexto.innerText = "🔍 Analizando imagen y extrayendo datos para Opción 5 (Pegar Extracción IA)...";
+                if (loadingTexto) loadingTexto.innerText = "🔍 Analizando imagen y extrayendo datos...";
             }
 
             try {
@@ -2459,7 +2469,7 @@
                     imgParaOcr = archivo;
                 }
 
-                if (loadingTexto) loadingTexto.innerText = "🔍 Leyendo texto, placas y teléfonos...";
+                if (loadingTexto) loadingTexto.innerText = "🔍 Leyendo texto, placa y direcciones...";
                 var worker = await Tesseract.createWorker('spa');
                 var ret = await worker.recognize(imgParaOcr);
                 await worker.terminate();
@@ -2467,7 +2477,7 @@
                 var rawText = ret.data.text || "";
                 var lineas = rawText.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
-                // Detectar placa si no se escribió manualmente
+                // Detectar placa si no se escribió manualmente (ej: FQX434, LRW993)
                 if (!placa) {
                     var mPlaca = rawText.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
                     if (mPlaca) placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
@@ -2480,31 +2490,48 @@
                 mCels.forEach(function(c) { if (!telsUnicos.includes(c)) telsUnicos.push(c); });
                 var telsTexto = telsUnicos.slice(0, 2).join(', ') || '-';
 
-                // Detectar direcciones reales sin valores genéricos inventados
+                // Lista de términos prohibidos de documentos de identidad, cédulas y licencias
+                var terminosProhibidosDoc = [
+                    'IDENTIFICACI', 'EXPEDICI', 'CEDULA', 'CÉDULA', 'FECHA', 'CÓDIGO', 'CODIGO',
+                    'LICENCIA', 'DOCUMENTO', 'NACIMIENTO', 'VENCE', 'VENCIMIENTO', 'RH', 'ESTATURA',
+                    'REPUBLICA', 'MINISTERIO', 'SECRETARIA', 'TRANSITO', 'CATEGORIA', 'DEPARTAMENTO',
+                    'CIUDADANO', 'HUELLA', 'FIRMA', 'REGISTRO', 'APELLIDOS', 'NOMBRES', 'NACIONALIDAD',
+                    'SEXO', 'RESTRICCION', 'ORGANISMO'
+                ];
+
                 var direccionesDetectadas = [];
                 lineas.forEach(function(l) {
-                    var up = l.toUpperCase();
+                    var lTrim = l.trim();
+                    var up = lTrim.toUpperCase();
 
-                    // Coordenadas detectadas en la foto
-                    var mCoord = l.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
-                    if (mCoord) {
-                        direccionesDetectadas.push({ dir: l.trim(), prioridad: 10 });
+                    // Descartar si contiene términos de documentos de identidad
+                    if (terminosProhibidosDoc.some(p => up.includes(p))) {
                         return;
                     }
 
-                    var tieneNom = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM)\b/i.test(up) || up.includes('#') || /\bN[RO°]\b/i.test(up);
-                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|GIRARDOTA|BARBOSA|ANTIOQUIA)/i.test(up);
-                    var esEtiquetaDir = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(l);
+                    // Coordenadas válidas en la foto
+                    var mCoord = lTrim.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                    if (mCoord) {
+                        direccionesDetectadas.push({ dir: lTrim, prioridad: 10 });
+                        return;
+                    }
 
-                    if ((tieneNom || tieneMun || esEtiquetaDir) && up.length > 5) {
-                        var noEsRuido = !['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO'].some(k => up.includes(k));
+                    // Nomenclatura urbana colombiana: Debe tener vía principal y número
+                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM|KILOMETRO)\s*(?:SUR|NORTE|ESTE|OESTE)?\s*(\d+|[A-Z]\b)/i;
+                    var tieneVia = patronVia.test(up);
+                    var tieneNum = up.includes('#') || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up);
+                    var esEtiquetaDir = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(lTrim);
+                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|GIRARDOTA|BARBOSA|ANTIOQUIA)/i.test(up);
+
+                    if ((esEtiquetaDir || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 6) {
+                        var noEsRuido = !['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(k => up.includes(k));
                         if (noEsRuido) {
-                            var mPrioridad = l.match(/(\d+)\s*(?:SI|S1)\b/i) || l.match(/\b(?:SI|S1)\s*(\d+)/i);
-                            var prioridad = mPrioridad ? parseInt(mPrioridad[1]) : (tieneNom ? 5 : 1);
-                            var dirLimpia = l.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '')
-                                             .replace(/\b(SI|S1)\b/gi, '')
-                                             .replace(/\b\d+\s*$/, '')
-                                             .trim();
+                            var mPrioridad = lTrim.match(/(\d+)\s*(?:SI|S1)\b/i) || lTrim.match(/\b(?:SI|S1)\s*(\d+)/i);
+                            var prioridad = mPrioridad ? parseInt(mPrioridad[1]) : (tieneVia ? 5 : 2);
+                            var dirLimpia = lTrim.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '')
+                                                 .replace(/\b(SI|S1)\b/gi, '')
+                                                 .replace(/\b\d+\s*$/, '')
+                                                 .trim();
                             if (dirLimpia.length > 5) {
                                 direccionesDetectadas.push({ dir: dirLimpia, prioridad: prioridad });
                             }
@@ -2523,15 +2550,6 @@
                         dirsFinales.push(d.dir);
                     }
                 });
-
-                // Si no se encontró dirección con nomenclatura estricta, buscar cualquier línea con números y texto geográfico
-                if (dirsFinales.length === 0) {
-                    lineas.forEach(function(l) {
-                        if (dirsFinales.length < 2 && l.length > 8 && /\d/.test(l) && !l.includes(placa) && !telsUnicos.some(t => l.includes(t))) {
-                            dirsFinales.push(l.trim());
-                        }
-                    });
-                }
 
                 // Extraer marca, modelo y color si aparecen en la imagen
                 var marcaOcr = "-", lineaOcr = "-", modeloOcr = "-", colorOcr = "-";
@@ -2556,16 +2574,16 @@
                         formatoIA += "DIRECCIÓN " + (idx + 1) + ": " + d + "\n";
                     });
                 } else {
-                    formatoIA += "DIRECCIÓN 1: (Ingresa o confirma la dirección analizada aquí)\n";
+                    formatoIA += "DIRECCIÓN 1: (Ingresa la dirección de la placa aquí)\n";
                 }
 
                 // Inyectar en el textarea de la Opción 5 (txtGemini)
                 if (document.getElementById('txtGemini')) document.getElementById('txtGemini').value = formatoIA;
 
                 if (dirsFinales.length > 0) {
-                    alert("✅ ¡Información extraída con éxito de la foto! Se transfirió automáticamente a la Opción 5 (⚡ Pegar Extracción IA). Puedes revisarla y pulsar 'Mapear Ubicaciones'.");
+                    alert("✅ ¡Información extraída con éxito de la foto! Se transfirió a la Opción 5 (⚡ Pegar Extracción IA). Pulsa 'Mapear Ubicaciones'.");
                 } else {
-                    alert("⚠️ Se detectó la placa " + placa + ", pero no una dirección con nomenclatura clara en la foto. Se abrió la Opción 5 para que puedas completar la dirección antes de mapear.");
+                    alert("⚠️ Se detectó la placa " + placa + ", pero en la foto analizada no se detectó una dirección de calle o carrera válida (se detectó texto de documento/identificación). Por favor completa la dirección en el campo 'DIRECCIÓN 1' antes de mapear.");
                 }
 
                 // Abrir automáticamente la Opción 5
@@ -3335,6 +3353,7 @@
         function actualizarKPIs() {
             var total = puntosData.length;
             var vis = puntosData.filter(function(p) { return !!p.visitada; }).length;
+            var pend = total - vis;
             var hoy = 0;
             var pico = 0;
 
@@ -3343,10 +3362,15 @@
                 if (p.pico) pico++;
             });
 
-            document.getElementById('kpi-total').innerText = total - vis;
-            document.getElementById('kpi-visitadas').innerText = vis;
-            document.getElementById('kpi-hoy').innerText = hoy;
-            document.getElementById('kpi-pico').innerText = pico;
+            var elTotal = document.getElementById('kpi-total');
+            var elPend = document.getElementById('kpi-pend') || document.getElementById('kpi-hoy');
+            var elVis = document.getElementById('kpi-vis') || document.getElementById('kpi-visitadas');
+            var elPico = document.getElementById('kpi-pico');
+
+            if (elTotal) elTotal.innerText = total;
+            if (elPend) elPend.innerText = pend;
+            if (elVis) elVis.innerText = vis;
+            if (elPico) elPico.innerText = pico;
         }
 
         function actualizarFiltros() {
