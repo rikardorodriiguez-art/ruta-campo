@@ -122,22 +122,23 @@
         
         .leaflet-div-icon { background: transparent; border: none; }
 
-        /* RADAR COMPACTO */
+        /* RADAR PEGADO AL MARGEN SUPERIOR Y COMPACTO */
         #panel-cercano {
-            position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 360px;
-            background: rgba(26, 37, 47, 0.95); border: 1.5px solid #00ff87; border-radius: 10px;
-            padding: 8px 12px; color: white; z-index: 999999; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: none; font-family: Arial, sans-serif; backdrop-filter: blur(5px);
+            position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px;
+            background: rgba(26, 37, 47, 0.96); border-bottom: 2px solid #00ff87; border-radius: 0 0 14px 14px;
+            padding: 4px 10px; color: white; z-index: 999999; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            display: none; font-family: Arial, sans-serif; backdrop-filter: blur(5px); box-sizing: border-box;
         }
-        .radar-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .radar-placa { font-size: 14px; font-weight: 900; color: #00ff87; text-shadow: 0 0 5px rgba(0,255,135,0.4); }
-        .radar-dist { font-size: 11px; color: #ecf0f1; font-weight: normal; margin-left: 4px; }
-        .radar-info { font-size: 10px; color: #bdc3c7; text-align: right; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .radar-buttons { display: flex; gap: 8px; }
-        .btn-radar-ir { flex: 1; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; padding: 7px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; }
+        .radar-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+        .radar-placa { font-size: 13px; font-weight: 900; color: #00ff87; text-shadow: 0 0 5px rgba(0,255,135,0.4); display: flex; align-items: center; gap: 4px; }
+        .radar-dist { font-size: 11px; color: #ecf0f1; font-weight: normal; }
+        .radar-info { font-size: 10px; color: #bdc3c7; text-align: right; max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .radar-buttons { display: flex; gap: 6px; }
+        .btn-radar-ir { flex: 1; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; padding: 4px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .btn-radar-ir:active { transform: translateY(2px); }
-        .btn-radar-ok { flex: 1; background: linear-gradient(145deg, #27ae60, #229954); color: white; border: none; padding: 7px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; }
+        .btn-radar-ok { flex: 1; background: linear-gradient(145deg, #27ae60, #229954); color: white; border: none; padding: 4px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .btn-radar-ok:active { transform: translateY(2px); }
+        .btn-radar-close { background: none; border: none; color: #e74c3c; font-size: 13px; font-weight: bold; cursor: pointer; padding: 0 4px; }
     </style>
 </head>
 <body>
@@ -147,6 +148,7 @@
         <div class="radar-top-row">
             <div class="radar-placa">🚨 <span id="cercano-placa"></span><span id="cercano-dist" class="radar-dist"></span></div>
             <div id="cercano-info" class="radar-info"></div>
+            <button onclick="cerrarRadar()" class="btn-radar-close" title="Ocultar radar">✖</button>
         </div>
         <div class="radar-buttons">
             <button onclick="irCercanoMaps()" class="btn-radar-ir">🧭 IR</button>
@@ -199,7 +201,7 @@
 
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa, deja dirección vacía y sube foto.</b>
+            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa y Vehículo, deja dirección vacía y sube foto.</b>
             
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
@@ -265,6 +267,7 @@
         var puntoEnEdicionId = null;
         var placasRegistradas = {};
         var puntosData = [];
+        var radarOculto = false;
         
         var actualPlacaFuerza = "";
         var actualMarcaFuerza = "";
@@ -293,8 +296,13 @@
             return R * c * 1000; 
         }
 
+        function cerrarRadar() {
+            radarOculto = true;
+            document.getElementById('panel-cercano').style.display = 'none';
+        }
+
         function actualizarPanelCercano() {
-            if (!userLat || !userLng || puntosData.length === 0) {
+            if (radarOculto || !userLat || !userLng || puntosData.length === 0) {
                 document.getElementById('panel-cercano').style.display = 'none';
                 return;
             }
@@ -364,77 +372,81 @@
                    '</div>';
         }
 
-        // ---- EXTRACTOR 100% BLINDADO Y ROBUSTO (Basado en tus ejemplos exactos) ----
+        // ---- EXTRACTOR 100% BLINDADO Y ROBUSTO (Diseñado para WhatsApp y RUNT) ----
         function extraerInfoVehiculoUniversal(texto) {
-            var m = "-", l = "-", mod = "-", c = "-", s = "NO", t = "NO";
+            var m = "-", l = "-", mod = "-", c = "-", s = "SI", t = "SI";
             var lineas = texto.split('\n');
             
             for (var i = 0; i < lineas.length; i++) {
                 var lText = lineas[i].trim();
                 var up = lText.toUpperCase();
                 
-                // Si la línea contiene la etiqueta exacta o viene estilo "Marca: FORD"
-                if (m === "-" && (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO"))) {
+                // Limpiar posibles dos puntos sobrantes
+                if (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO")) {
                     if (up.includes(":") || up.includes("-")) {
-                        var val = lText.split(/[:\-]/)[1];
-                        if (val && val.trim()) m = val.trim();
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) m = parts[1].trim();
                     } else if (i + 1 < lineas.length) {
                         m = lineas[i + 1].trim();
                     }
                 }
                 
-                if (l === "-" && (up.includes("LÍNEA") || up.includes("LINEA") || up.includes("CLASE"))) {
+                if (up.includes("LÍNEA") || up.includes("LINEA") || up.includes("CLASE DE VEHÍCULO") || up.includes("CLASE DE VEHICULO") || up.includes("CLASE")) {
                     if (up.includes(":") || up.includes("-")) {
-                        var val = lText.split(/[:\-]/)[1];
-                        if (val && val.trim()) l = val.trim();
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) l = parts[1].trim();
                     } else if (i + 1 < lineas.length) {
                         l = lineas[i + 1].trim();
                     }
                 }
                 
-                if (mod === "-" && up.includes("MODELO")) {
+                if (up.includes("MODELO")) {
                     if (up.includes(":") || up.includes("-")) {
-                        var val = lText.split(/[:\-]/)[1];
-                        if (val && val.trim()) mod = val.trim();
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) mod = parts[1].trim();
                     } else if (i + 1 < lineas.length) {
                         mod = lineas[i + 1].trim();
                     }
                 }
                 
-                if (c === "-" && up.includes("COLOR")) {
+                if (up.includes("COLOR")) {
                     if (up.includes(":") || up.includes("-")) {
-                        var val = lText.split(/[:\-]/)[1];
-                        if (val && val.trim()) c = val.trim();
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) c = parts[1].trim();
                     } else if (i + 1 < lineas.length) {
                         c = lineas[i + 1].trim();
                     }
                 }
                 
-                if (s === "NO" && (up.includes("SOAT") || up.includes("SEGURO"))) {
+                if (up.includes("SOAT")) {
                     if (up.includes(":") || up.includes("-")) {
-                        var val = lText.split(/[:\-]/)[1];
-                        if (val && val.trim()) s = val.trim();
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) s = parts[1].trim();
                     } else {
-                        // Formatos pegados como SOAT:SI o SOATSI o SOAT    NO
-                        var matchSoat = lText.match(/(?:SOAT|SEGURO)\s*[:\-]?\s*([A-Z0-9\/]+)/i);
-                        if (matchSoat && matchSoat[1]) s = matchSoat[1].trim();
-                        else s = "SI";
+                        var mSoat = lText.match(/SOAT\s*([A-Z0-9]+)/i);
+                        if (mSoat) s = mSoat[1];
                     }
                 }
                 
-                if (t === "NO" && (up.includes("TECNO") || up.includes("RTM") || up.includes("REVISIÓN") || up.includes("REVISION"))) {
+                if (up.includes("TECNO") || up.includes("RTM")) {
                     if (up.includes(":") || up.includes("-")) {
-                        var val = lText.split(/[:\-]/)[1];
-                        if (val && val.trim()) t = val.trim();
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) t = parts[1].trim();
                     } else {
-                        var matchTecno = lText.match(/(?:TECNOMECANICA|TECNO|RTM)\s*[:\-]?\s*([A-Z0-9\/]+)/i);
-                        if (matchTecno && matchTecno[1]) t = matchTecno[1].trim();
-                        else t = "SI";
+                        var mTec = lText.match(/(?:TECNO|RTM)\s*([A-Z0-9]+)/i);
+                        if (mTec) t = mTec[1];
                     }
                 }
             }
             
-            return { marca: m !== "-" ? m : "VEHÍCULO", linea: l !== "-" ? l : "", modelo: mod !== "-" ? mod : "", color: c !== "-" ? c : "", soat: s, tecnomecanica: t };
+            return { 
+                marca: m !== "-" ? m : "VEHÍCULO", 
+                linea: l !== "-" ? l : "", 
+                modelo: mod !== "-" ? mod : "", 
+                color: c !== "-" ? c : "", 
+                soat: s.toUpperCase(), 
+                tecnomecanica: t.toUpperCase() 
+            };
         }
 
         map.on('click', function(e) {
@@ -788,7 +800,6 @@
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('loading-texto').innerText = "🎯 Analizando texto y ubicando...";
 
-            // Separador exacto para detectar cada reporte por su placa o la palabra UBICAR
             var bloques = texto.split(/(?=[A-Z]{3}[0-9A-Z]{3}\s+(?:CC|NIT|CE)|UBICAR)/g);
             var totalAgregados = 0;
 
