@@ -575,32 +575,89 @@
         }
 
         function toggleRadar() {
-            var panel = document.getElementById('radar-panel-flotante');
-            var btn = document.getElementById('btn-radar-header');
-            if (panel.style.display === 'none' || panel.style.display === '') {
-                abrirRadar();
+// CONTROL DE RADAR (ENCENDER Y APAGAR VISUAL Y FUNCIONAL)
+        var radarActivo = localStorage.getItem('raptor_radar_activo') !== '0';
+
+        function actualizarBotonRadarUI() {
+            var btn = document.getElementById('btn-radar-header') || document.getElementById('btn-toggle-radar');
+            if (!btn) return;
+            if (radarActivo) {
+                btn.innerHTML = '🚨 Radar ON';
+                btn.classList.add('activo');
+                btn.style.background = 'linear-gradient(145deg, #27ae60, #2ecc71)';
+                btn.style.boxShadow = '0 0 10px rgba(46, 204, 113, 0.7)';
             } else {
-                cerrarRadar();
+                btn.innerHTML = '⚪ Radar OFF';
+                btn.classList.remove('activo');
+                btn.style.background = 'linear-gradient(145deg, #64748b, #475569)';
+                btn.style.boxShadow = 'none';
+            }
+        }
+
+        function toggleRadar() {
+            radarActivo = !radarActivo;
+            localStorage.setItem('raptor_radar_activo', radarActivo ? '1' : '0');
+            actualizarBotonRadarUI();
+            
+            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
+            if (radarActivo) {
+                if (panel) panel.style.display = 'block';
+                mostrarToastNotificacion("🚨 Radar ENCENDIDO: Monitoreando vehículos en tu zona...");
+                actualizarPanelCercano();
+            } else {
+                if (panel) panel.style.display = 'none';
+                mostrarToastNotificacion("⚪ Radar APAGADO: Alertas silenciadas.");
             }
         }
 
         function abrirRadar() {
-            radarOculto = false;
-            document.getElementById('radar-panel-flotante').style.display = 'block';
-            var btn = document.getElementById('btn-radar-header');
-            if (btn) btn.classList.add('activo');
+            radarActivo = true;
+            localStorage.setItem('raptor_radar_activo', '1');
+            actualizarBotonRadarUI();
+            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
+            if (panel) panel.style.display = 'block';
             actualizarPanelCercano();
+            mostrarToastNotificacion("🚨 Radar ENCENDIDO.");
         }
 
         function cerrarRadar() {
-            radarOculto = true;
-            document.getElementById('radar-panel-flotante').style.display = 'none';
-            var btn = document.getElementById('btn-radar-header');
-            if (btn) btn.classList.remove('activo');
+            radarActivo = false;
+            localStorage.setItem('raptor_radar_activo', '0');
+            actualizarBotonRadarUI();
+            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
+            if (panel) panel.style.display = 'none';
+            mostrarToastNotificacion("⚪ Radar APAGADO.");
         }
 
         function actualizarPanelCercano() {
-            if (!userLat || !userLng || puntosData.length === 0) return;
+            actualizarBotonRadarUI();
+            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
+            if (!panel) return;
+
+            if (!radarActivo) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            if (puntosData.length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            // Si el radar está encendido pero el GPS móvil aún no detecta posición
+            if (!userLat || !userLng) {
+                panel.style.display = 'block';
+                var elEstado = document.getElementById('radar-estado');
+                var elTexto = document.getElementById('radar-texto-cercano');
+                if (elEstado) {
+                    elEstado.innerText = "🚨 Radar Activo (Esperando GPS)";
+                    elEstado.style.color = "#27ae60";
+                }
+                if (elTexto) {
+                    elTexto.innerHTML = "🛰️ Buscando señal GPS... <a href='javascript:void(0)' onclick='centrarEnMiGPS()' style='color:#3498db; font-weight:bold;'>Toca aquí o en 🎯 para activar</a>";
+                }
+                return;
+            }
 
             var pendientes = puntosData.filter(function(p) {
                 var vis = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
@@ -608,9 +665,17 @@
             });
 
             if (pendientes.length === 0) {
-                document.getElementById('radar-texto-cercano').innerHTML = "🎉 ¡Sin vehículos pendientes cercanos!";
-                document.getElementById('radar-estado').innerText = "✅ Ruta Completada";
-                document.getElementById('radar-estado').style.color = "#27ae60";
+                panel.style.display = 'block';
+                var elEstado = document.getElementById('radar-estado');
+                var elTexto = document.getElementById('radar-texto-cercano');
+                if (elEstado) {
+                    elEstado.innerText = "✅ Ruta Completada";
+                    elEstado.style.color = "#27ae60";
+                }
+                if (elTexto) {
+                    elTexto.innerHTML = "🎉 ¡Todos los vehículos han sido visitados!";
+                }
+                placaMasCercanaObj = null;
                 return;
             }
 
@@ -627,18 +692,24 @@
 
             if (masCercano) {
                 placaMasCercanaObj = masCercano;
+                panel.style.display = 'block';
                 var distTxt = menorDist < 1000 ? Math.round(menorDist) + " metros" : (menorDist / 1000).toFixed(1) + " km";
                 var detCarro = (masCercano.marca && masCercano.marca !== '-') ? " (" + masCercano.marca + " " + (masCercano.color || '') + ")" : "";
                 
-                document.getElementById('radar-texto-cercano').innerHTML = 
-                    "🚨 <b>" + masCercano.placa + "</b>" + detCarro + " a <b>" + distTxt + "</b><br>" +
-                    "<span style='font-size:10px; color:#555;'>📍 " + (masCercano.dirOriginal || masCercano.dir).slice(0, 35) + "...</span>";
+                var elTexto = document.getElementById('radar-texto-cercano');
+                var elEstado = document.getElementById('radar-estado');
+                
+                if (elTexto) {
+                    elTexto.innerHTML = 
+                        "🚨 <b>" + masCercano.placa + "</b>" + detCarro + " a <b>" + distTxt + "</b><br>" +
+                        "<span style='font-size:10px; color:#555;'>📍 " + (masCercano.dirOriginal || masCercano.dir).slice(0, 35) + "...</span>";
+                }
 
                 if (menorDist <= 500) {
-                    document.getElementById('radar-panel-flotante').style.display = 'block';
-                    document.getElementById('radar-estado').innerText = "🚨 ¡VEHÍCULO EN RANGO (" + distTxt + ")!";
-                    document.getElementById('radar-estado').style.color = "#c0392b";
-                    
+                    if (elEstado) {
+                        elEstado.innerText = "🚨 ¡VEHÍCULO EN RANGO (" + distTxt + ")!";
+                        elEstado.style.color = "#c0392b";
+                    }
                     var ahora = Date.now();
                     if (ahora - ultimaAlertaTs > 25000) {
                         emitirAlertaSonora();
@@ -646,8 +717,10 @@
                         ultimaAlertaTs = ahora;
                     }
                 } else {
-                    document.getElementById('radar-estado').innerText = "Radar Activo (Siguiente en ruta)";
-                    document.getElementById('radar-estado').style.color = "#2980b9";
+                    if (elEstado) {
+                        elEstado.innerText = "Radar Activo (Siguiente en ruta)";
+                        elEstado.style.color = "#2980b9";
+                    }
                 }
             }
         }
