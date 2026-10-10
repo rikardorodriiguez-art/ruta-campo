@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.1</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.2</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -1987,7 +1987,7 @@
             var memoria = cargarMemoriaAprendizaje();
             var idDoc = munNombre + "_" + keyNorm;
 
-            // 1. Coincidencia exacta aprendida previamente
+            // 1. Coincidencia EXACTA aprendida previamente para este predio específico y municipio
             if (memoria[idDoc]) {
                 return {
                     lat: memoria[idDoc].lat,
@@ -1997,24 +1997,9 @@
                 };
             }
 
-            // 2. Coincidencia cercana en la misma cuadra / tramo (interpolación inteligente)
-            var partesClave = keyNorm.match(/^([A-Z]+)(\d+)(?:[A-Z]+)?(?:SUR|NORTE|ESTE|OESTE)?(\d+)/);
-            if (partesClave) {
-                var prefijoVia = partesClave[1] + partesClave[2]; // Ej: CL80 o KR45
-                for (var k in memoria) {
-                    if (k.startsWith(munNombre + "_" + prefijoVia)) {
-                        var aprendida = memoria[k];
-                        // Si está en el mismo tramo de calle/carrera, utilizar como anclaje base de alta precisión
-                        return {
-                            lat: aprendida.lat,
-                            lng: aprendida.lng,
-                            tipo: 'APRENDIZAJE_CUADRA_CERCANA',
-                            veces: aprendida.veces || 1
-                        };
-                    }
-                }
-            }
-
+            // NOTA: No se permite coincidencia por prefijo suelto (ej: solo Calle 80), porque dos direcciones
+            // con diferente carrera o diferente número son predios distintos y no deben compartir las mismas coordenadas
+            // ni colocarse una encima de la otra.
             return null;
         }
 
@@ -4267,6 +4252,18 @@
             p.comentarios = p.comentarios || "";
 
             var esVisitada = !!p.visitada;
+
+            // Evitar que dos vehículos distintos se tapen si caen exactamente en las mismas coordenadas (<12m)
+            var puntoSolapado = puntosData.find(function(pd) {
+                if (pd.id === p.id || pd.placa === p.placa) return false;
+                if (!pd.lat || !pd.lng || !p.lat || !p.lng) return false;
+                return map.distance([pd.lat, pd.lng], [p.lat, p.lng]) < 12;
+            });
+            if (puntoSolapado) {
+                var ang = Math.random() * Math.PI * 2;
+                p.lat = parseFloat((p.lat + Math.cos(ang) * 0.00018).toFixed(6)); // Separación visual de ~18 metros
+                p.lng = parseFloat((p.lng + Math.sin(ang) * 0.00018).toFixed(6));
+            }
 
             var customIcon = L.divIcon({
                 className: '', 
