@@ -1,245 +1,313 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Ruta de Campo - Raptor S.A.S.</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruta de Campo - Raptor S.A.S. (Pro)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- LEAFLET & CONTROLES -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
     
-    <!-- LIBRERÍA DE IA PARA LEER FOTOS -->
+    <!-- LIBRERÍA DE OCR PARA IMÁGENES -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        * { box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
         #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
+        /* BARRA SUPERIOR DE ESTADÍSTICAS */
+        #barra-kpi {
+            position: fixed; top: 12px; left: 60px; z-index: 9999;
+            background: rgba(26, 37, 47, 0.92); backdrop-filter: blur(8px);
+            padding: 6px 14px; border-radius: 25px; color: white;
+            font-size: 11px; font-weight: bold; display: flex; gap: 12px; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+        }
+        .kpi-item { display: flex; align-items: center; gap: 4px; }
+        .kpi-badge { padding: 2px 6px; border-radius: 10px; font-size: 10px; }
+        .badge-pend { background: #e74c3c; color: white; }
+        .badge-vis { background: #27ae60; color: white; }
+        .badge-pico { background: #f39c12; color: white; }
+
+        /* BOTONES FLOTANTES */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
-            background: linear-gradient(145deg, #34495e, #1a252f); color: white; border: none; padding: 14px 22px;
-            border-radius: 50px; font-size: 15px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.35), inset 0 2px 2px rgba(255,255,255,0.2);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease; text-transform: uppercase;
+            background: linear-gradient(145deg, #2c3e50, #1a252f); color: white; border: none; padding: 14px 22px;
+            border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4), inset 0 2px 2px rgba(255,255,255,0.2);
+            transition: all 0.2s ease; text-transform: uppercase; display: flex; align-items: center; gap: 6px;
         }
-        .floating-btn-add:active { transform: translateY(3px) scale(0.96); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .floating-btn-add:active { transform: translateY(2px) scale(0.97); }
 
         .floating-btn-filter {
-            position: fixed; top: 20px; right: 20px; z-index: 99999;
-            background: linear-gradient(145deg, #34495e, #1a252f); color: white; border: none; padding: 12px 18px;
-            border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.35), inset 0 2px 2px rgba(255,255,255,0.2);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease;
+            position: fixed; top: 12px; right: 15px; z-index: 99999;
+            background: linear-gradient(145deg, #2c3e50, #1a252f); color: white; border: none; padding: 10px 16px;
+            border-radius: 50px; font-size: 13px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4), inset 0 2px 2px rgba(255,255,255,0.2);
+            transition: all 0.2s ease; display: flex; align-items: center; gap: 5px;
         }
-        .floating-btn-filter:active { transform: translateY(3px) scale(0.96); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .floating-btn-filter:active { transform: translateY(2px); }
 
+        /* PANELES FLOTANTES */
         .floating-menu {
             position: fixed; bottom: 80px; left: 20px; z-index: 99999;
-            background: white; padding: 15px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); width: 290px; display: none; font-family: Arial; font-size: 12px; max-height: 70vh; overflow-y: auto;
+            background: white; padding: 16px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+            width: 320px; max-width: 90vw; display: none; font-size: 12px; max-height: 75vh; overflow-y: auto;
         }
         
         .floating-filter-panel {
-            position: fixed; top: 70px; right: 20px; z-index: 99999;
-            background: white; padding: 15px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); width: 230px; display: none; font-family: Arial; font-size: 12px;
+            position: fixed; top: 60px; right: 15px; z-index: 99999;
+            background: white; padding: 16px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+            width: 270px; max-width: 90vw; display: none; font-size: 12px;
         }
 
         .floating-menu button.main-opt { 
-            color: white; border: none; padding: 12px 10px; width: 100%; border-radius: 8px; margin-bottom: 8px; font-weight: bold; font-size: 13px; cursor: pointer; text-align: left; 
-            box-shadow: 0 5px 10px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease;
+            color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-bottom: 8px;
+            font-weight: bold; font-size: 13px; cursor: pointer; text-align: left; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15); transition: all 0.2s ease;
         }
-        .floating-menu button.main-opt:active { transform: translateY(3px); box-shadow: 0 2px 3px rgba(0,0,0,0.2); }
+        .floating-menu button.main-opt:active { transform: translateY(2px); }
         .mo-1 { background: linear-gradient(145deg, #34495e, #2c3e50); }
-        .mo-2 { background: linear-gradient(145deg, #9b59b6, #8e44ad); }
-        .mo-3 { background: linear-gradient(145deg, #2ecc71, #27ae60); }
+        .mo-2 { background: linear-gradient(145deg, #8e44ad, #7d3c98); }
+        .mo-3 { background: linear-gradient(145deg, #27ae60, #219150); }
         
-        .sub-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
-        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 6px; font-size: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .sub-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0; }
+        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 6px; font-size: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
         
-        .sub-panel button.action, #modo-edicion-banner button { 
-            color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px; font-weight: bold; cursor: pointer; font-size: 13px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: all 0.2s ease; text-transform: uppercase;
+        .sub-panel button.action { 
+            color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px;
+            font-weight: bold; cursor: pointer; font-size: 12px; text-transform: uppercase;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2); transition: all 0.15s ease;
         }
-        .sub-panel button.action:active, #modo-edicion-banner button:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .sub-panel button.action:active { transform: translateY(2px); }
         
-        .act-blue { background: linear-gradient(145deg, #3498db, #2980b9); }
-        .act-purple { background: linear-gradient(145deg, #9b59b6, #8e44ad); }
-        .act-green { background: linear-gradient(145deg, #2ecc71, #27ae60); }
-        .act-red { background: linear-gradient(145deg, #e74c3c, #c0392b); }
-        .act-gray { background: linear-gradient(145deg, #95a5a6, #7f8c8d); }
+        .act-blue { background: linear-gradient(145deg, #2980b9, #1f618d); }
+        .act-purple { background: linear-gradient(145deg, #8e44ad, #71368a); }
+        .act-green { background: linear-gradient(145deg, #27ae60, #1e8449); }
+        .act-red { background: linear-gradient(145deg, #c0392b, #962d22); }
+        .act-gray { background: linear-gradient(145deg, #7f8c8d, #626567); }
 
         .sub-panel button.close-sub { 
-            background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; margin-top: 6px; font-weight: bold; cursor: pointer; font-size: 12px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: all 0.2s ease;
+            background: #95a5a6; color: white; border: none; padding: 8px; width: 100%;
+            border-radius: 6px; margin-top: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
         }
-        .sub-panel button.close-sub:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         
-        .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 16px; transition: transform 0.2s; }
-        .header-menu button:hover { transform: scale(1.2); }
+        .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 18px; }
         
-        .filter-option { display: block; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
-        .filter-search { width: 100%; padding: 6px; font-size: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .filter-option { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
+        .filter-search { width: 100%; padding: 8px; font-size: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
 
-        .backup-section { margin-top: 10px; padding-top: 12px; border-top: 1px dashed #bbb; display: flex; gap: 6px; }
-        .backup-section button { flex: 1; padding: 8px; font-size: 11px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.2); transition: all 0.2s ease;}
-        .backup-section button:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-        .btn-export { background: linear-gradient(145deg, #2ecc71, #27ae60); }
-        .btn-import { background: linear-gradient(145deg, #3498db, #2980b9); }
+        .backup-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #bbb; display: flex; gap: 6px; }
+        .backup-section button { flex: 1; padding: 8px; font-size: 11px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; }
+        .btn-export { background: #27ae60; }
+        .btn-import { background: #2980b9; }
 
+        /* RADAR COMPACTO SUPERIOR */
+        #panel-cercano {
+            position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 440px;
+            background: rgba(26, 37, 47, 0.97); border-bottom: 3px solid #00ff87; border-radius: 0 0 16px 16px;
+            padding: 8px 14px; color: white; z-index: 999999; box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+            display: none; backdrop-filter: blur(8px);
+        }
+        .radar-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .radar-placa { font-size: 14px; font-weight: 900; color: #00ff87; text-shadow: 0 0 6px rgba(0,255,135,0.4); display: flex; align-items: center; gap: 6px; }
+        .radar-dist { font-size: 12px; color: #ecf0f1; font-weight: normal; }
+        .radar-info { font-size: 11px; color: #bdc3c7; text-align: right; max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .radar-buttons { display: flex; gap: 6px; margin-top: 4px; }
+        .btn-radar-ir { flex: 1; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; padding: 6px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-radar-ok { flex: 1; background: linear-gradient(145deg, #2ecc71, #27ae60); color: white; border: none; padding: 6px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-radar-close { background: none; border: none; color: #e74c3c; font-size: 14px; font-weight: bold; cursor: pointer; padding: 0 6px; }
+
+        /* MODO EDICIÓN & RESCATE */
         #modo-edicion-banner {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            background: linear-gradient(145deg, #e67e22, #d35400); color: white; padding: 15px; border-radius: 12px;
-            z-index: 999999; font-family: Arial; font-size: 13px; font-weight: bold; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-            display: none; text-align: center; width: 320px; max-width: 90%; border: 1px solid #e67e22;
+            background: linear-gradient(145deg, #e67e22, #d35400); color: white; padding: 14px; border-radius: 12px;
+            z-index: 999999; font-size: 13px; font-weight: bold; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            display: none; text-align: center; width: 330px; max-width: 90%;
         }
 
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
-            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white; font-family: Arial; font-size: 16px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column;
+            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white;
+            font-size: 16px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column; gap: 10px;
         }
 
-        #modal-asistente {
+        #modal-asistente, #modal-config {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 18px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            width: 320px; z-index: 9999999; display: none; font-family: Arial; font-size: 12px;
+            background: white; padding: 20px; border-radius: 14px; box-shadow: 0 12px 35px rgba(0,0,0,0.5);
+            width: 340px; max-width: 92vw; z-index: 9999999; display: none; font-size: 12px;
         }
 
-        .leaflet-popup-content { margin: 10px; line-height: 1.5; }
-        .car-thumbnail { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; display: none; }
-        .edit-input { width: 100%; margin-bottom: 6px; padding: 5px; font-size: 12px; border: 1px solid #aaa; border-radius: 4px; box-sizing: border-box; }
-
+        /* POPUP DE MARCADOR */
+        .leaflet-popup-content { margin: 10px; line-height: 1.4; }
+        .car-thumbnail { width: 100%; max-height: 130px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; }
+        .edit-input { width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px; border: 1px solid #aaa; border-radius: 4px; }
         .pop-btn {
-            color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-weight: bold; font-size: 13px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 2px 2px rgba(255,255,255,0.2); text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.15s ease;
+            color: white; border: none; padding: 8px 10px; width: 100%; border-radius: 6px; cursor: pointer;
+            margin-bottom: 6px; font-weight: bold; font-size: 12px; text-align: center; text-decoration: none;
+            display: block; box-shadow: 0 3px 6px rgba(0,0,0,0.2); transition: all 0.15s ease;
         }
-        .pop-btn:active { transform: translateY(3px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-        .pb-blue { background: linear-gradient(145deg, #2980b9, #2471a3); }
-        .pb-green { background: linear-gradient(145deg, #27ae60, #229954); }
-        .pb-purple { background: linear-gradient(145deg, #8e44ad, #7d3c98); }
-        .pb-orange { background: linear-gradient(145deg, #e67e22, #d35400); }
-        .pb-teal { background: linear-gradient(145deg, #1abc9c, #16a085); }
-        .pb-red { background: linear-gradient(145deg, #e74c3c, #c0392b); }
-        .pb-darkred { background: linear-gradient(145deg, #922b21, #7b241c); }
-        
+        .pop-btn:active { transform: translateY(2px); }
+        .pb-blue { background: #2980b9; }
+        .pb-green { background: #27ae60; }
+        .pb-purple { background: #8e44ad; }
+        .pb-orange { background: #d35400; }
+        .pb-teal { background: #16a085; }
+        .pb-red { background: #c0392b; }
+        .pb-darkred { background: #7b241c; }
         .leaflet-div-icon { background: transparent; border: none; }
-
-        /* RADAR PEGADO AL MARGEN SUPERIOR Y COMPACTO */
-        #panel-cercano {
-            position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px;
-            background: rgba(26, 37, 47, 0.96); border-bottom: 2px solid #00ff87; border-radius: 0 0 14px 14px;
-            padding: 4px 10px; color: white; z-index: 999999; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-            display: none; font-family: Arial, sans-serif; backdrop-filter: blur(5px); box-sizing: border-box;
-        }
-        .radar-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-        .radar-placa { font-size: 13px; font-weight: 900; color: #00ff87; text-shadow: 0 0 5px rgba(0,255,135,0.4); display: flex; align-items: center; gap: 4px; }
-        .radar-dist { font-size: 11px; color: #ecf0f1; font-weight: normal; }
-        .radar-info { font-size: 10px; color: #bdc3c7; text-align: right; max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .radar-buttons { display: flex; gap: 6px; }
-        .btn-radar-ir { flex: 1; background: linear-gradient(145deg, #3498db, #2980b9); color: white; border: none; padding: 4px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .btn-radar-ir:active { transform: translateY(2px); }
-        .btn-radar-ok { flex: 1; background: linear-gradient(145deg, #27ae60, #229954); color: white; border: none; padding: 4px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .btn-radar-ok:active { transform: translateY(2px); }
-        .btn-radar-close { background: none; border: none; color: #e74c3c; font-size: 13px; font-weight: bold; cursor: pointer; padding: 0 4px; }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
+    <!-- BARRA SUPERIOR DE MÉTRICAS -->
+    <div id="barra-kpi">
+        <div class="kpi-item">📌 Total: <span id="kpi-total" class="kpi-badge" style="background:#34495e;">0</span></div>
+        <div class="kpi-item">⏳ Pendientes: <span id="kpi-pend" class="kpi-badge badge-pend">0</span></div>
+        <div class="kpi-item">✅ Visitadas: <span id="kpi-vis" class="kpi-badge badge-vis">0</span></div>
+        <div class="kpi-item">⚠️ P&P: <span id="kpi-pico" class="kpi-badge badge-pico">0</span></div>
+    </div>
+
+    <!-- RADAR DE PROXIMIDAD -->
     <div id="panel-cercano">
         <div class="radar-top-row">
-            <div class="radar-placa">🚨 <span id="cercano-placa"></span><span id="cercano-dist" class="radar-dist"></span></div>
+            <div class="radar-placa">🚨 <span id="cercano-placa"></span> <span id="cercano-dist" class="radar-dist"></span></div>
             <div id="cercano-info" class="radar-info"></div>
             <button onclick="cerrarRadar()" class="btn-radar-close" title="Ocultar radar">✖</button>
         </div>
         <div class="radar-buttons">
-            <button onclick="irCercanoMaps()" class="btn-radar-ir">🧭 IR</button>
-            <button onclick="visitarCercanoDesdeRadar()" class="btn-radar-ok">✅ VISITADA</button>
+            <button onclick="irCercanoMaps()" class="btn-radar-ir">🧭 IR (Google Maps)</button>
+            <button onclick="visitarCercanoDesdeRadar()" class="btn-radar-ok">✅ MARCAR VISITADA</button>
         </div>
     </div>
 
+    <!-- OVERLAYS & MODALES -->
     <div id="loading-overlay">
-        <span id="loading-texto">🎯 Procesando...</span>
+        <div style="font-size: 32px;">⏳</div>
+        <span id="loading-texto">Procesando...</span>
     </div>
 
     <div id="modal-asistente">
-        <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 8px;">✏️ Revisar Texto de Consulta:</b>
-        <span style="font-size: 11px; color:#555; display:block; margin-bottom:6px;">Corrige las líneas de las direcciones aquí:</span>
-        <textarea id="asistente-texto" placeholder="" style="width:100%; height:110px; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; resize:none;"></textarea>
+        <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 6px;">✏️ Revisión Manual de Direcciones:</b>
+        <span style="font-size: 11px; color:#555; display:block; margin-bottom:8px;">Corrige o selecciona las líneas de dirección:</span>
+        <textarea id="asistente-texto" style="width:100%; height:120px; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:6px; resize:none;"></textarea>
         <div style="display:flex; gap:6px; margin-top:12px;">
-            <button onclick="procesarModalRescate()" class="act-green" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1; box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: transform 0.2s;">✅ Mapear</button>
-            <button onclick="cerrarAsistente()" class="act-gray" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1; box-shadow: 0 3px 6px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.3); text-shadow: 0 1px 2px rgba(0,0,0,0.4); transition: transform 0.2s;">❌ Cancelar</button>
+            <button onclick="procesarModalRescate()" class="act-green" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">✅ Mapear</button>
+            <button onclick="cerrarAsistente()" class="act-gray" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">❌ Cancelar</button>
         </div>
     </div>
 
+    <!-- MODAL DE CONFIGURACIÓN -->
+    <div id="modal-config">
+        <div class="header-menu">
+            <b style="color: #2c3e50; font-size: 14px;">⚙️ Configuración del Sistema</b>
+            <button onclick="cerrarConfig()">✖</button>
+        </div>
+        <label style="display:block; font-size:11px; font-weight:bold; margin-top:6px;">Clave Google Maps Geocoding (Opcional):</label>
+        <input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
+        <span style="font-size:10px; color:#7f8c8d; display:block; margin-top:3px;">Si se deja vacía, se usará automáticamente OpenStreetMap (Nominatim).</span>
+
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:12px;">
+            <input type="checkbox" id="cfg-sonido" checked> 🔊 Alerta sonora de proximidad (&lt; 200m)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:8px;">
+            <input type="checkbox" id="cfg-vibrar" checked> 📳 Vibración táctil en proximidad
+        </label>
+
+        <div style="margin-top:15px; display:flex; gap:6px;">
+            <button onclick="guardarConfig()" class="act-green" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Guardar</button>
+            <button onclick="cerrarConfig()" class="act-gray" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- BANNER DE REUBICACIÓN MANUAL -->
     <div id="modo-edicion-banner">
-        📍 Moviendo punto:<br>
-        <span id="info-edicion-texto" style="font-size: 12px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 5px; margin-bottom: 5px;"></span><br>
-        <div style="margin-top: 8px; background: white; padding: 10px; border-radius: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
-            <input type="text" id="input-link-maps-rapido" placeholder="Pega Coordenadas o Dirección exacta..." style="width:100%; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:8px; color:#000;">
+        📍 Moviendo ubicación:<br>
+        <span id="info-edicion-texto" style="font-size: 11px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 5px 0;"></span><br>
+        <div style="margin-top: 6px; background: white; padding: 10px; border-radius: 8px;">
+            <input type="text" id="input-link-maps-rapido" placeholder="Haz clic en el mapa o pega lat,lng..." style="width:100%; font-size:12px; padding:6px; border:1px solid #ccc; border-radius:4px; margin-bottom:6px; color:#000;">
             <div style="display:flex; gap:6px;">
-                <button onclick="confirmarLinkRapido()" class="act-green">✅ Confirmar</button>
-                <button onclick="cancelarEdicion()" class="act-red">❌ Cancelar</button>
+                <button onclick="confirmarLinkRapido()" class="act-green" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">Confirmar</button>
+                <button onclick="cancelarEdicion()" class="act-red" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">Cancelar</button>
             </div>
         </div>
     </div>
 
+    <!-- BOTÓN AGREGAR Y MENÚ -->
     <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
     <div id="menuOpciones" class="floating-menu">
         <div class="header-menu">
-            <b style="color: #2c3e50; font-size: 14px;">Agregar Ubicaciones:</b>
+            <b style="color: #2c3e50; font-size: 14px;">Opciones de Carga:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto</button>
-        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️/📄 Ingreso manual / Coordenadas / Foto</button>
-        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">3. ⚡ Pegar Extracción IA</button>
+        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">⚡ 1. Pegar Extracción IA (Recomendado)</button>
+        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">📱 2. Pegar reporte texto (WhatsApp)</button>
+        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">✍️ 3. Ingreso manual / Foto OCR</button>
 
-        <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:11px;">Pega tu reporte (máx 3 direcciones por placa):</b>
-            <textarea id="txtWhatsapp" placeholder="Pega aquí los mensajes múltiples..." style="height: 100px;"></textarea>
-            <button class="action act-blue" onclick="procesarLoteMasivo()">Procesar y Agregar</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
+        <!-- SECCIÓN GEMINI MULTI-PLACA -->
+        <div id="seccion-gemini" class="sub-panel">
+            <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br>
+            <span style="font-size: 10px; color:#666; display:block; margin: 4px 0 8px 0;">Pega aquí uno o varios vehículos extraídos por la IA:</span>
+            <textarea id="txtGemini" placeholder="PLACA: EQW167&#10;VEHÍCULO: FAW R7 SUV 2019&#10;SOAT: SI | TECNO: SI&#10;CELULARES: 3101234567&#10;DIRECCIÓN 1: Calle 73 # 72C - 191, Medellín&#10;DIRECCIÓN 2: Km 7 autopista Medellín - Bogotá, Copacabana&#10;&#10;PLACA: TTN168&#10;VEHÍCULO: SERVICIO PÚBLICO&#10;DIRECCIÓN 1: Calle 73 # 72C - 191, Medellín" style="height: 140px; font-size: 11px;"></textarea>
+            <button class="action act-green" onclick="procesarExtraccionGemini()">🚀 Mapear Ubicaciones</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
 
+        <!-- SECCIÓN WHATSAPP -->
+        <div id="seccion-whatsapp" class="sub-panel">
+            <b style="color:#2c3e50; font-size:11px;">Pega mensajes múltiples de reporte:</b>
+            <textarea id="txtWhatsapp" placeholder="Pega el texto del grupo de WhatsApp aquí..." style="height: 100px;"></textarea>
+            <button class="action act-blue" onclick="procesarLoteMasivo()">Procesar Lote</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN MANUAL -->
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#2980b9;">Manual: escribe Placa, Vehículo y Dirección.</b><br>
-            <b style="font-size: 11px; color:#8e44ad;">Reportes (IA): Escribe Placa y Vehículo, deja dirección vacía y sube foto.</b>
-            
+            <b style="font-size: 11px; color:#8e44ad;">Ingreso Directo o Foto:</b>
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
             <input type="text" id="manMarca" placeholder="Marca / Vehículo">
             <input type="text" id="manLinea" placeholder="Línea / Clase">
-            <input type="text" id="manModelo" placeholder="Modelo">
-            <input type="text" id="manColor" placeholder="Color">
             <div style="display:flex; gap:5px;">
-                <input type="text" id="manSoat" placeholder="Venc. SOAT (Opcional)" style="flex:1;">
-                <input type="text" id="manTecno" placeholder="Venc. Tecno (Opcional)" style="flex:1;">
+                <input type="text" id="manModelo" placeholder="Modelo" style="flex:1;">
+                <input type="text" id="manColor" placeholder="Color" style="flex:1;">
             </div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="manSoat" placeholder="SOAT (SI/NO)" style="flex:1;">
+                <input type="text" id="manTecno" placeholder="Tecno (SI/NO)" style="flex:1;">
+            </div>
+            <input type="text" id="manTel" placeholder="Celulares de contacto">
             <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
             
-            <b style="font-size: 11px; margin-top: 10px; display: block; color:#2c3e50;">Adjuntar Foto de Reporte (Opcional):</b>
+            <b style="font-size: 11px; margin-top: 8px; display: block; color:#2c3e50;">Foto del Reporte (Opcional OCR):</b>
             <input type="file" id="manFoto" accept="image/*" style="font-size:11px; margin-top:4px;">
             <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
-        </div>
-
-        <div id="seccion-gemini" class="sub-panel">
-            <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI</b><br><br>
-            <b style="font-size: 11px; display: block; margin-bottom: 6px;">Pega los datos que te di en el chat:</b>
-            <textarea id="txtGemini" placeholder="PLACA: ...&#10;VEHÍCULO: ...&#10;DIRECCIÓN 1: ...&#10;CELULARES: ..." style="height: 120px; font-size: 11px;"></textarea>
-            <button class="action act-green" onclick="procesarExtraccionGemini()">Mapear Todo en el Mapa</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver / Cerrar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
     </div>
 
-    <button class="floating-btn-filter" onclick="toggleMenuFilter()">🗺️ Filtros</button>
+    <!-- BOTÓN FILTROS Y PANEL -->
+    <button class="floating-btn-filter" onclick="toggleMenuFilter()">🗺️ Menú / Filtros</button>
     <div id="panelFiltros" class="floating-filter-panel">
         <div class="header-menu">
-            <b style="color: #2c3e50; font-size: 14px;">Filtrar Placas:</b>
+            <b style="color: #2c3e50; font-size: 14px;">Filtrar y Opciones:</b>
             <button onclick="toggleMenuFilter()">✖</button>
         </div>
         <input type="text" id="inputBuscarPlaca" class="filter-search" placeholder="🔍 Buscar placa..." oninput="actualizarFiltros()">
-        <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Pico y Placa</label>
+        <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Con Pico y Placa</label>
         <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
         <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
+        <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+            <button onclick="trazarRutaPendientes()" class="pop-btn pb-blue" style="margin:0;">🚗 Trazar Ruta Patrullaje</button>
+            <button onclick="abrirRutaGoogleMapsCompleta()" class="pop-btn pb-teal" style="margin:0;">🧭 Ruta en Google Maps</button>
+            <button onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0;">⚙️ Configuración</button>
+        </div>
+
         <div class="backup-section">
             <button class="btn-export" onclick="exportarRespaldo()">📥 Respaldar</button>
             <button class="btn-import" onclick="document.getElementById('fileInputBackup').click()">📤 Cargar</button>
@@ -250,11 +318,18 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <script>
+        // CONFIGURACIÓN GLOBAL
+        var configApp = {
+            googleApiKey: localStorage.getItem('raptor_google_apikey') || "",
+            sonidoAlerta: localStorage.getItem('raptor_sonido') !== "0",
+            vibrarAlerta: localStorage.getItem('raptor_vibrar') !== "0"
+        };
+
         var map = L.map('map').setView([6.2442, -75.5812], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap'
+            attribution: '© OpenStreetMap contributors | Raptor S.A.S.'
         }).addTo(map);
 
         var locateControl = L.control.locate({
@@ -268,14 +343,8 @@
         var placasRegistradas = {};
         var puntosData = [];
         var radarOculto = false;
-        
-        var actualPlacaFuerza = "";
-        var actualMarcaFuerza = "";
-        var actualLineaFuerza = "";
-        var actualModeloFuerza = "";
-        var actualColorFuerza = "";
-        var actualSoatFuerza = "";
-        var actualTecnoFuerza = "";
+        var polylineRuta = null;
+        var ultimaAlertaTs = 0;
         
         var userLat = null;
         var userLng = null;
@@ -293,7 +362,32 @@
             var dLon = (lon2-lon1) * Math.PI / 180;
             var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c * 1000; 
+            return R * c * 1000; // metros
+        }
+
+        function emitirAlertaSonora() {
+            if (!configApp.sonidoAlerta) return;
+            try {
+                var AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                var ctx = new AudioCtx();
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.35);
+            } catch (e) {}
+        }
+
+        function emitirVibracion() {
+            if (configApp.vibrarAlerta && navigator.vibrate) {
+                try { navigator.vibrate([150, 70, 150]); } catch(e){}
+            }
         }
 
         function cerrarRadar() {
@@ -339,15 +433,25 @@
                 var tecnoStr = puntoCercano.tecnomecanica || 'NO';
                 
                 document.getElementById('cercano-info').innerText = vehStr + ' | SOAT: ' + soatStr + ' | Tecno: ' + tecnoStr;
+
+                // Alerta cuando está a menos de 200 metros (con frecuencia máxima de 1 vez cada 40 segundos)
+                var ahora = Date.now();
+                if (distMinima <= 200 && (ahora - ultimaAlertaTs > 40000)) {
+                    ultimaAlertaTs = ahora;
+                    emitirAlertaSonora();
+                    emitirVibracion();
+                }
             } else {
                 document.getElementById('panel-cercano').style.display = 'none';
                 placaMasCercanaObj = null;
             }
+
+            actualizarKPIs();
         }
 
         function irCercanoMaps() {
             if (placaMasCercanaObj) {
-                var urlMaps = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(placaMasCercanaObj.dir);
+                var urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(placaMasCercanaObj.lat + "," + placaMasCercanaObj.lng);
                 window.open(urlMaps, '_blank');
             }
         }
@@ -363,8 +467,8 @@
             var shadowDot = esVisitada ? 'rgba(39, 174, 96, 0.8)' : 'rgba(231, 76, 60, 0.8)';
             
             return '<div style="position: relative; display: inline-block;">' +
-                   '<div style="background: #ffffff; border: 1.5px solid #bdc3c7; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.25); font-family: Arial, sans-serif; font-weight: 900; font-size: 13px; color: #2c3e50; white-space: nowrap;">' +
-                   '<div style="width: 12px; height: 12px; background-color: ' + colorDot + '; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 8px ' + shadowDot + ';"></div>' +
+                   '<div style="background: #ffffff; border: 1.5px solid #bdc3c7; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.25); font-family: Arial, sans-serif; font-weight: 900; font-size: 12px; color: #2c3e50; white-space: nowrap;">' +
+                   '<div style="width: 10px; height: 10px; background-color: ' + colorDot + '; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px ' + shadowDot + ';"></div>' +
                    placa +
                    '</div>' +
                    '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 7px solid #bdc3c7;"></div>' +
@@ -372,262 +476,20 @@
                    '</div>';
         }
 
-        // ---- EXTRACTOR 100% BLINDADO Y ROBUSTO (Diseñado para WhatsApp y RUNT) ----
-        function extraerInfoVehiculoUniversal(texto) {
-            var m = "-", l = "-", mod = "-", c = "-", s = "SI", t = "SI";
-            var lineas = texto.split('\n');
-            
-            for (var i = 0; i < lineas.length; i++) {
-                var lText = lineas[i].trim();
-                var up = lText.toUpperCase();
-                
-                // Limpiar posibles dos puntos sobrantes
-                if (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) m = parts[1].trim();
-                    } else if (i + 1 < lineas.length) {
-                        m = lineas[i + 1].trim();
-                    }
-                }
-                
-                if (up.includes("LÍNEA") || up.includes("LINEA") || up.includes("CLASE DE VEHÍCULO") || up.includes("CLASE DE VEHICULO") || up.includes("CLASE")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) l = parts[1].trim();
-                    } else if (i + 1 < lineas.length) {
-                        l = lineas[i + 1].trim();
-                    }
-                }
-                
-                if (up.includes("MODELO")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) mod = parts[1].trim();
-                    } else if (i + 1 < lineas.length) {
-                        mod = lineas[i + 1].trim();
-                    }
-                }
-                
-                if (up.includes("COLOR")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) c = parts[1].trim();
-                    } else if (i + 1 < lineas.length) {
-                        c = lineas[i + 1].trim();
-                    }
-                }
-                
-                if (up.includes("SOAT")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) s = parts[1].trim();
-                    } else {
-                        var mSoat = lText.match(/SOAT\s*([A-Z0-9]+)/i);
-                        if (mSoat) s = mSoat[1];
-                    }
-                }
-                
-                if (up.includes("TECNO") || up.includes("RTM")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) t = parts[1].trim();
-                    } else {
-                        var mTec = lText.match(/(?:TECNO|RTM)\s*([A-Z0-9]+)/i);
-                        if (mTec) t = mTec[1];
-                    }
-                }
-            }
-            
-            return { 
-                marca: m !== "-" ? m : "VEHÍCULO", 
-                linea: l !== "-" ? l : "", 
-                modelo: mod !== "-" ? mod : "", 
-                color: c !== "-" ? c : "", 
-                soat: s.toUpperCase(), 
-                tecnomecanica: t.toUpperCase() 
-            };
-        }
-
-        map.on('click', function(e) {
-            if (puntoEnEdicionId) {
-                var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
-                if (item) {
-                    item.marker.setLatLng(e.latlng);
-                    item.lat = e.latlng.lat;
-                    item.lng = e.latlng.lng;
-                    guardarPuntosStorage();
-                    alert("📍 ¡Punto movido y corregido exactamente!");
-                    actualizarPanelCercano();
-                }
-                cancelarEdicion();
-            }
-        });
-
-        function iniciarModoMover(markerId, placa, dir) {
-            puntoEnEdicionId = markerId;
-            document.getElementById('info-edicion-texto').innerText = placa + " - " + dir;
-            document.getElementById('input-link-maps-rapido').value = "";
-            document.getElementById('modo-edicion-banner').style.display = 'block';
-            map.closePopup();
-        }
-
-        function cancelarEdicion() {
-            puntoEnEdicionId = null;
-            document.getElementById('modo-edicion-banner').style.display = 'none';
-        }
-
-        async function confirmarLinkRapido() {
-            var val = document.getElementById('input-link-maps-rapido').value.trim();
-            if(!val) { alert("Por favor ingresa datos o haz clic en el mapa."); return; }
-
-            document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Reubicando...";
-
-            var coords = await obtenerCoordenadasExactasLimpias(val);
-
-            var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
-            if (item) {
-                item.marker.setLatLng([coords.lat, coords.lng]);
-                item.lat = coords.lat;
-                item.lng = coords.lng;
-                if (!item.dir.includes(val)) {
-                    item.dir = item.dir + " | " + val;
-                }
-                item.marker.setPopupContent(generarContenidoPopup(item, item.id));
-                map.setView([coords.lat, coords.lng], 16);
-                guardarPuntosStorage();
-                alert("✅ ¡Punto reubicado con éxito!");
-                actualizarPanelCercano();
-            }
-
-            document.getElementById('loading-overlay').style.display = 'none';
-            cancelarEdicion();
-        }
-
-        function toggleMenuAdd() {
-            var m = document.getElementById('menuOpciones');
-            var f = document.getElementById('panelFiltros');
-            f.style.display = 'none';
-            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
-            if (m.style.display === 'none') cerrarSecciones();
-        }
-
-        function toggleMenuFilter() {
-            var f = document.getElementById('panelFiltros');
-            var m = document.getElementById('menuOpciones');
-            m.style.display = 'none';
-            f.style.display = (f.style.display === 'block') ? 'none' : 'block';
-        }
-
-        function abrirSeccion(tipo) {
-            document.getElementById('seccion-whatsapp').style.display = 'none';
-            document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('seccion-gemini').style.display = 'none';
-            document.getElementById('seccion-' + tipo).style.display = 'block';
-        }
-
-        function cerrarSecciones() {
-            document.getElementById('seccion-whatsapp').style.display = 'none';
-            document.getElementById('seccion-manual').style.display = 'none';
-            document.getElementById('seccion-gemini').style.display = 'none';
-            document.getElementById('menuOpciones').style.display = 'none';
-        }
-
-        function marcarVisitada(placa, markerId) {
-            var key = 'visitas_' + placa;
-            var actual = parseInt(localStorage.getItem(key) || 0) + 1;
-            localStorage.setItem(key, actual);
-            
-            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
-            if (itemIndex !== -1) {
-                var p = puntosData[itemIndex];
-                
-                var customIcon = L.divIcon({
-                    className: '', 
-                    html: generarMarcadorProfesional(p.placa, true),
-                    iconAnchor: [40, 35],
-                    popupAnchor: [0, -35]
-                });
-                p.marker.setIcon(customIcon);
-                
-                p.marker.setPopupContent(generarContenidoPopup(p, markerId));
-                
-                if(!placaMasCercanaObj || placaMasCercanaObj.id !== markerId) {
-                    p.marker.openPopup();
-                }
-            }
-            
-            actualizarPanelCercano();
-        }
-
-        function mostrarOpcionesEliminar(markerId) {
-            var div = document.getElementById('eliminar-container-' + markerId);
-            if(div) div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
-        }
-
-        function eliminarEstaDireccion(markerId) {
-            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
-            if (itemIndex !== -1) {
-                map.removeLayer(puntosData[itemIndex].marker);
-                puntosData.splice(itemIndex, 1);
-                guardarPuntosStorage();
-                actualizarPanelCercano();
-            }
-        }
-
-        function eliminarTodasDePlaca(placa) {
-            var nuevasPuntos = [];
-            puntosData.forEach(function(item) {
-                if (item.placa === placa) {
-                    map.removeLayer(item.marker);
-                } else {
-                    nuevasPuntos.push(item);
-                }
-            });
-            puntosData = nuevasPuntos;
-            delete placasRegistradas[placa];
-            guardarPuntosStorage();
-            actualizarPanelCercano();
-        }
-
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        function preprocesarImagen(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = img.width * 2;
-                        canvas.height = img.height * 2;
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = 'high';
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.9));
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
+        // MOTOR HÍBRIDO DE GEOCODIFICACIÓN (Coordenadas -> Google Maps API -> Nominatim OSM -> Centroides)
         async function obtenerCoordenadasExactasLimpias(dir) {
-            dir = dir.trim();
+            dir = (dir || "").trim();
+            if (!dir) return {lat: 6.2442, lng: -75.5812};
 
-            var coordRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
-            if (coordRegex.test(dir)) {
-                var matchCoord = dir.match(coordRegex);
-                return { lat: parseFloat(matchCoord[1]), lng: parseFloat(matchCoord[2]) };
+            // 1. Detección inmediata de coordenadas directas o link Maps
+            var coordRegex = /(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/;
+            var matchCoord = dir.match(coordRegex);
+            if (matchCoord) {
+                var latD = parseFloat(matchCoord[1]);
+                var lngD = parseFloat(matchCoord[2]);
+                if (latD >= -5 && latD <= 13 && lngD >= -82 && lngD <= -66) {
+                    return { lat: latD, lng: lngD };
+                }
             }
 
             var t = dir.toUpperCase();
@@ -638,167 +500,200 @@
             else if (t.includes('SABANETA')) centroMunicipio = {lat: 6.1515, lng: -75.6166};
             else if (t.includes('LA ESTRELLA') || t.includes('ESTRELLA')) centroMunicipio = {lat: 6.1583, lng: -75.6444};
             else if (t.includes('COPACABANA')) centroMunicipio = {lat: 6.3463, lng: -75.5089};
+            else if (t.includes('GIRARDOTA')) centroMunicipio = {lat: 6.3768, lng: -75.4457};
+            else if (t.includes('BARBOSA')) centroMunicipio = {lat: 6.4381, lng: -75.3331};
+            else if (t.includes('CALDAS')) centroMunicipio = {lat: 6.0911, lng: -75.6358};
+            else if (t.includes('RIONEGRO')) centroMunicipio = {lat: 6.1552, lng: -75.3736};
             else if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) centroMunicipio = {lat: 4.6097, lng: -74.0817};
             else if (t.includes('CALI')) centroMunicipio = {lat: 3.4516, lng: -76.5320};
 
-            var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ').replace(/KR\s*|CR\s*/gi, 'Carrera ').replace(/#/g, ' ').replace(/-/g, ' ');
-            var query = dirLimpia + ", Antioquia, Colombia"; 
+            var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ')
+                               .replace(/KR\s*|CR\s*/gi, 'Carrera ')
+                               .replace(/TV\s*/gi, 'Transversal ')
+                               .replace(/DG\s*/gi, 'Diagonal ')
+                               .replace(/#/g, ' ')
+                               .replace(/-/g, ' ');
             
-            var apiKey = "AIzaSyDlomeIPDOjFJ4QCDewfkX-cYSbEDdcfkE"; 
-            var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + apiKey;
-            
-            try {
-                var response = await fetch(url);
-                var data = await response.json();
-                if (data.status === "OK" && data.results.length > 0) {
-                    var location = data.results[0].geometry.location;
-                    var latRes = parseFloat(location.lat);
-                    var lngRes = parseFloat(location.lng);
-                    
-                    if (centroMunicipio) {
-                        if (Math.abs(latRes - centroMunicipio.lat) > 0.06) {
-                            return centroMunicipio;
-                        }
+            var query = dirLimpia + ", Antioquia, Colombia";
+
+            // 2. Google Maps API (si hay clave configurada)
+            if (configApp.googleApiKey) {
+                var urlG = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(query) + "&key=" + configApp.googleApiKey;
+                try {
+                    var respG = await fetch(urlG);
+                    var dataG = await respG.json();
+                    if (dataG.status === "OK" && dataG.results.length > 0) {
+                        var loc = dataG.results[0].geometry.location;
+                        return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) };
                     }
-                    return { lat: latRes, lng: lngRes };
-                }
-            } catch(e) { console.log("Error Google Maps"); }
-
-            if (centroMunicipio) return centroMunicipio;
-            if (t.includes('MEDELLIN') || t.includes('MEDELLÍN')) return {lat: 6.2442, lng: -75.5812};
-            
-            return {lat: 6.2442, lng: -75.5812}; 
-        }
-
-        function reubicarEnGoogleMapsDirecto(markerId) {
-            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
-            if (itemIndex === -1) return;
-            var p = puntosData[itemIndex];
-            var urlMaps = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
-            window.open(urlMaps, '_blank');
-            iniciarModoMover(markerId, p.placa, p.dir);
-        }
-
-        function guardarPuntosStorage() {
-            var datosASeguardar = puntosData.map(function(item) {
-                return {
-                    id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color, telefonos: item.telefonos, dir: item.dir, fecha: item.fecha, lat: item.lat, lng: item.lng, foto: item.foto,
-                    soat: item.soat, tecnomecanica: item.tecnomecanica
-                };
-            });
-            localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
-        }
-
-        function cargarPuntosStorage() {
-            var guardados = localStorage.getItem('puntos_raptor_guardados');
-            if (guardados) {
-                try {
-                    var lista = JSON.parse(guardados);
-                    lista.forEach(function(p, index) {
-                        placasRegistradas[p.placa] = true;
-                        agregarMarcadorAlMapa(p, index + 1, false);
-                    });
-                } catch(e) { console.error(e); }
+                } catch(e) {}
             }
+
+            // 3. OpenStreetMap Nominatim Geocoding (Gratuito y abierto)
+            try {
+                var urlNom = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(query) + "&limit=1";
+                var respNom = await fetch(urlNom, { headers: { 'Accept-Language': 'es' } });
+                var dataNom = await respNom.json();
+                if (dataNom && dataNom.length > 0) {
+                    return { lat: parseFloat(dataNom[0].lat), lng: parseFloat(dataNom[0].lon) };
+                }
+            } catch(e) {}
+
+            // 4. Centroide del municipio si fue detectado
+            if (centroMunicipio) return centroMunicipio;
+
+            // 5. Default Medellín Centro
+            return { lat: 6.2442, lng: -75.5812 };
         }
 
-        function exportarRespaldo() {
-            var datos = localStorage.getItem('puntos_raptor_guardados');
-            if (!datos || datos === "[]") { alert("No hay puntos para exportar."); return; }
-            var blob = new Blob([datos], {type: "application/json"});
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = "respaldo_rutas_raptor_" + new Date().toISOString().split('T')[0] + ".json";
-            a.click();
-        }
+        // PARSER UNIVERSAL DE VEHÍCULO
+        function extraerInfoVehiculoUniversal(texto) {
+            var m = "-", l = "-", mod = "-", c = "-", s = "SI", t = "SI", prop = "-";
+            var lineas = texto.split('\n');
+            
+            for (var i = 0; i < lineas.length; i++) {
+                var lText = lineas[i].trim();
+                var up = lText.toUpperCase();
+                
+                if (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO")) {
+                    if (up.includes(":") || up.includes("-")) {
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) m = parts[1].trim();
+                    } else if (i + 1 < lineas.length) {
+                        m = lineas[i + 1].trim();
+                    }
+                }
+                
+                if (up.includes("LÍNEA") || up.includes("LINEA") || up.includes("CLASE")) {
+                    if (up.includes(":") || up.includes("-")) {
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) l = parts[1].trim();
+                    }
+                }
+                
+                if (up.includes("MODELO")) {
+                    var mMod = lText.match(/MODELO\s*[:\-]?\s*([0-9]{4})/i);
+                    if (mMod) mod = mMod[1];
+                }
+                
+                if (up.includes("COLOR")) {
+                    if (up.includes(":") || up.includes("-")) {
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) c = parts[1].trim();
+                    }
+                }
 
-        function importarRespaldo(event) {
-            var file = event.target.files[0];
-            if (!file) return;
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    var lista = JSON.parse(e.target.result);
-                    localStorage.setItem('puntos_raptor_guardados', JSON.stringify(lista));
-                    location.reload();
-                } catch(err) { alert("Archivo inválido."); }
+                if (up.includes("PROPIETARIO") || up.includes("DEMANDADO")) {
+                    if (up.includes(":") || up.includes("-")) {
+                        var parts = lText.split(/[:\-]/);
+                        if (parts[1] && parts[1].trim()) prop = parts[1].trim();
+                    }
+                }
+                
+                if (up.includes("SOAT")) {
+                    if (up.includes("NO") || up.includes("VENCIDO")) s = "NO";
+                    else if (up.includes("SI") || up.includes("VIGENTE")) s = "SI";
+                }
+                
+                if (up.includes("TECNO") || up.includes("RTM")) {
+                    if (up.includes("NO") || up.includes("VENCIDO")) t = "NO";
+                    else if (up.includes("SI") || up.includes("VIGENTE")) t = "SI";
+                }
+            }
+            
+            return { 
+                marca: m !== "-" ? m : "VEHÍCULO", 
+                linea: l !== "-" ? l : "", 
+                modelo: mod !== "-" ? mod : "", 
+                color: c !== "-" ? c : "", 
+                propietario: prop,
+                soat: s.toUpperCase(), 
+                tecnomecanica: t.toUpperCase() 
             };
-            reader.readAsText(file);
         }
 
+        // PROCESAR EXTRACCIÓN GEMINI MULTI-BLOQUE
         async function procesarExtraccionGemini() {
-            var texto = document.getElementById('txtGemini').value;
-            if(!texto) { alert("Por favor pega el texto extraído primero."); return; }
+            var texto = document.getElementById('txtGemini').value.trim();
+            if(!texto) { alert("Pega el texto extraído primero."); return; }
 
             var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
             loadingOverlay.style.display = 'flex';
+            loadingTexto.innerText = "⚡ Procesando vehículos extraídos...";
 
-            var placaMatch = texto.match(/PLACA:\s*([A-Za-z0-9]+)/i);
-            var placa = placaMatch ? placaMatch[1].toUpperCase().trim() : "";
-            
-            if(!placa) {
-                placa = prompt("Por favor ingresa la placa para esta ruta:").toUpperCase();
-            }
-            if(!placa) { loadingOverlay.style.display = 'none'; return; }
+            // Separar por bloques con PLACA:
+            var bloques = texto.split(/(?=PLACA\s*:)/i);
+            var totalPlacas = 0;
+            var totalPuntos = 0;
 
-            var infoVeh = extraerInfoVehiculoUniversal(texto);
+            for (let bloque of bloques) {
+                if (!bloque.trim()) continue;
+                var placaMatch = bloque.match(/PLACA:\s*([A-Za-z0-9]+)/i);
+                if (!placaMatch) continue;
+                var placa = placaMatch[1].toUpperCase().trim();
 
-            var telsMatch = texto.match(/CELULARES:\s*([0-9\s,\-_]+)/i);
-            var celulares = telsMatch ? telsMatch[1].trim() : "-";
-            
-            if (placasRegistradas[placa]) {
-                var nuevasPuntos = [];
-                puntosData.forEach(function(item) {
-                    if (item.placa === placa) {
-                        map.removeLayer(item.marker);
-                    } else {
-                        nuevasPuntos.push(item);
+                var infoVeh = extraerInfoVehiculoUniversal(bloque);
+
+                var telsMatch = bloque.match(/CELULARES?:\s*([0-9\s,\-_]+)/i);
+                var celulares = telsMatch ? telsMatch[1].trim() : "-";
+
+                // Reemplazar puntos anteriores de esta placa si ya existían
+                if (placasRegistradas[placa]) {
+                    puntosData = puntosData.filter(function(item) {
+                        if (item.placa === placa) {
+                            map.removeLayer(item.marker);
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+                placasRegistradas[placa] = true;
+
+                // Extraer direcciones
+                var lineas = bloque.split('\n');
+                var direcciones = [];
+                lineas.forEach(function(l) {
+                    var up = l.toUpperCase();
+                    if (up.includes("DIRECCIÓN") || up.includes("DIRECCION")) {
+                        var limpio = l.replace(/DIRECCIÓN\s*\d*:\s*|DIRECCION\s*\d*:\s*/gi, '').trim();
+                        if (limpio && !direcciones.includes(limpio)) direcciones.push(limpio);
                     }
                 });
-                puntosData = nuevasPuntos;
-            }
-            placasRegistradas[placa] = true;
 
-            var lineas = texto.split('\n');
-            var direcciones = [];
-            lineas.forEach(function(l) {
-                var up = l.toUpperCase();
-                if (up.includes("DIRECCIÓN") || up.includes("DIRECCION")) {
-                    var limpio = l.replace(/DIRECCIÓN\s*\d*:\s*|DIRECCION\s*\d*:\s*/gi, '').trim();
-                    if(limpio) direcciones.push(limpio);
+                if (direcciones.length === 0) {
+                    direcciones.push("Medellin, Antioquia");
                 }
-            });
 
-            if (direcciones.length === 0) {
-                alert("No se encontraron direcciones en el texto. Revisa la estructura del pegado.");
-                loadingOverlay.style.display = 'none';
-                return;
-            }
-
-            for (let [index, dir] of direcciones.entries()) {
-                var coords = await obtenerCoordenadasExactasLimpias(dir);
-                var nuevoPunto = {
-                    placa: placa, marca: infoVeh.marca, linea: infoVeh.linea, modelo: infoVeh.modelo, color: infoVeh.color, telefonos: celulares,
-                    soat: infoVeh.soat, tecnomecanica: infoVeh.tecnomecanica,
-                    lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
-                };
-                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                for (let dir of direcciones.slice(0, 4)) {
+                    loadingTexto.innerText = "🎯 Geocodificando " + placa + " (" + dir.slice(0, 20) + "...)...";
+                    var coords = await obtenerCoordenadasExactasLimpias(dir);
+                    var nuevoPunto = {
+                        placa: placa, marca: infoVeh.marca, linea: infoVeh.linea, modelo: infoVeh.modelo, color: infoVeh.color,
+                        telefonos: celulares, soat: infoVeh.soat, tecnomecanica: infoVeh.tecnomecanica,
+                        propietario: infoVeh.propietario, lat: coords.lat, lng: coords.lng, dir: dir,
+                        fecha: new Date().toISOString().split('T')[0], foto: null
+                    };
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                    totalPuntos++;
+                }
+                totalPlacas++;
             }
 
             loadingOverlay.style.display = 'none';
-            alert("🚀 ¡Súper! Se mapearon " + direcciones.length + " ubicaciones vigentes para " + placa);
+            alert("🚀 ¡Proceso completado! Se mapearon " + totalPuntos + " ubicaciones para " + totalPlacas + " vehículo(s).");
             document.getElementById('txtGemini').value = '';
             cerrarSecciones();
             actualizarPanelCercano();
         }
 
+        // PROCESAR LOTE WHATSAPP
         async function procesarLoteMasivo() {
-            var texto = document.getElementById('txtWhatsapp').value;
+            var texto = document.getElementById('txtWhatsapp').value.trim();
             if(!texto) { alert("Pega el texto primero."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Analizando texto y ubicando...";
+            document.getElementById('loading-texto').innerText = "🎯 Analizando mensajes de WhatsApp...";
 
             var bloques = texto.split(/(?=[A-Z]{3}[0-9A-Z]{3}\s+(?:CC|NIT|CE)|UBICAR)/g);
             var totalAgregados = 0;
@@ -822,30 +717,26 @@
                 if (!placa) continue;
 
                 if (placasRegistradas[placa]) {
-                    var nuevasPuntos = [];
-                    puntosData.forEach(function(item) {
+                    puntosData = puntosData.filter(function(item) {
                         if (item.placa === placa) {
                             map.removeLayer(item.marker);
-                        } else {
-                            nuevasPuntos.push(item);
+                            return false;
                         }
+                        return true;
                     });
-                    puntosData = nuevasPuntos;
                 }
                 placasRegistradas[placa] = true;
 
                 var infoVeh = extraerInfoVehiculoUniversal(bloque);
-
-                var lineas = bloque.split('\n');
                 var telsMatch = bloque.match(/3[0-9]{9}/g);
                 var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "-";
 
                 var direcciones = [];
-                lineas.forEach(function(l) {
+                bloque.split('\n').forEach(function(l) {
                     var dirLimpia = l.trim();
                     var up = dirLimpia.toUpperCase();
                     if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ")) && up.length > 5) {
-                        if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("SEGURO") && !up.includes("TECNO") && !up.includes("RTM") && !up.includes("CEL")) {
+                        if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("TECNO") && !up.includes("CEL")) {
                             direcciones.push(dirLimpia);
                         }
                     }
@@ -854,7 +745,7 @@
                 var ubicacionesFinales = direcciones.slice(0, 3);
                 if (ubicacionesFinales.length === 0) ubicacionesFinales = ["Medellin, Antioquia"];
 
-                for (let [index, dir] of ubicacionesFinales.entries()) {
+                for (let dir of ubicacionesFinales) {
                     var coords = await obtenerCoordenadasExactasLimpias(dir);
                     var nuevoPunto = {
                         placa: placa, marca: infoVeh.marca, linea: infoVeh.linea, modelo: infoVeh.modelo, color: infoVeh.color, telefonos: telefonos,
@@ -871,126 +762,53 @@
                 document.getElementById('txtWhatsapp').value = '';
                 cerrarSecciones();
                 actualizarPanelCercano();
+                alert("✅ Se cargaron " + totalAgregados + " vehículos correctamente.");
             }
         }
 
+        // PROCESAR MANUAL O FOTO
         async function procesarManual() {
             var placa = document.getElementById('manPlaca').value.toUpperCase().trim();
             var marca = document.getElementById('manMarca').value.trim() || "-";
             var linea = document.getElementById('manLinea').value.trim() || "-";
             var modelo = document.getElementById('manModelo').value.trim() || "-";
             var color = document.getElementById('manColor').value.trim() || "-";
-            var msoat = document.getElementById('manSoat').value.trim() || "NO";
-            var mtecno = document.getElementById('manTecno').value.trim() || "NO";
+            var msoat = document.getElementById('manSoat').value.trim() || "SI";
+            var mtecno = document.getElementById('manTecno').value.trim() || "SI";
+            var mtel = document.getElementById('manTel').value.trim() || "-";
             var dir = document.getElementById('manDir').value.trim();
             var fileInput = document.getElementById('manFoto');
             var fotoBase64 = null;
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
-            
-            actualPlacaFuerza = placa;
-            window.actualMarcaFuerza = marca;
-            window.actualLineaFuerza = linea;
-            window.actualModeloFuerza = modelo;
-            window.actualColorFuerza = color;
-            window.actualSoatFuerza = msoat;
-            window.actualTecnoFuerza = mtecno;
 
+            // Si hay foto pero no dirección, ejecutar Tesseract OCR
             if (!dir && fileInput.files && fileInput.files[0]) {
                 var loadingOverlay = document.getElementById('loading-overlay');
                 var loadingTexto = document.getElementById('loading-texto');
                 loadingOverlay.style.display = 'flex';
                 loadingTexto.innerText = "⏳ Escaneando reporte con IA...";
 
-                const imgOptimizada = await preprocesarImagen(fileInput.files[0]);
-
                 Tesseract.recognize(
-                    imgOptimizada,
+                    fileInput.files[0],
                     'spa+eng', 
-                    { logger: m => { if (m.status === 'recognizing text') loadingTexto.innerText = "⏳ Leyendo... " + Math.round(m.progress * 100) + "%"; }}
+                    { logger: m => { if (m.status === 'recognizing text') loadingTexto.innerText = "⏳ Leyendo reporte... " + Math.round(m.progress * 100) + "%"; }}
                 ).then(async ({ data: { text } }) => {
-                    var lineas = text.split('\n');
-                    var direccionesVigentes2026 = [];
-                    var direccionesCualquiera = [];
-
-                    var infoVehOcr = extraerInfoVehiculoUniversal(text);
-                    var fMarca = (marca !== "-") ? marca : infoVehOcr.marca;
-                    var fLinea = (linea !== "-") ? linea : infoVehOcr.linea;
-                    var fModelo = (modelo !== "-") ? modelo : infoVehOcr.modelo;
-                    var fColor = (color !== "-") ? color : infoVehOcr.color;
-                    var fSoat = (msoat !== "NO") ? msoat : infoVehOcr.soat;
-                    var fTecno = (mtecno !== "NO") ? mtecno : infoVehOcr.tecnomecanica;
-
-                    window.actualMarcaFuerza = fMarca;
-                    window.actualLineaFuerza = fLinea;
-                    window.actualModeloFuerza = fModelo;
-                    window.actualColorFuerza = fColor;
-                    window.actualSoatFuerza = fSoat;
-                    window.actualTecnoFuerza = fTecno;
-
-                    var telsMatch = text.match(/\b3[0-9]{9}\b/g) || [];
-                    var mobileNumbers = [];
-                    for(var i=0; i<telsMatch.length; i++) {
-                        if(!mobileNumbers.includes(telsMatch[i])) mobileNumbers.push(telsMatch[i]);
-                    }
-                    var celularesExtract = mobileNumbers.slice(0, 2).join(', ') || "-";
-
-                    lineas.forEach(function(l) {
-                        var dirLimpia = l.trim().replace(/\s+/g, ' ');
-                        var up = dirLimpia.toUpperCase();
-                        var tieneNomenclatura = /(\b(CL|KR|CRA?|CR|TV|AV|KM|CLL|CARRERA|CALLE|TRANSVERSAL|AVENIDA|DG|DIAG|DIAGONAL)\b)/i.test(up) || up.includes("#");
-                        
-                        if (tieneNomenclatura && up.length > 5) {
-                            if (!up.includes("DIRECCIÓN") && !up.includes("CIUDAD") && !up.includes("REPORTE") && !up.includes("SOAT") && !up.includes("TECNO")) {
-                                direccionesCualquiera.push(dirLimpia);
-                                if ((up.includes("26") || up.includes("2026")) && (up.includes("SI") || up.includes("S1"))) {
-                                    direccionesVigentes2026.push(dirLimpia);
-                                }
-                            }
-                        }
-                    });
-
-                    var ubicacionesFinales = direccionesVigentes2026.length > 0 ? direccionesVigentes2026.slice(0, 3) : direccionesCualquiera.slice(0, 3);
-
-                    if (ubicacionesFinales.length === 0) {
-                        loadingOverlay.style.display = 'none';
-                        document.getElementById('asistente-texto').value = text; 
-                        document.getElementById('modal-asistente').style.display = 'block';
-                        return;
-                    }
-
-                    if (placasRegistradas[placa]) eliminarTodasDePlaca(placa);
-                    placasRegistradas[placa] = true;
-
-                    for (let d of ubicacionesFinales) {
-                        var coords = await obtenerCoordenadasExactasLimpias(d);
-                        var nuevoPunto = {
-                            placa: placa, marca: fMarca, linea: fLinea, modelo: fModelo, color: fColor, telefonos: celularesExtract,
-                            soat: fSoat, tecnomecanica: fTecno,
-                            lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
-                        };
-                        agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-                    }
-
-                    alert("🚀 ¡Proceso finalizado para " + placa + "!");
-                    document.getElementById('manPlaca').value = '';
-                    fileInput.value = '';
                     loadingOverlay.style.display = 'none';
-                    cerrarSecciones();
-                    actualizarPanelCercano();
-                }).catch(error => {
-                    console.error(error);
-                    loadingOverlay.style.display = 'none';
+                    document.getElementById('asistente-texto').value = text;
                     document.getElementById('modal-asistente').style.display = 'block';
+                }).catch(error => {
+                    loadingOverlay.style.display = 'none';
+                    alert("No se pudo leer la foto automáticamente. Ingresa la dirección manual.");
                 });
                 return;
             }
 
-            if(!dir) { alert("Ingresa la dirección exacta o coordenadas."); return; }
+            if(!dir) { alert("Ingresa la dirección o coordenadas."); return; }
 
             document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
-            
+            document.getElementById('loading-texto').innerText = "🎯 Geocodificando punto...";
+
             if (fileInput.files && fileInput.files[0]) {
                 fotoBase64 = await fileToBase64(fileInput.files[0]);
             }
@@ -1001,7 +819,7 @@
             var coords = await obtenerCoordenadasExactasLimpias(dir);
 
             var nuevoPunto = {
-                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: "-", 
+                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel, 
                 soat: msoat, tecnomecanica: mtecno,
                 lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: fotoBase64
             };
@@ -1013,21 +831,21 @@
         }
 
         async function procesarModalRescate() {
-            var rawText = document.getElementById('asistente-texto').value;
-            if(!rawText.trim()) { alert("Por favor ingresa texto."); return; }
+            var rawText = document.getElementById('asistente-texto').value.trim();
+            if(!rawText) { alert("Ingresa texto."); return; }
             
             document.getElementById('modal-asistente').style.display = 'none';
             document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Ubicando...";
+            document.getElementById('loading-texto').innerText = "🎯 Geocodificando rescate...";
 
             var lineas = rawText.split('\n');
             var ubiFinales = [];
             lineas.forEach(function(l) {
                 var up = l.toUpperCase();
-                if(up.includes("#") || up.includes("CL") || up.includes("KR")) ubiFinales.push(l.trim());
+                if(up.includes("#") || up.includes("CL") || up.includes("KR") || up.includes("CR")) ubiFinales.push(l.trim());
             });
 
-            var placa = actualPlacaFuerza || "RAPTOR";
+            var placa = document.getElementById('manPlaca').value.toUpperCase().trim() || "RAPTOR";
 
             if (placasRegistradas[placa]) eliminarTodasDePlaca(placa);
             placasRegistradas[placa] = true;
@@ -1035,8 +853,8 @@
             for (let d of ubiFinales.slice(0, 3)) {
                 var coords = await obtenerCoordenadasExactasLimpias(d);
                 var nuevoPunto = {
-                    placa: placa, marca: window.actualMarcaFuerza, linea: window.actualLineaFuerza, modelo: window.actualModeloFuerza, color: window.actualColorFuerza, telefonos: "-",
-                    soat: window.actualSoatFuerza, tecnomecanica: window.actualTecnoFuerza,
+                    placa: placa, marca: "VEHÍCULO", linea: "-", modelo: "-", color: "-", telefonos: "-",
+                    soat: "SI", tecnomecanica: "SI",
                     lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
                 };
                 agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -1048,8 +866,318 @@
             actualizarPanelCercano();
         }
 
-        function cerrarAsistente() {
-            document.getElementById('modal-asistente').style.display = 'none';
+        function cerrarAsistente() { document.getElementById('modal-asistente').style.display = 'none'; }
+
+        // MODO MOVER MANUAL
+        map.on('click', function(e) {
+            if (puntoEnEdicionId) {
+                var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
+                if (item) {
+                    item.marker.setLatLng(e.latlng);
+                    item.lat = e.latlng.lat;
+                    item.lng = e.latlng.lng;
+                    guardarPuntosStorage();
+                    alert("📍 ¡Punto fijado en nuevas coordenadas!");
+                    actualizarPanelCercano();
+                }
+                cancelarEdicion();
+            }
+        });
+
+        function iniciarModoMover(markerId, placa, dir) {
+            puntoEnEdicionId = markerId;
+            document.getElementById('info-edicion-texto').innerText = placa + " - " + dir;
+            document.getElementById('input-link-maps-rapido').value = "";
+            document.getElementById('modo-edicion-banner').style.display = 'block';
+            map.closePopup();
+        }
+
+        function cancelarEdicion() {
+            puntoEnEdicionId = null;
+            document.getElementById('modo-edicion-banner').style.display = 'none';
+        }
+
+        async function confirmarLinkRapido() {
+            var val = document.getElementById('input-link-maps-rapido').value.trim();
+            if(!val) { alert("Ingresa coordenadas o haz clic en el mapa."); return; }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('loading-texto').innerText = "🎯 Reubicando...";
+
+            var coords = await obtenerCoordenadasExactasLimpias(val);
+
+            var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
+            if (item) {
+                item.marker.setLatLng([coords.lat, coords.lng]);
+                item.lat = coords.lat;
+                item.lng = coords.lng;
+                item.dir = item.dir + " (" + val + ")";
+                item.marker.setPopupContent(generarContenidoPopup(item, item.id));
+                map.setView([coords.lat, coords.lng], 16);
+                guardarPuntosStorage();
+                alert("✅ ¡Ubicación actualizada con éxito!");
+                actualizarPanelCercano();
+            }
+
+            document.getElementById('loading-overlay').style.display = 'none';
+            cancelarEdicion();
+        }
+
+        // TRAZADO DE RUTA ENTRE PENDIENTES
+        function trazarRutaPendientes() {
+            var pendientes = puntosData.filter(function(p) {
+                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+                return visitas === 0;
+            });
+
+            if (pendientes.length === 0) {
+                alert("No hay puntos pendientes para trazar ruta.");
+                return;
+            }
+
+            if (polylineRuta) {
+                map.removeLayer(polylineRuta);
+                polylineRuta = null;
+            }
+
+            var latlngs = [];
+            if (userLat && userLng) {
+                latlngs.push([userLat, userLng]);
+            }
+
+            // Ordenamiento voraz por cercanía
+            var actual = userLat && userLng ? {lat: userLat, lng: userLng} : {lat: pendientes[0].lat, lng: pendientes[0].lng};
+            var copia = pendientes.slice();
+
+            while (copia.length > 0) {
+                var mejorIdx = 0;
+                var mejorD = Infinity;
+                for (var i = 0; i < copia.length; i++) {
+                    var d = calcularDistancia(actual.lat, actual.lng, copia[i].lat, copia[i].lng);
+                    if (d < mejorD) {
+                        mejorD = d;
+                        mejorIdx = i;
+                    }
+                }
+                var sig = copia.splice(mejorIdx, 1)[0];
+                latlngs.push([sig.lat, sig.lng]);
+                actual = sig;
+            }
+
+            polylineRuta = L.polyline(latlngs, {color: '#e74c3c', weight: 4, dashArray: '6, 8', opacity: 0.85}).addTo(map);
+            map.fitBounds(polylineRuta.getBounds(), {padding: [50, 50]});
+            alert("🚗 Ruta de patrullaje trazada entre " + pendientes.length + " punto(s) pendiente(s).");
+        }
+
+        function abrirRutaGoogleMapsCompleta() {
+            var pendientes = puntosData.filter(function(p) {
+                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+                return visitas === 0;
+            });
+
+            if (pendientes.length === 0) {
+                alert("No hay ubicaciones pendientes.");
+                return;
+            }
+
+            var origin = (userLat && userLng) ? (userLat + "," + userLng) : (pendientes[0].lat + "," + pendientes[0].lng);
+            var dest = pendientes[pendientes.length - 1].lat + "," + pendientes[pendientes.length - 1].lng;
+            var waypoints = pendientes.slice(0, Math.min(pendientes.length - 1, 8)).map(function(p) {
+                return p.lat + "," + p.lng;
+            }).join('|');
+
+            var urlMaps = "https://www.google.com/maps/dir/?api=1&origin=" + encodeURIComponent(origin) + "&destination=" + encodeURIComponent(dest);
+            if (waypoints) urlMaps += "&waypoints=" + encodeURIComponent(waypoints);
+
+            window.open(urlMaps, '_blank');
+        }
+
+        // GESTIÓN DE CONFIGURACIÓN
+        function abrirConfig() {
+            document.getElementById('cfg-apikey').value = configApp.googleApiKey;
+            document.getElementById('cfg-sonido').checked = configApp.sonidoAlerta;
+            document.getElementById('cfg-vibrar').checked = configApp.vibrarAlerta;
+            document.getElementById('modal-config').style.display = 'block';
+            toggleMenuFilter();
+        }
+
+        function cerrarConfig() { document.getElementById('modal-config').style.display = 'none'; }
+
+        function guardarConfig() {
+            configApp.googleApiKey = document.getElementById('cfg-apikey').value.trim();
+            configApp.sonidoAlerta = document.getElementById('cfg-sonido').checked;
+            configApp.vibrarAlerta = document.getElementById('cfg-vibrar').checked;
+
+            localStorage.setItem('raptor_google_apikey', configApp.googleApiKey);
+            localStorage.setItem('raptor_sonido', configApp.sonidoAlerta ? "1" : "0");
+            localStorage.setItem('raptor_vibrar', configApp.vibrarAlerta ? "1" : "0");
+
+            cerrarConfig();
+            alert("⚙️ Configuración guardada.");
+        }
+
+        // MENÚS Y SUBPANELES
+        function toggleMenuAdd() {
+            var m = document.getElementById('menuOpciones');
+            document.getElementById('panelFiltros').style.display = 'none';
+            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+            if (m.style.display === 'none') cerrarSecciones();
+        }
+
+        function toggleMenuFilter() {
+            var f = document.getElementById('panelFiltros');
+            document.getElementById('menuOpciones').style.display = 'none';
+            f.style.display = (f.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function abrirSeccion(tipo) {
+            document.getElementById('seccion-whatsapp').style.display = 'none';
+            document.getElementById('seccion-manual').style.display = 'none';
+            document.getElementById('seccion-gemini').style.display = 'none';
+            document.getElementById('seccion-' + tipo).style.display = 'block';
+        }
+
+        function cerrarSecciones() {
+            document.getElementById('seccion-whatsapp').style.display = 'none';
+            document.getElementById('seccion-manual').style.display = 'none';
+            document.getElementById('seccion-gemini').style.display = 'none';
+            document.getElementById('menuOpciones').style.display = 'none';
+        }
+
+        // VISITAS Y MARCADORES
+        function marcarVisitada(placa, markerId) {
+            var key = 'visitas_' + placa;
+            var actual = parseInt(localStorage.getItem(key) || 0) + 1;
+            localStorage.setItem(key, actual);
+            
+            puntosData.forEach(function(p) {
+                if (p.placa === placa) {
+                    var customIcon = L.divIcon({
+                        className: '', 
+                        html: generarMarcadorProfesional(p.placa, true),
+                        iconAnchor: [35, 30],
+                        popupAnchor: [0, -30]
+                    });
+                    p.marker.setIcon(customIcon);
+                    p.marker.setPopupContent(generarContenidoPopup(p, p.id));
+                }
+            });
+            
+            actualizarPanelCercano();
+        }
+
+        function mostrarOpcionesEliminar(markerId) {
+            var div = document.getElementById('eliminar-container-' + markerId);
+            if(div) div.style.display = (div.style.display === 'none' || div.style.display === '') ? 'block' : 'none';
+        }
+
+        function eliminarEstaDireccion(markerId) {
+            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
+            if (itemIndex !== -1) {
+                map.removeLayer(puntosData[itemIndex].marker);
+                puntosData.splice(itemIndex, 1);
+                guardarPuntosStorage();
+                actualizarPanelCercano();
+            }
+        }
+
+        function eliminarTodasDePlaca(placa) {
+            puntosData = puntosData.filter(function(item) {
+                if (item.placa === placa) {
+                    map.removeLayer(item.marker);
+                    return false;
+                }
+                return true;
+            });
+            delete placasRegistradas[placa];
+            guardarPuntosStorage();
+            actualizarPanelCercano();
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function reubicarEnGoogleMapsDirecto(markerId) {
+            var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
+            if (itemIndex === -1) return;
+            var p = puntosData[itemIndex];
+            var urlMaps = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
+            window.open(urlMaps, '_blank');
+            iniciarModoMover(markerId, p.placa, p.dir);
+        }
+
+        function guardarPuntosStorage() {
+            var datosASeguardar = puntosData.map(function(item) {
+                return {
+                    id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
+                    telefonos: item.telefonos, dir: item.dir, fecha: item.fecha, lat: item.lat, lng: item.lng, foto: item.foto,
+                    soat: item.soat, tecnomecanica: item.tecnomecanica, propietario: item.propietario
+                };
+            });
+            localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
+            actualizarKPIs();
+        }
+
+        function cargarPuntosStorage() {
+            var guardados = localStorage.getItem('puntos_raptor_guardados');
+            if (guardados) {
+                try {
+                    var lista = JSON.parse(guardados);
+                    lista.forEach(function(p, index) {
+                        placasRegistradas[p.placa] = true;
+                        agregarMarcadorAlMapa(p, index + 1, false);
+                    });
+                } catch(e) {}
+            }
+            actualizarKPIs();
+        }
+
+        function exportarRespaldo() {
+            var datos = localStorage.getItem('puntos_raptor_guardados');
+            if (!datos || datos === "[]") { alert("No hay puntos para exportar."); return; }
+            var blob = new Blob([datos], {type: "application/json"});
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = "respaldo_rutas_raptor_" + new Date().toISOString().split('T')[0] + ".json";
+            a.click();
+        }
+
+        function importarRespaldo(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var lista = JSON.parse(e.target.result);
+                    localStorage.setItem('puntos_raptor_guardados', JSON.stringify(lista));
+                    location.reload();
+                } catch(err) { alert("Archivo JSON inválido."); }
+            };
+            reader.readAsText(file);
+        }
+
+        function actualizarKPIs() {
+            var total = puntosData.length;
+            var vis = 0;
+            var pico = 0;
+
+            puntosData.forEach(function(p) {
+                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+                if (visitas > 0) vis++;
+                if (p.pico) pico++;
+            });
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-vis').innerText = vis;
+            document.getElementById('kpi-pend').innerText = (total - vis);
+            document.getElementById('kpi-pico').innerText = pico;
         }
 
         function actualizarFiltros() {
@@ -1057,11 +1185,19 @@
             var verPico = document.getElementById('chkPico').checked;
             var verHoy = document.getElementById('chkHoy').checked;
             var verTodas = document.getElementById('chkTodas').checked;
+            var ocultarVisitadas = document.getElementById('chkSoloPendientes').checked;
 
             puntosData.forEach(function(item) {
                 var coincideBusqueda = (textoBusqueda === "" || item.placa.includes(textoBusqueda));
+                var visitas = parseInt(localStorage.getItem('visitas_' + item.placa) || 0);
+                var esVisitada = visitas > 0;
+
+                if (ocultarVisitadas && esVisitada) {
+                    if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
+                    return;
+                }
+
                 var pasaFiltroEstado = false;
-                
                 if (verTodas) {
                     pasaFiltroEstado = true;
                 } else {
@@ -1079,6 +1215,7 @@
 
         var hoyStr = new Date().toISOString().split('T')[0];
         var diaSemana = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+        // Rotación de Pico y Placa para vehículos particulares en Medellín
         var reglasPico = { 0: ['5', '8'], 1: ['1', '4'], 2: ['0', '2'], 3: ['3', '6'], 4: ['7', '9'] };
 
         function tienePicoYPlaca(placa) {
@@ -1092,7 +1229,6 @@
         function toggleEditMode(markerId) {
             var viewDiv = document.getElementById('view-mode-' + markerId);
             var editDiv = document.getElementById('edit-mode-' + markerId);
-            
             if (viewDiv.style.display === 'none') {
                 viewDiv.style.display = 'block';
                 editDiv.style.display = 'none';
@@ -1110,10 +1246,8 @@
             var nuevoVehiculo = document.getElementById('edit-vehiculo-' + markerId).value.trim();
             var nuevosTels = document.getElementById('edit-telefonos-' + markerId).value.trim();
             var nuevaDir = document.getElementById('edit-dir-' + markerId).value.trim();
-            
             var nuevoSoat = document.getElementById('edit-soat-' + markerId).value.trim();
             var nuevaTecno = document.getElementById('edit-tecno-' + markerId).value.trim();
-
             var fileInput = document.getElementById('upload-foto-' + markerId);
             
             var nuevaFotoBase64 = puntosData[itemIndex].foto;
@@ -1125,7 +1259,7 @@
                 if (p.placa === placaEditada) {
                     p.marca = nuevoVehiculo || '-'; 
                     p.linea = '-'; 
-                    p.modelo = '-';
+                    p.modelo = '-'; 
                     p.color = '-';
                     p.telefonos = nuevosTels; 
                     p.soat = nuevoSoat || 'NO';
@@ -1144,63 +1278,59 @@
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
             var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-            var googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.dir);
+            var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
             
-            var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail" style="display:block;">` : '';
+            var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail">` : '';
 
             var v = [];
-            if (p.marca && p.marca !== '-' && p.marca !== 'REPORTE OCR' && p.marca !== 'REPORTE' && p.marca !== 'VEHÍCULO') v.push(p.marca);
+            if (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') v.push(p.marca);
             if (p.linea && p.linea !== '-') v.push(p.linea);
             if (p.modelo && p.modelo !== '-') v.push(p.modelo);
             if (p.color && p.color !== '-') v.push(p.color);
             
             var vehiculoTexto = v.length > 0 ? v.join(' ') : 'No especificado (Editar ✏️)';
-            var valEdicion = v.length > 0 ? v.join(' ') : '';
-            var valEdicionSeguro = valEdicion.replace(/"/g, '&quot;');
-            var dirSegura = p.dir.replace(/"/g, '&quot;');
-            var telSeguro = p.telefonos.replace(/"/g, '&quot;');
+            var valEdicionSeguro = (v.length > 0 ? v.join(' ') : '').replace(/"/g, '&quot;');
+            var dirSegura = (p.dir || '').replace(/"/g, '&quot;');
+            var telSeguro = (p.telefonos || '-').replace(/"/g, '&quot;');
             var valSoatSeguro = (p.soat || 'NO').replace(/"/g, '&quot;');
             var valTecnoSeguro = (p.tecnomecanica || 'NO').replace(/"/g, '&quot;');
 
             return `
-                <div style="font-family: Arial; font-size: 13px; width: 240px;">
+                <div style="font-family: Arial, sans-serif; font-size: 13px; width: 250px;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <b>Placa:</b> <span style="font-size:14px;">${p.placa}</span><br>
-                        <b>Vehículo:</b> <span style="color:#000;">${vehiculoTexto}</span><br>
+                        <b>Placa:</b> <span style="font-size:15px; font-weight:900; color:#2c3e50;">${p.placa}</span><br>
+                        <b>Vehículo:</b> <span>${vehiculoTexto}</span><br>
                         <b>SOAT:</b> ${p.soat || 'NO'} | <b>Tecno:</b> ${p.tecnomecanica || 'NO'}<br>
-                        <b>Teléfonos:</b> ${p.telefonos}<br>
-                        <b>Estado:</b> ${estadoPicoTxt}<br>
-                        <b>Fecha:</b> ${p.fecha}<br>
-                        <b>Dirección:</b> ${p.dir}<br>
-                        <b>Visitas:</b> <span id="contador-${markerId}" style="color: #d9534f; font-weight: bold; font-size: 14px;">${visitas}</span><br>
+                        <b>Teléfonos:</b> ${p.telefonos || '-'}<br>
+                        <b>Estado:</b> <span style="font-weight:bold; color:${p.pico ? '#d35400' : '#27ae60'}">${estadoPicoTxt}</span><br>
+                        <b>Dirección:</b> <span style="color:#555;">${p.dir}</span><br>
+                        <b>Visitas:</b> <span style="color:#d9534f; font-weight:bold;">${visitas}</span><br>
                         
-                        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-                            <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="display:block; text-align:center; text-decoration:none; box-sizing:border-box;">1. 🧭 Google Maps</a>
+                        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px;">
+                            <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue">1. 🧭 Navegar (Google Maps)</a>
                             
-                            <div style="display:flex; gap:6px; margin-bottom:0px;">
+                            <div style="display:flex; gap:6px;">
                                 <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1;">2. ✅ Visitada</button>
                                 <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>
                             </div>
                             
                             <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" class="pop-btn pb-orange">3. 📍 Mover punto manual</button>
-                            
-                            <button onclick="reubicarEnGoogleMapsDirecto('${markerId}')" class="pop-btn pb-teal">5. 🔄 Recalcular Ubicación Exacta</button>
-                            
-                            <button onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red">4. 🗑️ Eliminar</button>
+                            <button onclick="reubicarEnGoogleMapsDirecto('${markerId}')" class="pop-btn pb-teal">🔄 Recalcular Ubicación</button>
+                            <button onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red">🗑️ Eliminar</button>
                         </div>
                         
-                        <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #f8d7da; padding: 8px; border-radius: 6px;">
-                            <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 6px;">❌ Borrar esta</button>
-                            <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS</button>
+                        <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #fadbd8; padding: 8px; border-radius: 6px;">
+                            <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 4px;">❌ Borrar esta dirección</button>
+                            <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS las de ${p.placa}</button>
                         </div>
                     </div>
 
-                    <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                    <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
                         <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
                         
                         <label style="font-size:11px; font-weight:bold;">Vehículo / Detalles:</label>
-                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${valEdicionSeguro}" placeholder="Ej: Automóvil Mazda 3 Rojo">
+                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${valEdicionSeguro}">
                         
                         <div style="display:flex; gap:5px;">
                             <div style="flex:1;">
@@ -1219,12 +1349,12 @@
                         <label style="font-size:11px; font-weight:bold;">Dirección:</label>
                         <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${dirSegura}">
                         
-                        <label style="font-size:11px; font-weight:bold; margin-top:5px; display:block;">📷 Adjuntar/Cambiar Foto:</label>
+                        <label style="font-size:11px; font-weight:bold; margin-top:5px; display:block;">📷 Foto:</label>
                         <input type="file" id="upload-foto-${markerId}" accept="image/*" class="edit-input" style="padding:2px;">
                         
-                        <div style="display:flex; gap:6px; margin-top:10px;">
-                            <button onclick="guardarEdicionPopup('${markerId}')" class="act-green" style="flex: 1;">💾 Guardar Todo</button>
-                            <button onclick="toggleEditMode('${markerId}')" class="act-gray" style="flex: 1;">Cancelar</button>
+                        <div style="display:flex; gap:6px; margin-top:8px;">
+                            <button onclick="guardarEdicionPopup('${markerId}')" class="act-green" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">💾 Guardar</button>
+                            <button onclick="toggleEditMode('${markerId}')" class="act-gray" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">Cancelar</button>
                         </div>
                     </div>
                 </div>
@@ -1242,13 +1372,12 @@
             var customIcon = L.divIcon({
                 className: '', 
                 html: generarMarcadorProfesional(p.placa, esVisitada),
-                iconAnchor: [40, 35],
-                popupAnchor: [0, -35]
+                iconAnchor: [35, 30],
+                popupAnchor: [0, -30]
             });
 
             var marker = L.marker([p.lat, p.lng], {icon: customIcon}).addTo(map);
             p.marker = marker;
-            
             marker.bindPopup(generarContenidoPopup(p, p.id));
             
             if (guardarEnStorage) {
@@ -1262,7 +1391,7 @@
 
         window.onload = function() {
             cargarPuntosStorage();
-            setTimeout(actualizarPanelCercano, 1500);
+            setTimeout(actualizarPanelCercano, 1200);
         };
     </script>
 </body>
