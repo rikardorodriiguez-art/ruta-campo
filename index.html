@@ -550,18 +550,7 @@
         </div>
     </div>
 
-    <!-- RADAR DE PROXIMIDAD -->
-    <div id="panel-cercano">
-        <div class="radar-top-row">
-            <div class="radar-placa">🚨 <span id="cercano-placa"></span> <span id="cercano-dist" class="radar-dist"></span></div>
-            <div id="cercano-info" class="radar-info"></div>
-            <button onclick="cerrarRadar()" class="btn-radar-close" title="Ocultar radar">✖</button>
-        </div>
-        <div class="radar-buttons">
-            <button onclick="irCercanoMaps()" class="btn-radar-ir">🧭 IR (Google Maps)</button>
-            <button onclick="visitarCercanoDesdeRadar()" class="btn-radar-ok">✅ MARCAR VISITADA</button>
-        </div>
-    </div>
+    <!-- PANEL SUPERIOR REMOVIDO: EL RADAR FUNCIONA CON LA CÁPSULA INFERIOR Y EL WIDGET CIRCULAR AFUERA -->
 
     <!-- BOTÓN / WIDGET FLOTANTE RADAR FUTURISTA -->
     <div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
@@ -1069,14 +1058,13 @@
             var hud = document.getElementById('radar-hud-flotante');
 
             if (radarActivo) {
-                if (panel) panel.style.display = 'block';
                 if (hud) hud.style.display = 'block';
-                mostrarToastNotificacion("🚨 Radar ON: Botón flotante activo (se mantendrá al salir a WhatsApp/Maps).");
+                mostrarToastNotificacion("🚨 Radar ENCENDIDO: Al salir a WhatsApp se activará el radar circular flotante.");
                 actualizarPanelCercano();
                 iniciarArrastreHud();
-                prepararPipVideo(true);
+                // Preparar el video en silencio (sin abrirlo dentro del mapa)
+                prepararPipVideo(false);
             } else {
-                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 if (document.pictureInPictureElement) {
                     try { document.exitPictureInPicture(); } catch(e){}
@@ -1089,12 +1077,11 @@
             radarActivo = true;
             localStorage.setItem('raptor_radar_activo', '1');
             actualizarBotonRadarUI();
-            var panel = document.getElementById('panel-cercano');
             var hud = document.getElementById('radar-hud-flotante');
-            if (panel) panel.style.display = 'block';
             if (hud) hud.style.display = 'block';
             actualizarPanelCercano();
             iniciarArrastreHud();
+            prepararPipVideo(false);
             mostrarToastNotificacion("🚨 Radar ENCENDIDO.");
         }
 
@@ -1335,96 +1322,93 @@
             }
         }
 
-        // VENTANA FLOTANTE NATIVA PICTURE-IN-PICTURE (DISEÑO IDÉNTICO AL BOTÓN FLOTANTE DEL MAPA)
+        // VENTANA FLOTANTE NATIVA PICTURE-IN-PICTURE CIRCULAR (1:1) PARA CUANDO SALGA DEL MAPA
         function actualizarPipCanvas() {
             if (!pipCanvasEl) {
                 pipCanvasEl = document.createElement('canvas');
-                pipCanvasEl.width = 440;
-                pipCanvasEl.height = 180;
+                pipCanvasEl.width = 320;
+                pipCanvasEl.height = 320;
                 pipCtxEl = pipCanvasEl.getContext('2d');
             }
             var ctx = pipCtxEl;
-            var w = pipCanvasEl.width;
-            var h = pipCanvasEl.height;
+            var w = 320;
+            var h = 320;
+            var cx = 160;
+            var cy = 160;
+            var cr = 148;
 
             var enAlerta = (placaMasCercanaObj && menorDistanciaMetros <= 500);
 
             // Fondo base oscuro
-            ctx.fillStyle = '#050811';
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#030712';
             ctx.fillRect(0, 0, w, h);
 
-            // Cápsula futurista idéntica al botón del mapa
-            var px = 10, py = 10, pw = w - 20, ph = h - 20, pr = 26;
+            // CÍRCULO TÁCTICO RADAR PRINCIPAL
             ctx.save();
             ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(px, py, pw, ph, pr);
-            } else {
-                ctx.rect(px, py, pw, ph);
-            }
-            var capGrad = ctx.createLinearGradient(px, py, px + pw, py + ph);
-            capGrad.addColorStop(0, '#090e1a');
-            capGrad.addColorStop(1, '#0f172a');
-            ctx.fillStyle = capGrad;
-            ctx.fill();
+            ctx.arc(cx, cy, cr, 0, Math.PI * 2);
 
-            // Borde Neón y resplandor idéntico al mapa
-            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00f0ff';
-            ctx.lineWidth = 3.5;
-            ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.8)' : 'rgba(0, 240, 255, 0.6)';
-            ctx.shadowBlur = 12;
-            ctx.stroke();
-            ctx.restore();
-
-            // Mini radar circular idéntico al disco del HUD
-            var rx = 58, ry = 90, rr = 38;
-            ctx.save();
-            var rGrad = ctx.createRadialGradient(rx, ry, 2, rx, ry, rr);
-            rGrad.addColorStop(0, enAlerta ? 'rgba(255, 0, 85, 0.3)' : 'rgba(0, 255, 135, 0.3)');
-            rGrad.addColorStop(0.7, '#0a1424');
-            rGrad.addColorStop(1, '#050a12');
+            // Gradiente circular dentro del disco
+            var rGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, cr);
+            rGrad.addColorStop(0, enAlerta ? 'rgba(255, 0, 85, 0.25)' : 'rgba(0, 240, 255, 0.2)');
+            rGrad.addColorStop(0.65, '#0a1324');
+            rGrad.addColorStop(1, '#050914');
             ctx.fillStyle = rGrad;
-            ctx.beginPath();
-            ctx.arc(rx, ry, rr, 0, Math.PI * 2);
             ctx.fill();
 
-            // Anillos
-            ctx.strokeStyle = enAlerta ? 'rgba(255, 0, 85, 0.5)' : 'rgba(0, 240, 255, 0.5)';
+            // Borde Neón Circular con Resplandor
+            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00f0ff';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.95)' : 'rgba(0, 240, 255, 0.9)';
+            ctx.shadowBlur = 15;
+            ctx.stroke();
+
+            // Anillos interiores tácticos
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = enAlerta ? 'rgba(255, 0, 85, 0.35)' : 'rgba(0, 240, 255, 0.35)';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.arc(rx, ry, rr, 0, Math.PI * 2);
+            ctx.arc(cx, cy, cr * 0.72, 0, Math.PI * 2);
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(rx, ry, rr * 0.5, 0, Math.PI * 2);
+            ctx.arc(cx, cy, cr * 0.42, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Cruz táctica
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            // Cruz táctica / Retícula
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(rx - rr, ry); ctx.lineTo(rx + rr, ry);
-            ctx.moveTo(rx, ry - rr); ctx.lineTo(rx, ry + rr);
+            ctx.moveTo(cx - cr + 15, cy); ctx.lineTo(cx + cr - 15, cy);
+            ctx.moveTo(cx, cy - cr + 15); ctx.lineTo(cx, cy + cr - 15);
             ctx.stroke();
 
-            // Barrido de radar animado
+            // Línea de barrido de radar giratoria (360°)
             radarSweepAngle = (radarSweepAngle + 0.14) % (Math.PI * 2);
             ctx.strokeStyle = enAlerta ? '#ff0055' : '#00ff87';
             ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.moveTo(rx, ry);
-            ctx.lineTo(rx + Math.cos(radarSweepAngle) * rr, ry + Math.sin(radarSweepAngle) * rr);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(radarSweepAngle) * cr, cy + Math.sin(radarSweepAngle) * cr);
             ctx.stroke();
 
             // Punto objetivo parpadeante
             ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
             ctx.shadowColor = enAlerta ? '#ff0055' : '#00ff87';
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 10;
             ctx.beginPath();
-            ctx.arc(rx + 12, ry - 10, 4.5, 0, Math.PI * 2);
+            ctx.arc(cx + 42, cy - 35, 5, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
 
-            // Datos del vehículo
+            // CONTENIDO EN EL CÍRCULO (CENTRADO Y CLARO)
+            ctx.textAlign = 'center';
+
+            // 1. Título superior
+            ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
+            ctx.font = '900 11px monospace';
+            ctx.fillText(enAlerta ? '🚨 ¡EN RANGO (<500M)!' : '🛰️ RADAR RAPTOR', cx, 48);
+
             if (placaMasCercanaObj) {
                 var p = placaMasCercanaObj;
                 var marca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : 'VEHÍCULO';
@@ -1434,59 +1418,59 @@
                 var colorStr = (p.color && p.color !== '-') ? p.color : 'SIN COLOR';
                 var distTxt = menorDistanciaMetros < 1000 ? Math.round(menorDistanciaMetros) + ' M' : (menorDistanciaMetros / 1000).toFixed(1) + ' KM';
 
-                // Caja de placa amarilla reflectiva idéntica
+                // 2. Caja de Placa Central (Amarilla reflectiva)
                 ctx.save();
+                var bw = 170, bh = 44, bx = cx - bw / 2, by = 68;
                 ctx.fillStyle = '#000000';
-                var bx = 115, by = 24, bw = 150, bh = 42;
                 ctx.beginPath();
-                if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 6);
+                if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 8);
                 else ctx.rect(bx, by, bw, bh);
                 ctx.fill();
+
                 ctx.strokeStyle = '#ffea00';
-                ctx.lineWidth = 2;
-                ctx.shadowColor = 'rgba(255, 234, 0, 0.6)';
-                ctx.shadowBlur = 6;
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = 'rgba(255, 234, 0, 0.7)';
+                ctx.shadowBlur = 8;
                 ctx.stroke();
 
                 ctx.fillStyle = '#ffea00';
-                ctx.font = '900 27px -apple-system, sans-serif';
-                ctx.fillText(p.placa, bx + 12, by + 31);
+                ctx.font = '900 30px -apple-system, sans-serif';
+                ctx.fillText(p.placa, cx, by + 33);
                 ctx.restore();
 
-                // Distancia destacada
+                // 3. Distancia en vivo
                 ctx.save();
                 ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
-                ctx.font = '900 22px monospace';
-                ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.7)' : 'rgba(0, 255, 135, 0.7)';
+                ctx.font = '900 24px monospace';
+                ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.8)' : 'rgba(0, 255, 135, 0.8)';
                 ctx.shadowBlur = 8;
-                ctx.fillText('🎯 ' + distTxt, 280, 53);
+                ctx.fillText('🎯 ' + distTxt, cx, 148);
                 ctx.restore();
 
-                // Fila Vehículo
+                // 4. Vehículo
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 16px sans-serif';
-                ctx.fillText('🚗 ' + carroStr.slice(0, 25), 118, 96);
+                ctx.font = 'bold 15px -apple-system, sans-serif';
+                ctx.fillText('🚗 ' + carroStr.slice(0, 22), cx, 184);
 
-                // Fila Color
+                // 5. Color
                 ctx.fillStyle = '#38bdf8';
-                ctx.font = 'bold 15px sans-serif';
-                ctx.fillText('🎨 COLOR: ' + colorStr.toUpperCase(), 118, 124);
+                ctx.font = 'bold 14px -apple-system, sans-serif';
+                ctx.fillText('🎨 ' + colorStr.toUpperCase(), cx, 210);
 
-                // Fila Estado / Alerta
-                if (enAlerta) {
-                    ctx.fillStyle = '#ff0055';
-                    ctx.font = 'bold 13px monospace';
-                    ctx.fillText('🚨 ¡EN RANGO CRÍTICO (<500M)!', 118, 150);
-                } else {
-                    ctx.fillStyle = '#94a3b8';
-                    ctx.font = '12px sans-serif';
-                    var dir = (p.dirOriginal || p.dir || 'Dirección registrada').slice(0, 36);
-                    ctx.fillText('📍 ' + dir, 118, 150);
-                }
+                // 6. Dirección o Estado inferior
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '11.5px sans-serif';
+                var dir = (p.dirOriginal || p.dir || 'Dirección registrada').slice(0, 30);
+                ctx.fillText('📍 ' + dir, cx, 238);
+
+                // 7. Pie táctico
+                ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
+                ctx.font = '800 10px monospace';
+                ctx.fillText('STATUS: TRACKING GPS', cx, 268);
             } else {
                 ctx.fillStyle = '#94a3b8';
-                ctx.font = 'bold 18px sans-serif';
-                ctx.fillText('🛰️ Esperando posición GPS...', 120, 95);
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText('🛰️ Buscando señal GPS...', cx, 160);
             }
         }
 
@@ -1495,8 +1479,8 @@
 
             if (!pipCanvasEl) {
                 pipCanvasEl = document.createElement('canvas');
-                pipCanvasEl.width = 440;
-                pipCanvasEl.height = 180;
+                pipCanvasEl.width = 320;
+                pipCanvasEl.height = 320;
                 pipCtxEl = pipCanvasEl.getContext('2d');
             }
 
@@ -1513,8 +1497,9 @@
                 pipVideoEl.setAttribute('autopictureinpicture', '');
                 pipVideoEl.autoPictureInPicture = true;
 
+                // Dimensiones cuadradas reales 1:1 fuera de pantalla
                 pipVideoEl.style.width = '160px';
-                pipVideoEl.style.height = '90px';
+                pipVideoEl.style.height = '160px';
                 pipVideoEl.style.position = 'fixed';
                 pipVideoEl.style.bottom = '-9999px';
                 pipVideoEl.style.left = '-9999px';
@@ -1530,16 +1515,16 @@
                     if (radarActivo && (document.pictureInPictureElement === pipVideoEl || document.hidden)) {
                         actualizarPipCanvas();
                     }
-                }, 650);
+                }, 600);
             }
 
-            pipVideoEl.play().then(function() {
-                if (autoLanzar && !document.pictureInPictureElement) {
-                    pipVideoEl.requestPictureInPicture().catch(function(err) {
-                        console.warn("Auto-PiP diferido a cambio de app:", err);
-                    });
-                }
-            }).catch(function(e) { console.warn("Video play:", e); });
+            pipVideoEl.play().catch(function(e) { console.warn("Video play:", e); });
+
+            if (autoLanzar && !document.pictureInPictureElement) {
+                pipVideoEl.requestPictureInPicture().catch(function(err) {
+                    console.warn("Auto-PiP diferido a cambio de app:", err);
+                });
+            }
         }
 
         function iniciarPipRadar() {
@@ -1560,10 +1545,9 @@
             if (pipVideoEl) {
                 pipVideoEl.play().then(function() {
                     pipVideoEl.requestPictureInPicture().then(function() {
-                        mostrarToastNotificacion("🛰️ ¡Ventana flotante activa! Se mantendrá en pantalla al salir a WhatsApp.");
+                        mostrarToastNotificacion("🛰️ ¡Radar circular flotante activo! Puedes agrandarlo o apequeñarlo con dos dedos.");
                     }).catch(function(err) {
-                        console.warn("PiP request error:", err);
-                        mostrarToastNotificacion("ℹ️ Toca la pantalla de nuevo para autorizar la ventana flotante.");
+                        console.warn("PiP error:", err);
                     });
                 }).catch(function(err) {
                     console.warn("Play error:", err);
@@ -1571,14 +1555,24 @@
             }
         }
 
-        // AUTO-PIP AL CAMBIAR DE APLICACIÓN O PESTAÑA (WHATSAPP / GOOGLE MAPS)
+        // ACTIVACIÓN EXCLUSIVA AL SALIR DEL MAPA (WHATSAPP, GOOGLE MAPS, ETC.)
         document.addEventListener('visibilitychange', function() {
-            if (document.hidden && radarActivo && pipVideoEl && document.pictureInPictureEnabled) {
-                if (!document.pictureInPictureElement) {
+            if (!radarActivo) return;
+
+            if (document.hidden) {
+                // EL USUARIO SALIÓ DEL MAPA (A WHATSAPP, HOME, ETC.): ACTIVAR RADAR FLOTANTE EXTERIOR
+                if (pipVideoEl && document.pictureInPictureEnabled && !document.pictureInPictureElement) {
                     try {
                         pipVideoEl.play().then(function() {
-                            pipVideoEl.requestPictureInPicture().catch(function(){});
-                        }).catch(function(){});
+                            pipVideoEl.requestPictureInPicture().catch(function(e){});
+                        }).catch(function(e){});
+                    } catch(e){}
+                }
+            } else {
+                // EL USUARIO VOLVIÓ AL MAPA: CERRAR LA VENTANA EXTERIOR PORQUE YA TIENE LA CÁPSULA DEL MAPA
+                if (document.pictureInPictureElement) {
+                    try {
+                        document.exitPictureInPicture().catch(function(e){});
                     } catch(e){}
                 }
             }
