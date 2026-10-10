@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.5</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.6</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -3712,15 +3712,107 @@
         }
 
         var hoyStr = new Date().toISOString().split('T')[0];
-        var diaSemana = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-        var reglasPico = { 0: ['5', '8'], 1: ['1', '4'], 2: ['0', '2'], 3: ['3', '6'], 4: ['7', '9'] };
+                // =========================================================================
+        // MOTOR MULTI-CIUDAD DE PICO Y PLACA NACIONAL (COLOMBIA)
+        // =========================================================================
+        function calcularPicoYPlacaNacional(placa, dir) {
+            if (!placa) return { aplica: false, ciudad: 'COLOMBIA' };
 
-        function tienePicoYPlaca(placa) {
-            if (reglasPico[diaSemana]) {
-                var ultimo = placa.trim().slice(-1);
-                return reglasPico[diaSemana].includes(ultimo);
+            var pl = placa.toUpperCase().trim();
+            var ultimoDigito = null;
+            for (var i = pl.length - 1; i >= 0; i--) {
+                if (/\d/.test(pl[i])) {
+                    ultimoDigito = pl[i];
+                    break;
+                }
             }
-            return false;
+            if (ultimoDigito === null) return { aplica: false, ciudad: 'COLOMBIA' };
+
+            var now = new Date();
+            var dia = now.getDay(); // 0: Dom, 1: Lun, 2: Mar, 3: Mié, 4: Jue, 5: Vie, 6: Sáb
+            var diaMes = now.getDate();
+
+            // Fines de semana no aplica en la gran mayoría de ciudades
+            if (dia === 0 || dia === 6) {
+                return { aplica: false, ciudad: 'FIN DE SEMANA' };
+            }
+
+            var upDir = (dir || '').toUpperCase();
+            var ciudad = 'VALLE DE ABURRÁ';
+
+            // Detectar ciudad según la dirección o contexto
+            if (upDir.includes('BOGOTA') || upDir.includes('BOGOTÁ')) {
+                ciudad = 'BOGOTÁ';
+                // Bogotá: Días pares (placas terminadas en 1, 2, 3, 4, 5 circulan; 6, 7, 8, 9, 0 restricción)
+                // Días impares (circulan 6, 7, 8, 9, 0; restricción 1, 2, 3, 4, 5)
+                var esDiaPar = (diaMes % 2 === 0);
+                var num = parseInt(ultimoDigito);
+                var aplicaBogota = esDiaPar ? [6, 7, 8, 9, 0].includes(num) : [1, 2, 3, 4, 5].includes(num);
+                return { aplica: aplicaBogota, ciudad: ciudad };
+            } else if (upDir.includes('CALI')) {
+                ciudad = 'CALI';
+                // Cali: Lunes 7,8; Martes 9,0; Miércoles 1,2; Jueves 3,4; Viernes 5,6
+                var reglasCali = {
+                    1: ['7', '8'],
+                    2: ['9', '0'],
+                    3: ['1', '2'],
+                    4: ['3', '4'],
+                    5: ['5', '6']
+                };
+                var aplicaCali = reglasCali[dia] ? reglasCali[dia].includes(ultimoDigito) : false;
+                return { aplica: aplicaCali, ciudad: ciudad };
+            } else if (upDir.includes('BUCARAMANGA')) {
+                ciudad = 'BUCARAMANGA';
+                var reglasBuc = {
+                    1: ['3', '4'],
+                    2: ['5', '6'],
+                    3: ['7', '8'],
+                    4: ['9', '0'],
+                    5: ['1', '2']
+                };
+                var aplicaBuc = reglasBuc[dia] ? reglasBuc[dia].includes(ultimoDigito) : false;
+                return { aplica: aplicaBuc, ciudad: ciudad };
+            } else if (upDir.includes('BARRANQUILLA')) {
+                ciudad = 'BARRANQUILLA';
+                return { aplica: false, ciudad: ciudad };
+            } else if (upDir.includes('PEREIRA')) {
+                ciudad = 'PEREIRA';
+                var reglasPer = {
+                    1: ['0', '1'],
+                    2: ['2', '3'],
+                    3: ['4', '5'],
+                    4: ['6', '7'],
+                    5: ['8', '9']
+                };
+                var aplicaPer = reglasPer[dia] ? reglasPer[dia].includes(ultimoDigito) : false;
+                return { aplica: aplicaPer, ciudad: ciudad };
+            } else {
+                // Valle de Aburrá (Medellín, Envigado, Itagüí, Sabaneta, Bello, La Estrella, Copacabana, Caldas)
+                // Rotación oficial:
+                // Lunes: 5 y 8
+                // Martes: 1 y 4
+                // Miércoles: 0 y 2
+                // Jueves: 3 y 6
+                // Viernes: 7 y 9
+                var reglasMedellin = {
+                    1: ['5', '8'],
+                    2: ['1', '4'],
+                    3: ['0', '2'],
+                    4: ['3', '6'],
+                    5: ['7', '9']
+                };
+                var aplicaMed = reglasMedellin[dia] ? reglasMedellin[dia].includes(ultimoDigito) : false;
+                var nombreZona = upDir.includes('ESTRELLA') ? 'LA ESTRELLA' :
+                                 upDir.includes('ENVIGADO') ? 'ENVIGADO' :
+                                 upDir.includes('ITAGUI') || upDir.includes('ITAGÜÍ') ? 'ITAGÜÍ' :
+                                 upDir.includes('SABANETA') ? 'SABANETA' :
+                                 upDir.includes('BELLO') ? 'BELLO' : 'MEDELLÍN';
+                return { aplica: aplicaMed, ciudad: nombreZona };
+            }
+        }
+
+        function tienePicoYPlaca(placa, dir) {
+            return calcularPicoYPlacaNacional(placa, dir).aplica;
         }
 
         
