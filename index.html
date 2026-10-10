@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.0</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.1</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -2249,197 +2249,183 @@
         function analizarMultiplesVehiculos(texto) {
             if (!texto) return [];
 
-            // 1. Separar bloques por encabezados típicos de WhatsApp: timestamp [4:44 p.m.], 'UBICAR', o 'PLACA'
-            var regexSplit = /(?:^|\n)(?=\s*(?:\[\d{1,2}:\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|\bUBICAR\b|\bPLACA\b))/i;
-            var bloques = texto.split(regexSplit).map(b => b.trim()).filter(b => b.length > 0);
+            // 1. Separar bloques por timestamp de WhatsApp o UBICAR al inicio de línea
+            var regexSplit = /(?:^|\n)(?=\s*(?:\[\d{1,2}:\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|\*?UBICAR\b))/i;
+            var rawBlocks = texto.split(regexSplit).map(b => b.trim()).filter(b => b.length > 0);
 
-            // 2. Si no se separó y hay múltiples placas en el texto, separar por doble salto de línea o antes de cada placa
-            if (bloques.length <= 1) {
-                var mPlacasTotal = texto.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/gi) || [];
-                if (mPlacasTotal.length > 1) {
-                    var bloquesDobleSalto = texto.split(/\n\s*\n+/).map(b => b.trim()).filter(b => b.length > 0);
-                    if (bloquesDobleSalto.length > 1) {
-                        bloques = bloquesDobleSalto;
-                    } else {
-                        var regexPlacasSep = /(?:^|\n)(?=\s*(?:[A-Z]{3}[\s\-]?[0-9]{2}[0-9A-Z]))/i;
-                        bloques = texto.split(regexPlacasSep).map(b => b.trim()).filter(b => b.length > 0);
-                    }
-                }
+            // Extraer todas las placas del texto para saber cuántos vehículos reales hay
+            var plateRe = /(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/gi;
+            var allMatches = [...texto.matchAll(plateRe)];
+            var rawPlates = allMatches.map(m => (m[1] + m[2]).toUpperCase()).filter(p => !['UBICAR', 'PARTES', 'DETALLE'].includes(p));
+            var uniquePlates = [...new Set(rawPlates)];
+
+            // Si no se dividió pero hay múltiples placas distintas, dividir antes de cada placa distinta
+            if (rawBlocks.length <= 1 && uniquePlates.length > 1) {
+                var sepPlates = new RegExp('(?:^|\\n)(?=\\s*(?:' + uniquePlates.join('|') + ')\\b)', 'i');
+                rawBlocks = texto.split(sepPlates).map(b => b.trim()).filter(b => b.length > 0);
             }
 
-            var resultados = [];
+            var parsedMap = {};
 
-            bloques.forEach(function(bloque) {
-                var b = bloque.trim();
-                if (!b) return;
-
-                // Detectar placa con tolerancia a guiones, espacios y asteriscos (ej: *LRW-993*, LRW 993, GCV922)
-                var pMatch = b.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
-                if (!pMatch) return;
-                var placa = (pMatch[1] + pMatch[2]).toUpperCase();
+            rawBlocks.forEach(function(b) {
+                var singlePlateRe = /(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i;
+                var mP = b.match(singlePlateRe);
+                if (!mP) return;
+                var placa = (mP[1] + mP[2]).toUpperCase();
                 if (['UBICAR', 'PARTES', 'DETALLE'].includes(placa)) return;
 
-                // Pre-limpieza para análisis de especificaciones: remover asteriscos, guiones bajos y timestamps de WhatsApp
-                var bClean = b.replace(/\[\d{1,2}:\d{2}[\s\S]*?\]/g, ' ')
-                              .replace(/\*/g, ' ')
-                              .replace(/_/g, ' ');
-
+                var bClean = b.replace(/\[\d{1,2}:\d{2}[\s\S]*?\]/g, ' ').replace(/\*/g, ' ').replace(/_/g, ' ');
                 var lineas = b.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
-                var telefonosArr = [];
                 var telsMatch = b.match(/\b3[0-9]{9}\b/g) || [];
-                telsMatch.forEach(t => { if (!telefonosArr.includes(t)) telefonosArr.push(t); });
-                var telefonos = telefonosArr.length > 0 ? telefonosArr.slice(0, 2).join(', ') : '-';
+                var telefonos = [...new Set(telsMatch)];
 
                 var direcciones = [];
-                var llavesVistas = {};
-
-                // Extraer direcciones
                 lineas.forEach(function(l) {
-                    var lTrim = l.trim();
-                    var up = lTrim.toUpperCase();
-
-                    // Coordenadas directas
-                    var mCoord = lTrim.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                    var up = l.toUpperCase();
+                    if (['IDENTIFICACI', 'EXPEDICI', 'CEDULA', 'CÉDULA', 'CODIGO', 'LICENCIA', 'FECHA'].some(p => up.includes(p))) return;
+                    var mCoord = l.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
                     if (mCoord) {
-                        if (!llavesVistas[lTrim] && direcciones.length < 4) {
-                            llavesVistas[lTrim] = true;
-                            direcciones.push(lTrim);
-                        }
+                        if (!direcciones.includes(l)) direcciones.push(l);
                         return;
                     }
-
-                    var esDirEtiqueta = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(lTrim);
-                    var tieneNom = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM)\b/i.test(up) || up.includes('#') || /\bN[RO°]\b/i.test(up);
-                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|GIRARDOTA|BARBOSA|ANTIOQUIA)/i.test(up);
-
-                    if (esDirEtiqueta || ((tieneNom || tieneMun) && up.length > 6)) {
-                        var noEsRuido = !['UBICAR', 'SOAT', 'TECNO', 'TEL', 'CEL', 'MODELO'].some(k => up.includes(k));
-                        if (noEsRuido) {
-                            var dirLimpia = lTrim.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '').trim();
-                            var keyNorm = normalizarClaveDireccion(dirLimpia) || dirLimpia.replace(/[^A-Z0-9]/g, '');
-                            if (!llavesVistas[keyNorm] && direcciones.length < 4) {
-                                llavesVistas[keyNorm] = true;
-                                direcciones.push(dirLimpia);
-                            }
+                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM|KILOMETRO)\s*(?:SUR|NORTE|ESTE|OESTE)?\s*(\d+|[A-Z]\b)/i;
+                    var tieneVia = patronVia.test(up);
+                    var tieneNum = up.includes('#') || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up);
+                    var esDirEtq = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(l);
+                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|BOGOTA|CALI)/i.test(up);
+                    if ((esDirEtq || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 6) {
+                        if (!['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(k => up.includes(k))) {
+                            var cleanDir = l.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '').trim();
+                            if (cleanDir && !direcciones.includes(cleanDir)) direcciones.push(cleanDir);
                         }
                     }
                 });
 
-                // Extracción flexible de especificaciones del vehículo (Marca, Línea, Modelo, Color, SOAT, Tecno)
-                function buscarValCampo(keys) {
+                function buscarVal(keys) {
                     for (var i = 0; i < keys.length; i++) {
                         var k = keys[i];
-                        var reg = new RegExp('(?:^|[^\\w])' + k + '\\s*[:\\-]\\s*([^\\r\\n\\|,]+)', 'i');
-                        var m = bClean.match(reg);
+                        var m = bClean.match(new RegExp('(?:^|[^\\w])' + k + '\\s*[:\\-]\\s*([^\\r\\n\\|,]+)', 'i'));
                         if (m) {
                             var v = m[1].trim();
-                            if (v && !['VEHICULO', 'MARCA', 'LINEA', 'MODELO', 'COLOR', 'SOAT', 'TECNO', 'PLACA'].includes(v.toUpperCase())) {
-                                return v;
-                            }
+                            if (v && !['VEHICULO', 'MARCA', 'LINEA', 'MODELO', 'COLOR', 'SOAT', 'TECNO', 'PLACA'].includes(v.toUpperCase())) return v;
                         }
                     }
                     return null;
                 }
 
-                var marca = buscarValCampo(['MARCA']);
-                var linea = buscarValCampo(['L[IÍ]NEA', 'LINEA']);
-                var modelo = buscarValCampo(['MODELO', 'A[NÑ]O']);
-                var color = buscarValCampo(['COLOR']);
+                var marca = buscarVal(['MARCA']) || '-';
+                var linea = buscarVal(['L[IÍ]NEA', 'LINEA']) || '-';
+                var modelo = buscarVal(['MODELO', 'A[NÑ]O']) || '-';
+                var color = buscarVal(['COLOR']) || '-';
 
-                // Si no se encontró marca ni línea pero hay 'VEHICULO' o 'DESCRIPCION'
-                if (!marca || !linea) {
-                    var vehTxt = buscarValCampo(['VEH[IÍ]CULO', 'DESCRIPCI[OÓ]N', 'CLASE']);
-                    if (vehTxt) {
-                        var partsVeh = vehTxt.split(/\s+/);
-                        if (partsVeh.length >= 1 && !marca) marca = partsVeh[0];
-                        if (partsVeh.length >= 2 && !linea) linea = partsVeh.slice(1).join(' ');
+                if (marca === '-' || linea === '-') {
+                    var mVeh = buscarVal(['VEH[IÍ]CULO', 'DESCRIPCI[OÓ]N', 'CLASE']);
+                    if (mVeh) {
+                        var pts = mVeh.split(/\s+/);
+                        if (pts.length >= 1 && marca === '-') marca = pts[0];
+                        if (pts.length >= 2 && linea === '-') linea = pts.slice(1).join(' ');
                     }
                 }
 
-                // Diccionario de marcas reconocidas en Colombia si la marca sigue sin detectarse
-                var marcasComunes = ['RENAULT', 'CHEVROLET', 'MAZDA', 'KIA', 'TOYOTA', 'HYUNDAI', 'NISSAN', 'FORD', 'VOLKSWAGEN', 'SUZUKI', 'HONDA', 'MITSUBISHI', 'JEEP', 'BYD', 'CHERY', 'JAC', 'CHANGAN', 'FOTON', 'HINO', 'ISUZU', 'MERCEDES', 'BMW', 'AUDI', 'SEAT', 'PEUGEOT', 'CITROEN', 'SUBARU', 'YAMAHA', 'BAJAJ', 'AKT', 'AUTECO', 'DODGE', 'RAM', 'FIAT'];
-                if (!marca) {
-                    for (var mIdx = 0; mIdx < marcasComunes.length; mIdx++) {
-                        var mc = marcasComunes[mIdx];
+                // Extracción posicional para WhatsApp sin etiquetas
+                var cleanLines = lineas.filter(l => !/^\[\d{1,2}:\d{2}/.test(l) && l.toUpperCase() !== 'UBICAR');
+                var pIdx = cleanLines.findIndex(l => l.toUpperCase().replace(/[\s\-]/g, '').includes(placa));
+                var yIdx = cleanLines.findIndex(l => /^(19\d{2}|20[0-3]\d)$/.test(l));
+
+                if (pIdx !== -1 && yIdx !== -1 && yIdx > pIdx) {
+                    var bet = cleanLines.slice(pIdx + 1, yIdx);
+                    if (bet.length === 1 && marca === '-') {
+                        var ptsB = bet[0].split(/\s+/);
+                        marca = ptsB[0];
+                        if (ptsB.length > 1 && linea === '-') linea = ptsB.slice(1).join(' ');
+                    } else if (bet.length >= 2) {
+                        if (marca === '-') marca = bet[0];
+                        if (linea === '-') linea = bet.slice(1).join(' ');
+                    }
+                    if (modelo === '-') modelo = cleanLines[yIdx];
+                }
+
+                var soat = 'NO';
+                var tecno = 'NO';
+                if (yIdx !== -1 && yIdx + 1 < cleanLines.length) {
+                    var afterY = cleanLines.slice(yIdx + 1);
+                    var cur = 0;
+                    if (cur < afterY.length && !/^(?:SI|NO|VIGENTE)$/i.test(afterY[cur]) && !/\b3\d{9}\b/.test(afterY[cur])) {
+                        if (color === '-') color = afterY[cur];
+                        cur++;
+                    }
+                    if (cur < afterY.length && /^(?:SI|NO|VIGENTE)$/i.test(afterY[cur])) {
+                        soat = /SI|VIGENTE/i.test(afterY[cur]) ? 'SI' : 'NO';
+                        cur++;
+                    }
+                    if (cur < afterY.length && /^(?:SI|NO|VIGENTE)$/i.test(afterY[cur])) {
+                        tecno = /SI|VIGENTE/i.test(afterY[cur]) ? 'SI' : 'NO';
+                        cur++;
+                    }
+                }
+
+                var marcasC = ['RENAULT', 'CHEVROLET', 'MAZDA', 'KIA', 'TOYOTA', 'HYUNDAI', 'NISSAN', 'FORD', 'VOLKSWAGEN', 'SUZUKI', 'HONDA', 'MITSUBISHI'];
+                if (marca === '-') {
+                    for (var mc of marcasC) {
                         if (new RegExp('\\b' + mc + '\\b', 'i').test(bClean)) {
                             marca = mc;
-                            // Buscar palabras acompañantes en esa misma línea
-                            var lineasClean = bClean.split(/[\r\n]+/);
-                            for (var lIdx = 0; lIdx < lineasClean.length; lIdx++) {
-                                var lc = lineasClean[lIdx];
-                                if (new RegExp('\\b' + mc + '\\b', 'i').test(lc)) {
-                                    var wds = lc.trim().split(/\s+/);
-                                    var fIdx = wds.findIndex(w => w.toUpperCase() === mc);
-                                    if (fIdx !== -1) {
-                                        var cands = wds.slice(fIdx + 1).filter(w => !/^\d{4}$/.test(w) && !['GRIS', 'BLANCO', 'NEGRO', 'ROJO', 'AZUL', 'PLATA', 'SI', 'NO', 'SOAT', 'TECNO'].includes(w.toUpperCase()));
-                                        if (cands.length > 0 && !linea) {
-                                            linea = cands.join(' ');
-                                        }
-                                    }
-                                }
-                            }
                             break;
                         }
                     }
                 }
 
-                // Detección de año / modelo (4 dígitos entre 1980 y 2030)
-                if (!modelo) {
+                if (modelo === '-') {
                     var mYr = bClean.match(/\b(19\d{2}|20[0-3]\d)\b/);
                     if (mYr) modelo = mYr[1];
                 }
 
-                // Detección de color
-                if (!color) {
-                    var coloresComunes = ['BLANCO', 'NEGRO', 'GRIS', 'PLATA', 'ROJO', 'AZUL', 'VERDE', 'BEIGE', 'AMARILLO', 'MARRON', 'CAFE', 'VINOTINTO', 'NARANJA', 'DORADO'];
-                    for (var cIdx = 0; cIdx < coloresComunes.length; cIdx++) {
-                        var colName = coloresComunes[cIdx];
-                        var mCol = bClean.match(new RegExp('\\b(' + colName + '(?:\\s+(?:ESTRELLA|METALICO|METÁLICO|PERLADO|OSCURO|CLARO))?)\\b', 'i'));
-                        if (mCol) {
-                            color = mCol[1].toUpperCase();
+                if (color === '-') {
+                    var colores = ['BLANCO', 'NEGRO', 'GRIS', 'PLATA', 'ROJO', 'AZUL', 'VERDE', 'BEIGE', 'AMARILLO', 'MARRON', 'CAFE', 'VINOTINTO', 'NARANJA', 'DORADO'];
+                    for (var c of colores) {
+                        if (new RegExp('\\b' + c + '\\b', 'i').test(bClean)) {
+                            var mCol = bClean.match(new RegExp('\\b(' + c + '(?:\\s+(?:ESTRELLA|METALICO|METÁLICO|PERLADO|OSCURO|CLARO))?)\\b', 'i'));
+                            color = mCol ? mCol[1] : c;
                             break;
                         }
                     }
                 }
 
-                // SOAT
-                var soat = 'NO';
-                var mSoatVal = buscarValCampo(['SOAT']);
-                if (mSoatVal) {
-                    soat = /(?:SI|VIGENTE|ACTIVO|OK|AL DIA)/i.test(mSoatVal) ? 'SI' : 'NO';
-                } else if (/SOAT[^\r\n]*(?:SI|VIGENTE|ACTIVO|AL DIA)/i.test(bClean)) {
-                    soat = 'SI';
-                }
+                if (soat === 'NO' && /SOAT[^\r\n]*(?:SI|VIGENTE|ACTIVO|AL DIA)/i.test(bClean)) soat = 'SI';
+                if (tecno === 'NO' && /(?:TECNO|RTM)[^\r\n]*(?:SI|VIGENTE|ACTIVO|AL DIA)/i.test(bClean)) tecno = 'SI';
 
-                // TECNOMECÁNICA
-                var tecno = 'NO';
-                var mTecVal = buscarValCampo(['TECNO', 'TECNOMECANICA', 'TECNOMECÁNICA', 'RTM']);
-                if (mTecVal) {
-                    tecno = /(?:SI|VIGENTE|ACTIVO|OK|AL DIA)/i.test(mTecVal) ? 'SI' : 'NO';
-                } else if (/(?:TECNO|RTM)[^\r\n]*(?:SI|VIGENTE|ACTIVO|AL DIA)/i.test(bClean)) {
-                    tecno = 'SI';
+                // Fusionar inteligentemente si la placa ya existía en otro bloque fragmentado del mensaje
+                if (parsedMap[placa]) {
+                    var prev = parsedMap[placa];
+                    if (prev.marca === '-' && marca !== '-') prev.marca = marca.toUpperCase().trim();
+                    if (prev.linea === '-' && linea !== '-') prev.linea = linea.toUpperCase().trim();
+                    if (prev.modelo === '-' && modelo !== '-') prev.modelo = modelo.toUpperCase().trim();
+                    if (prev.color === '-' && color !== '-') prev.color = color.toUpperCase().trim();
+                    if (prev.soat === 'NO' && soat !== 'NO') prev.soat = soat;
+                    if (prev.tecnomecanica === 'NO' && tecno !== 'NO') prev.tecnomecanica = tecno;
+                    if (prev.telefonos === '-' && telefonos.length > 0) prev.telefonos = telefonos.slice(0, 2).join(', ');
+                    direcciones.forEach(function(d) {
+                        if (!prev.direcciones.includes(d) && prev.direcciones.length < 4) {
+                            prev.direcciones = prev.direcciones.filter(x => x !== 'Medellin, Antioquia');
+                            prev.direcciones.push(d);
+                        }
+                    });
+                } else {
+                    parsedMap[placa] = {
+                        placa: placa,
+                        marca: (marca || '-').toUpperCase().trim(),
+                        linea: (linea || '-').toUpperCase().trim(),
+                        modelo: (modelo || '-').toUpperCase().trim(),
+                        color: (color || '-').toUpperCase().trim(),
+                        soat: soat,
+                        tecnomecanica: tecno,
+                        telefonos: telefonos.length > 0 ? telefonos.slice(0, 2).join(', ') : '-',
+                        direcciones: direcciones.length > 0 ? direcciones.slice(0, 4) : ['Medellin, Antioquia']
+                    };
                 }
-
-                // Asegurar al menos una dirección si no se detectó
-                if (direcciones.length === 0) {
-                    direcciones.push('Medellin, Antioquia');
-                }
-
-                resultados.push({
-                    placa: placa,
-                    marca: (marca || '-').toUpperCase().trim(),
-                    linea: (linea || '-').toUpperCase().trim(),
-                    modelo: (modelo || '-').toUpperCase().trim(),
-                    color: (color || '-').toUpperCase().trim(),
-                    soat: soat,
-                    tecnomecanica: tecno,
-                    telefonos: telefonos,
-                    direcciones: direcciones.slice(0, 4)
-                });
             });
 
-            return resultados;
+            return Object.values(parsedMap);
         }
 
         async function procesarTextoUniversal(elementId) {
