@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v3.4</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.0</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -1824,51 +1824,310 @@
         }
 
         // MOTOR MULTI-PROVEEDOR DE GEOCODIFICACIÓN (COORDINADAS -> PHOTON KOMOOT -> NOMINATIM -> GOOGLE MAPS -> GRID)
-                const MUNICIPIOS_ANTIOQUIA_TABLA = {
-            'CHIGORODO': { lat: 7.6667, lng: -76.6833 },
-            'CAREPA': { lat: 7.7569, lng: -76.6553 },
-            'APARTADO': { lat: 7.8825, lng: -76.6258 },
-            'TURBO': { lat: 8.0928, lng: -76.7281 },
-            'NECOCLI': { lat: 8.4278, lng: -76.7867 },
-            'CAUCASIA': { lat: 7.9811, lng: -75.1956 },
-            'TARAZA': { lat: 7.5833, lng: -75.4000 },
-            'EL BAGRE': { lat: 7.6000, lng: -74.8000 },
-            'YARUMAL': { lat: 6.9633, lng: -75.4183 },
-            'SANTA ROSA DE OSOS': { lat: 6.6472, lng: -75.4608 },
-            'RIONEGRO': { lat: 6.1552, lng: -75.3736 },
-            'MARINILLA': { lat: 6.1750, lng: -75.3333 },
-            'EL CARMEN DE VIBORAL': { lat: 6.0833, lng: -75.3333 },
-            'LA CEJA': { lat: 6.0306, lng: -75.4306 },
-            'GUATAPE': { lat: 6.2333, lng: -75.1667 },
-            'SANTA FE DE ANTIOQUIA': { lat: 6.5569, lng: -75.8281 },
-            'SOPETRAN': { lat: 6.5000, lng: -75.7500 },
-            'AMAGA': { lat: 6.0389, lng: -75.7028 },
-            'CIUDAD BOLIVAR': { lat: 5.8500, lng: -76.0167 },
-            'ANDES': { lat: 5.6556, lng: -75.8778 },
-            'JARDIN': { lat: 5.5972, lng: -75.8194 },
-            'JERICO': { lat: 5.7917, lng: -75.7861 },
-            'SANTA BARBARA': { lat: 5.8750, lng: -75.5667 },
-            'CALDAS': { lat: 6.0911, lng: -75.6358 },
-            'LA ESTRELLA': { lat: 6.1583, lng: -75.6444 },
-            'SABANETA': { lat: 6.1515, lng: -75.6166 },
-            'ITAGUI': { lat: 6.1846, lng: -75.5991 },
-            'ENVIGADO': { lat: 6.1696, lng: -75.5857 },
-            'MEDELLIN': { lat: 6.2442, lng: -75.5812 },
-            'BELLO': { lat: 6.3373, lng: -75.5580 },
-            'COPACABANA': { lat: 6.3463, lng: -75.5089 },
-            'GIRARDOTA': { lat: 6.3768, lng: -75.4457 },
-            'BARBOSA': { lat: 6.4381, lng: -75.3331 },
-            'GOMEZ PLATA': { lat: 6.6817, lng: -75.2183 }
+        // BASE DE DATOS DE MUNICIPIOS Y CAPITALES A NIVEL NACIONAL (COLOMBIA)
+        const MUNICIPIOS_COLOMBIA_TABLA = {
+            // Valle de Aburrá y Antioquia
+            'MEDELLIN': { lat: 6.2442, lng: -75.5812, depto: 'ANTIOQUIA' },
+            'BELLO': { lat: 6.3373, lng: -75.5580, depto: 'ANTIOQUIA' },
+            'ITAGUI': { lat: 6.1846, lng: -75.5991, depto: 'ANTIOQUIA' },
+            'ITAGÜÍ': { lat: 6.1846, lng: -75.5991, depto: 'ANTIOQUIA' },
+            'ENVIGADO': { lat: 6.1696, lng: -75.5857, depto: 'ANTIOQUIA' },
+            'SABANETA': { lat: 6.1515, lng: -75.6166, depto: 'ANTIOQUIA' },
+            'LA ESTRELLA': { lat: 6.1583, lng: -75.6444, depto: 'ANTIOQUIA' },
+            'CALDAS': { lat: 6.0911, lng: -75.6358, depto: 'ANTIOQUIA' },
+            'COPACABANA': { lat: 6.3463, lng: -75.5089, depto: 'ANTIOQUIA' },
+            'GIRARDOTA': { lat: 6.3768, lng: -75.4457, depto: 'ANTIOQUIA' },
+            'BARBOSA': { lat: 6.4381, lng: -75.3331, depto: 'ANTIOQUIA' },
+            'RIONEGRO': { lat: 6.1552, lng: -75.3736, depto: 'ANTIOQUIA' },
+            'MARINILLA': { lat: 6.1750, lng: -75.3333, depto: 'ANTIOQUIA' },
+            'LA CEJA': { lat: 6.0306, lng: -75.4306, depto: 'ANTIOQUIA' },
+            'APARTADO': { lat: 7.8825, lng: -76.6258, depto: 'ANTIOQUIA' },
+            'TURBO': { lat: 8.0928, lng: -76.7281, depto: 'ANTIOQUIA' },
+            'CAUCASIA': { lat: 7.9811, lng: -75.1956, depto: 'ANTIOQUIA' },
+
+            // Bogotá D.C. y Sabana
+            'BOGOTA': { lat: 4.7110, lng: -74.0721, depto: 'CUNDINAMARCA' },
+            'BOGOTÁ': { lat: 4.7110, lng: -74.0721, depto: 'CUNDINAMARCA' },
+            'SOACHA': { lat: 4.5804, lng: -74.2179, depto: 'CUNDINAMARCA' },
+            'CHIA': { lat: 4.8611, lng: -74.0567, depto: 'CUNDINAMARCA' },
+            'CHÍA': { lat: 4.8611, lng: -74.0567, depto: 'CUNDINAMARCA' },
+            'ZIPAQUIRA': { lat: 5.0256, lng: -74.0044, depto: 'CUNDINAMARCA' },
+            'FACATATIVA': { lat: 4.8144, lng: -74.3542, depto: 'CUNDINAMARCA' },
+            'MOSQUERA': { lat: 4.7058, lng: -74.2303, depto: 'CUNDINAMARCA' },
+            'FUNZA': { lat: 4.7161, lng: -74.2117, depto: 'CUNDINAMARCA' },
+
+            // Valle del Cauca
+            'CALI': { lat: 3.4516, lng: -76.5320, depto: 'VALLE' },
+            'PALMIRA': { lat: 3.5394, lng: -76.3036, depto: 'VALLE' },
+            'BUENAVENTURA': { lat: 3.8833, lng: -77.0333, depto: 'VALLE' },
+            'TULUA': { lat: 4.0847, lng: -76.1954, depto: 'VALLE' },
+            'TULUÁ': { lat: 4.0847, lng: -76.1954, depto: 'VALLE' },
+            'YUMBO': { lat: 3.5828, lng: -76.4950, depto: 'VALLE' },
+            'JAMUNDI': { lat: 3.2606, lng: -76.5414, depto: 'VALLE' },
+            'CARTAGO': { lat: 4.7464, lng: -75.9117, depto: 'VALLE' },
+            'BUGA': { lat: 3.9008, lng: -76.2978, depto: 'VALLE' },
+
+            // Costa Caribe
+            'BARRANQUILLA': { lat: 10.9685, lng: -74.7813, depto: 'ATLANTICO' },
+            'SOLEDAD': { lat: 10.9184, lng: -74.7646, depto: 'ATLANTICO' },
+            'CARTAGENA': { lat: 10.3910, lng: -75.4794, depto: 'BOLIVAR' },
+            'SANTA MARTA': { lat: 11.2408, lng: -74.1990, depto: 'MAGDALENA' },
+            'VALLEDUPAR': { lat: 10.4631, lng: -73.2532, depto: 'CESAR' },
+            'MONTERIA': { lat: 8.7479, lng: -75.8814, depto: 'CORDOBA' },
+            'MONTERÍA': { lat: 8.7479, lng: -75.8814, depto: 'CORDOBA' },
+            'SINCELEJO': { lat: 9.3047, lng: -75.3978, depto: 'SUCRE' },
+            'RIOHACHA': { lat: 11.5444, lng: -72.9072, depto: 'GUAJIRA' },
+
+            // Santanderes
+            'BUCARAMANGA': { lat: 7.1254, lng: -73.1198, depto: 'SANTANDER' },
+            'FLORIDABLANCA': { lat: 7.0622, lng: -73.0864, depto: 'SANTANDER' },
+            'GIRON': { lat: 7.0725, lng: -73.1694, depto: 'SANTANDER' },
+            'GIRÓN': { lat: 7.0725, lng: -73.1694, depto: 'SANTANDER' },
+            'PIEDECUESTA': { lat: 6.9886, lng: -73.0503, depto: 'SANTANDER' },
+            'BARRANCABERMEJA': { lat: 7.0653, lng: -73.8547, depto: 'SANTANDER' },
+            'CUCUTA': { lat: 7.8939, lng: -72.5078, depto: 'NORTE DE SANTANDER' },
+            'CÚCUTA': { lat: 7.8939, lng: -72.5078, depto: 'NORTE DE SANTANDER' },
+            'OCAÑA': { lat: 8.2386, lng: -73.3556, depto: 'NORTE DE SANTANDER' },
+
+            // Eje Cafetero
+            'PEREIRA': { lat: 4.8133, lng: -75.6961, depto: 'RISARALDA' },
+            'DOSQUEBRADAS': { lat: 4.8364, lng: -75.6744, depto: 'RISARALDA' },
+            'MANIZALES': { lat: 5.0689, lng: -75.5174, depto: 'CALDAS' },
+            'ARMENIA': { lat: 4.5339, lng: -75.6811, depto: 'QUINDIO' },
+
+            // Tolima Grande y Huila
+            'IBAGUE': { lat: 4.4389, lng: -75.2322, depto: 'TOLIMA' },
+            'IBAGUÉ': { lat: 4.4389, lng: -75.2322, depto: 'TOLIMA' },
+            'NEIVA': { lat: 2.9273, lng: -75.2819, depto: 'HUILA' },
+            'PITALITO': { lat: 1.8542, lng: -76.0508, depto: 'HUILA' },
+
+            // Llanos Orientales y Amazonía
+            'VILLAVICENCIO': { lat: 4.1420, lng: -73.6266, depto: 'META' },
+            'YOPAL': { lat: 5.3378, lng: -72.3959, depto: 'CASANARE' },
+            'FLORENCIA': { lat: 1.6144, lng: -75.6062, depto: 'CAQUETA' },
+
+            // Sur y Pacífico
+            'PASTO': { lat: 1.2136, lng: -77.2811, depto: 'NARIÑO' },
+            'IPIALES': { lat: 0.8286, lng: -77.6389, depto: 'NARIÑO' },
+            'POPAYAN': { lat: 2.4419, lng: -76.6063, depto: 'CAUCA' },
+            'POPAYÁN': { lat: 2.4419, lng: -76.6063, depto: 'CAUCA' },
+            'QUIBDO': { lat: 5.6919, lng: -76.6583, depto: 'CHOCO' },
+            'QUIBDÓ': { lat: 5.6919, lng: -76.6583, depto: 'CHOCO' },
+
+            // Boyacá
+            'TUNJA': { lat: 5.5353, lng: -73.3678, depto: 'BOYACA' },
+            'DUITAMA': { lat: 5.8267, lng: -73.0333, depto: 'BOYACA' },
+            'SOGAMOSO': { lat: 5.7144, lng: -72.9339, depto: 'BOYACA' }
         };
+        const MUNICIPIOS_ANTIOQUIA_TABLA = MUNICIPIOS_COLOMBIA_TABLA;
 
         function detectarMunicipioEnTexto(dirTexto) {
             var t = (dirTexto || "").toUpperCase().replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U');
-            for (var mun in MUNICIPIOS_ANTIOQUIA_TABLA) {
+            for (var mun in MUNICIPIOS_COLOMBIA_TABLA) {
                 if (t.includes(mun)) {
-                    return { nombre: mun, coords: MUNICIPIOS_ANTIOQUIA_TABLA[mun] };
+                    return { nombre: mun, coords: MUNICIPIOS_COLOMBIA_TABLA[mun], depto: MUNICIPIOS_COLOMBIA_TABLA[mun].depto };
                 }
             }
-            return { nombre: 'MEDELLIN', coords: MUNICIPIOS_ANTIOQUIA_TABLA['MEDELLIN'] };
+            return { nombre: 'MEDELLIN', coords: MUNICIPIOS_COLOMBIA_TABLA['MEDELLIN'], depto: 'ANTIOQUIA' };
+        }
+
+        // =========================================================================
+        // MOTOR DE APRENDIZAJE CONTINUO GEOGRÁFICO (AUTO-APRENDIZAJE SUPERVISADO)
+        // Cada vez que un investigador ajusta, mueve o confirma un punto en campo,
+        // el sistema memoriza la coordenada exacta y la comparte con todo el equipo.
+        // =========================================================================
+        function cargarMemoriaAprendizaje() {
+            var raw = localStorage.getItem('memoria_aprendizaje_direcciones_ubica_rick');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            return {};
+        }
+
+        function guardarAprendizajeDireccion(dir, lat, lng, mun) {
+            if (!dir || !lat || !lng) return;
+            var keyNorm = normalizarClaveDireccion(dir);
+            if (!keyNorm || keyNorm.length < 4) return;
+
+            var munNombre = mun || detectarMunicipioEnTexto(dir).nombre;
+            var idDoc = munNombre + "_" + keyNorm;
+
+            var memoria = cargarMemoriaAprendizaje();
+            var veces = (memoria[idDoc] && memoria[idDoc].veces) ? (memoria[idDoc].veces + 1) : 1;
+
+            var registro = {
+                id: idDoc,
+                clave: keyNorm,
+                municipio: munNombre,
+                dirOriginal: dir,
+                lat: parseFloat(parseFloat(lat).toFixed(6)),
+                lng: parseFloat(parseFloat(lng).toFixed(6)),
+                veces: veces,
+                timestamp: Date.now()
+            };
+
+            memoria[idDoc] = registro;
+            localStorage.setItem('memoria_aprendizaje_direcciones_ubica_rick', JSON.stringify(memoria));
+
+            // Sincronizar en la nube Firestore para que todo el equipo se beneficie de la dirección aprendida
+            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+                fbDb.collection('aprendizaje_direcciones').doc(idDoc).set(registro, { merge: true })
+                    .catch(function(e) { console.warn("Firestore aprendizaje sync:", e); });
+            }
+
+            console.log("🧠 Memoria Geográfica Aprendida:", dir, "-> (" + lat + ", " + lng + ") [Confirmaciones: " + veces + "]");
+            mostrarToastNotificacion("🧠 Geolocalización memorizada con éxito. Cada vez más exacta.");
+        }
+
+        function consultarMemoriaAprendizaje(dir, munNombre) {
+            if (!dir) return null;
+            var keyNorm = normalizarClaveDireccion(dir);
+            if (!keyNorm || keyNorm.length < 4) return null;
+
+            var memoria = cargarMemoriaAprendizaje();
+            var idDoc = munNombre + "_" + keyNorm;
+
+            // 1. Coincidencia exacta aprendida previamente
+            if (memoria[idDoc]) {
+                return {
+                    lat: memoria[idDoc].lat,
+                    lng: memoria[idDoc].lng,
+                    tipo: 'APRENDIZAJE_EXACTO',
+                    veces: memoria[idDoc].veces || 1
+                };
+            }
+
+            // 2. Coincidencia cercana en la misma cuadra / tramo (interpolación inteligente)
+            var partesClave = keyNorm.match(/^([A-Z]+)(\d+)(?:[A-Z]+)?(?:SUR|NORTE|ESTE|OESTE)?(\d+)/);
+            if (partesClave) {
+                var prefijoVia = partesClave[1] + partesClave[2]; // Ej: CL80 o KR45
+                for (var k in memoria) {
+                    if (k.startsWith(munNombre + "_" + prefijoVia)) {
+                        var aprendida = memoria[k];
+                        // Si está en el mismo tramo de calle/carrera, utilizar como anclaje base de alta precisión
+                        return {
+                            lat: aprendida.lat,
+                            lng: aprendida.lng,
+                            tipo: 'APRENDIZAJE_CUADRA_CERCANA',
+                            veces: aprendida.veces || 1
+                        };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // =========================================================================
+        // MOTOR DE PICO Y PLACA NACIONAL MULTI-CIUDAD (COLOMBIA)
+        // Detecta automáticamente la ciudad y aplica las restricciones vigentes
+        // =========================================================================
+        function calcularPicoYPlacaNacional(placa, dirOMunicipio) {
+            if (!placa) return { aplica: false, ciudad: 'COLOMBIA' };
+            var pClean = placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            var ult = pClean.slice(-1);
+            var esMoto = /^[A-Z]{3}\d{2}[A-Z]$/.test(pClean);
+            var primerNumMoto = (pClean.match(/\d/) || ['0'])[0];
+
+            var fechaHoy = new Date();
+            var diaSemana = fechaHoy.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+            var diaDelMes = fechaHoy.getDate();
+
+            // Fines de semana no hay pico y placa para particulares en Colombia
+            if (diaSemana === 0 || diaSemana === 6) {
+                return { aplica: false, ciudad: 'FIN DE SEMANA', descripcion: 'Libre circulación' };
+            }
+
+            var infoMun = detectarMunicipioEnTexto(dirOMunicipio || '');
+            var ciudad = infoMun.nombre;
+
+            // 1. MEDELLÍN Y VALLE DE ABURRÁ
+            if (['MEDELLIN', 'BELLO', 'ITAGUI', 'ITAGÜÍ', 'ENVIGADO', 'SABANETA', 'LA ESTRELLA', 'CALDAS', 'COPACABANA', 'GIRARDOTA', 'BARBOSA'].includes(ciudad)) {
+                var digitoMed = esMoto ? primerNumMoto : ult;
+                // Rotación Valle de Aburrá (Lunes: 5-8, Martes: 1-4, Miércoles: 0-2, Jueves: 3-6, Viernes: 7-9)
+                var mapaMed = { 1: ['5', '8'], 2: ['1', '4'], 3: ['0', '2'], 4: ['3', '6'], 5: ['7', '9'] };
+                var restMed = mapaMed[diaSemana] || [];
+                return {
+                    aplica: restMed.includes(digitoMed),
+                    ciudad: 'MEDELLÍN',
+                    descripcion: 'Restricción: ' + restMed.join(', ')
+                };
+            }
+
+            // 2. BOGOTÁ D.C.
+            if (['BOGOTA', 'BOGOTÁ', 'SOACHA', 'CHIA', 'CHÍA', 'ZIPAQUIRA'].includes(ciudad)) {
+                var esDiaPar = (diaDelMes % 2 === 0);
+                var restBogota = esDiaPar ? ['1', '2', '3', '4', '5'] : ['6', '7', '8', '9', '0'];
+                return {
+                    aplica: restBogota.includes(ult),
+                    ciudad: 'BOGOTÁ',
+                    descripcion: (esDiaPar ? 'Día Par (1,2,3,4,5)' : 'Día Impar (6,7,8,9,0)')
+                };
+            }
+
+            // 3. CALI
+            if (['CALI', 'PALMIRA', 'YUMBO', 'JAMUNDI'].includes(ciudad)) {
+                // Rotación Cali (Lunes: 7-8, Martes: 9-0, Miércoles: 1-2, Jueves: 3-4, Viernes: 5-6)
+                var mapaCali = { 1: ['7', '8'], 2: ['9', '0'], 3: ['1', '2'], 4: ['3', '4'], 5: ['5', '6'] };
+                var restCali = mapaCali[diaSemana] || [];
+                return {
+                    aplica: restCali.includes(ult),
+                    ciudad: 'CALI',
+                    descripcion: 'Restricción: ' + restCali.join(', ')
+                };
+            }
+
+            // 4. BUCARAMANGA
+            if (['BUCARAMANGA', 'FLORIDABLANCA', 'GIRON', 'GIRÓN', 'PIEDECUESTA'].includes(ciudad)) {
+                // Rotación Bucaramanga (Lunes: 1-2, Martes: 3-4, Miércoles: 5-6, Jueves: 7-8, Viernes: 9-0)
+                var mapaBuca = { 1: ['1', '2'], 2: ['3', '4'], 3: ['5', '6'], 4: ['7', '8'], 5: ['9', '0'] };
+                var restBuca = mapaBuca[diaSemana] || [];
+                return {
+                    aplica: restBuca.includes(ult),
+                    ciudad: 'BUCARAMANGA',
+                    descripcion: 'Restricción: ' + restBuca.join(', ')
+                };
+            }
+
+            // 5. PEREIRA Y EJE CAFETERO
+            if (['PEREIRA', 'DOSQUEBRADAS', 'MANIZALES', 'ARMENIA'].includes(ciudad)) {
+                // Rotación Eje Cafetero (Lunes: 0-1, Martes: 2-3, Miércoles: 4-5, Jueves: 6-7, Viernes: 8-9)
+                var mapaPer = { 1: ['0', '1'], 2: ['2', '3'], 3: ['4', '5'], 4: ['6', '7'], 5: ['8', '9'] };
+                var restPer = mapaPer[diaSemana] || [];
+                return {
+                    aplica: restPer.includes(ult),
+                    ciudad: 'PEREIRA',
+                    descripcion: 'Restricción: ' + restPer.join(', ')
+                };
+            }
+
+            // 6. CARTAGENA
+            if (['CARTAGENA', 'TURBACO'].includes(ciudad)) {
+                var mapaCtg = { 1: ['1', '2'], 2: ['3', '4'], 3: ['5', '6'], 4: ['7', '8'], 5: ['9', '0'] };
+                var restCtg = mapaCtg[diaSemana] || [];
+                return {
+                    aplica: restCtg.includes(ult),
+                    ciudad: 'CARTAGENA',
+                    descripcion: 'Restricción: ' + restCtg.join(', ')
+                };
+            }
+
+            // 7. CÚCUTA
+            if (['CUCUTA', 'CÚCUTA', 'LOS PATIOS', 'VILLA DEL ROSARIO'].includes(ciudad)) {
+                var mapaCuc = { 1: ['1', '2'], 2: ['3', '4'], 3: ['5', '6'], 4: ['7', '8'], 5: ['9', '0'] };
+                var restCuc = mapaCuc[diaSemana] || [];
+                return {
+                    aplica: restCuc.includes(ult),
+                    ciudad: 'CÚCUTA',
+                    descripcion: 'Restricción: ' + restCuc.join(', ')
+                };
+            }
+
+            return { aplica: false, ciudad: ciudad, descripcion: 'Sin restricción reportada' };
+        }
+
+        function tienePicoYPlaca(placa, dirOMunicipio) {
+            return calcularPicoYPlacaNacional(placa, dirOMunicipio).aplica;
         }
 
         async function obtenerCoordenadasExactasLimpias(dir) {
@@ -1889,6 +2148,13 @@
             var infoMun = detectarMunicipioEnTexto(dir);
             var munNombre = infoMun.nombre;
             var centroMunicipio = infoMun.coords;
+
+            // PASO 0: Consultar Memoria de Aprendizaje Inteligente (Human-Verified Geocoding)
+            var aprendida = consultarMemoriaAprendizaje(dir, munNombre);
+            if (aprendida) {
+                console.log("🎯 Ubicación tomada de la Memoria de Aprendizaje:", dir, "-> (" + aprendida.lat + ", " + aprendida.lng + ")");
+                return { lat: aprendida.lat, lng: aprendida.lng, aprendido: true };
+            }
 
             var t = dir.toUpperCase();
             var mCalle = t.match(/\b(?:CL|CLL|CALLE)\s*(\d+)/);
@@ -2845,6 +3111,8 @@
 
                 var latConf = curPos.lat;
                 var lngConf = curPos.lng;
+                // APRENDIZAJE AUTOMÁTICO: Memorizar esta dirección y coordenadas confirmadas por el usuario
+                guardarAprendizajeDireccion(item.dirOriginal || item.dir, latConf, lngConf);
                 cerrarPanelReubicar();
                 map.setView([latConf, lngConf], 17, { animate: true });
 
@@ -3758,6 +4026,10 @@
             });
 
             guardarPuntosStorage();
+            // APRENDIZAJE AUTOMÁTICO: Memorizar si se editó la dirección
+            if (nuevaDir && puntosData[itemIndex]) {
+                guardarAprendizajeDireccion(nuevaDir, puntosData[itemIndex].lat, puntosData[itemIndex].lng);
+            }
             mostrarToastNotificacion("✅ Datos guardados para " + placaEditada);
             actualizarPanelCercano();
         }
@@ -3805,7 +4077,9 @@
         }
 
         function generarContenidoPopup(p, markerId) {
-            var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
+            var resPicoNac = calcularPicoYPlacaNacional(p.placa, p.dirOriginal || p.dir);
+            p.pico = resPicoNac.aplica;
+            var estadoPicoTxt = resPicoNac.aplica ? ("⚠️ PICO Y PLACA (" + resPicoNac.ciudad + ")") : ("✅ HÁBIL (" + resPicoNac.ciudad + ")");
             var esVisitada = !!p.visitada;
             var infoColor = obtenerColorPorAntiguedad(p, esVisitada);
             var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
@@ -4244,6 +4518,16 @@
         function iniciarSincronizacionFirestore() {
             if (!fbDb) return;
             if (desuscribirFirestorePuntos) desuscribirFirestorePuntos();
+
+            // Sincronizar memoria de aprendizaje de direcciones compartida por todo el equipo
+            fbDb.collection('aprendizaje_direcciones').onSnapshot(function(snapAprendizaje) {
+                var mem = cargarMemoriaAprendizaje();
+                snapAprendizaje.forEach(function(doc) {
+                    mem[doc.id] = doc.data();
+                });
+                localStorage.setItem('memoria_aprendizaje_direcciones_ubica_rick', JSON.stringify(mem));
+                console.log("🧠 Memoria de aprendizaje actualizada desde la nube (" + snapAprendizaje.size + " ubicaciones aprendidas)");
+            }, function(err){ console.warn(err); });
 
             desuscribirFirestorePuntos = fbDb.collection('puntos_ubica_rick').onSnapshot(function(snapshot) {
                 var puntosNube = [];
