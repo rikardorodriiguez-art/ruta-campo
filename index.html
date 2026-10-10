@@ -24,35 +24,39 @@
 
         /* BARRA SUPERIOR RESPONSIVE NO COLISIONANTE */
         #top-bar-container {
-            position: fixed; top: 8px; left: 6px; right: 6px; z-index: 9999;
+            position: fixed; top: 6px; left: 4px; right: 4px; z-index: 9999;
             display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center;
-            pointer-events: none; gap: 6px;
+            pointer-events: none; gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
         }
+        #top-bar-container::-webkit-scrollbar { display: none; }
         
         #barra-kpi {
             pointer-events: auto;
-            background: rgba(26, 37, 47, 0.94); backdrop-filter: blur(8px);
-            padding: 5px 9px; border-radius: 20px; color: white;
-            font-size: 11px; font-weight: bold; display: inline-flex; gap: 6px; align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+            padding: 4px 7px; border-radius: 18px; color: white;
+            font-size: 10px; font-weight: bold; display: inline-flex; gap: 3px; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.18);
             cursor: pointer; flex-shrink: 0; white-space: nowrap;
         }
-        .kpi-item { display: flex; align-items: center; gap: 3px; }
-        .kpi-sep { color: rgba(255,255,255,0.3); font-size: 10px; }
+        .kpi-item { display: flex; align-items: center; gap: 2px; }
+        .kpi-sep { color: rgba(255,255,255,0.3); font-size: 9px; }
         .text-pend { color: #ff6b6b; }
         .text-vis { color: #51cf66; }
         .text-pico { color: #fcc419; }
 
         #top-actions {
             pointer-events: auto;
-            display: inline-flex; gap: 5px; align-items: center; flex-shrink: 0;
+            display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0;
         }
 
         .btn-top-action {
-            background: linear-gradient(145deg, #2c3e50, #1a252f); color: white; border: none;
-            padding: 6px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
-            display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0;
+            background: linear-gradient(145deg, #1e293b, #0f172a); color: white; border: none;
+            padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.18);
+            display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;
         }
         .btn-top-action:active { transform: translateY(2px); }
         .btn-radar-active { background: linear-gradient(145deg, #00b894, #00ff87) !important; color: #1a252f !important; border-color: #00ff87 !important; }
@@ -535,7 +539,7 @@
 
     <!-- BARRA SUPERIOR FIJA RESPONSIVE -->
     <div id="top-bar-container">
-        <div id="barra-kpi" onclick="toggleMenuFilter()" title="Toca para ver filtros y opciones">
+        <div id="barra-kpi" onclick="toggleMenuFilter()" title="Toca para abrir Menú y Filtros">
             <span class="kpi-item">📌 <span id="kpi-total">0</span></span>
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⏳ <span id="kpi-pend" class="text-pend">0</span></span>
@@ -543,11 +547,12 @@
             <span class="kpi-item">✅ <span id="kpi-vis" class="text-vis">0</span></span>
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
+            <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
             <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()">☁️ Nube</button>
-            <button class="btn-top-action" onclick="toggleMenuFilter()">🗺️ Menú / Filtros</button>
+            <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
         </div>
     </div>
 
@@ -1049,13 +1054,13 @@
             var btn = document.getElementById('btn-toggle-radar');
             if (!btn) return;
             if (radarActivo) {
-                btn.innerHTML = '🚨 Radar ON';
+                btn.innerHTML = '🚨 Radar';
                 btn.classList.add('btn-radar-active');
                 btn.style.background = 'linear-gradient(145deg, #27ae60, #2ecc71)';
                 btn.style.color = '#ffffff';
                 btn.style.boxShadow = '0 0 10px rgba(46, 204, 113, 0.6)';
             } else {
-                btn.innerHTML = '⚪ Radar OFF';
+                btn.innerHTML = '⚪ Radar';
                 btn.classList.remove('btn-radar-active');
                 btn.style.background = 'linear-gradient(145deg, #64748b, #475569)';
                 btn.style.color = '#e2e8f0';
@@ -1070,14 +1075,14 @@
             var btn = document.getElementById('btn-radar-header') || document.getElementById('btn-toggle-radar');
             if (!btn) return;
             if (radarActivo) {
-                btn.innerHTML = '🚨 Radar ON';
+                btn.innerHTML = '🚨 Radar';
                 btn.classList.add('activo');
                 btn.classList.add('btn-radar-active');
                 btn.style.background = 'linear-gradient(145deg, #27ae60, #2ecc71)';
                 btn.style.color = '#ffffff';
                 btn.style.boxShadow = '0 0 10px rgba(46, 204, 113, 0.7)';
             } else {
-                btn.innerHTML = '⚪ Radar OFF';
+                btn.innerHTML = '⚪ Radar';
                 btn.classList.remove('activo');
                 btn.classList.remove('btn-radar-active');
                 btn.style.background = 'linear-gradient(145deg, #64748b, #475569)';
