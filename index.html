@@ -231,13 +231,56 @@
         }
 
     
-        /* BOTONES Y ESTILOS DE ZOOM TÁCTIL EN LA FICHA */
+        /* BOTONES Y ESTILOS DE ZOOM Y CONTROL TÁCTIL EN LA FICHA (SIMÉTRICOS Y ALINEADOS) */
         .btn-zoom-pop {
-            background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4);
-            color: white; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: bold;
-            cursor: pointer; line-height: 1.2;
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+            transition: background 0.15s, transform 0.1s;
         }
-        .btn-zoom-pop:active { background: rgba(255, 255, 255, 0.45); }
+        .btn-zoom-pop:active {
+            background: #334155;
+            transform: scale(0.92);
+        }
+        .btn-min-pop {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            border-radius: 6px;
+            height: 26px;
+            padding: 0 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            margin-left: 2px;
+            line-height: 1;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .btn-min-pop:active {
+            background: #334155;
+            transform: scale(0.94);
+        }
         .popup-zoom-container {
             touch-action: pan-y; user-select: none; -webkit-user-select: none;
         }
@@ -746,7 +789,7 @@
 
         <div style="display:flex; gap:6px; margin-bottom:8px;">
             <input type="text" id="reubicar-input-texto" placeholder="Coordenadas (lat, lng), dirección o link de Maps..." style="flex:1; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:12px;">
-            <button onclick="buscarNuevaUbicacionManual()" class="pop-btn pb-blue" style="margin:0; width:auto; padding:0 12px; font-size:11.5px; white-space:nowrap;">🔄 Recalcular</button>
+            <button id="btn-reubicar-recalcular" onclick="buscarNuevaUbicacionManual()" class="pop-btn pb-blue" style="margin:0; width:auto; padding:0 12px; font-size:11.5px; white-space:nowrap;">🔄 Recalcular</button>
         </div>
 
         <div style="display:flex; gap:6px;">
@@ -1928,96 +1971,75 @@
         }
 
         function analizarMultiplesVehiculos(texto) {
-            var bloques = texto.split(/(?=(?:\[\d{1,2}:\d{2}[\s\S]*?\]|UBICAR|PLACA\s*:))/i);
+            if (!texto) return [];
+            
+            // 1. Separar bloques por encabezados típicos de WhatsApp: timestamp [4:44 p.m.], 'UBICAR', o 'PLACA'
+            var regexSplit = /(?:^|\n)(?=\s*(?:\[\d{1,2}:\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|\bUBICAR\b|\bPLACA\b))/i;
+            var bloques = texto.split(regexSplit).map(b => b.trim()).filter(b => b.length > 0);
+
+            // 2. Si no se separó y hay múltiples placas en el texto, separar por doble salto de línea o antes de cada placa
+            if (bloques.length <= 1) {
+                var mPlacasTotal = texto.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/gi) || [];
+                if (mPlacasTotal.length > 1) {
+                    var bloquesDobleSalto = texto.split(/\n\s*\n+/).map(b => b.trim()).filter(b => b.length > 0);
+                    if (bloquesDobleSalto.length > 1) {
+                        bloques = bloquesDobleSalto;
+                    } else {
+                        var regexPlacasSep = /(?:^|\n)(?=\s*(?:[A-Z]{3}[\s\-]?[0-9]{2}[0-9A-Z]))/i;
+                        bloques = texto.split(regexPlacasSep).map(b => b.trim()).filter(b => b.length > 0);
+                    }
+                }
+            }
+
             var resultados = [];
 
             bloques.forEach(function(bloque) {
                 var b = bloque.trim();
                 if (!b) return;
 
-                var pMatch = b.match(/\b([A-Z]{3}[0-9]{2}[0-9A-Z])\b/i);
+                // Detectar placa con tolerancia a guiones, espacios y asteriscos (ej: *LRW-993*, LRW 993, GCV922)
+                var pMatch = b.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
                 if (!pMatch) return;
-                var placa = pMatch[1].toUpperCase();
-                if (placa === 'UBICAR' || placa === 'PARTES' || placa === 'DETALLE') return;
+                var placa = (pMatch[1] + pMatch[2]).toUpperCase();
+                if (['UBICAR', 'PARTES', 'DETALLE'].includes(placa)) return;
 
                 var lineas = b.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
-                function extraerCampo(keywords) {
-                    for (var i = 0; i < lineas.length; i++) {
-                        var l = lineas[i];
-                        var up = l.toUpperCase();
-                        
-                        var coincide = keywords.some(k => up.includes(k));
-                        if (!coincide) continue;
+                // Detectar si el bloque tiene etiquetas (MARCA:, MODELO:, etc.) o es una lista secuencial de WhatsApp
+                var tieneEtiquetas = lineas.some(l => /^(?:MARCA|L[IÍ]NEA|MODELO|COLOR|SOAT|TECNO|TEL|CEL|DIR|DIRECCI[OÓ]N)\s*[:\-]/i.test(l));
 
-                        if (keywords.includes('VEHICULO') && (up.includes('CLASE') || up.includes('TIPO') || up.includes('INFORMACIÓN') || up.includes('INFORMACION'))) continue;
-                        if (keywords.includes('LINEA') && (up.includes('FÉRREA') || up.includes('FERREA'))) continue;
-
-                        if (l.includes(':') || l.includes('-')) {
-                            var partes = l.split(/[:\-]/);
-                            if (partes.length > 1 && partes[1].trim()) {
-                                var v = partes[1].trim();
-                                if (!keywords.some(k => v.toUpperCase().includes(k))) return v;
-                            }
-                        }
-
-                        if (i + 1 < lineas.length) {
-                            var prox = lineas[i + 1].trim();
-                            var proxUp = prox.toUpperCase();
-                            var esPalabraClave = ['MARCA', 'LINEA', 'LÍNEA', 'MODELO', 'COLOR', 'SOAT', 'TECNO', 'UBICACION', 'PARTES', 'DETALLE', 'CEL'].some(k => proxUp.includes(k));
-                            if (!esPalabraClave && prox.length > 0) {
-                                return prox;
-                            }
-                        }
-                    }
-                    return '-';
-                }
-
-                var marca = extraerCampo(['MARCA']);
-                var linea = extraerCampo(['LÍNEA', 'LINEA']);
-                var modelo = extraerCampo(['MODELO']);
-                var color = extraerCampo(['COLOR']);
-
-                var soat = 'NO';
-                for (var i = 0; i < lineas.length; i++) {
-                    var up = lineas[i].toUpperCase();
-                    if (up.includes('SOAT')) {
-                        if (up.includes('SI') || up.includes('VIGENTE')) soat = 'SI';
-                        else if (up.includes('NO') || up.includes('VENCIDO')) soat = 'NO';
-                        break;
-                    }
-                }
-
-                var tecno = 'NO';
-                for (var i = 0; i < lineas.length; i++) {
-                    var up = lineas[i].toUpperCase();
-                    if (up.includes('TECNO') || up.includes('RTM')) {
-                        if (up.includes('SI') || up.includes('VIGENTE')) tecno = 'SI';
-                        else if (up.includes('NO') || up.includes('VENCIDO')) tecno = 'NO';
-                        break;
-                    }
-                }
-
+                var telefonosArr = [];
                 var telsMatch = b.match(/\b3[0-9]{9}\b/g) || [];
-                var telsUnicos = [];
-                telsMatch.forEach(t => { if (!telsUnicos.includes(t)) telsUnicos.push(t); });
-                var telefonos = telsUnicos.length > 0 ? telsUnicos.slice(0, 2).join(', ') : '-';
+                telsMatch.forEach(t => { if (!telefonosArr.includes(t)) telefonosArr.push(t); });
+                var telefonos = telefonosArr.length > 0 ? telefonosArr.slice(0, 2).join(', ') : '-';
 
-                // EXTRAER Y DEDUPLICAR DIRECCIONES (MÁXIMO 4)
                 var direcciones = [];
                 var llavesVistas = {};
 
+                // Extraer direcciones
                 lineas.forEach(function(l) {
-                    var dirLimpia = l.replace(/^(?:DIRECCI[OÓ]N\s*\d*:\s*)/i, '').replace(/\t/g, ' ').trim();
-                    var up = dirLimpia.toUpperCase();
-                    var tieneNom = (up.includes('CL ') || up.includes('KR ') || up.includes('CR ') || up.includes('TV ') || up.includes('DG ') || up.includes('AV ') || up.includes('CALLE ') || up.includes('CARRERA ') || up.includes('#'));
-                    
-                    if (tieneNom && up.length > 6) {
-                        var noEsRuido = !['UBICAR', 'DETALLE', 'PARTES', 'SOAT', 'TECNO', 'CEL'].some(k => up.includes(k));
+                    var lTrim = l.trim();
+                    var up = lTrim.toUpperCase();
+
+                    // Coordenadas directas
+                    var mCoord = lTrim.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                    if (mCoord) {
+                        if (!llavesVistas[lTrim] && direcciones.length < 4) {
+                            llavesVistas[lTrim] = true;
+                            direcciones.push(lTrim);
+                        }
+                        return;
+                    }
+
+                    var esDirEtiqueta = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(lTrim);
+                    var tieneNom = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM)\b/i.test(up) || up.includes('#') || /\bN[RO°]\b/i.test(up);
+                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|GIRARDOTA|BARBOSA|ANTIOQUIA)/i.test(up);
+
+                    if (esDirEtiqueta || ((tieneNom || tieneMun) && up.length > 6)) {
+                        var noEsRuido = !['UBICAR', 'SOAT', 'TECNO', 'TEL', 'CEL', 'MODELO'].some(k => up.includes(k));
                         if (noEsRuido) {
-                            // Normalizar nomenclatura para no repetir direcciones idénticas o del mismo predio
-                            var keyNorm = normalizarClaveDireccion(dirLimpia);
-                            if (!keyNorm) keyNorm = up.replace(/[^A-Z0-9]/g, '');
+                            var dirLimpia = lTrim.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '').trim();
+                            var keyNorm = normalizarClaveDireccion(dirLimpia) || dirLimpia.replace(/[^A-Z0-9]/g, '');
                             if (!llavesVistas[keyNorm] && direcciones.length < 4) {
                                 llavesVistas[keyNorm] = true;
                                 direcciones.push(dirLimpia);
@@ -2026,18 +2048,62 @@
                     }
                 });
 
+                var marca = '-', linea = '-', modelo = '-', color = '-', soat = 'NO', tecno = 'NO';
+
+                if (tieneEtiquetas) {
+                    // Mapeo por etiquetas
+                    lineas.forEach(function(l) {
+                        if (/^MARCA\s*[:\-]/i.test(l)) marca = l.replace(/^MARCA\s*[:\-]\s*/i, '').trim() || '-';
+                        else if (/^L[IÍ]NEA\s*[:\-]/i.test(l)) linea = l.replace(/^L[IÍ]NEA\s*[:\-]\s*/i, '').trim() || '-';
+                        else if (/^MODELO\s*[:\-]/i.test(l)) modelo = l.replace(/^MODELO\s*[:\-]\s*/i, '').trim() || '-';
+                        else if (/^COLOR\s*[:\-]/i.test(l)) color = l.replace(/^COLOR\s*[:\-]\s*/i, '').trim() || '-';
+                        else if (/^SOAT\s*[:\-]/i.test(l)) soat = /(?:SI|VIGENTE)/i.test(l) ? 'SI' : 'NO';
+                        else if (/^(?:TECNO|RTM)\s*[:\-]/i.test(l)) tecno = /(?:SI|VIGENTE)/i.test(l) ? 'SI' : 'NO';
+                    });
+                } else {
+                    // Mapeo posicional limpio para mensajes sin etiquetas de WhatsApp
+                    var lineasDatos = lineas.filter(function(l) {
+                        if (/^\[\d{1,2}:\d{2}/.test(l) || /^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(l) || l.toUpperCase() === 'UBICAR') return false;
+                        if (new RegExp('\\b' + placa + '\\b', 'i').test(l)) return false;
+                        if (direcciones.includes(l)) return false;
+                        if (telefonosArr.some(t => l.includes(t))) return false;
+                        return true;
+                    });
+
+                    var idxPos = 0;
+                    if (idxPos < lineasDatos.length && !/^(?:SI|NO)$/i.test(lineasDatos[idxPos]) && !/^\d{4}$/.test(lineasDatos[idxPos])) {
+                        marca = lineasDatos[idxPos++];
+                    }
+                    if (idxPos < lineasDatos.length && !/^(?:SI|NO)$/i.test(lineasDatos[idxPos]) && !/^\d{4}$/.test(lineasDatos[idxPos])) {
+                        linea = lineasDatos[idxPos++];
+                    }
+                    if (idxPos < lineasDatos.length && /^\d{4}$/.test(lineasDatos[idxPos])) {
+                        modelo = lineasDatos[idxPos++];
+                    }
+                    if (idxPos < lineasDatos.length && !/^(?:SI|NO)$/i.test(lineasDatos[idxPos])) {
+                        color = lineasDatos[idxPos++];
+                    }
+                    if (idxPos < lineasDatos.length && /^(?:SI|NO)$/i.test(lineasDatos[idxPos])) {
+                        soat = lineasDatos[idxPos++].toUpperCase();
+                    }
+                    if (idxPos < lineasDatos.length && /^(?:SI|NO)$/i.test(lineasDatos[idxPos])) {
+                        tecno = lineasDatos[idxPos++].toUpperCase();
+                    }
+                }
+
+                // Asegurar al menos una dirección si no se detectó
                 if (direcciones.length === 0) {
                     direcciones.push('Medellin, Antioquia');
                 }
 
                 resultados.push({
                     placa: placa,
-                    marca: marca,
-                    linea: linea,
-                    modelo: modelo,
-                    color: color,
-                    soat: soat,
-                    tecnomecanica: tecno,
+                    marca: marca || '-',
+                    linea: linea || '-',
+                    modelo: modelo || '-',
+                    color: color || '-',
+                    soat: soat || 'NO',
+                    tecnomecanica: tecno || 'NO',
                     telefonos: telefonos,
                     direcciones: direcciones.slice(0, 4)
                 });
@@ -2046,134 +2112,185 @@
             return resultados;
         }
 
-        // PROCESAR TEXTO UNIVERSAL (WHATSAPP O GEMINI)
         async function procesarTextoUniversal(elementId) {
-            var raw = document.getElementById(elementId).value.trim();
+            var raw = (document.getElementById(elementId) ? document.getElementById(elementId).value : '').trim();
             if (!raw) { alert("Pega el texto antes de procesar."); return; }
 
             var loadingOverlay = document.getElementById('loading-overlay');
             var loadingTexto = document.getElementById('loading-texto');
-            loadingOverlay.style.display = 'flex';
-            loadingTexto.innerText = "⚡ Analizando vehículos y especificaciones...";
-
-            var vehiculos = analizarMultiplesVehiculos(raw);
-            if (vehiculos.length === 0) {
-                loadingOverlay.style.display = 'none';
-                alert("No se detectaron placas válidas. Revisa el texto pegado.");
-                return;
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                if (loadingTexto) loadingTexto.innerText = "⚡ Analizando vehículos y especificaciones...";
             }
 
-            var totalPuntos = 0;
-
-            for (let v of vehiculos) {
-                if (placasRegistradas[v.placa]) {
-                    puntosData = puntosData.filter(function(item) {
-                        if (item.placa === v.placa) {
-                            map.removeLayer(item.marker);
-                            return false;
-                        }
-                        return true;
-                    });
+            try {
+                var vehiculos = analizarMultiplesVehiculos(raw);
+                if (vehiculos.length === 0) {
+                    alert("No se detectaron placas válidas en el texto. Asegúrate de incluir la placa (ej: LRW993 o LRW-993).");
+                    return;
                 }
-                placasRegistradas[v.placa] = true;
 
-                var dirsAsignadas = 0;
-                for (let dir of v.direcciones) {
-                    if (dirsAsignadas >= 4) break; // Máximo 4 direcciones por placa
-                    loadingTexto.innerText = "🎯 Geocodificando " + v.placa + " (" + dir.slice(0, 22) + "...)...";
-                    var coords = await obtenerCoordenadasExactasLimpias(dir);
+                var totalPuntos = 0;
 
-                    // Si ya existe otra dirección de esta misma placa a menos de 35 metros, es duplicada: anular
-                    var yaExisteCerca = puntosData.some(function(pd) {
-                        if (pd.placa !== v.placa) return false;
-                        var distMetros = map.distance([pd.lat, pd.lng], [coords.lat, coords.lng]);
-                        return distMetros < 35;
-                    });
-                    if (yaExisteCerca) {
-                        console.log("Dirección repetida físicamente para " + v.placa + ", omitida:", dir);
-                        continue;
+                for (let v of vehiculos) {
+                    if (placasRegistradas[v.placa]) {
+                        puntosData = puntosData.filter(function(item) {
+                            if (item.placa === v.placa) {
+                                if (item.marker && map.hasLayer(item.marker)) map.removeLayer(item.marker);
+                                return false;
+                            }
+                            return true;
+                        });
                     }
+                    placasRegistradas[v.placa] = true;
 
-                    var nuevoPunto = {
-                        placa: v.placa,
-                        marca: v.marca,
-                        linea: v.linea,
-                        modelo: v.modelo,
-                        color: v.color,
-                        soat: v.soat,
-                        tecnomecanica: v.tecnomecanica,
-                        telefonos: v.telefonos,
-                        lat: coords.lat,
-                        lng: coords.lng,
-                        dir: dir,
-                        dirOriginal: dir,
-                        dirAjustada: null,
-                        fecha: new Date().toISOString().split('T')[0],
-                        foto: null
-                    };
-                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-                    dirsAsignadas++;
-                    totalPuntos++;
+                    var dirsAsignadas = 0;
+                    for (let dir of v.direcciones) {
+                        if (dirsAsignadas >= 4) break;
+                        if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando " + v.placa + " (" + dir.slice(0, 22) + "...)...";
+                        
+                        var coords = null;
+                        var mCoord = dir.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                        if (mCoord) {
+                            coords = { lat: parseFloat(mCoord[1]), lng: parseFloat(mCoord[2]) };
+                        } else {
+                            coords = await obtenerCoordenadasExactasLimpias(dir);
+                        }
+
+                        // Evitar direcciones repetidas a menos de 35 metros
+                        var yaExisteCerca = puntosData.some(function(pd) {
+                            if (pd.placa !== v.placa) return false;
+                            var distMetros = map.distance([pd.lat, pd.lng], [coords.lat, coords.lng]);
+                            return distMetros < 35;
+                        });
+                        if (yaExisteCerca) {
+                            console.log("Dirección repetida físicamente para " + v.placa + ", omitida:", dir);
+                            continue;
+                        }
+
+                        var nuevoPunto = {
+                            placa: v.placa,
+                            marca: v.marca,
+                            linea: v.linea,
+                            modelo: v.modelo,
+                            color: v.color,
+                            soat: v.soat,
+                            tecnomecanica: v.tecnomecanica,
+                            telefonos: v.telefonos,
+                            lat: coords.lat,
+                            lng: coords.lng,
+                            dir: dir,
+                            dirOriginal: dir,
+                            dirAjustada: null,
+                            fecha: new Date().toISOString().split('T')[0],
+                            timestamp: Date.now(),
+                            visitada: false,
+                            visitas: 0,
+                            comentarios: '',
+                            foto: null
+                        };
+                        agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                        dirsAsignadas++;
+                        totalPuntos++;
+                    }
                 }
-            }
 
-            loadingOverlay.style.display = 'none';
-            alert("🚀 ¡Éxito! Se cargaron " + vehiculos.length + " vehículo(s) con un total de " + totalPuntos + " ubicaciones.");
-            document.getElementById(elementId).value = '';
-            cerrarSecciones();
-            actualizarPanelCercano();
+                alert("🚀 ¡Éxito! Se cargaron " + vehiculos.length + " vehículo(s) con un total de " + totalPuntos + " ubicaciones.");
+                if (document.getElementById(elementId)) document.getElementById(elementId).value = '';
+                cerrarSecciones();
+                actualizarPanelCercano();
+            } catch(errUniv) {
+                console.error("Error en procesarTextoUniversal:", errUniv);
+                alert("⚠️ Error al procesar el texto: " + (errUniv.message || errUniv));
+            } finally {
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+            }
         }
 
         // PROCESAR MANUAL
         async function procesarManual() {
-            var placa = document.getElementById('manPlaca').value.toUpperCase().trim();
-            var marca = document.getElementById('manMarca').value.trim() || "-";
-            var linea = document.getElementById('manLinea').value.trim() || "-";
-            var modelo = document.getElementById('manModelo').value.trim() || "-";
-            var color = document.getElementById('manColor').value.trim() || "-";
-            var msoat = document.getElementById('manSoat').value.trim() || "SI";
-            var mtecno = document.getElementById('manTecno').value.trim() || "SI";
-            var mtel = document.getElementById('manTel').value.trim() || "-";
-            var dir = document.getElementById('manDir').value.trim();
+            var inputPlacaEl = document.getElementById('manPlaca');
+            var inputDirEl = document.getElementById('manDir');
+            var placa = (inputPlacaEl ? inputPlacaEl.value : "").toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+            var marca = (document.getElementById('manMarca') ? document.getElementById('manMarca').value.trim() : "") || "-";
+            var linea = (document.getElementById('manLinea') ? document.getElementById('manLinea').value.trim() : "") || "-";
+            var modelo = (document.getElementById('manModelo') ? document.getElementById('manModelo').value.trim() : "") || "-";
+            var color = (document.getElementById('manColor') ? document.getElementById('manColor').value.trim() : "") || "-";
+            var msoat = (document.getElementById('manSoat') ? document.getElementById('manSoat').value.trim().toUpperCase() : "") || "SI";
+            var mtecno = (document.getElementById('manTecno') ? document.getElementById('manTecno').value.trim().toUpperCase() : "") || "SI";
+            var mtel = (document.getElementById('manTel') ? document.getElementById('manTel').value.trim() : "") || "-";
+            var dir = (inputDirEl ? inputDirEl.value : "").trim();
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
-            if(!dir) { alert("Ingresa la dirección o coordenadas."); return; }
+            if(!dir) { alert("Ingresa la dirección o coordenadas (lat, lng)."); return; }
 
             var loadingOverlay = document.getElementById('loading-overlay');
             var loadingTexto = document.getElementById('loading-texto');
-            loadingOverlay.style.display = 'flex';
-            loadingTexto.innerText = "🎯 Geocodificando punto...";
-
-            if(placasRegistradas[placa]) eliminarTodasDePlaca(placa);
-            placasRegistradas[placa] = true;
-            
-            var coords = await obtenerCoordenadasExactasLimpias(dir);
-
-            var fotoAdjunta = null;
-            var inputFoto = document.getElementById('manFoto');
-            if (inputFoto && inputFoto.files && inputFoto.files[0]) {
-                loadingTexto.innerText = "📸 Procesando foto del vehículo...";
-                await new Promise(function(resolve) {
-                    comprimirYGuardarFoto(inputFoto.files[0], function(b64) {
-                        fotoAdjunta = b64;
-                        resolve();
-                    });
-                });
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando punto...";
             }
 
-            var nuevoPunto = {
-                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel, 
-                soat: msoat, tecnomecanica: mtecno,
-                lat: coords.lat, lng: coords.lng, dir: dir, dirOriginal: dir, dirAjustada: null,
-                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(), visitada: false,
-                foto: fotoAdjunta
-            };
+            try {
+                if(placasRegistradas[placa]) eliminarTodasDePlaca(placa);
+                placasRegistradas[placa] = true;
+                
+                var coords = null;
+                // Detección directa si ya son coordenadas (ej: 6.23699, -75.56078)
+                var mCoord = dir.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                if (mCoord) {
+                    var latD = parseFloat(mCoord[1]);
+                    var lngD = parseFloat(mCoord[2]);
+                    if (latD >= -5 && latD <= 13 && lngD >= -82 && lngD <= -66) {
+                        coords = { lat: latD, lng: lngD };
+                    }
+                }
+                if (!coords) {
+                    coords = await obtenerCoordenadasExactasLimpias(dir);
+                }
 
-            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-            map.setView([coords.lat, coords.lng], 16);
-            loadingOverlay.style.display = 'none';
-            cerrarSecciones();
-            actualizarPanelCercano();
+                var fotoAdjunta = null;
+                var inputFoto = document.getElementById('manFoto');
+                if (inputFoto && inputFoto.files && inputFoto.files[0]) {
+                    if (loadingTexto) loadingTexto.innerText = "📸 Procesando foto del vehículo...";
+                    fotoAdjunta = await new Promise(function(resolve) {
+                        comprimirYGuardarFoto(inputFoto.files[0], function(b64) {
+                            resolve(b64);
+                        });
+                    });
+                }
+
+                var nuevoPunto = {
+                    placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel, 
+                    soat: msoat, tecnomecanica: mtecno,
+                    lat: coords.lat, lng: coords.lng, dir: dir, dirOriginal: dir, dirAjustada: null,
+                    fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(), visitada: false, visitas: 0,
+                    comentarios: "",
+                    foto: fotoAdjunta
+                };
+
+                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                map.setView([coords.lat, coords.lng], 16);
+                
+                // Limpiar campos del formulario
+                if (inputPlacaEl) inputPlacaEl.value = '';
+                if (inputDirEl) inputDirEl.value = '';
+                if (document.getElementById('manMarca')) document.getElementById('manMarca').value = '';
+                if (document.getElementById('manLinea')) document.getElementById('manLinea').value = '';
+                if (document.getElementById('manModelo')) document.getElementById('manModelo').value = '';
+                if (document.getElementById('manColor')) document.getElementById('manColor').value = '';
+                if (document.getElementById('manTel')) document.getElementById('manTel').value = '';
+                if (inputFoto) inputFoto.value = '';
+
+                cerrarSecciones();
+                mostrarToastNotificacion("✅ Vehículo " + placa + " agregado exitosamente.");
+                actualizarPanelCercano();
+            } catch(errManual) {
+                console.error("Error en procesarManual:", errManual);
+                alert("⚠️ Error al registrar el vehículo: " + (errManual.message || errManual));
+            } finally {
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+            }
         }
 
         // PARSER ESPECIALIZADO DE ENLACES DE GOOGLE MAPS
@@ -2323,8 +2440,10 @@
 
             var loadingOverlay = document.getElementById('loading-overlay');
             var loadingTexto = document.getElementById('loading-texto');
-            loadingOverlay.style.display = 'flex';
-            loadingTexto.innerText = "🔍 Analizando imagen y extrayendo datos para Opción 5 (Pegar Extracción IA)...";
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                if (loadingTexto) loadingTexto.innerText = "🔍 Analizando imagen y extrayendo datos para Opción 5 (Pegar Extracción IA)...";
+            }
 
             try {
                 if (typeof Tesseract === 'undefined') {
@@ -2339,7 +2458,7 @@
                     imgParaOcr = archivo;
                 }
 
-                loadingTexto.innerText = "🔍 Leyendo texto, placas y teléfonos...";
+                if (loadingTexto) loadingTexto.innerText = "🔍 Leyendo texto, placas y teléfonos...";
                 var worker = await Tesseract.createWorker('spa');
                 var ret = await worker.recognize(imgParaOcr);
                 await worker.terminate();
@@ -2347,10 +2466,10 @@
                 var rawText = ret.data.text || "";
                 var lineas = rawText.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
-                // Detectar placa si no se escribió
+                // Detectar placa si no se escribió manualmente
                 if (!placa) {
-                    var mPlaca = rawText.match(/\b([A-Z]{3}[0-9]{2}[0-9A-Z])\b/i);
-                    if (mPlaca) placa = mPlaca[1].toUpperCase();
+                    var mPlaca = rawText.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
+                    if (mPlaca) placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
                     else placa = "SIN_PLACA";
                 }
 
@@ -2360,17 +2479,34 @@
                 mCels.forEach(function(c) { if (!telsUnicos.includes(c)) telsUnicos.push(c); });
                 var telsTexto = telsUnicos.slice(0, 2).join(', ') || '-';
 
-                // Detectar direcciones con 'SI' o prioritarias
+                // Detectar direcciones reales sin valores genéricos inventados
                 var direccionesDetectadas = [];
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
-                    var tieneNom = (up.includes('CL ') || up.includes('KR ') || up.includes('CR ') || up.includes('TV ') || up.includes('DG ') || up.includes('AV ') || up.includes('CALLE ') || up.includes('CARRERA ') || up.includes('#'));
-                    if (tieneNom && up.length > 6) {
-                        var mPrioridad = l.match(/(\d+)\s*(?:SI|S1)\b/i) || l.match(/\b(?:SI|S1)\s*(\d+)/i);
-                        var prioridad = mPrioridad ? parseInt(mPrioridad[1]) : 0;
-                        var dirLimpia = l.replace(/\b(SI|S1)\b/gi, '').replace(/\b\d+\s*$/, '').trim();
-                        if (dirLimpia.length > 5) {
-                            direccionesDetectadas.push({ dir: dirLimpia, prioridad: prioridad });
+
+                    // Coordenadas detectadas en la foto
+                    var mCoord = l.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                    if (mCoord) {
+                        direccionesDetectadas.push({ dir: l.trim(), prioridad: 10 });
+                        return;
+                    }
+
+                    var tieneNom = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM)\b/i.test(up) || up.includes('#') || /\bN[RO°]\b/i.test(up);
+                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|GIRARDOTA|BARBOSA|ANTIOQUIA)/i.test(up);
+                    var esEtiquetaDir = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(l);
+
+                    if ((tieneNom || tieneMun || esEtiquetaDir) && up.length > 5) {
+                        var noEsRuido = !['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO'].some(k => up.includes(k));
+                        if (noEsRuido) {
+                            var mPrioridad = l.match(/(\d+)\s*(?:SI|S1)\b/i) || l.match(/\b(?:SI|S1)\s*(\d+)/i);
+                            var prioridad = mPrioridad ? parseInt(mPrioridad[1]) : (tieneNom ? 5 : 1);
+                            var dirLimpia = l.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '')
+                                             .replace(/\b(SI|S1)\b/gi, '')
+                                             .replace(/\b\d+\s*$/, '')
+                                             .trim();
+                            if (dirLimpia.length > 5) {
+                                direccionesDetectadas.push({ dir: dirLimpia, prioridad: prioridad });
+                            }
                         }
                     }
                 });
@@ -2387,36 +2523,58 @@
                     }
                 });
 
+                // Si no se encontró dirección con nomenclatura estricta, buscar cualquier línea con números y texto geográfico
                 if (dirsFinales.length === 0) {
-                    dirsFinales.push("CL 10 # 40 - 20, MEDELLIN ( ANTIOQUIA )");
+                    lineas.forEach(function(l) {
+                        if (dirsFinales.length < 2 && l.length > 8 && /\d/.test(l) && !l.includes(placa) && !telsUnicos.some(t => l.includes(t))) {
+                            dirsFinales.push(l.trim());
+                        }
+                    });
                 }
+
+                // Extraer marca, modelo y color si aparecen en la imagen
+                var marcaOcr = "-", lineaOcr = "-", modeloOcr = "-", colorOcr = "-";
+                lineas.forEach(function(l) {
+                    if (/MARCA\s*[:\-]/i.test(l)) marcaOcr = l.replace(/^MARCA\s*[:\-]\s*/i, '').trim();
+                    if (/L[IÍ]NEA\s*[:\-]/i.test(l)) lineaOcr = l.replace(/^L[IÍ]NEA\s*[:\-]\s*/i, '').trim();
+                    if (/MODELO\s*[:\-]/i.test(l)) modeloOcr = l.replace(/^MODELO\s*[:\-]\s*/i, '').trim();
+                    if (/COLOR\s*[:\-]/i.test(l)) colorOcr = l.replace(/^COLOR\s*[:\-]\s*/i, '').trim();
+                });
 
                 // Formatear exactamente para la Opción 5 (Pegar Extracción IA)
                 var formatoIA = "PLACA: " + placa + "\n" +
-                                "MARCA: -\n" +
-                                "LÍNEA: -\n" +
-                                "MODELO: -\n" +
-                                "COLOR: -\n" +
+                                "MARCA: " + marcaOcr + "\n" +
+                                "LÍNEA: " + lineaOcr + "\n" +
+                                "MODELO: " + modeloOcr + "\n" +
+                                "COLOR: " + colorOcr + "\n" +
                                 "SOAT: SI | TECNO: SI\n" +
                                 "CELULARES: " + telsTexto + "\n";
 
-                dirsFinales.forEach(function(d, idx) {
-                    formatoIA += "DIRECCIÓN " + (idx + 1) + ": " + d + "\n";
-                });
+                if (dirsFinales.length > 0) {
+                    dirsFinales.forEach(function(d, idx) {
+                        formatoIA += "DIRECCIÓN " + (idx + 1) + ": " + d + "\n";
+                    });
+                } else {
+                    formatoIA += "DIRECCIÓN 1: (Ingresa o confirma la dirección analizada aquí)\n";
+                }
 
                 // Inyectar en el textarea de la Opción 5 (txtGemini)
-                document.getElementById('txtGemini').value = formatoIA;
+                if (document.getElementById('txtGemini')) document.getElementById('txtGemini').value = formatoIA;
 
-                loadingOverlay.style.display = 'none';
-                alert("✅ ¡Información extraída con éxito! Se transfirió automáticamente a la Opción 5 (⚡ Pegar Extracción IA). Puedes revisarla y pulsar 'Importar Todas las Placas'.");
+                if (dirsFinales.length > 0) {
+                    alert("✅ ¡Información extraída con éxito de la foto! Se transfirió automáticamente a la Opción 5 (⚡ Pegar Extracción IA). Puedes revisarla y pulsar 'Mapear Ubicaciones'.");
+                } else {
+                    alert("⚠️ Se detectó la placa " + placa + ", pero no una dirección con nomenclatura clara en la foto. Se abrió la Opción 5 para que puedas completar la dirección antes de mapear.");
+                }
 
                 // Abrir automáticamente la Opción 5
                 abrirSeccion('gemini');
 
             } catch (err) {
                 console.error(err);
-                loadingOverlay.style.display = 'none';
-                alert("No se pudo leer la imagen automáticamente. Puedes copiar el texto o usar la Opción 1 (WhatsApp) o 2 (Manual): " + (err.message || err));
+                alert("No se pudo leer la imagen automáticamente: " + (err.message || err));
+            } finally {
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
             }
         }
 
@@ -2503,33 +2661,86 @@
         }
 
         async function buscarNuevaUbicacionManual() {
-            var inputTxt = document.getElementById('reubicar-input-texto').value.trim();
+            var inputTxt = (document.getElementById('reubicar-input-texto') ? document.getElementById('reubicar-input-texto').value : '').trim();
             if (!inputTxt) {
                 mostrarToastNotificacion("⚠️ Ingresa una dirección, coordenadas o enlace de Maps para recalcular.");
                 return;
             }
 
-            var loadingOverlay = document.getElementById('loading-overlay');
-            var loadingTexto = document.getElementById('loading-texto');
-            loadingOverlay.style.display = 'flex';
-            loadingTexto.innerText = "🔍 Recalculando coordenadas...";
+            var btnRecalc = document.getElementById('btn-reubicar-recalcular') || document.querySelector('#panel-reubicar-punto button[onclick*="buscarNuevaUbicacionManual"]');
+            var textoOrig = btnRecalc ? btnRecalc.innerHTML : "🔄 Recalcular";
 
-            var coords = parsearLinkGoogleMaps(inputTxt);
-            if (!coords) {
-                coords = await obtenerCoordenadasExactasLimpias(inputTxt);
-            }
-
-            loadingOverlay.style.display = 'none';
-
-            if (coords && puntoEnEdicionId) {
-                var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
-                if (item) {
-                    aplicarNuevaPosicionMover(item, coords.lat, coords.lng);
-                    map.setView([coords.lat, coords.lng], 18, { animate: true });
-                    mostrarToastNotificacion("🎯 Recalculado en (" + coords.lat.toFixed(5) + ", " + coords.lng.toFixed(5) + "). Pulsa '✅ Confirmar'.");
+            try {
+                if (btnRecalc) {
+                    btnRecalc.disabled = true;
+                    btnRecalc.innerHTML = "⏳ Calculando...";
                 }
-            } else {
-                mostrarToastNotificacion("⚠️ No se pudo obtener una coordenada válida para ese texto.");
+                mostrarToastNotificacion("🔍 Recalculando ubicación...");
+
+                var coords = null;
+
+                // 1. Detección inmediata de coordenadas directas (ej: 6.15794, -75.64329)
+                var mCoord = inputTxt.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                if (mCoord) {
+                    var latC = parseFloat(mCoord[1]);
+                    var lngC = parseFloat(mCoord[2]);
+                    if (latC >= -5 && latC <= 13 && lngC >= -82 && lngC <= -66) {
+                        coords = { lat: latC, lng: lngC };
+                    }
+                }
+
+                // 2. Si no es coordenada directa, probar si es link de Google Maps
+                if (!coords) {
+                    coords = parsearLinkGoogleMaps(inputTxt);
+                }
+
+                // 3. Si es link corto (goo.gl / maps.app) resolver con timeout
+                if (!coords && (inputTxt.includes('goo.gl') || inputTxt.includes('maps.app'))) {
+                    try {
+                        var controller = new AbortController();
+                        var timeoutId = setTimeout(function() { controller.abort(); }, 3500);
+                        var proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(inputTxt);
+                        var resp = await fetch(proxyUrl, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        var bodyText = await resp.text();
+                        coords = parsearLinkGoogleMaps(bodyText);
+                    } catch(eShort) {
+                        console.warn("Fallo resolución link corto:", eShort);
+                    }
+                }
+
+                // 4. Si aún no hay coordenadas, geocodificar dirección con timeout de seguridad
+                if (!coords) {
+                    try {
+                        coords = await Promise.race([
+                            obtenerCoordenadasExactasLimpias(inputTxt),
+                            new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 4000); })
+                        ]);
+                    } catch(eGeo) {
+                        console.warn("Error geocodificación:", eGeo);
+                    }
+                }
+
+                if (coords && puntoEnEdicionId) {
+                    var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
+                    if (item) {
+                        aplicarNuevaPosicionMover(item, coords.lat, coords.lng);
+                        map.setView([coords.lat, coords.lng], 18, { animate: true });
+                        mostrarToastNotificacion("🎯 Recalculado en (" + coords.lat.toFixed(5) + ", " + coords.lng.toFixed(5) + "). Pulsa '✅ Confirmar'.");
+                    }
+                } else {
+                    mostrarToastNotificacion("⚠️ No se pudo obtener coordenadas válidas. Puedes ingresar 'latitud, longitud' o tocar el mapa directamente.");
+                }
+            } catch (errRecalc) {
+                console.error("Error en buscarNuevaUbicacionManual:", errRecalc);
+                mostrarToastNotificacion("⚠️ Error al recalcular: " + (errRecalc.message || "Verifica las coordenadas"));
+            } finally {
+                if (btnRecalc) {
+                    btnRecalc.disabled = false;
+                    btnRecalc.innerHTML = textoOrig;
+                }
+                var loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
             }
         }
 
@@ -2829,33 +3040,62 @@
         
         // COMPRESIÓN Y SUBIDA DE FOTO DE VEHÍCULO (CÁMARA / GALERÍA)
         function comprimirYGuardarFoto(file, callback) {
+            if (!file) { if (callback) callback(null); return; }
+            var finished = false;
+            function safeCallback(res) {
+                if (!finished) {
+                    finished = true;
+                    if (callback) callback(res);
+                }
+            }
+            // Timeout de seguridad de 4.5 segundos para que nunca congele la app
+            setTimeout(function() { safeCallback(null); }, 4500);
+
             var reader = new FileReader();
             reader.onload = function(e) {
                 var img = new Image();
                 img.onload = function() {
-                    var canvas = document.createElement('canvas');
-                    var ctx = canvas.getContext('2d');
-                    var maxDim = 800;
-                    var w = img.width;
-                    var h = img.height;
-                    if (w > maxDim || h > maxDim) {
-                        if (w > h) {
-                            h = Math.round((h * maxDim) / w);
-                            w = maxDim;
-                        } else {
-                            w = Math.round((w * maxDim) / h);
-                            h = maxDim;
+                    try {
+                        var canvas = document.createElement('canvas');
+                        var ctx = canvas.getContext('2d');
+                        var maxDim = 800;
+                        var w = img.width || 800;
+                        var h = img.height || 600;
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) {
+                                h = Math.round((h * maxDim) / w);
+                                w = maxDim;
+                            } else {
+                                w = Math.round((w * maxDim) / h);
+                                h = maxDim;
+                            }
                         }
+                        canvas.width = w;
+                        canvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                        safeCallback(dataUrl);
+                    } catch(errCanvas) {
+                        console.warn("Canvas compression error:", errCanvas);
+                        safeCallback(e.target.result || null);
                     }
-                    canvas.width = w;
-                    canvas.height = h;
-                    ctx.drawImage(img, 0, 0, w, h);
-                    var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                    callback(dataUrl);
+                };
+                img.onerror = function() {
+                    console.warn("Error cargando imagen para compresión");
+                    safeCallback(null);
                 };
                 img.src = e.target.result;
             };
-            reader.readAsDataURL(file);
+            reader.onerror = function() {
+                console.warn("Error FileReader");
+                safeCallback(null);
+            };
+            try {
+                reader.readAsDataURL(file);
+            } catch(eRead) {
+                console.warn("readAsDataURL error:", eRead);
+                safeCallback(null);
+            }
         }
 
         function subirFotoVehiculo(placa, markerId, event) {
@@ -2891,6 +3131,10 @@
             // Alternar estado de visitada SOLO de esta dirección / marcador específico
             item.visitada = !item.visitada;
             localStorage.setItem('visitada_' + item.id, item.visitada ? '1' : '0');
+            if (item.visitada) {
+                item.visitas = (item.visitas || 0) + 1;
+            }
+            localStorage.setItem('visitas_' + item.id, item.visitas || 0);
 
             if (item.marker) {
                 var customIcon = L.divIcon({
@@ -2905,7 +3149,7 @@
 
             guardarPuntosStorage();
             if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
-                fbDb.collection('puntos_ubica_rick').doc(markerId).update({ visitada: item.visitada }).catch(function(){});
+                fbDb.collection('puntos_ubica_rick').doc(markerId).update({ visitada: item.visitada, visitas: item.visitas || 0 }).catch(function(){});
             }
             actualizarKPIs();
             actualizarPanelCercano();
@@ -2952,6 +3196,7 @@
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
                     fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    visitas: item.visitas || 0, comentarios: item.comentarios || '',
                     lat: item.lat, lng: item.lng, foto: item.foto,
                     soat: item.soat, tecnomecanica: item.tecnomecanica
                 };
@@ -3021,6 +3266,8 @@
                 p.dir = p.dirOriginal;
                 p.timestamp = p.timestamp || (p.fecha ? new Date(p.fecha).getTime() : Date.now());
                 p.visitada = (localStorage.getItem('visitada_' + p.id) === '1') || !!p.visitada;
+                p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
+                p.comentarios = p.comentarios || '';
 
                 var kDir = placa + "_" + normalizarClaveDireccion(p.dirOriginal);
                 var kCoord = placa + "_" + (p.lat ? p.lat.toFixed(3) : '') + "_" + (p.lng ? p.lng.toFixed(3) : '');
@@ -3376,6 +3623,7 @@
             var nuevaDir = document.getElementById('edit-dir-' + markerId).value.trim();
             var nuevoSoat = document.getElementById('edit-soat-' + markerId).value.trim().toUpperCase();
             var nuevaTecno = document.getElementById('edit-tecno-' + markerId).value.trim().toUpperCase();
+            var nuevosComentarios = (document.getElementById('edit-comentarios-' + markerId) ? document.getElementById('edit-comentarios-' + markerId).value.trim() : '');
 
             var inputFotoEdit = document.getElementById('edit-foto-' + markerId);
             var nuevaFoto = null;
@@ -3397,6 +3645,7 @@
                     p.telefonos = nuevosTels; 
                     p.soat = nuevoSoat || 'NO';
                     p.tecnomecanica = nuevaTecno || 'NO';
+                    p.comentarios = nuevosComentarios;
                     if (nuevaFoto) p.foto = nuevaFoto;
                     if (p.id === markerId) {
                         p.dir = nuevaDir;
@@ -3431,6 +3680,29 @@
             return resHtml;
         }
 
+        function formatearTiempoRegistrado(p) {
+            var ahora = Date.now();
+            var creado = p.timestamp;
+            if (!creado && p.fecha) {
+                var f = new Date(p.fecha + 'T00:00:00').getTime();
+                creado = isNaN(f) ? ahora : f;
+            }
+            if (!creado) return "Recién registrado";
+            var diffMs = Math.max(0, ahora - creado);
+            var horas = Math.floor(diffMs / (1000 * 60 * 60));
+            var dias = Math.floor(horas / 24);
+            var horasRestantes = horas % 24;
+
+            if (horas < 1) {
+                var minutos = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+                return minutos + " min acumulados";
+            } else if (dias < 1) {
+                return horas + " h acumuladas";
+            } else {
+                return dias + " d " + (horasRestantes > 0 ? (horasRestantes + " h") : "") + " (" + horas + " h total)";
+            }
+        }
+
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
             var esVisitada = !!p.visitada;
@@ -3452,16 +3724,16 @@
                 <div id="popup-zoomable-${markerId}" class="popup-zoom-container" data-scale="1" ontouchstart="inicializarZoomDosDedos('${markerId}', this)" style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; width: 270px; max-width: 94vw; transition: width 0.15s ease, font-size 0.15s ease;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <div class="popup-header-bar" onclick="toggleMinimizarPopup('${markerId}')" style="background:#1e293b; color:white; padding:7px 10px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" title="Toca para Minimizar o Ampliar">
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="font-size:16px; font-weight:900; letter-spacing:0.5px;">${p.placa}</span>
-                                <span style="font-size:10px; font-weight:bold; background:${p.pico ? '#d35400' : '#27ae60'}; padding:2px 6px; border-radius:4px;">${estadoPicoTxt}</span>
+                        <div class="popup-header-bar" style="background:#0f172a; color:white; padding:6px 8px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; width:100%; border:1px solid #334155;">
+                            <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                                <span style="font-size:15px; font-weight:900; letter-spacing:0.5px; color:#ffffff; white-space:nowrap;">${p.placa}</span>
+                                <span style="font-size:9.5px; font-weight:bold; background:${p.pico ? '#d35400' : '#16a34a'}; color:#ffffff; padding:2px 5px; border-radius:4px; white-space:nowrap; text-transform:uppercase;">${estadoPicoTxt}</span>
                             </div>
-                            <div style="display:flex; align-items:center; gap:3px;">
-                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', -0.2)" class="btn-zoom-pop" title="Apequeñar">-🔍</button>
-                                <span id="zoom-val-${markerId}" style="font-size:9.5px; font-weight:bold; color:#94a3b8; min-width:28px; text-align:center;">100%</span>
-                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', 0.2)" class="btn-zoom-pop" title="Agrandar">+🔍</button>
-                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}')" id="btn-min-${markerId}" style="background:#334155; border:1px solid rgba(255,255,255,0.3); color:white; border-radius:4px; padding:3px 7px; font-size:10px; font-weight:bold; cursor:pointer; margin-left:3px;">➖ Minimizar</button>
+                            <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', -0.2);" ontouchend="event.stopPropagation(); event.preventDefault(); ajustarZoomPopup('${markerId}', -0.2);" class="btn-zoom-pop" title="Reducir tamaño">−</button>
+                                <span id="zoom-val-${markerId}" style="font-size:10px; font-weight:bold; color:#38bdf8; min-width:28px; text-align:center; user-select:none;">100%</span>
+                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', 0.2);" ontouchend="event.stopPropagation(); event.preventDefault(); ajustarZoomPopup('${markerId}', 0.2);" class="btn-zoom-pop" title="Aumentar tamaño">+</button>
+                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}');" ontouchend="event.stopPropagation(); event.preventDefault(); toggleMinimizarPopup('${markerId}');" id="btn-min-${markerId}" class="btn-min-pop" title="Minimizar o expandir ventana">➖ Minimizar</button>
                             </div>
                         </div>
 
@@ -3508,6 +3780,20 @@
                                     <td class="specs-label">Antigüedad:</td>
                                     <td><span style="font-weight:bold; color:${infoColor.color}; font-size:11px;">${infoColor.etiqueta}</span></td>
                                 </tr>
+                                <tr>
+                                    <td class="specs-label">Tiempo Reg.:</td>
+                                    <td style="color:#1e293b; font-size:11px; font-weight:600;">⏱️ ${formatearTiempoRegistrado(p)}</td>
+                                </tr>
+                                <tr>
+                                    <td class="specs-label">Visitas:</td>
+                                    <td style="font-size:11px; font-weight:bold; color:${(p.visitas || 0) > 0 ? '#0284c7' : '#64748b'};"><span id="visitas-val-${markerId}">👁️ ${p.visitas || 0} ${(p.visitas === 1) ? 'visita realizada' : 'visitas realizadas'}</span></td>
+                                </tr>
+                                ${p.comentarios ? `
+                                <tr>
+                                    <td class="specs-label" style="vertical-align:top;">Notas:</td>
+                                    <td style="color:#0f172a; font-size:11px; line-height:1.35; background:#f8fafc; border-left:3px solid #6366f1; padding:3px 6px; border-radius:4px;">📝 ${p.comentarios}</td>
+                                </tr>
+                                ` : ''}
                             </table>
                             
                             <div style="margin-top: 6px; border-top: 1px solid #eee; padding-top: 6px;">
@@ -3589,6 +3875,11 @@
                             </div>
                         </div>
 
+                        <div style="margin-top:5px;">
+                            <label style="font-size:10px; font-weight:bold; color:#2c3e50;">📝 Comentarios / Observaciones:</label>
+                            <textarea id="edit-comentarios-${markerId}" class="edit-input" placeholder="Escribe notas u observaciones adicionales aquí..." style="height:55px; font-size:11px; resize:vertical; font-family:inherit; width:100%; box-sizing:border-box;">${(p.comentarios || '').replace(/"/g, '&quot;')}</textarea>
+                        </div>
+
                         <div style="margin-top:6px; background:#fff; padding:6px; border-radius:6px; border:1px solid #ccc;">
                             <label style="font-size:10px; font-weight:bold; color:#2c3e50; display:block; margin-bottom:3px;">📸 Cambiar / Subir Foto:</label>
                             <input type="file" id="edit-foto-${markerId}" accept="image/*" style="font-size:11px; width:100%;">
@@ -3611,17 +3902,14 @@
             p.dir = p.dirOriginal;
             p.timestamp = p.timestamp || (p.fecha ? new Date(p.fecha).getTime() : Date.now());
             p.visitada = (localStorage.getItem('visitada_' + p.id) === '1') || !!p.visitada;
+            p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
+            p.comentarios = p.comentarios || "";
 
             var esVisitada = !!p.visitada;
 
             var customIcon = L.divIcon({
                 className: '', 
                 html: generarMarcadorProfesional(p, esVisitada),
-                iconAnchor: [42, 30],
-                popupAnchor: [0, -30]
-            });var customIcon = L.divIcon({
-                className: '', 
-                html: generarMarcadorProfesional(p.placa, esVisitada),
                 iconAnchor: [42, 30],
                 popupAnchor: [0, -30]
             });
@@ -3891,6 +4179,7 @@
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
                     fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    visitas: item.visitas || 0, comentarios: item.comentarios || '',
                     lat: item.lat, lng: item.lng, foto: item.foto,
                     soat: item.soat, tecnomecanica: item.tecnomecanica
                 };
@@ -3912,6 +4201,7 @@
                     placa: p.placa, marca: p.marca || '-', linea: p.linea || '-', modelo: p.modelo || '-', color: p.color || '-',
                     telefonos: p.telefonos || '-', dir: p.dir, dirOriginal: p.dirOriginal || p.dir, dirAjustada: p.dirAjustada || null,
                     fecha: p.fecha || '', timestamp: p.timestamp || Date.now(), visitada: !!p.visitada,
+                    visitas: p.visitas || 0, comentarios: p.comentarios || '',
                     lat: p.lat, lng: p.lng, foto: p.foto || null,
                     soat: p.soat || 'NO', tecnomecanica: p.tecnomecanica || 'NO'
                 };
@@ -3934,6 +4224,7 @@
                     placa: item.placa, marca: item.marca || '-', linea: item.linea || '-', modelo: item.modelo || '-', color: item.color || '-',
                     telefonos: item.telefonos || '-', dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
                     fecha: item.fecha || '', timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    visitas: item.visitas || 0, comentarios: item.comentarios || '',
                     lat: item.lat, lng: item.lng, foto: item.foto || null,
                     soat: item.soat || 'NO', tecnomecanica: item.tecnomecanica || 'NO'
                 };
