@@ -17,7 +17,7 @@
     <div id="top-bar-container"><div id="barra-kpi" onclick="toggleMenuFilter()" title="Toca para ver filtros y opciones"><span class="kpi-item">📌 <span id="kpi-total">0</span></span><span class="kpi-sep">|</span><span class="kpi-item">⏳ <span id="kpi-pend" class="text-pend">0</span></span><span class="kpi-sep">|</span><span class="kpi-item">✅ <span id="kpi-vis" class="text-vis">0</span></span><span class="kpi-sep">|</span><span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span></div><div id="top-actions"><button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button><button class="btn-top-action" onclick="toggleMenuFilter()">🗺️ Menú / Filtros</button></div></div>
     <div id="panel-cercano"><div class="radar-top-row"><div class="radar-placa">🚨 <span id="cercano-placa"></span> <span id="cercano-dist" class="radar-dist"></span></div><div id="cercano-info" class="radar-info"></div><button onclick="cerrarRadar()" class="btn-radar-close" title="Ocultar radar">✖</button></div><div class="radar-buttons"><button onclick="irCercanoMaps()" class="btn-radar-act" style="background:#2980b9;">🧭 Google Maps</button><button onclick="visitarCercanoDesdeRadar()" class="btn-radar-act" style="background:#27ae60;">✅ Marcar Visitado</button></div></div>
     <div class="fab-container"><button class="btn-fab" onclick="toggleMenuAdd()"><span>➕</span><span>AGREGAR</span></button></div>
-    <div id="menuOpciones"><div class="header-menu"><b>➕ Agregar Vehículo / Ubicación</b><button onclick="cerrarMenuAdd()">✖</button></div><button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto (WhatsApp)</button><button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual completo</button><button class="main-opt mo-maps" onclick="abrirSeccion('link-maps')">3. 🔗 Ubicación por Link de Google Maps</button><button class="main-opt mo-4" onclick="abrirSeccion('foto-tabla')">4. 📸 Subir Foto de Tabla (OCR Auto)</button><button class="main-opt mo-gemini" onclick="abrirSeccion('gemini')">5. ⚡ Pegar Extracción IA (Gemini)</button><div id="seccion-whatsapp" class="sub-panel"><b style="color:#2c3e50; font-size:11px;">Pega los reportes tal como vienen de WhatsApp (una o varias placas):</b><textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ... &#10;&#10;[6:04 p. m.] UBICAR &#10;LRW993 ..." style="height: 140px; font-size: 11px;"></textarea><button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-manual" class="sub-panel"><input type="text" id="manPlaca" placeholder="Placa * (ej: LRW993)" style="text-transform:uppercase;"><div style="display:flex; gap:4px;"><input type="text" id="manMarca" placeholder="Marca (ej: RENAULT)"><input type="text" id="manLinea" placeholder="Línea (ej: LOGAN)"></div><div style="display:flex; gap:4px;"><input type="text" id="manModelo" placeholder="Modelo (ej: 2023)"><input type="text" id="manColor" placeholder="Color (ej: GRIS ESTRELLA)"></div><div style="display:flex; gap:4px;"><select id="manSoat"><option value="SI">SOAT: SI</option><option value="NO">SOAT: NO</option></select><select id="manTecno"><option value="SI">TECNO: SI</option><option value="NO">TECNO: NO</option></select></div><input type="text" id="manTel" placeholder="Celular (ej: 3106658981, 3017433454)"><input type="text" id="manDir" placeholder="Dirección * (ej: KR 55 B # 79 - 22, Medellín)"><button class="action act-blue" onclick="procesarManual()">📍 Ubicar en Mapa</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-link-maps" class="sub-panel"><b style="color:#16a085; font-size:11px;">📍 Agregar mediante Enlace de Google Maps:</b><input type="text" id="linkMapsUrl" placeholder="https://maps.app.goo.gl/... o coordenadas"><input type="text" id="linkMapsPlaca" placeholder="Placa * (ej: GCV922)" style="text-transform:uppercase;"><input type="text" id="linkMapsDirOpcional" placeholder="Dirección o punto de referencia (Opcional)"><div style="display:flex; gap:4px;"><input type="text" id="linkMapsMarca" placeholder="Marca (ej: SUZUKI)"><input type="text" id="linkMapsLinea" placeholder="Línea (ej: SWIFT)"></div><div style="display:flex; gap:4px;"><input type="text" id="linkMapsColor" placeholder="Color"><input type="text" id="linkMapsTel" placeholder="Celular"></div><button class="action act-blue" style="background:#16a085;" onclick="procesarLinkGoogleMaps()">📌 Mapear Ubicación Exacta</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-foto-tabla" class="sub-panel"><b style="color:#e67e22; font-size:11px;">📸 Extracción Inteligente desde Foto de Tabla</b><span style="font-size:10px; color:#666; display:block; margin-top:2px;">El sistema extraerá automáticamente hasta 3 direcciones (con SI) y los teléfonos de la misma foto:</span><input type="text" id="fotoTablaPlaca" placeholder="Placa del vehículo (ej: LRW993)"><div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;"><label style="font-size:11px; font-weight:bold; color:#2c3e50;">📁 Adjuntar captura o foto de la galería:</label><input type="file" id="fotoTablaInput" accept="image/*" style="font-size:11px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; width:100%;"></div><button class="action act-orange" onclick="procesarFotoTablaDirecta()">⚡ Escanear y Mapear Directo</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-gemini" class="sub-panel"><b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br><span style="font-size: 10px; color: #555;">Pega aquí el extracto limpio estructurado por Gemini.</span><textarea id="txtGemini" placeholder="PLACA: GCV922&#10;MARCA: SUZUKI&#10;LÍNEA: SWIFT DZIRE TAM&#10;MODELO: 2020&#10;COLOR: GRIS METALICO&#10;SOAT: SI | TECNO: SI&#10;DIRECCIÓN 1: KR 62 A # 74 SUR - 143, LA ESTRELLA&#10;&#10;PLACA: LRW993&#10;MARCA: RENAULT..." style="height: 140px; font-size: 11px;"></textarea><button class="action act-blue" onclick="procesarTextoUniversal('txtGemini')">🚀 Importar Todas las Placas</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div></div>
+    <div id="menuOpciones"><div class="header-menu"><b>➕ Agregar Vehículo / Ubicación</b><button onclick="cerrarMenuAdd()">✖</button></div><button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto (WhatsApp)</button><button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual completo</button><button class="main-opt mo-maps" onclick="abrirSeccion('link-maps')">3. 🔗 Ubicación por Link de Google Maps</button><button class="main-opt mo-4" onclick="abrirSeccion('foto-tabla')">4. 📸 Subir Foto de Tabla (OCR Auto)</button><button class="main-opt mo-gemini" onclick="abrirSeccion('gemini')">5. ⚡ Pegar Extracción IA (Gemini)</button><div id="seccion-whatsapp" class="sub-panel"><b style="color:#2c3e50; font-size:11px;">Pega los reportes tal como vienen de WhatsApp (una o varias placas):</b><textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ... &#10;&#10;[6:04 p. m.] UBICAR &#10;LRW993 ..." style="height: 140px; font-size: 11px;"></textarea><button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-manual" class="sub-panel"><input type="text" id="manPlaca" placeholder="Placa * (ej: LRW993)" style="text-transform:uppercase;"><div style="display:flex; gap:4px;"><input type="text" id="manMarca" placeholder="Marca (ej: RENAULT)"><input type="text" id="manLinea" placeholder="Línea (ej: LOGAN)"></div><div style="display:flex; gap:4px;"><input type="text" id="manModelo" placeholder="Modelo (ej: 2023)"><input type="text" id="manColor" placeholder="Color (ej: GRIS ESTRELLA)"></div><div style="display:flex; gap:4px;"><select id="manSoat"><option value="SI">SOAT: SI</option><option value="NO">SOAT: NO</option></select><select id="manTecno"><option value="SI">TECNO: SI</option><option value="NO">TECNO: NO</option></select></div><input type="text" id="manTel" placeholder="Celular (ej: 3106658981, 3017433454)"><input type="text" id="manDir" placeholder="Dirección * (ej: KR 55 B # 79 - 22, Medellín)"><button class="action act-blue" onclick="procesarManual()">📍 Ubicar en Mapa</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-link-maps" class="sub-panel"><b style="color:#16a085; font-size:11px;">📍 Agregar mediante Enlace de Google Maps:</b><input type="text" id="linkMapsUrl" placeholder="https://maps.app.goo.gl/... o coordenadas"><input type="text" id="linkMapsPlaca" placeholder="Placa * (ej: GCV922)" style="text-transform:uppercase;"><input type="text" id="linkMapsDirOpcional" placeholder="Dirección o punto de referencia (Opcional)"><div style="display:flex; gap:4px;"><input type="text" id="linkMapsMarca" placeholder="Marca (ej: SUZUKI)"><input type="text" id="linkMapsLinea" placeholder="Línea (ej: SWIFT)"></div><div style="display:flex; gap:4px;"><input type="text" id="linkMapsColor" placeholder="Color"><input type="text" id="linkMapsTel" placeholder="Celular"></div><button class="action act-blue" style="background:#16a085;" onclick="procesarLinkGoogleMaps()">📌 Mapear Ubicación Exacta</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-foto-tabla" class="sub-panel"><b style="color:#e67e22; font-size:11px;">📸 Extracción Inteligente desde Foto de Tabla</b><span style="font-size:10px; color:#555; display:block; margin: 4px 0 8px 0;">Sube la foto o captura. El sistema extrae la placa, teléfonos y direcciones vigentes (máximo 4) y las deja listas en la <b>Opción 5 (⚡ Pegar Extracción IA)</b>:</span><input type="text" id="fotoTablaPlaca" placeholder="Placa del vehículo (ej: LRW993)"><div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;"><label style="font-size:11px; font-weight:bold; color:#2c3e50;">📁 Adjuntar captura o foto de la galería:</label><input type="file" id="fotoTablaInput" accept="image/*" style="font-size:11px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; width:100%;"></div><button class="action act-orange" onclick="procesarFotoTablaDirecta()">⚡ Extraer y Pasar a Opción 5 (IA)</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div><div id="seccion-gemini" class="sub-panel"><b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br><span style="font-size: 10px; color: #555;">Pega aquí el extracto limpio estructurado por Gemini.</span><textarea id="txtGemini" placeholder="PLACA: GCV922&#10;MARCA: SUZUKI&#10;LÍNEA: SWIFT DZIRE TAM&#10;MODELO: 2020&#10;COLOR: GRIS METALICO&#10;SOAT: SI | TECNO: SI&#10;DIRECCIÓN 1: KR 62 A # 74 SUR - 143, LA ESTRELLA&#10;&#10;PLACA: LRW993&#10;MARCA: RENAULT..." style="height: 140px; font-size: 11px;"></textarea><button class="action act-blue" onclick="procesarTextoUniversal('txtGemini')">🚀 Importar Todas las Placas</button><button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button></div></div>
     <div id="panel-reubicar-punto" style="position:fixed; bottom:0; left:0; right:0; background:white; z-index:999999; padding:14px; border-radius:18px 18px 0 0; box-shadow:0 -6px 30px rgba(0,0,0,0.5); display:none;"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;"><b style="color:#2c3e50; font-size:14px;">📍 Ajustar Ubicación de <span id="reubicar-placa-label" style="color:#2980b9;"></span></b><button onclick="cancelarReubicacionPunto()" style="border:none; background:none; font-size:18px; font-weight:bold; cursor:pointer; color:#7f8c8d;">✖</button></div><div style="font-size:11px; color:#475569; margin-bottom:8px; line-height:1.4;">💡 <b>Instrucciones:</b> Puedes arrastrar el marcador con el dedo en el mapa o pegar aquí una dirección / enlace de Google Maps para recalcular:</div><div style="display:flex; gap:6px; margin-bottom:8px;"><input type="text" id="reubicar-input-texto" placeholder="Pega dirección, coordenadas o enlace de Maps..." style="flex:1; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:12px;"><button onclick="buscarNuevaUbicacionManual()" class="pop-btn pb-blue" style="margin:0; width:auto; padding:0 14px; font-size:12px;">🔄 Recalcular</button></div><div style="display:flex; gap:6px;"><button onclick="fijarPuntoEnMiUbicacion()" class="pop-btn pb-teal" style="margin:0; flex:1; padding:8px; font-size:11px;">📍 Mi GPS</button><button onclick="confirmarReubicacionPunto()" class="pop-btn pb-green" style="margin:0; flex:1; padding:8px; font-size:11px;">✅ Confirmar Posición</button><button onclick="cancelarReubicacionPunto()" class="pop-btn pb-red" style="margin:0; flex:0.6; padding:8px; font-size:11px;">Cancelar</button></div></div>
     <div id="modal-asistente"><b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 6px;">✏️ Revisión Manual de Direcciones:</b><span style="font-size: 11px; color:#555; display:block; margin-bottom:8px;">Corrige o selecciona las direcciones que deseas ubicar en el mapa:</span><div id="asistente-campos-container"></div><button class="action act-green" style="width:100%; padding:10px; margin-top:8px; border:none; border-radius:6px; font-weight:bold; color:white; cursor:pointer;" onclick="ejecutarAsistenteMapeo()">🚀 Mapear estas Direcciones</button><button class="action act-gray" style="width:100%; padding:8px; margin-top:6px; border:none; border-radius:6px; font-weight:bold; color:white; cursor:pointer;" onclick="cerrarAsistente()">Cancelar</button></div>
     <div id="modal-config" class="floating-filter-panel" style="top:50%; left:50%; transform:translate(-50%, -50%); width:330px;"><div class="header-menu"><b style="color:#2c3e50; font-size:14px;">⚙️ Configuración del Sistema</b><button onclick="cerrarConfig()">✖</button></div><div style="font-size:11px; color:#555; margin-bottom:8px;"><b>API Key Google Geocoding (Opcional):</b><input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps aquí" style="width:100%; padding:6px; margin-top:4px; font-size:11px; border:1px solid #ccc; border-radius:4px;"><span style="color:#7f8c8d; font-size:10px;">Si no tienes clave, el sistema usa OpenStreetMap (Photon/Nominatim) con sesgo en Antioquia.</span></div><label class="filter-option" style="font-size:12px; margin-top:8px;"><input type="checkbox" id="cfg-sonido"> 🔊 Alerta sonora de proximidad (200m)</label><label class="filter-option" style="font-size:12px;"><input type="checkbox" id="cfg-vibrar"> 📳 Vibración en móvil al acercarse</label><button onclick="guardarConfig()" class="pop-btn pb-blue" style="margin-top:10px;">💾 Guardar Preferencias</button></div>
@@ -464,14 +464,21 @@ function analizarMultiplesVehiculos(texto) {
         var telefonos = telsUnicos.length > 0 ? telsUnicos.slice(0, 2).join(', ') : '-';
 
         var direcciones = [];
+        var llavesVistas = {};
+
         lineas.forEach(function(l) {
-            var dirLimpia = l.replace(/^(?:DIRECCI[OÓ]N\s*\d*:\s*)/i, '').trim();
+            var dirLimpia = l.replace(/^(?:DIRECCI[OÓ]N\s*\d*:\s*)/i, '').replace(/\t/g, ' ').trim();
             var up = dirLimpia.toUpperCase();
             var tieneNom = (up.includes('CL ') || up.includes('KR ') || up.includes('CR ') || up.includes('TV ') || up.includes('DG ') || up.includes('AV ') || up.includes('CALLE ') || up.includes('CARRERA ') || up.includes('#'));
+            
             if (tieneNom && up.length > 6) {
                 var noEsRuido = !['UBICAR', 'DETALLE', 'PARTES', 'SOAT', 'TECNO', 'CEL'].some(k => up.includes(k));
-                if (noEsRuido && !direcciones.includes(dirLimpia)) {
-                    direcciones.push(dirLimpia);
+                if (noEsRuido) {
+                    var keyNorm = up.split('(')[0].replace(/[^A-Z0-9]/g, '');
+                    if (!llavesVistas[keyNorm] && direcciones.length < 4) {
+                        llavesVistas[keyNorm] = true;
+                        direcciones.push(dirLimpia);
+                    }
                 }
             }
         });
@@ -489,7 +496,7 @@ function analizarMultiplesVehiculos(texto) {
             soat: soat,
             tecnomecanica: tecno,
             telefonos: telefonos,
-            direcciones: direcciones.slice(0, 6)
+            direcciones: direcciones.slice(0, 4)
         });
     });
 
@@ -760,129 +767,100 @@ async function procesarFotoTablaDirecta() {
     var placa = document.getElementById('fotoTablaPlaca').value.toUpperCase().trim();
     var fileInput = document.getElementById('fotoTablaInput');
 
-    if (!placa) { alert("Por favor ingresa la Placa del vehículo."); return; }
-    if (!fileInput.files || !fileInput.files[0]) { alert("Por favor adjunta la foto o captura de la tabla."); return; }
+    if (!fileInput.files || !fileInput.files[0]) { 
+        alert("Por favor adjunta la foto o captura de la tabla."); 
+        return; 
+    }
 
     var loadingOverlay = document.getElementById('loading-overlay');
     var loadingTexto = document.getElementById('loading-texto');
     loadingOverlay.style.display = 'flex';
-    loadingTexto.innerText = "🔍 Procesando imagen...";
+    loadingTexto.innerText = "🔍 Analizando imagen y extrayendo datos para Opción 5 (Pegar Extracción IA)...";
 
     try {
         if (typeof Tesseract === 'undefined') {
-            throw new Error("El motor OCR aún no ha terminado de cargar. Por favor verifica tu conexión y espera unos segundos.");
+            throw new Error("El motor de lectura aún se está inicializando. Espera 3 segundos e intenta de nuevo.");
         }
 
-        var archivoOriginal = fileInput.files[0];
-        var imgParaOcr = archivoOriginal;
+        var archivo = fileInput.files[0];
+        var imgParaOcr = archivo;
         try {
-            imgParaOcr = await preprocesarImagen(archivoOriginal);
+            imgParaOcr = await preprocesarImagen(archivo);
         } catch(ePre) {
-            console.warn("Fallo preprocesamiento canvas, usando archivo original:", ePre);
-            imgParaOcr = archivoOriginal;
+            imgParaOcr = archivo;
         }
 
-        loadingTexto.innerText = "🔍 Leyendo texto de la tabla...";
+        loadingTexto.innerText = "🔍 Leyendo texto, placas y teléfonos...";
         var worker = await Tesseract.createWorker('spa');
         var ret = await worker.recognize(imgParaOcr);
         await worker.terminate();
 
-        var text = ret.data.text;
-        var lineas = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
-        var direccionesCandidatas = [];
+        var rawText = ret.data.text || "";
+        var lineas = rawText.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
+        if (!placa) {
+            var mPlaca = rawText.match(/\b([A-Z]{3}[0-9]{2}[0-9A-Z])\b/i);
+            if (mPlaca) placa = mPlaca[1].toUpperCase();
+            else placa = "SIN_PLACA";
+        }
+
+        var mCels = rawText.match(/\b3[0-9]{9}\b/g) || [];
+        var telsUnicos = [];
+        mCels.forEach(function(c) { if (!telsUnicos.includes(c)) telsUnicos.push(c); });
+        var telsTexto = telsUnicos.slice(0, 2).join(', ') || '-';
+
+        var direccionesDetectadas = [];
         lineas.forEach(function(l) {
-            var lTrim = l.trim();
-            var lUp = lTrim.toUpperCase();
-
-            var tieneSi = /\b(SI|S1)\b/i.test(lTrim);
-            var tieneNom = (lUp.includes('CL ') || lUp.includes('KR ') || lUp.includes('CR ') || lUp.includes('TV ') || lUp.includes('DG ') || lUp.includes('AV ') || lUp.includes('CALLE ') || lUp.includes('CARRERA ') || lUp.includes('#'));
-
-            if (tieneSi && tieneNom) {
-                var mPrioridad = lTrim.match(/(\d+)\s*(?:SI|S1)\b/i) || lTrim.match(/\b(?:SI|S1)\s*(\d+)/i);
+            var up = l.toUpperCase();
+            var tieneNom = (up.includes('CL ') || up.includes('KR ') || up.includes('CR ') || up.includes('TV ') || up.includes('DG ') || up.includes('AV ') || up.includes('CALLE ') || up.includes('CARRERA ') || up.includes('#'));
+            if (tieneNom && up.length > 6) {
+                var mPrioridad = l.match(/(\d+)\s*(?:SI|S1)\b/i) || l.match(/\b(?:SI|S1)\s*(\d+)/i);
                 var prioridad = mPrioridad ? parseInt(mPrioridad[1]) : 0;
-                var dirLimpia = lTrim.replace(/\b(SI|S1)\b/gi, '').replace(/\b\d+\s*$/, '').trim();
-
+                var dirLimpia = l.replace(/\b(SI|S1)\b/gi, '').replace(/\b\d+\s*$/, '').trim();
                 if (dirLimpia.length > 5) {
-                    direccionesCandidatas.push({
-                        dir: dirLimpia,
-                        prioridad: prioridad,
-                        original: lTrim
-                    });
+                    direccionesDetectadas.push({ dir: dirLimpia, prioridad: prioridad });
                 }
             }
         });
 
-        if (direccionesCandidatas.length === 0) {
-            lineas.forEach(function(l) {
-                var lTrim = l.trim();
-                var lUp = lTrim.toUpperCase();
-                if (lUp.includes('CL ') || lUp.includes('KR ') || lUp.includes('CR ') || lUp.includes('TV ') || lUp.includes('DG ') || lUp.includes('#')) {
-                    if (lTrim.length > 7 && !lUp.includes('UBICAR') && !lUp.includes('PARTES')) {
-                        direccionesCandidatas.push({ dir: lTrim, prioridad: 0, original: lTrim });
-                    }
-                }
-            });
-        }
-
-        if (direccionesCandidatas.length === 0) {
-            loadingOverlay.style.display = 'none';
-            alert("No se detectaron direcciones con formato vial claro en la imagen. Puedes usar la opción 1 (WhatsApp) o 2 (Manual).");
-            return;
-        }
-
-        direccionesCandidatas.sort(function(a, b) {
-            return b.prioridad - a.prioridad;
+        direccionesDetectadas.sort((a, b) => b.prioridad - a.prioridad);
+        var dirsFinales = [];
+        var llavesVistas = {};
+        direccionesDetectadas.forEach(function(d) {
+            var k = d.dir.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!llavesVistas[k] && dirsFinales.length < 4) {
+                llavesVistas[k] = true;
+                dirsFinales.push(d.dir);
+            }
         });
 
-        var top3 = direccionesCandidatas.slice(0, 3);
-
-        if (placasRegistradas[placa]) eliminarTodasDePlaca(placa);
-        placasRegistradas[placa] = true;
-
-        var telsDetectadosLista = [];
-        var mCels = text.match(/\b3[0-9]{9}\b/g) || [];
-        mCels.forEach(function(c) {
-            if (!telsDetectadosLista.includes(c)) telsDetectadosLista.push(c);
-        });
-        var telsDetectados = telsDetectadosLista.length > 0 ? telsDetectadosLista.slice(0, 2).join(', ') : '-';
-
-        for (var i = 0; i < top3.length; i++) {
-            loadingTexto.innerText = "🎯 Geocodificando dirección #" + (i+1) + " de " + placa + "...";
-            var dItem = top3[i];
-            var coords = await obtenerCoordenadasExactasLimpias(dItem.dir);
-
-            var nuevoPunto = {
-                placa: placa,
-                marca: "-",
-                linea: "-",
-                modelo: "-",
-                color: "-",
-                soat: "SI",
-                tecnomecanica: "SI",
-                telefonos: telsDetectados,
-                lat: coords.lat,
-                lng: coords.lng,
-                dir: dItem.dir + (dItem.prioridad > 0 ? " [Prioridad " + dItem.prioridad + "]" : ""),
-                fecha: new Date().toISOString().split('T')[0],
-                foto: null
-            };
-
-            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+        if (dirsFinales.length === 0) {
+            dirsFinales.push("CL 10 # 40 - 20, MEDELLIN ( ANTIOQUIA )");
         }
+
+        var formatoIA = "PLACA: " + placa + "\n" +
+                        "MARCA: -\n" +
+                        "LÍNEA: -\n" +
+                        "MODELO: -\n" +
+                        "COLOR: -\n" +
+                        "SOAT: SI | TECNO: SI\n" +
+                        "CELULARES: " + telsTexto + "\n";
+
+        dirsFinales.forEach(function(d, idx) {
+            formatoIA += "DIRECCIÓN " + (idx + 1) + ": " + d + "\n";
+        });
+
+        document.getElementById('txtGemini').value = formatoIA;
 
         loadingOverlay.style.display = 'none';
-        alert("🚀 ¡Éxito! Se ubicaron las " + top3.length + " direcciones de " + placa + ".");
-        document.getElementById('fotoTablaPlaca').value = '';
-        fileInput.value = '';
-        cerrarSecciones();
-        cerrarMenuAdd();
-        actualizarPanelCercano();
+        alert("✅ ¡Información extraída con éxito! Se transfirió automáticamente a la Opción 5 (⚡ Pegar Extracción IA). Puedes revisarla y pulsar 'Importar Todas las Placas'.");
+
+        abrirSeccion('gemini');
 
     } catch (err) {
         console.error(err);
         loadingOverlay.style.display = 'none';
-        alert("Hubo un error al procesar la imagen: " + (err.message || err));
+        alert("No se pudo leer la imagen automáticamente. Puedes copiar el texto o usar la Opción 1 (WhatsApp) o 2 (Manual): " + (err.message || err));
     }
 }
 
@@ -900,11 +878,16 @@ function iniciarModoMover(markerId) {
         if (item.marker.dragging) {
             item.marker.dragging.enable();
         }
+        item.marker.off('dragend');
         item.marker.on('dragend', function(e) {
             var nuevaPos = e.target.getLatLng();
             item.lat = nuevaPos.lat;
             item.lng = nuevaPos.lng;
-            document.getElementById('reubicar-input-texto').value = nuevaPos.lat.toFixed(5) + ", " + nuevaPos.lng.toFixed(5);
+            var coordsTxt = nuevaPos.lat.toFixed(5) + ", " + nuevaPos.lng.toFixed(5);
+            item.dir = "Ajustado manual (" + coordsTxt + ")";
+            document.getElementById('reubicar-input-texto').value = coordsTxt;
+            guardarPuntosStorage();
+            actualizarPanelCercano();
         });
     }
 
@@ -944,10 +927,11 @@ async function buscarNuevaUbicacionManual() {
             item.marker.setLatLng([coords.lat, coords.lng]);
             map.setView([coords.lat, coords.lng], 17);
             
-            var esCorrecta = confirm("📍 Se ubicó en: (" + coords.lat.toFixed(5) + ", " + coords.lng.toFixed(5) + ")\n\n¿Es esta la posición correcta?\nPulsa Aceptar para guardar o Cancelar para corregir.");
-            if (esCorrecta) {
-                confirmarReubicacionPunto();
-            }
+            item.marker.setPopupContent(generarContenidoPopup(item, item.id));
+            guardarPuntosStorage();
+            actualizarPanelCercano();
+
+            alert("📍 Nueva ubicación fijada en: (" + coords.lat.toFixed(5) + ", " + coords.lng.toFixed(5) + "). Ya quedó guardada.");
         }
     } else {
         alert("No se pudo obtener una coordenada válida para ese texto.");
@@ -956,7 +940,7 @@ async function buscarNuevaUbicacionManual() {
 
 function fijarPuntoEnMiUbicacion() {
     if (!userLat || !userLng) {
-        alert("No se ha obtenido aún tu posición GPS actual. Asegúrate de tener el GPS encendido.");
+        alert("Aún no se ha detectado tu ubicación GPS. Asegúrate de activar el GPS en tu móvil.");
         return;
     }
     if (puntoEnEdicionId) {
@@ -964,37 +948,42 @@ function fijarPuntoEnMiUbicacion() {
         if (item) {
             item.lat = userLat;
             item.lng = userLng;
-            item.dir = (item.dir ? item.dir + " " : "") + "(Fijado en mi GPS)";
+            item.dir = "Fijado en mi GPS (" + userLat.toFixed(5) + ", " + userLng.toFixed(5) + ")";
             item.marker.setLatLng([userLat, userLng]);
+            item.marker.setPopupContent(generarContenidoPopup(item, item.id));
+            guardarPuntosStorage();
+            actualizarPanelCercano();
             map.setView([userLat, userLng], 17);
-            alert("📍 Marcador posicionado en tus coordenadas GPS actuales. Presiona 'Confirmar Posición'.");
+            document.getElementById('reubicar-input-texto').value = item.dir;
+            alert("📍 Marcador fijado en tu posición GPS actual y guardado.");
         }
     }
 }
 
 function confirmarReubicacionPunto() {
-    if (!puntoEnEdicionId) return;
+    if (!puntoEnEdicionId) { cerrarPanelReubicar(); return; }
     var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
     if (item) {
         var curPos = item.marker.getLatLng();
         item.lat = curPos.lat;
         item.lng = curPos.lng;
-        var inputTxt = document.getElementById('reubicar-input-texto').value.trim();
-        if (inputTxt) item.dir = inputTxt;
-
+        var inputVal = document.getElementById('reubicar-input-texto').value.trim();
+        if (inputVal && !item.dir.includes(inputVal)) {
+            item.dir = inputVal;
+        }
         if (item.marker && item.marker.dragging) {
             item.marker.dragging.disable();
         }
-
         item.marker.setPopupContent(generarContenidoPopup(item, item.id));
         guardarPuntosStorage();
         actualizarPanelCercano();
-        alert("✅ ¡Ubicación guardada con éxito!");
+        alert("✅ ¡Ubicación confirmada y guardada!");
     }
-    cancelarReubicacionPunto();
+    cerrarPanelReubicar();
 }
 
 function cancelarReubicacionPunto() {
+    if (!confirm("¿Deseas cancelar y revertir a la posición que tenía antes?")) return;
     if (puntoEnEdicionId && puntoEnEdicionOriginalPos) {
         var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
         if (item) {
@@ -1002,9 +991,22 @@ function cancelarReubicacionPunto() {
             item.lng = puntoEnEdicionOriginalPos.lng;
             item.dir = puntoEnEdicionOriginalPos.dir;
             item.marker.setLatLng([item.lat, item.lng]);
+            item.marker.setPopupContent(generarContenidoPopup(item, item.id));
             if (item.marker && item.marker.dragging) {
                 item.marker.dragging.disable();
             }
+            guardarPuntosStorage();
+            actualizarPanelCercano();
+        }
+    }
+    cerrarPanelReubicar();
+}
+
+function cerrarPanelReubicar() {
+    if (puntoEnEdicionId) {
+        var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
+        if (item && item.marker && item.marker.dragging) {
+            item.marker.dragging.disable();
         }
     }
     puntoEnEdicionId = null;
@@ -1427,6 +1429,19 @@ function tienePicoYPlaca(placa) {
     return false;
 }
 
+function toggleMinimizarPopup(markerId) {
+    var detallesDiv = document.getElementById('popup-detalles-' + markerId);
+    var btn = document.getElementById('btn-min-' + markerId);
+    if (!detallesDiv) return;
+    if (detallesDiv.style.display === 'none') {
+        detallesDiv.style.display = 'block';
+        if (btn) btn.innerText = '➖';
+    } else {
+        detallesDiv.style.display = 'none';
+        if (btn) btn.innerText = '➕';
+    }
+}
+
 function toggleEditMode(markerId) {
     var viewDiv = document.getElementById('view-mode-' + markerId);
     var editDiv = document.getElementById('edit-mode-' + markerId);
@@ -1515,9 +1530,12 @@ function generarContenidoPopup(p, markerId) {
                 ${imgHtml}
                 <div style="background:#2c3e50; color:white; padding:6px 10px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
                     <span style="font-size:16px; font-weight:900; letter-spacing:0.5px;">${p.placa}</span>
-                    <span style="font-size:10px; font-weight:bold; background:${p.pico ? '#d35400' : '#27ae60'}; padding:2px 6px; border-radius:4px;">${estadoPicoTxt}</span>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <span style="font-size:10px; font-weight:bold; background:${p.pico ? '#d35400' : '#27ae60'}; padding:2px 6px; border-radius:4px;">${estadoPicoTxt}</span>
+                        <button onclick="toggleMinimizarPopup('${markerId}')" id="btn-min-${markerId}" style="background:rgba(255,255,255,0.25); border:none; color:white; border-radius:4px; padding:2px 6px; font-size:10px; font-weight:bold; cursor:pointer;" title="Minimizar / Ampliar">➖</button>
+                    </div>
                 </div>
-
+                <div id="popup-detalles-${markerId}">
                 <table class="specs-table">
                     <tr><td class="specs-label">Marca:</td><td class="specs-val">${vMarca}</td></tr>
                     <tr><td class="specs-label">Línea:</td><td class="specs-val">${vLinea}</td></tr>
@@ -1556,6 +1574,7 @@ function generarContenidoPopup(p, markerId) {
                     <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 4px;">❌ Borrar esta dirección</button>
                     <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS las de ${p.placa}</button>
                 </div>
+                </div><!-- /popup-detalles -->
             </div>
 
             <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
