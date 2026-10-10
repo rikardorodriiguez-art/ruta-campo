@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.2</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.4</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -1789,332 +1789,270 @@
                    '</div>';
         }
 
-        // APROXIMACIÓN DE CUADRÍCULA// APROXIMACIÓN DE CUADRÍCULA URBANA DEL VALLE DE ABURRÁ (OFFLINE FALLBACK INTELIGENTE)
-        function aproximarCoordenadasPorNomenclatura(calleNum, craNum, esSur, munTexto) {
-            var mun = (munTexto || '').toUpperCase();
-            var baseLat = 6.2442;
-            var baseLng = -75.5812;
+        // APROXIMACIÓN DE CUADRÍCULA// =========================================================================
+        // 4. MOTOR DE GEOCODIFICACIÓN, CUADRÍCULA URBANA Y APRENDIZAJE INTELIGENTE
+        // =========================================================================
 
-            if (mun.includes('LA ESTRELLA') || mun.includes('ESTRELLA')) {
-                // La Estrella: Calles sur altas (70 a 85 sur), Cra 50 a 65
-                baseLat = 6.1583 - ((calleNum - 75) * 0.00075);
-                baseLng = -75.6444 - ((craNum - 60) * 0.00070);
-            } else if (mun.includes('ENVIGADO')) {
-                baseLat = esSur ? (6.1650 - (calleNum * 0.00075)) : (6.1700 + (calleNum * 0.00075));
-                baseLng = -75.5857 - ((craNum - 40) * 0.00065);
-            } else if (mun.includes('ITAGUI') || mun.includes('ITAGÜÍ')) {
-                baseLat = 6.1846 + ((calleNum - 50) * 0.00075);
-                baseLng = -75.5991 - ((craNum - 50) * 0.00065);
-            } else if (mun.includes('SABANETA')) {
-                baseLat = 6.1515 + ((calleNum - 65) * 0.00075);
-                baseLng = -75.6166 - ((craNum - 45) * 0.00065);
-            } else if (mun.includes('BELLO')) {
-                baseLat = 6.3373 + ((calleNum - 45) * 0.00075);
-                baseLng = -75.5580 - ((craNum - 50) * 0.00065);
-            } else if (mun.includes('GOMEZ PLATA') || mun.includes('GÓMEZ PLATA')) {
-                baseLat = 6.6817 + (Math.random() - 0.5) * 0.003;
-                baseLng = -75.2183 + (Math.random() - 0.5) * 0.003;
-            } else {
-                // Medellín
-                baseLat = esSur ? (6.200 - (calleNum * 0.00085)) : (6.200 + (calleNum * 0.00095));
-                baseLng = -75.555 - (craNum * 0.00062);
+        const CENTROS_MUNICIPIOS = {
+            'MEDELLIN': { lat: 6.2442, lng: -75.5812 },
+            'LA ESTRELLA': { lat: 6.1565, lng: -75.6435 },
+            'SABANETA': { lat: 6.1515, lng: -75.6166 },
+            'ENVIGADO': { lat: 6.1687, lng: -75.5878 },
+            'ITAGÜÍ': { lat: 6.1740, lng: -75.6050 },
+            'BELLO': { lat: 6.3373, lng: -75.5580 },
+            'COPACABANA': { lat: 6.3470, lng: -75.5100 },
+            'GIRARDOTA': { lat: 6.3760, lng: -75.4460 },
+            'BARBOSA': { lat: 6.4380, lng: -75.3320 },
+            'CALDAS': { lat: 6.0910, lng: -75.6360 },
+            'RIONEGRO': { lat: 6.1530, lng: -75.3740 },
+            'BOGOTA': { lat: 4.6097, lng: -74.0817 },
+            'CALI': { lat: 3.4516, lng: -76.5320 },
+            'BARRANQUILLA': { lat: 10.9685, lng: -74.7813 },
+            'BUCARAMANGA': { lat: 7.1254, lng: -73.1198 }
+        };
+
+        // PARSER ESTRUCTURAL DE NOMENCLATURA COLOMBIANA (CALLE X CARRERA X PUERTA)
+        function parsearNomenclaturaColombiana(dirStr) {
+            if (!dirStr) return null;
+            var up = dirStr.toUpperCase().replace(/\t/g, ' ').trim();
+            up = up.replace(/([#№])/g, ' # ');
+            up = up.replace(/\b(NO\.?|N°|NUMERO)\b/g, ' # ');
+            up = up.replace(/\s+/g, ' ');
+
+            var patron = /\b(CARRERA|CRA|CR|KRA|KR|CALLE|CLL|CL|TRANSVERSAL|TRANSV|TV|TR|DIAGONAL|DIAG|DG|AVENIDA|AV|CIRCULAR|CIRC)\s*(\d+)\s*([A-Z]{1,2}(?:\s*BIS)?(?:\s*[A-Z])?)?\s*(SUR|NORTE|ESTE|OESTE)?\s*(?:#|CON|CARRERA|CRA|CR|KRA|KR|CALLE|CLL|CL|TRANSVERSAL|TRANSV|TV|TR|DIAGONAL|DIAG|DG|AVENIDA|AV|CIRCULAR|CIRC|\bN\b)?\s*(?:(?:CARRERA|CRA|CR|KRA|KR|CALLE|CLL|CL|TRANSVERSAL|TRANSV|TV|TR|DIAGONAL|DIAG|DG|AVENIDA|AV|CIRCULAR|CIRC)\s*)?(\d+)\s*([A-Z]{1,2}(?:\s*BIS)?(?:\s*[A-Z])?)?\s*(SUR|NORTE|ESTE|OESTE)?(?:\s*[-–#]?\s*(\d+))?/i;
+
+            var m = up.match(patron);
+            if (!m) return null;
+
+            var tipo = m[1].toUpperCase();
+            var num1 = parseInt(m[2]);
+            var letra1 = (m[3] || '').trim().toUpperCase();
+            var card1 = (m[4] || '').trim().toUpperCase();
+            if (['SUR', 'NORTE', 'ESTE', 'OESTE'].includes(letra1)) {
+                card1 = letra1;
+                letra1 = '';
             }
 
-            return { lat: parseFloat(baseLat.toFixed(5)), lng: parseFloat(baseLng.toFixed(5)) };
+            var num2 = parseInt(m[5]);
+            var letra2 = (m[6] || '').trim().toUpperCase();
+            var card2 = (m[7] || '').trim().toUpperCase();
+            if (['SUR', 'NORTE', 'ESTE', 'OESTE'].includes(letra2)) {
+                card2 = letra2;
+                letra2 = '';
+            }
+
+            var puerta = m[8] ? parseInt(m[8]) : 0;
+            if (!num1 || !num2) return null;
+
+            var esCallePrincipal = ['CL', 'CLL', 'CALLE', 'DG', 'DIAGONAL', 'TRANSVERSAL', 'TV', 'TR'].includes(tipo);
+            var calleNum = esCallePrincipal ? num1 : num2;
+            var craNum = esCallePrincipal ? num2 : num1;
+
+            var esSur = (card1 === 'SUR') || (card2 === 'SUR') || up.includes('SUR');
+            var esNorte = (card1 === 'NORTE') || (card2 === 'NORTE') || up.includes('NORTE');
+
+            return {
+                tipo: tipo,
+                calleNum: calleNum,
+                craNum: craNum,
+                puerta: puerta,
+                esSur: esSur,
+                esNorte: esNorte,
+                letra1: letra1,
+                letra2: letra2
+            };
         }
 
-        // MOTOR MULTI-PROVEEDOR DE GEOCODIFICACIÓN (COORDINADAS -> PHOTON KOMOOT -> NOMINATIM -> GOOGLE MAPS -> GRID)
-        // BASE DE DATOS DE MUNICIPIOS Y CAPITALES A NIVEL NACIONAL (COLOMBIA)
-        const MUNICIPIOS_COLOMBIA_TABLA = {
-            // Valle de Aburrá y Antioquia
-            'MEDELLIN': { lat: 6.2442, lng: -75.5812, depto: 'ANTIOQUIA' },
-            'BELLO': { lat: 6.3373, lng: -75.5580, depto: 'ANTIOQUIA' },
-            'ITAGUI': { lat: 6.1846, lng: -75.5991, depto: 'ANTIOQUIA' },
-            'ITAGÜÍ': { lat: 6.1846, lng: -75.5991, depto: 'ANTIOQUIA' },
-            'ENVIGADO': { lat: 6.1696, lng: -75.5857, depto: 'ANTIOQUIA' },
-            'SABANETA': { lat: 6.1515, lng: -75.6166, depto: 'ANTIOQUIA' },
-            'LA ESTRELLA': { lat: 6.1583, lng: -75.6444, depto: 'ANTIOQUIA' },
-            'CALDAS': { lat: 6.0911, lng: -75.6358, depto: 'ANTIOQUIA' },
-            'COPACABANA': { lat: 6.3463, lng: -75.5089, depto: 'ANTIOQUIA' },
-            'GIRARDOTA': { lat: 6.3768, lng: -75.4457, depto: 'ANTIOQUIA' },
-            'BARBOSA': { lat: 6.4381, lng: -75.3331, depto: 'ANTIOQUIA' },
-            'RIONEGRO': { lat: 6.1552, lng: -75.3736, depto: 'ANTIOQUIA' },
-            'MARINILLA': { lat: 6.1750, lng: -75.3333, depto: 'ANTIOQUIA' },
-            'LA CEJA': { lat: 6.0306, lng: -75.4306, depto: 'ANTIOQUIA' },
-            'APARTADO': { lat: 7.8825, lng: -76.6258, depto: 'ANTIOQUIA' },
-            'TURBO': { lat: 8.0928, lng: -76.7281, depto: 'ANTIOQUIA' },
-            'CAUCASIA': { lat: 7.9811, lng: -75.1956, depto: 'ANTIOQUIA' },
+        // DETECCIÓN E INFERENCIA INTELIGENTE DE MUNICIPIO EN EL VALLE DE ABURRÁ Y COLOMBIA
+        function detectarMunicipioEnTexto(dirStr, infoNom) {
+            var up = (dirStr || '').toUpperCase();
 
-            // Bogotá D.C. y Sabana
-            'BOGOTA': { lat: 4.7110, lng: -74.0721, depto: 'CUNDINAMARCA' },
-            'BOGOTÁ': { lat: 4.7110, lng: -74.0721, depto: 'CUNDINAMARCA' },
-            'SOACHA': { lat: 4.5804, lng: -74.2179, depto: 'CUNDINAMARCA' },
-            'CHIA': { lat: 4.8611, lng: -74.0567, depto: 'CUNDINAMARCA' },
-            'CHÍA': { lat: 4.8611, lng: -74.0567, depto: 'CUNDINAMARCA' },
-            'ZIPAQUIRA': { lat: 5.0256, lng: -74.0044, depto: 'CUNDINAMARCA' },
-            'FACATATIVA': { lat: 4.8144, lng: -74.3542, depto: 'CUNDINAMARCA' },
-            'MOSQUERA': { lat: 4.7058, lng: -74.2303, depto: 'CUNDINAMARCA' },
-            'FUNZA': { lat: 4.7161, lng: -74.2117, depto: 'CUNDINAMARCA' },
+            if (up.includes('ESTRELLA')) return { nombre: 'LA ESTRELLA', coords: CENTROS_MUNICIPIOS['LA ESTRELLA'] };
+            if (up.includes('SABANETA')) return { nombre: 'SABANETA', coords: CENTROS_MUNICIPIOS['SABANETA'] };
+            if (up.includes('ENVIGADO')) return { nombre: 'ENVIGADO', coords: CENTROS_MUNICIPIOS['ENVIGADO'] };
+            if (up.includes('ITAGUI') || up.includes('ITAGÜÍ')) return { nombre: 'ITAGÜÍ', coords: CENTROS_MUNICIPIOS['ITAGÜÍ'] };
+            if (up.includes('BELLO')) return { nombre: 'BELLO', coords: CENTROS_MUNICIPIOS['BELLO'] };
+            if (up.includes('COPACABANA')) return { nombre: 'COPACABANA', coords: CENTROS_MUNICIPIOS['COPACABANA'] };
+            if (up.includes('CALDAS')) return { nombre: 'CALDAS', coords: CENTROS_MUNICIPIOS['CALDAS'] };
+            if (up.includes('RIONEGRO')) return { nombre: 'RIONEGRO', coords: CENTROS_MUNICIPIOS['RIONEGRO'] };
+            if (up.includes('BOGOTA') || up.includes('BOGOTÁ')) return { nombre: 'BOGOTA', coords: CENTROS_MUNICIPIOS['BOGOTA'] };
+            if (up.includes('CALI')) return { nombre: 'CALI', coords: CENTROS_MUNICIPIOS['CALI'] };
+            if (up.includes('BARRANQUILLA')) return { nombre: 'BARRANQUILLA', coords: CENTROS_MUNICIPIOS['BARRANQUILLA'] };
+            if (up.includes('BUCARAMANGA')) return { nombre: 'BUCARAMANGA', coords: CENTROS_MUNICIPIOS['BUCARAMANGA'] };
+            if (up.includes('MEDELLIN') || up.includes('MEDELLÍN')) return { nombre: 'MEDELLIN', coords: CENTROS_MUNICIPIOS['MEDELLIN'] };
 
-            // Valle del Cauca
-            'CALI': { lat: 3.4516, lng: -76.5320, depto: 'VALLE' },
-            'PALMIRA': { lat: 3.5394, lng: -76.3036, depto: 'VALLE' },
-            'BUENAVENTURA': { lat: 3.8833, lng: -77.0333, depto: 'VALLE' },
-            'TULUA': { lat: 4.0847, lng: -76.1954, depto: 'VALLE' },
-            'TULUÁ': { lat: 4.0847, lng: -76.1954, depto: 'VALLE' },
-            'YUMBO': { lat: 3.5828, lng: -76.4950, depto: 'VALLE' },
-            'JAMUNDI': { lat: 3.2606, lng: -76.5414, depto: 'VALLE' },
-            'CARTAGO': { lat: 4.7464, lng: -75.9117, depto: 'VALLE' },
-            'BUGA': { lat: 3.9008, lng: -76.2978, depto: 'VALLE' },
-
-            // Costa Caribe
-            'BARRANQUILLA': { lat: 10.9685, lng: -74.7813, depto: 'ATLANTICO' },
-            'SOLEDAD': { lat: 10.9184, lng: -74.7646, depto: 'ATLANTICO' },
-            'CARTAGENA': { lat: 10.3910, lng: -75.4794, depto: 'BOLIVAR' },
-            'SANTA MARTA': { lat: 11.2408, lng: -74.1990, depto: 'MAGDALENA' },
-            'VALLEDUPAR': { lat: 10.4631, lng: -73.2532, depto: 'CESAR' },
-            'MONTERIA': { lat: 8.7479, lng: -75.8814, depto: 'CORDOBA' },
-            'MONTERÍA': { lat: 8.7479, lng: -75.8814, depto: 'CORDOBA' },
-            'SINCELEJO': { lat: 9.3047, lng: -75.3978, depto: 'SUCRE' },
-            'RIOHACHA': { lat: 11.5444, lng: -72.9072, depto: 'GUAJIRA' },
-
-            // Santanderes
-            'BUCARAMANGA': { lat: 7.1254, lng: -73.1198, depto: 'SANTANDER' },
-            'FLORIDABLANCA': { lat: 7.0622, lng: -73.0864, depto: 'SANTANDER' },
-            'GIRON': { lat: 7.0725, lng: -73.1694, depto: 'SANTANDER' },
-            'GIRÓN': { lat: 7.0725, lng: -73.1694, depto: 'SANTANDER' },
-            'PIEDECUESTA': { lat: 6.9886, lng: -73.0503, depto: 'SANTANDER' },
-            'BARRANCABERMEJA': { lat: 7.0653, lng: -73.8547, depto: 'SANTANDER' },
-            'CUCUTA': { lat: 7.8939, lng: -72.5078, depto: 'NORTE DE SANTANDER' },
-            'CÚCUTA': { lat: 7.8939, lng: -72.5078, depto: 'NORTE DE SANTANDER' },
-            'OCAÑA': { lat: 8.2386, lng: -73.3556, depto: 'NORTE DE SANTANDER' },
-
-            // Eje Cafetero
-            'PEREIRA': { lat: 4.8133, lng: -75.6961, depto: 'RISARALDA' },
-            'DOSQUEBRADAS': { lat: 4.8364, lng: -75.6744, depto: 'RISARALDA' },
-            'MANIZALES': { lat: 5.0689, lng: -75.5174, depto: 'CALDAS' },
-            'ARMENIA': { lat: 4.5339, lng: -75.6811, depto: 'QUINDIO' },
-
-            // Tolima Grande y Huila
-            'IBAGUE': { lat: 4.4389, lng: -75.2322, depto: 'TOLIMA' },
-            'IBAGUÉ': { lat: 4.4389, lng: -75.2322, depto: 'TOLIMA' },
-            'NEIVA': { lat: 2.9273, lng: -75.2819, depto: 'HUILA' },
-            'PITALITO': { lat: 1.8542, lng: -76.0508, depto: 'HUILA' },
-
-            // Llanos Orientales y Amazonía
-            'VILLAVICENCIO': { lat: 4.1420, lng: -73.6266, depto: 'META' },
-            'YOPAL': { lat: 5.3378, lng: -72.3959, depto: 'CASANARE' },
-            'FLORENCIA': { lat: 1.6144, lng: -75.6062, depto: 'CAQUETA' },
-
-            // Sur y Pacífico
-            'PASTO': { lat: 1.2136, lng: -77.2811, depto: 'NARIÑO' },
-            'IPIALES': { lat: 0.8286, lng: -77.6389, depto: 'NARIÑO' },
-            'POPAYAN': { lat: 2.4419, lng: -76.6063, depto: 'CAUCA' },
-            'POPAYÁN': { lat: 2.4419, lng: -76.6063, depto: 'CAUCA' },
-            'QUIBDO': { lat: 5.6919, lng: -76.6583, depto: 'CHOCO' },
-            'QUIBDÓ': { lat: 5.6919, lng: -76.6583, depto: 'CHOCO' },
-
-            // Boyacá
-            'TUNJA': { lat: 5.5353, lng: -73.3678, depto: 'BOYACA' },
-            'DUITAMA': { lat: 5.8267, lng: -73.0333, depto: 'BOYACA' },
-            'SOGAMOSO': { lat: 5.7144, lng: -72.9339, depto: 'BOYACA' }
-        };
-        const MUNICIPIOS_ANTIOQUIA_TABLA = MUNICIPIOS_COLOMBIA_TABLA;
-
-        function detectarMunicipioEnTexto(dirTexto) {
-            var t = (dirTexto || "").toUpperCase().replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U');
-            for (var mun in MUNICIPIOS_COLOMBIA_TABLA) {
-                if (t.includes(mun)) {
-                    return { nombre: mun, coords: MUNICIPIOS_COLOMBIA_TABLA[mun], depto: MUNICIPIOS_COLOMBIA_TABLA[mun].depto };
+            // Inferencia geográfica automática si no se indicó municipio explícito
+            if (infoNom && infoNom.esSur) {
+                var c = infoNom.calleNum;
+                var k = infoNom.craNum;
+                if (c >= 68 && c <= 95) {
+                    var munSur = (k >= 55) ? 'LA ESTRELLA' : 'SABANETA';
+                    return { nombre: munSur, coords: CENTROS_MUNICIPIOS[munSur] };
+                } else if (c >= 25 && c <= 60) {
+                    var munMedio = (k >= 50) ? 'ITAGÜÍ' : 'ENVIGADO';
+                    return { nombre: munMedio, coords: CENTROS_MUNICIPIOS[munMedio] };
+                } else if (c >= 1 && c <= 24) {
+                    return { nombre: 'MEDELLIN', coords: CENTROS_MUNICIPIOS['MEDELLIN'] }; // El Poblado
                 }
             }
-            return { nombre: 'MEDELLIN', coords: MUNICIPIOS_COLOMBIA_TABLA['MEDELLIN'], depto: 'ANTIOQUIA' };
+
+            return { nombre: 'MEDELLIN', coords: CENTROS_MUNICIPIOS['MEDELLIN'] };
         }
 
-        // =========================================================================
-        // MOTOR DE APRENDIZAJE CONTINUO GEOGRÁFICO (AUTO-APRENDIZAJE SUPERVISADO)
-        // Cada vez que un investigador ajusta, mueve o confirma un punto en campo,
-        // el sistema memoriza la coordenada exacta y la comparte con todo el equipo.
-        // =========================================================================
+        // MEMORIA DE APRENDIZAJE INTELIGENTE (VERIFICACIÓN HUMANA)
+        function normalizarClaveAprendizaje(dir, munNombre) {
+            if (!dir) return "";
+            var s = (dir || "").toUpperCase();
+            s = s.replace(/\[[^\]]*\]/g, '');
+            s = s.replace(/\b(APTO|APT|AP|CASA|CS|INTERIOR|INT|IN|LOCAL|LC|OFICINA|OF|TORRE|TO|BLOQUE|BL|PISO|ETAPA|EDIFICIO|ED|CENTRO COMERCIAL|CC|URBANO|RURAL|BARRIO|BRR)\b[\s\d\-A-Z]*/gi, '');
+            s = s.replace(/[^A-Z0-9]/g, '');
+            var mun = (munNombre || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            return mun ? (mun + "_" + s) : s;
+        }
+
         function cargarMemoriaAprendizaje() {
-            var raw = localStorage.getItem('memoria_aprendizaje_direcciones_ubica_rick');
-            if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+            try {
+                var raw = localStorage.getItem('memoria_aprendizaje_direcciones_ubica_rick') || localStorage.getItem('memoria_aprendizaje_direcciones') || '{}';
+                return JSON.parse(raw);
+            } catch(e) {
+                return {};
             }
-            return {};
         }
 
-        function guardarAprendizajeDireccion(dir, lat, lng, mun) {
+        function guardarAprendizajeDireccion(dir, lat, lng) {
             if (!dir || !lat || !lng) return;
-            var keyNorm = normalizarClaveDireccion(dir);
-            if (!keyNorm || keyNorm.length < 4) return;
+            try {
+                var infoNom = parsearNomenclaturaColombiana(dir);
+                var infoMun = detectarMunicipioEnTexto(dir, infoNom);
+                var clave = normalizarClaveAprendizaje(dir, infoMun.nombre);
+                if (!clave) return;
 
-            var munNombre = mun || detectarMunicipioEnTexto(dir).nombre;
-            var idDoc = munNombre + "_" + keyNorm;
+                // Evitar memorizar centroides genéricos de parques municipales
+                var esCentroide = Object.values(CENTROS_MUNICIPIOS).some(function(cm) {
+                    return Math.abs(cm.lat - lat) < 0.0008 && Math.abs(cm.lng - lng) < 0.0008;
+                });
+                if (esCentroide && infoNom) {
+                    console.warn("⚠️ No se memoriza porque coincide con un centroide municipal genérico.");
+                    return;
+                }
 
-            var memoria = cargarMemoriaAprendizaje();
-            var veces = (memoria[idDoc] && memoria[idDoc].veces) ? (memoria[idDoc].veces + 1) : 1;
+                var memoria = cargarMemoriaAprendizaje();
+                var registro = {
+                    dirOriginal: dir,
+                    municipio: infoMun.nombre,
+                    lat: parseFloat(parseFloat(lat).toFixed(6)),
+                    lng: parseFloat(parseFloat(lng).toFixed(6)),
+                    actualizadoEn: new Date().toISOString()
+                };
+                memoria[clave] = registro;
+                localStorage.setItem('memoria_aprendizaje_direcciones_ubica_rick', JSON.stringify(memoria));
 
-            var registro = {
-                id: idDoc,
-                clave: keyNorm,
-                municipio: munNombre,
-                dirOriginal: dir,
-                lat: parseFloat(parseFloat(lat).toFixed(6)),
-                lng: parseFloat(parseFloat(lng).toFixed(6)),
-                veces: veces,
-                timestamp: Date.now()
-            };
-
-            memoria[idDoc] = registro;
-            localStorage.setItem('memoria_aprendizaje_direcciones_ubica_rick', JSON.stringify(memoria));
-
-            // Sincronizar en la nube Firestore para que todo el equipo se beneficie de la dirección aprendida
-            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
-                fbDb.collection('aprendizaje_direcciones').doc(idDoc).set(registro, { merge: true })
-                    .catch(function(e) { console.warn("Firestore aprendizaje sync:", e); });
+                // Sincronizar en Firestore para todo el equipo
+                if (typeof fbDb !== 'undefined' && fbDb) {
+                    fbDb.collection('aprendizaje_direcciones').doc(clave).set(registro, { merge: true }).catch(function(){});
+                }
+                console.log("🧠 Dirección aprendida y guardada exitosamente:", dir, "-> (" + lat + ", " + lng + ")");
+            } catch(e) {
+                console.warn("Error guardando aprendizaje:", e);
             }
-
-            console.log("🧠 Memoria Geográfica Aprendida:", dir, "-> (" + lat + ", " + lng + ") [Confirmaciones: " + veces + "]");
-            mostrarToastNotificacion("🧠 Geolocalización memorizada con éxito. Cada vez más exacta.");
         }
 
         function consultarMemoriaAprendizaje(dir, munNombre) {
             if (!dir) return null;
-            var keyNorm = normalizarClaveDireccion(dir);
-            if (!keyNorm || keyNorm.length < 4) return null;
+            try {
+                var infoNom = parsearNomenclaturaColombiana(dir);
+                var infoMun = detectarMunicipioEnTexto(dir, infoNom);
+                var memoria = cargarMemoriaAprendizaje();
 
-            var memoria = cargarMemoriaAprendizaje();
-            var idDoc = munNombre + "_" + keyNorm;
+                var claveMun = normalizarClaveAprendizaje(dir, munNombre || infoMun.nombre);
+                if (memoria && memoria[claveMun] && memoria[claveMun].lat && memoria[claveMun].lng) {
+                    return { lat: memoria[claveMun].lat, lng: memoria[claveMun].lng, fuente: 'MEMORIA_APRENDIZAJE' };
+                }
 
-            // 1. Coincidencia EXACTA aprendida previamente para este predio específico y municipio
-            if (memoria[idDoc]) {
-                return {
-                    lat: memoria[idDoc].lat,
-                    lng: memoria[idDoc].lng,
-                    tipo: 'APRENDIZAJE_EXACTO',
-                    veces: memoria[idDoc].veces || 1
-                };
+                var claveSin = normalizarClaveAprendizaje(dir, '');
+                if (memoria && memoria[claveSin] && memoria[claveSin].lat && memoria[claveSin].lng) {
+                    return { lat: memoria[claveSin].lat, lng: memoria[claveSin].lng, fuente: 'MEMORIA_APRENDIZAJE' };
+                }
+            } catch(e) {
+                console.warn("Error consultando memoria:", e);
             }
-
-            // NOTA: No se permite coincidencia por prefijo suelto (ej: solo Calle 80), porque dos direcciones
-            // con diferente carrera o diferente número son predios distintos y no deben compartir las mismas coordenadas
-            // ni colocarse una encima de la otra.
             return null;
         }
 
-        // =========================================================================
-        // MOTOR DE PICO Y PLACA NACIONAL MULTI-CIUDAD (COLOMBIA)
-        // Detecta automáticamente la ciudad y aplica las restricciones vigentes
-        // =========================================================================
-        function calcularPicoYPlacaNacional(placa, dirOMunicipio) {
-            if (!placa) return { aplica: false, ciudad: 'COLOMBIA' };
-            var pClean = placa.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            var ult = pClean.slice(-1);
-            var esMoto = /^[A-Z]{3}\d{2}[A-Z]$/.test(pClean);
-            var primerNumMoto = (pClean.match(/\d/) || ['0'])[0];
+        // MOTOR DE CUADRÍCULA URBANA COLOMBIANA DE ALTA PRECISIÓN (CALLE X CARRERA X PUERTA)
+        function calcularCoordenadasCuadriculaColombiana(infoNom, munNombre) {
+            if (!infoNom) return null;
+            var m = (munNombre || '').toUpperCase();
+            var cNum = infoNom.calleNum;
+            var kNum = infoNom.craNum;
+            var esSur = infoNom.esSur;
+            var puerta = infoNom.puerta || 0;
+            var tipo = infoNom.tipo;
 
-            var fechaHoy = new Date();
-            var diaSemana = fechaHoy.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-            var diaDelMes = fechaHoy.getDate();
+            var lat = 6.2442;
+            var lng = -75.5812;
 
-            // Fines de semana no hay pico y placa para particulares en Colombia
-            if (diaSemana === 0 || diaSemana === 6) {
-                return { aplica: false, ciudad: 'FIN DE SEMANA', descripcion: 'Libre circulación' };
+            if (m.includes('ESTRELLA')) {
+                // Parque Principal La Estrella: Calle 80 Sur con Cra 60 (6.1565, -75.6435)
+                // Calles Sur menores (ej: 75 Sur) están al norte del Parque (mayor latitud)
+                lat = 6.1565 + ((80 - cNum) * 0.00095);
+                lng = -75.6435 - ((kNum - 60) * 0.00075);
+            } else if (m.includes('ENVIGADO')) {
+                // Parque Principal Envigado: Calle 37 Sur con Cra 42 (6.1687, -75.5878)
+                lat = 6.1687 - ((cNum - 37) * 0.00085);
+                lng = -75.5878 - ((kNum - 42) * 0.00080);
+            } else if (m.includes('SABANETA')) {
+                // Parque Principal Sabaneta: Calle 71 Sur con Cra 45 (6.1515, -75.6166)
+                lat = 6.1515 - ((cNum - 71) * 0.00085);
+                lng = -75.6166 - ((kNum - 45) * 0.00080);
+            } else if (m.includes('ITAGUI') || m.includes('ITAGÜÍ')) {
+                // Parque Principal Itagüí: Calle 51 con Cra 51 (6.1730, -75.6090)
+                lat = 6.1730 + ((cNum - 51) * 0.00085);
+                lng = -75.6090 - ((kNum - 51) * 0.00080);
+            } else if (m.includes('BELLO')) {
+                lat = 6.3373 + ((cNum - 45) * 0.00085);
+                lng = -75.5580 - ((kNum - 50) * 0.00075);
+            } else if (m.includes('BOGOTA') || m.includes('BOGOTÁ')) {
+                lat = esSur ? (4.5980 - (cNum * 0.00090)) : (4.5980 + (cNum * 0.00090));
+                lng = -74.0750 - (kNum * 0.00085);
+            } else if (m.includes('CALI')) {
+                lat = 3.4516 + ((cNum - 10) * 0.00085);
+                lng = -76.5320 - ((kNum - 40) * 0.00080);
+            } else {
+                // Medellín y Valle de Aburrá Central
+                if (esSur) {
+                    // El Poblado (Calles 1 Sur a 20 Sur)
+                    lat = 6.2000 - (cNum * 0.00100);
+                    lng = -75.5725 - ((kNum - 43) * 0.00110);
+                } else if (cNum <= 30) {
+                    // Barrio Colombia / Industriales
+                    lat = 6.2010 + (cNum * 0.00102);
+                    lng = -75.5725 - ((kNum - 44) * 0.00120);
+                } else {
+                    // Centro / Laureles / Belén / Robledo / Castilla (Parque Berrío: 6.2518, -75.5685)
+                    lat = 6.2518 + ((cNum - 50) * 0.00095);
+                    lng = -75.5685 - ((kNum - 50) * 0.00115);
+                }
             }
 
-            var infoMun = detectarMunicipioEnTexto(dirOMunicipio || '');
-            var ciudad = infoMun.nombre;
-
-            // 1. MEDELLÍN Y VALLE DE ABURRÁ
-            if (['MEDELLIN', 'BELLO', 'ITAGUI', 'ITAGÜÍ', 'ENVIGADO', 'SABANETA', 'LA ESTRELLA', 'CALDAS', 'COPACABANA', 'GIRARDOTA', 'BARBOSA'].includes(ciudad)) {
-                var digitoMed = esMoto ? primerNumMoto : ult;
-                // Rotación Valle de Aburrá (Lunes: 5-8, Martes: 1-4, Miércoles: 0-2, Jueves: 3-6, Viernes: 7-9)
-                var mapaMed = { 1: ['5', '8'], 2: ['1', '4'], 3: ['0', '2'], 4: ['3', '6'], 5: ['7', '9'] };
-                var restMed = mapaMed[diaSemana] || [];
-                return {
-                    aplica: restMed.includes(digitoMed),
-                    ciudad: 'MEDELLÍN',
-                    descripcion: 'Restricción: ' + restMed.join(', ')
-                };
+            // Desplazamiento métrico por número de puerta a lo largo de la cuadra
+            if (puerta > 0) {
+                var offset = Math.min(puerta, 150) * 0.0000085;
+                if (['CL', 'CLL', 'CALLE', 'DG', 'DIAGONAL'].includes(tipo)) {
+                    lng -= offset;
+                } else {
+                    lat += esSur ? -offset : offset;
+                }
             }
 
-            // 2. BOGOTÁ D.C.
-            if (['BOGOTA', 'BOGOTÁ', 'SOACHA', 'CHIA', 'CHÍA', 'ZIPAQUIRA'].includes(ciudad)) {
-                var esDiaPar = (diaDelMes % 2 === 0);
-                var restBogota = esDiaPar ? ['1', '2', '3', '4', '5'] : ['6', '7', '8', '9', '0'];
-                return {
-                    aplica: restBogota.includes(ult),
-                    ciudad: 'BOGOTÁ',
-                    descripcion: (esDiaPar ? 'Día Par (1,2,3,4,5)' : 'Día Impar (6,7,8,9,0)')
-                };
-            }
-
-            // 3. CALI
-            if (['CALI', 'PALMIRA', 'YUMBO', 'JAMUNDI'].includes(ciudad)) {
-                // Rotación Cali (Lunes: 7-8, Martes: 9-0, Miércoles: 1-2, Jueves: 3-4, Viernes: 5-6)
-                var mapaCali = { 1: ['7', '8'], 2: ['9', '0'], 3: ['1', '2'], 4: ['3', '4'], 5: ['5', '6'] };
-                var restCali = mapaCali[diaSemana] || [];
-                return {
-                    aplica: restCali.includes(ult),
-                    ciudad: 'CALI',
-                    descripcion: 'Restricción: ' + restCali.join(', ')
-                };
-            }
-
-            // 4. BUCARAMANGA
-            if (['BUCARAMANGA', 'FLORIDABLANCA', 'GIRON', 'GIRÓN', 'PIEDECUESTA'].includes(ciudad)) {
-                // Rotación Bucaramanga (Lunes: 1-2, Martes: 3-4, Miércoles: 5-6, Jueves: 7-8, Viernes: 9-0)
-                var mapaBuca = { 1: ['1', '2'], 2: ['3', '4'], 3: ['5', '6'], 4: ['7', '8'], 5: ['9', '0'] };
-                var restBuca = mapaBuca[diaSemana] || [];
-                return {
-                    aplica: restBuca.includes(ult),
-                    ciudad: 'BUCARAMANGA',
-                    descripcion: 'Restricción: ' + restBuca.join(', ')
-                };
-            }
-
-            // 5. PEREIRA Y EJE CAFETERO
-            if (['PEREIRA', 'DOSQUEBRADAS', 'MANIZALES', 'ARMENIA'].includes(ciudad)) {
-                // Rotación Eje Cafetero (Lunes: 0-1, Martes: 2-3, Miércoles: 4-5, Jueves: 6-7, Viernes: 8-9)
-                var mapaPer = { 1: ['0', '1'], 2: ['2', '3'], 3: ['4', '5'], 4: ['6', '7'], 5: ['8', '9'] };
-                var restPer = mapaPer[diaSemana] || [];
-                return {
-                    aplica: restPer.includes(ult),
-                    ciudad: 'PEREIRA',
-                    descripcion: 'Restricción: ' + restPer.join(', ')
-                };
-            }
-
-            // 6. CARTAGENA
-            if (['CARTAGENA', 'TURBACO'].includes(ciudad)) {
-                var mapaCtg = { 1: ['1', '2'], 2: ['3', '4'], 3: ['5', '6'], 4: ['7', '8'], 5: ['9', '0'] };
-                var restCtg = mapaCtg[diaSemana] || [];
-                return {
-                    aplica: restCtg.includes(ult),
-                    ciudad: 'CARTAGENA',
-                    descripcion: 'Restricción: ' + restCtg.join(', ')
-                };
-            }
-
-            // 7. CÚCUTA
-            if (['CUCUTA', 'CÚCUTA', 'LOS PATIOS', 'VILLA DEL ROSARIO'].includes(ciudad)) {
-                var mapaCuc = { 1: ['1', '2'], 2: ['3', '4'], 3: ['5', '6'], 4: ['7', '8'], 5: ['9', '0'] };
-                var restCuc = mapaCuc[diaSemana] || [];
-                return {
-                    aplica: restCuc.includes(ult),
-                    ciudad: 'CÚCUTA',
-                    descripcion: 'Restricción: ' + restCuc.join(', ')
-                };
-            }
-
-            return { aplica: false, ciudad: ciudad, descripcion: 'Sin restricción reportada' };
+            return {
+                lat: parseFloat(lat.toFixed(6)),
+                lng: parseFloat(lng.toFixed(6)),
+                fuente: 'CUADRICULA_URBANA_COLOMBIA'
+            };
         }
 
-        function tienePicoYPlaca(placa, dirOMunicipio) {
-            return calcularPicoYPlacaNacional(placa, dirOMunicipio).aplica;
-        }
-
+        // MOTOR PRINCIPAL DE GEOCODIFICACIÓN ROBUSTA Y EXACTA
         async function obtenerCoordenadasExactasLimpias(dir) {
             dir = (dir || "").trim();
             if (!dir) return { lat: 6.2442, lng: -75.5812 };
@@ -2126,99 +2064,95 @@
                 var latD = parseFloat(matchCoord[1]);
                 var lngD = parseFloat(matchCoord[2]);
                 if (latD >= -5 && latD <= 13 && lngD >= -82 && lngD <= -66) {
-                    return { lat: latD, lng: lngD };
+                    return { lat: latD, lng: lngD, fuente: 'COORDENADAS_DIRECTAS' };
                 }
             }
 
-            var infoMun = detectarMunicipioEnTexto(dir);
+            // PASO 1: Analizar la estructura de la nomenclatura colombiana
+            var infoNom = parsearNomenclaturaColombiana(dir);
+
+            // PASO 2: Detectar municipio o inferirlo inteligentemente
+            var infoMun = detectarMunicipioEnTexto(dir, infoNom);
             var munNombre = infoMun.nombre;
             var centroMunicipio = infoMun.coords;
 
-            // PASO 0: Consultar Memoria de Aprendizaje Inteligente (Human-Verified Geocoding)
+            // PASO 3: Consultar Memoria de Aprendizaje Inteligente (Human-Verified Geocoding)
             var aprendida = consultarMemoriaAprendizaje(dir, munNombre);
             if (aprendida) {
-                console.log("🎯 Ubicación tomada de la Memoria de Aprendizaje:", dir, "-> (" + aprendida.lat + ", " + aprendida.lng + ")");
-                return { lat: aprendida.lat, lng: aprendida.lng, aprendido: true };
+                console.log("🎯 Ubicación tomada de la Memoria de Aprendizaje Verificada:", dir, "-> (" + aprendida.lat + ", " + aprendida.lng + ")");
+                return { lat: aprendida.lat, lng: aprendida.lng, aprendido: true, fuente: 'MEMORIA_APRENDIZAJE' };
             }
 
-            var t = dir.toUpperCase();
-            var mCalle = t.match(/\b(?:CL|CLL|CALLE)\s*(\d+)/);
-            var mCra = t.match(/\b(?:KR|CR|CRA|CARRERA)\s*(\d+)/);
-            var esSur = t.includes('SUR');
+            // PASO 4: Cuadrícula Urbana Colombiana Precisa (Nomenclatura Calle x Carrera)
+            var coordsCuadricula = null;
+            if (infoNom) {
+                coordsCuadricula = calcularCoordenadasCuadriculaColombiana(infoNom, munNombre);
+            }
 
-            // Limpieza especializada de nomenclatura
-            var limpiaBase = dir.replace(/\t/g, ' ')
-                                .replace(/\b(LC|LOCAL|CS|CASA|AP|APTO|IN|INT|INTERIOR|PISO|OF|OFICINA|BOSQUE|CENTRO COMERCIAL[^\(\)]*)\b.*?(?=(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|GOMEZ PLATA|CHIGORODO|APARTADO|CAREPA|TURBO|\(|$))/gi, ' ')
-                                .replace(/\(.*?\)/g, ' ')
-                                .replace(/CL\s*/gi, 'Calle ')
-                                .replace(/KR\s*|CR\s*/gi, 'Carrera ')
-                                .replace(/TV\s*/gi, 'Transversal ')
-                                .replace(/DG\s*/gi, 'Diagonal ')
-                                .replace(/#/g, ' ')
-                                .replace(/-/g, ' ')
-                                .replace(/\s+/g, ' ')
-                                .trim();
+            // PASO 5: Intentar Geocodificador en línea de alta precisión
+            var dirParaBusqueda = dir.replace(/\(.*\)/g, ' ')
+                                     .replace(/\t/g, ' ')
+                                     .replace(/\b(LC|LOCAL|CS|CASA|AP|APTO|IN|INT|INTERIOR|PISO|OF|OFICINA|TORRE|EDIFICIO)[\s\d\-A-Z]*/gi, '')
+                                     .replace(/\s+/g, ' ')
+                                     .trim();
 
-            var queryPhoton = limpiaBase + " " + munNombre + " Antioquia Colombia";
-            var queryNormal = limpiaBase + ", " + munNombre + ", Antioquia, Colombia";
+            var queryEstructurada = dirParaBusqueda + ", " + munNombre + ", Colombia";
 
-            // 2. Intentar PHOTON API sesgado al municipio detectado
-            try {
-                var biasLat = centroMunicipio.lat;
-                var biasLon = centroMunicipio.lng;
-                var urlPhoton = "https://photon.komoot.io/api/?q=" + encodeURIComponent(queryPhoton) + "&lat=" + biasLat + "&lon=" + biasLon + "&lang=es&limit=1";
-                var respPh = await fetch(urlPhoton);
-                var dataPh = await respPh.json();
-                if (dataPh && dataPh.features && dataPh.features.length > 0) {
-                    var coordsPh = dataPh.features[0].geometry.coordinates;
-                    var lngPh = parseFloat(coordsPh[0]);
-                    var latPh = parseFloat(coordsPh[1]);
-                    if (latPh >= 4.0 && latPh <= 12.0 && lngPh >= -78.0 && lngPh <= -72.0) {
-                        return { lat: latPh, lng: lngPh };
-                    }
-                }
-            } catch(e) {}
-
-            // 3. Google Maps API (si el usuario ingresó clave)
-            if (configApp.googleApiKey) {
-                var urlG = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(queryNormal) + "&key=" + configApp.googleApiKey;
+            // Intentar Google Maps Geocoding si hay clave configurada
+            if (configApp && configApp.googleApiKey) {
                 try {
+                    var urlG = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(queryEstructurada) + "&key=" + configApp.googleApiKey;
                     var respG = await fetch(urlG);
                     var dataG = await respG.json();
                     if (dataG.status === "OK" && dataG.results.length > 0) {
                         var loc = dataG.results[0].geometry.location;
-                        return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) };
+                        var locType = dataG.results[0].geometry.location_type;
+                        if (locType === 'ROOFTOP' || locType === 'RANGE_INTERPOLATED' || locType === 'GEOMETRIC_CENTER') {
+                            return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng), fuente: 'GOOGLE_MAPS' };
+                        }
                     }
-                } catch(e) {}
+                } catch(eG) {}
             }
 
-            // 4. OpenStreetMap Nominatim
+            // Intentar Photon OSM con descarte estricto de centroides genéricos
             try {
-                var urlNom = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(queryNormal) + "&limit=1";
-                var respNom = await fetch(urlNom, { headers: { 'Accept-Language': 'es' } });
-                var dataNom = await respNom.json();
-                if (dataNom && dataNom.length > 0) {
-                    return { lat: parseFloat(dataNom[0].lat), lng: parseFloat(dataNom[0].lon) };
-                }
-            } catch(e) {}
+                var biasLat = centroMunicipio.lat;
+                var biasLon = centroMunicipio.lng;
+                var urlPhoton = "https://photon.komoot.io/api/?q=" + encodeURIComponent(queryEstructurada) + "&lat=" + biasLat + "&lon=" + biasLon + "&lang=es&limit=1";
+                var controllerPh = new AbortController();
+                var toPh = setTimeout(function() { controllerPh.abort(); }, 3000);
+                var respPh = await fetch(urlPhoton, { signal: controllerPh.signal });
+                clearTimeout(toPh);
+                var dataPh = await respPh.json();
 
-            // 5. Interpolar por Cuadrícula Urbana si se tienen Calle y Carrera
-            if (mCalle && mCra) {
-                var cNum = parseInt(mCalle[1]);
-                var kNum = parseInt(mCra[1]);
-                if (cNum > 0 && cNum < 150 && kNum > 0 && kNum < 120) {
-                    return aproximarCoordenadasPorNomenclatura(cNum, kNum, esSur, munNombre);
+                if (dataPh && dataPh.features && dataPh.features.length > 0) {
+                    var f = dataPh.features[0];
+                    var props = f.properties || {};
+                    var esCentroideGenerico = ['city', 'town', 'village', 'municipality', 'administrative', 'suburb'].includes(props.type) || props.osm_key === 'place';
+                    if (!esCentroideGenerico && (props.street || props.housenumber || props.name)) {
+                        var coordsPh = f.geometry.coordinates;
+                        var lngPh = parseFloat(coordsPh[0]);
+                        var latPh = parseFloat(coordsPh[1]);
+                        if (latPh >= 1.0 && latPh <= 13.0 && lngPh >= -82.0 && lngPh <= -66.0) {
+                            return { lat: latPh, lng: lngPh, fuente: 'PHOTON_EXACTO' };
+                        }
+                    }
                 }
+            } catch(ePh) {}
+
+            // PASO 6: Si Photon no arrojó punto específico pero hay cruce vial, usar la Cuadrícula Urbana
+            if (coordsCuadricula) {
+                console.log("📐 Ubicación calculada por Cuadrícula Urbana Calibrada:", dir, "-> (" + coordsCuadricula.lat + ", " + coordsCuadricula.lng + ")");
+                return coordsCuadricula;
             }
 
-            // 6. Centroide del municipio si fue detectado
+            // PASO 7: Si no hay cruce vial identificado, centroide del municipio
             if (centroMunicipio) {
-                var offLat = (Math.random() - 0.5) * 0.003;
-                var offLng = (Math.random() - 0.5) * 0.003;
-                return { lat: centroMunicipio.lat + offLat, lng: centroMunicipio.lng + offLng };
+                console.warn("⚠️ Dirección sin cruce vial identificado, asignando centroide de municipio:", munNombre);
+                return { lat: centroMunicipio.lat, lng: centroMunicipio.lng, fuente: 'CENTROIDE_MUNICIPIO' };
             }
 
-            return { lat: 6.2442 + (Math.random() - 0.5) * 0.003, lng: -75.5812 + (Math.random() - 0.5) * 0.003 };
+            return { lat: 6.2442, lng: -75.5812 };
         }
 
         // PARSER UNIVERSAL MULTI-VEHÍCULO (WHATSAPP, RUNT, GEMINI)
@@ -3996,8 +3930,22 @@
                 }
             });
 
+            // Si la dirección fue cambiada manualmente en la edición, re-geocodificar con alta precisión
+            var dirCambio = (nuevaDir && (nuevaDir !== puntosData[itemIndex].dirOriginal && nuevaDir !== puntosData[itemIndex].dir));
+            if (dirCambio) {
+                var nuevasCoords = await obtenerCoordenadasExactasLimpias(nuevaDir);
+                if (nuevasCoords) {
+                    puntosData[itemIndex].lat = nuevasCoords.lat;
+                    puntosData[itemIndex].lng = nuevasCoords.lng;
+                    if (puntosData[itemIndex].marker) {
+                        puntosData[itemIndex].marker.setLatLng([nuevasCoords.lat, nuevasCoords.lng]);
+                        destacarHaloPosicion(nuevasCoords.lat, nuevasCoords.lng);
+                        map.setView([nuevasCoords.lat, nuevasCoords.lng], 17, { animate: true });
+                    }
+                }
+            }
+
             guardarPuntosStorage();
-            // APRENDIZAJE AUTOMÁTICO: Memorizar si se editó la dirección
             if (nuevaDir && puntosData[itemIndex]) {
                 guardarAprendizajeDireccion(nuevaDir, puntosData[itemIndex].lat, puntosData[itemIndex].lng);
             }
