@@ -1071,10 +1071,10 @@
             if (radarActivo) {
                 if (panel) panel.style.display = 'block';
                 if (hud) hud.style.display = 'block';
-                mostrarToastNotificacion("🚨 Radar ON: Toca el botón morado 🪟 para que flote sobre WhatsApp y Maps.");
+                mostrarToastNotificacion("🚨 Radar ON: Botón flotante activo (se mantendrá al salir a WhatsApp/Maps).");
                 actualizarPanelCercano();
                 iniciarArrastreHud();
-                prepararPipVideo();
+                prepararPipVideo(true);
             } else {
                 if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
@@ -1335,35 +1335,61 @@
             }
         }
 
-        // VENTANA FLOTANTE NATIVA PICTURE-IN-PICTURE (SOBRE OTRAS APPS COMO GOOGLE MAPS)
+        // VENTANA FLOTANTE NATIVA PICTURE-IN-PICTURE (DISEÑO IDÉNTICO AL BOTÓN FLOTANTE DEL MAPA)
         function actualizarPipCanvas() {
             if (!pipCanvasEl) {
                 pipCanvasEl = document.createElement('canvas');
                 pipCanvasEl.width = 440;
-                pipCanvasEl.height = 240;
+                pipCanvasEl.height = 180;
                 pipCtxEl = pipCanvasEl.getContext('2d');
             }
             var ctx = pipCtxEl;
             var w = pipCanvasEl.width;
             var h = pipCanvasEl.height;
 
-            // Fondo futurista cyberpunk oscuro
-            var bgGrad = ctx.createLinearGradient(0, 0, w, h);
-            bgGrad.addColorStop(0, '#070b14');
-            bgGrad.addColorStop(1, '#0f172a');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(0, 0, w, h);
-
             var enAlerta = (placaMasCercanaObj && menorDistanciaMetros <= 500);
 
-            // Borde Neón
-            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00f0ff';
-            ctx.lineWidth = 5;
-            ctx.strokeRect(3, 3, w - 6, h - 6);
+            // Fondo base oscuro
+            ctx.fillStyle = '#050811';
+            ctx.fillRect(0, 0, w, h);
 
-            // Mini radar circular
-            var rx = 48, ry = 48, rr = 30;
-            ctx.strokeStyle = enAlerta ? 'rgba(255, 0, 85, 0.4)' : 'rgba(0, 240, 255, 0.4)';
+            // Cápsula futurista idéntica al botón del mapa
+            var px = 10, py = 10, pw = w - 20, ph = h - 20, pr = 26;
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(px, py, pw, ph, pr);
+            } else {
+                ctx.rect(px, py, pw, ph);
+            }
+            var capGrad = ctx.createLinearGradient(px, py, px + pw, py + ph);
+            capGrad.addColorStop(0, '#090e1a');
+            capGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = capGrad;
+            ctx.fill();
+
+            // Borde Neón y resplandor idéntico al mapa
+            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00f0ff';
+            ctx.lineWidth = 3.5;
+            ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.8)' : 'rgba(0, 240, 255, 0.6)';
+            ctx.shadowBlur = 12;
+            ctx.stroke();
+            ctx.restore();
+
+            // Mini radar circular idéntico al disco del HUD
+            var rx = 58, ry = 90, rr = 38;
+            ctx.save();
+            var rGrad = ctx.createRadialGradient(rx, ry, 2, rx, ry, rr);
+            rGrad.addColorStop(0, enAlerta ? 'rgba(255, 0, 85, 0.3)' : 'rgba(0, 255, 135, 0.3)');
+            rGrad.addColorStop(0.7, '#0a1424');
+            rGrad.addColorStop(1, '#050a12');
+            ctx.fillStyle = rGrad;
+            ctx.beginPath();
+            ctx.arc(rx, ry, rr, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Anillos
+            ctx.strokeStyle = enAlerta ? 'rgba(255, 0, 85, 0.5)' : 'rgba(0, 240, 255, 0.5)';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.arc(rx, ry, rr, 0, Math.PI * 2);
@@ -1372,8 +1398,16 @@
             ctx.arc(rx, ry, rr * 0.5, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Línea de barrido
-            radarSweepAngle = (radarSweepAngle + 0.12) % (Math.PI * 2);
+            // Cruz táctica
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(rx - rr, ry); ctx.lineTo(rx + rr, ry);
+            ctx.moveTo(rx, ry - rr); ctx.lineTo(rx, ry + rr);
+            ctx.stroke();
+
+            // Barrido de radar animado
+            radarSweepAngle = (radarSweepAngle + 0.14) % (Math.PI * 2);
             ctx.strokeStyle = enAlerta ? '#ff0055' : '#00ff87';
             ctx.lineWidth = 2.5;
             ctx.beginPath();
@@ -1381,70 +1415,88 @@
             ctx.lineTo(rx + Math.cos(radarSweepAngle) * rr, ry + Math.sin(radarSweepAngle) * rr);
             ctx.stroke();
 
-            // Punto de objetivo
+            // Punto objetivo parpadeante
             ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
+            ctx.shadowColor = enAlerta ? '#ff0055' : '#00ff87';
+            ctx.shadowBlur = 8;
             ctx.beginPath();
-            ctx.arc(rx + 10, ry - 8, 4, 0, Math.PI * 2);
+            ctx.arc(rx + 12, ry - 10, 4.5, 0, Math.PI * 2);
             ctx.fill();
+            ctx.restore();
 
-            // Título HUD
-            ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
-            ctx.font = 'bold 15px monospace';
-            ctx.fillText(enAlerta ? '🚨 ¡VEHÍCULO EN RANGO (<500M)!' : '🛰️ RADAR RAPTOR • EN VIVO', 90, 42);
-
+            // Datos del vehículo
             if (placaMasCercanaObj) {
                 var p = placaMasCercanaObj;
                 var marca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : 'VEHÍCULO';
                 var linea = (p.linea && p.linea !== '-') ? p.linea : '';
-                var carroStr = (marca + ' ' + linea).trim();
+                var modelo = (p.modelo && p.modelo !== '-') ? p.modelo : '';
+                var carroStr = (marca + ' ' + linea + ' ' + modelo).trim();
                 var colorStr = (p.color && p.color !== '-') ? p.color : 'SIN COLOR';
                 var distTxt = menorDistanciaMetros < 1000 ? Math.round(menorDistanciaMetros) + ' M' : (menorDistanciaMetros / 1000).toFixed(1) + ' KM';
 
-                // Caja de placa amarilla reflectiva
+                // Caja de placa amarilla reflectiva idéntica
+                ctx.save();
                 ctx.fillStyle = '#000000';
-                ctx.fillRect(18, 92, 175, 52);
+                var bx = 115, by = 24, bw = 150, bh = 42;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 6);
+                else ctx.rect(bx, by, bw, bh);
+                ctx.fill();
                 ctx.strokeStyle = '#ffea00';
-                ctx.lineWidth = 2.5;
-                ctx.strokeRect(18, 92, 175, 52);
+                ctx.lineWidth = 2;
+                ctx.shadowColor = 'rgba(255, 234, 0, 0.6)';
+                ctx.shadowBlur = 6;
+                ctx.stroke();
 
                 ctx.fillStyle = '#ffea00';
-                ctx.font = '900 32px sans-serif';
-                ctx.fillText(p.placa, 28, 131);
+                ctx.font = '900 27px -apple-system, sans-serif';
+                ctx.fillText(p.placa, bx + 12, by + 31);
+                ctx.restore();
 
-                // Distancia
+                // Distancia destacada
+                ctx.save();
                 ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
-                ctx.font = '900 24px monospace';
-                ctx.fillText('🎯 ' + distTxt, 208, 128);
+                ctx.font = '900 22px monospace';
+                ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.7)' : 'rgba(0, 255, 135, 0.7)';
+                ctx.shadowBlur = 8;
+                ctx.fillText('🎯 ' + distTxt, 280, 53);
+                ctx.restore();
 
-                // Carro
+                // Fila Vehículo
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 18px sans-serif';
-                ctx.fillText('🚗 ' + carroStr.slice(0, 24), 20, 174);
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText('🚗 ' + carroStr.slice(0, 25), 118, 96);
 
-                // Color
+                // Fila Color
                 ctx.fillStyle = '#38bdf8';
-                ctx.font = 'bold 17px sans-serif';
-                ctx.fillText('🎨 ' + colorStr.toUpperCase(), 20, 204);
+                ctx.font = 'bold 15px sans-serif';
+                ctx.fillText('🎨 COLOR: ' + colorStr.toUpperCase(), 118, 124);
 
-                // Dirección resumida
-                ctx.fillStyle = '#94a3b8';
-                ctx.font = '12px sans-serif';
-                var dir = (p.dirOriginal || p.dir || '').slice(0, 42);
-                ctx.fillText('📍 ' + dir, 20, 228);
+                // Fila Estado / Alerta
+                if (enAlerta) {
+                    ctx.fillStyle = '#ff0055';
+                    ctx.font = 'bold 13px monospace';
+                    ctx.fillText('🚨 ¡EN RANGO CRÍTICO (<500M)!', 118, 150);
+                } else {
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '12px sans-serif';
+                    var dir = (p.dirOriginal || p.dir || 'Dirección registrada').slice(0, 36);
+                    ctx.fillText('📍 ' + dir, 118, 150);
+                }
             } else {
                 ctx.fillStyle = '#94a3b8';
                 ctx.font = 'bold 18px sans-serif';
-                ctx.fillText('Esperando señal GPS / Vehículos...', 30, 140);
+                ctx.fillText('🛰️ Esperando posición GPS...', 120, 95);
             }
         }
 
-        function prepararPipVideo() {
+        function prepararPipVideo(autoLanzar) {
             if (!document.pictureInPictureEnabled && !('pictureInPictureEnabled' in document)) return;
 
             if (!pipCanvasEl) {
                 pipCanvasEl = document.createElement('canvas');
                 pipCanvasEl.width = 440;
-                pipCanvasEl.height = 240;
+                pipCanvasEl.height = 180;
                 pipCtxEl = pipCanvasEl.getContext('2d');
             }
 
@@ -1461,7 +1513,6 @@
                 pipVideoEl.setAttribute('autopictureinpicture', '');
                 pipVideoEl.autoPictureInPicture = true;
 
-                // Dimensiones reales pero fuera de la vista para cumplir requisitos de Chrome Android
                 pipVideoEl.style.width = '160px';
                 pipVideoEl.style.height = '90px';
                 pipVideoEl.style.position = 'fixed';
@@ -1475,15 +1526,20 @@
                 pipStreamTrack = pipCanvasEl.captureStream(12);
                 pipVideoEl.srcObject = pipStreamTrack;
 
-                pipVideoEl.play().catch(function(e) { console.warn("Video play:", e); });
-
-                // Actualización periódica mientras esté en PiP
                 setInterval(function() {
                     if (radarActivo && (document.pictureInPictureElement === pipVideoEl || document.hidden)) {
                         actualizarPipCanvas();
                     }
-                }, 750);
+                }, 650);
             }
+
+            pipVideoEl.play().then(function() {
+                if (autoLanzar && !document.pictureInPictureElement) {
+                    pipVideoEl.requestPictureInPicture().catch(function(err) {
+                        console.warn("Auto-PiP diferido a cambio de app:", err);
+                    });
+                }
+            }).catch(function(e) { console.warn("Video play:", e); });
         }
 
         function iniciarPipRadar() {
@@ -1492,7 +1548,7 @@
                 return;
             }
 
-            prepararPipVideo();
+            prepararPipVideo(false);
 
             if (document.pictureInPictureElement === pipVideoEl) {
                 document.exitPictureInPicture().then(function() {
@@ -1504,7 +1560,7 @@
             if (pipVideoEl) {
                 pipVideoEl.play().then(function() {
                     pipVideoEl.requestPictureInPicture().then(function() {
-                        mostrarToastNotificacion("🛰️ ¡Ventana flotante activa! Ahora sal a WhatsApp o Maps y se mantendrá en pantalla.");
+                        mostrarToastNotificacion("🛰️ ¡Ventana flotante activa! Se mantendrá en pantalla al salir a WhatsApp.");
                     }).catch(function(err) {
                         console.warn("PiP request error:", err);
                         mostrarToastNotificacion("ℹ️ Toca la pantalla de nuevo para autorizar la ventana flotante.");
