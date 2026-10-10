@@ -245,18 +245,20 @@
         </div>
     </div>
 
-    <!-- BOTÓN AGREGAR Y MENÚ -->
+    <!-- BOTÓN AGREGAR Y MENÚ DE 5 OPCIONES -->
     <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
     <div id="menuOpciones" class="floating-menu">
         <div class="header-menu">
             <b style="color: #2c3e50; font-size: 14px;">Opciones de Carga:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">📱 1. Pegar reportes WhatsApp (Múltiples)</button>
-        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">⚡ 2. Pegar Extracción IA (Gemini)</button>
-        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">✍️ 3. Ingreso manual / Foto OCR</button>
+        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto (WhatsApp)</button>
+        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual completo</button>
+        <button class="main-opt mo-1" onclick="abrirSeccion('link-maps')" style="background: linear-gradient(145deg, #2980b9, #1f618d);">3. 🧭 Agregar por Link de Google Maps</button>
+        <button class="main-opt mo-4" onclick="abrirSeccion('tabla-foto')" style="background: linear-gradient(145deg, #e67e22, #d35400);">4. 📸 Subir Foto de Tabla (Auto)</button>
+        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">5. ⚡ Pegar Extracción IA (Gemini)</button>
 
-        <!-- SECCIÓN WHATSAPP / MULTI-REPORTE -->
+        <!-- SECCIÓN 1: WHATSAPP / MULTI-REPORTE -->
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:11px;">Pega los reportes tal como vienen de WhatsApp (una o varias placas):</b>
             <textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ... &#10;&#10;[6:04 p. m.] UBICAR &#10;LRW993 ..." style="height: 140px; font-size: 11px;"></textarea>
@@ -264,35 +266,60 @@
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
 
-        <!-- SECCIÓN GEMINI MULTI-PLACA -->
-        <div id="seccion-gemini" class="sub-panel">
-            <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br>
-            <span style="font-size: 10px; color:#666; display:block; margin: 4px 0 8px 0;">Pega aquí uno o varios vehículos:</span>
-            <textarea id="txtGemini" placeholder="PLACA: GCV922&#10;MARCA: SUZUKI&#10;LÍNEA: SWIFT DZIRE TAM&#10;MODELO: 2020&#10;COLOR: GRIS METALICO&#10;SOAT: SI | TECNO: SI&#10;DIRECCIÓN 1: KR 62 A # 74 SUR - 143, LA ESTRELLA&#10;&#10;PLACA: LRW993&#10;MARCA: RENAULT&#10;LÍNEA: LOGAN&#10;MODELO: 2023&#10;COLOR: GRIS ESTRELLA&#10;SOAT: NO | TECNO: NO&#10;CELULARES: 3106658981, 3017433454&#10;DIRECCIÓN 1: KR 55 B # 79 - 22, MEDELLIN" style="height: 140px; font-size: 11px;"></textarea>
-            <button class="action act-green" onclick="procesarTextoUniversal('txtGemini')">🚀 Mapear Ubicaciones</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
-        </div>
-
-        <!-- SECCIÓN MANUAL -->
+        <!-- SECCIÓN 2: INGRESO MANUAL -->
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#8e44ad;">Ingreso Directo o Foto:</b>
+            <b style="font-size: 11px; color:#8e44ad;">Ingreso Directo / Coordenadas:</b>
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
-            <input type="text" id="manMarca" placeholder="Marca (ej: SUZUKI)">
-            <input type="text" id="manLinea" placeholder="Línea (ej: SWIFT DZIRE)">
+            <input type="text" id="manMarca" placeholder="Marca (ej: SUZUKI, RENAULT)">
+            <input type="text" id="manLinea" placeholder="Línea (ej: SWIFT, LOGAN)">
             <div style="display:flex; gap:5px;">
-                <input type="text" id="manModelo" placeholder="Modelo (ej: 2020)" style="flex:1;">
+                <input type="text" id="manModelo" placeholder="Modelo (ej: 2023)" style="flex:1;">
                 <input type="text" id="manColor" placeholder="Color (ej: GRIS)" style="flex:1;">
             </div>
             <div style="display:flex; gap:5px;">
                 <input type="text" id="manSoat" placeholder="SOAT (SI/NO)" style="flex:1;">
                 <input type="text" id="manTecno" placeholder="Tecno (SI/NO)" style="flex:1;">
             </div>
-            <input type="text" id="manTel" placeholder="Celulares de contacto">
+            <input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
             <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
             
-            <b style="font-size: 11px; margin-top: 8px; display: block; color:#2c3e50;">Foto del Reporte (Opcional OCR):</b>
-            <input type="file" id="manFoto" accept="image/*" style="font-size:11px; margin-top:4px;">
             <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 3: LINK DE GOOGLE MAPS -->
+        <div id="seccion-link-maps" class="sub-panel">
+            <b style="color:#2980b9; font-size:12px;">🧭 AGREGAR POR LINK DE GOOGLE MAPS</b><br>
+            <span style="font-size: 10px; color:#555; display:block; margin: 4px 0 8px 0;">Pega el enlace compartido desde Google Maps (ej: https://maps.app.goo.gl/... o coordenadas):</span>
+            
+            <input type="text" id="linkMapsPlaca" placeholder="Placa del vehículo (Obligatorio)">
+            <input type="text" id="linkMapsUrl" placeholder="Link de Google Maps (https://maps.app.goo.gl/...)">
+            <input type="text" id="linkMapsDir" placeholder="Dirección opcional (ej: Calle 33 # 76 - 82, Medellín)">
+            <input type="text" id="linkMapsCel" placeholder="Celulares (opcional, hasta 2)">
+            
+            <button class="action act-blue" onclick="procesarLinkGoogleMaps()">🧭 Ubicar y Agregar al Mapa</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 4: FOTO TABLA DIRECTA SIN COPIAR NI PEGAR -->
+        <div id="seccion-tabla-foto" class="sub-panel">
+            <b style="color:#d35400; font-size:12px;">📸 ESCANEO AUTOMÁTICO DE TABLA</b><br>
+            <span style="font-size: 10px; color:#555; display:block; margin: 4px 0 8px 0;">Sube la foto de la tabla (con SI/NO y números). El sistema prioriza automáticamente las 3 mejores direcciones sin copiar ni pegar:</span>
+            
+            <input type="text" id="fotoTablaPlaca" placeholder="Placa del vehículo (ej: LRW993)">
+            <input type="text" id="fotoTablaCelulares" placeholder="Hasta 2 celulares (ej: 3106658981, 3017433454)">
+            <input type="file" id="fotoTablaInput" accept="image/*" style="font-size:11px; margin-top:6px;">
+            
+            <button class="action act-orange" onclick="procesarFotoTablaDirecta()" style="background: linear-gradient(145deg, #e67e22, #d35400);">⚡ Escanear y Mapear Directo</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 5: GEMINI MULTI-PLACA -->
+        <div id="seccion-gemini" class="sub-panel">
+            <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br>
+            <span style="font-size: 10px; color:#666; display:block; margin: 4px 0 8px 0;">Pega aquí uno o varios vehículos extraídos por la IA:</span>
+            <textarea id="txtGemini" placeholder="PLACA: GCV922&#10;MARCA: SUZUKI&#10;LÍNEA: SWIFT DZIRE TAM&#10;MODELO: 2020&#10;COLOR: GRIS METALICO&#10;SOAT: SI | TECNO: SI&#10;DIRECCIÓN 1: KR 62 A # 74 SUR - 143, LA ESTRELLA&#10;&#10;PLACA: LRW993&#10;MARCA: RENAULT&#10;LÍNEA: LOGAN&#10;MODELO: 2023&#10;COLOR: GRIS ESTRELLA&#10;SOAT: NO | TECNO: NO&#10;CELULARES: 3106658981, 3017433454&#10;DIRECCIÓN 1: KR 55 B # 79 - 22, MEDELLIN" style="height: 140px; font-size: 11px;"></textarea>
+            <button class="action act-green" onclick="procesarTextoUniversal('txtGemini')">🚀 Mapear Ubicaciones</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
     </div>
@@ -563,7 +590,6 @@
 
         // PARSER UNIVERSAL MULTI-VEHÍCULO (WHATSAPP, RUNT, GEMINI)
         function analizarMultiplesVehiculos(texto) {
-            // Dividir por bloques de WhatsApp [timestamp], UBICAR o PLACA:
             var bloques = texto.split(/(?=(?:\[\d{1,2}:\d{2}\s*(?:[ap]\.?\s*m\.?)?,?[^\]]*\]|\bUBICAR\b|\bPLACA\s*:))/i);
             var resultados = [];
 
@@ -571,7 +597,6 @@
                 var b = bloque.trim();
                 if (!b) return;
 
-                // Buscar placa (3 letras + 3 dígitos/letras)
                 var pMatch = b.match(/\b([A-Z]{3}[0-9]{2}[0-9A-Z])\b/i);
                 if (!pMatch) return;
                 var placa = pMatch[1].toUpperCase();
@@ -579,7 +604,6 @@
 
                 var lineas = b.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-                // Función auxiliar para leer valor en la misma línea o en la siguiente
                 function extraerCampo(keywords) {
                     for (var i = 0; i < lineas.length; i++) {
                         var l = lineas[i];
@@ -588,11 +612,9 @@
                         var coincide = keywords.some(k => up.includes(k));
                         if (!coincide) continue;
 
-                        // Descartar falsos positivos
                         if (keywords.includes('VEHICULO') && (up.includes('CLASE') || up.includes('TIPO') || up.includes('INFORMACIÓN') || up.includes('INFORMACION'))) continue;
                         if (keywords.includes('LINEA') && (up.includes('FÉRREA') || up.includes('FERREA'))) continue;
 
-                        // Si tiene dos puntos o guión y texto en la misma línea
                         if (l.includes(':') || l.includes('-')) {
                             var partes = l.split(/[:\-]/);
                             if (partes.length > 1 && partes[1].trim()) {
@@ -601,7 +623,6 @@
                             }
                         }
 
-                        // Si no, tomar la línea siguiente si no es una etiqueta clave
                         if (i + 1 < lineas.length) {
                             var prox = lineas[i + 1].trim();
                             var proxUp = prox.toUpperCase();
@@ -641,21 +662,22 @@
                     }
                 }
 
-                // TELÉFONOS
+                // TELÉFONOS (Hasta 2 celulares)
                 var telsMatch = b.match(/\b3[0-9]{9}\b/g) || [];
                 var telsUnicos = [];
                 telsMatch.forEach(t => { if (!telsUnicos.includes(t)) telsUnicos.push(t); });
-                var telefonos = telsUnicos.length > 0 ? telsUnicos.join(', ') : '-';
+                var telefonos = telsUnicos.length > 0 ? telsUnicos.slice(0, 2).join(', ') : '-';
 
                 // DIRECCIONES
                 var direcciones = [];
                 lineas.forEach(function(l) {
-                    var up = l.toUpperCase();
+                    var dirLimpia = l.replace(/^(?:DIRECCI[OÓ]N\s*\d*:\s*)/i, '').trim();
+                    var up = dirLimpia.toUpperCase();
                     var tieneNom = (up.includes('CL ') || up.includes('KR ') || up.includes('CR ') || up.includes('TV ') || up.includes('DG ') || up.includes('AV ') || up.includes('CALLE ') || up.includes('CARRERA ') || up.includes('#'));
                     if (tieneNom && up.length > 6) {
                         var noEsRuido = !['UBICAR', 'DETALLE', 'PARTES', 'SOAT', 'TECNO', 'CEL'].some(k => up.includes(k));
-                        if (noEsRuido && !direcciones.includes(l)) {
-                            direcciones.push(l);
+                        if (noEsRuido && !direcciones.includes(dirLimpia)) {
+                            direcciones.push(dirLimpia);
                         }
                     }
                 });
@@ -700,7 +722,6 @@
             var totalPuntos = 0;
 
             for (let v of vehiculos) {
-                // Eliminar marcadores previos de esta placa para evitar duplicados
                 if (placasRegistradas[v.placa]) {
                     puntosData = puntosData.filter(function(item) {
                         if (item.placa === v.placa) {
@@ -742,7 +763,7 @@
             actualizarPanelCercano();
         }
 
-        // PROCESAR MANUAL O FOTO
+        // PROCESAR MANUAL
         async function procesarManual() {
             var placa = document.getElementById('manPlaca').value.toUpperCase().trim();
             var marca = document.getElementById('manMarca').value.trim() || "-";
@@ -753,41 +774,14 @@
             var mtecno = document.getElementById('manTecno').value.trim() || "SI";
             var mtel = document.getElementById('manTel').value.trim() || "-";
             var dir = document.getElementById('manDir').value.trim();
-            var fileInput = document.getElementById('manFoto');
-            var fotoBase64 = null;
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
-
-            // Si hay foto pero no dirección, ejecutar Tesseract OCR
-            if (!dir && fileInput.files && fileInput.files[0]) {
-                var loadingOverlay = document.getElementById('loading-overlay');
-                var loadingTexto = document.getElementById('loading-texto');
-                loadingOverlay.style.display = 'flex';
-                loadingTexto.innerText = "⏳ Escaneando reporte con IA...";
-
-                Tesseract.recognize(
-                    fileInput.files[0],
-                    'spa+eng', 
-                    { logger: m => { if (m.status === 'recognizing text') loadingTexto.innerText = "⏳ Leyendo reporte... " + Math.round(m.progress * 100) + "%"; }}
-                ).then(async ({ data: { text } }) => {
-                    loadingOverlay.style.display = 'none';
-                    document.getElementById('asistente-texto').value = text;
-                    document.getElementById('modal-asistente').style.display = 'block';
-                }).catch(error => {
-                    loadingOverlay.style.display = 'none';
-                    alert("No se pudo leer la foto automáticamente. Ingresa la dirección manual.");
-                });
-                return;
-            }
-
             if(!dir) { alert("Ingresa la dirección o coordenadas."); return; }
 
-            document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Geocodificando punto...";
-
-            if (fileInput.files && fileInput.files[0]) {
-                fotoBase64 = await fileToBase64(fileInput.files[0]);
-            }
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            loadingOverlay.style.display = 'flex';
+            loadingTexto.innerText = "🎯 Geocodificando punto...";
 
             if(placasRegistradas[placa]) eliminarTodasDePlaca(placa);
             placasRegistradas[placa] = true;
@@ -797,198 +791,386 @@
             var nuevoPunto = {
                 placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel, 
                 soat: msoat, tecnomecanica: mtecno,
-                lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: fotoBase64
+                lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
             };
 
             agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-            document.getElementById('loading-overlay').style.display = 'none';
+            map.setView([coords.lat, coords.lng], 16);
+            loadingOverlay.style.display = 'none';
             cerrarSecciones();
             actualizarPanelCercano();
         }
 
-        async function procesarModalRescate() {
-            var rawText = document.getElementById('asistente-texto').value.trim();
-            if(!rawText) { alert("Ingresa texto."); return; }
-            
-            document.getElementById('modal-asistente').style.display = 'none';
-            document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Geocodificando rescate...";
+        // PARSER ESPECIALIZADO DE ENLACES DE GOOGLE MAPS
+        function parsearLinkGoogleMaps(urlStr) {
+            if (!urlStr) return null;
+            var s = decodeURIComponent(urlStr).trim();
 
-            var lineas = rawText.split('\n');
-            var ubiFinales = [];
-            lineas.forEach(function(l) {
-                var up = l.toUpperCase();
-                if(up.includes("#") || up.includes("CL") || up.includes("KR") || up.includes("CR")) ubiFinales.push(l.trim());
-            });
-
-            var placa = document.getElementById('manPlaca').value.toUpperCase().trim() || "RAPTOR";
-
-            if (placasRegistradas[placa]) eliminarTodasDePlaca(placa);
-            placasRegistradas[placa] = true;
-
-            for (let d of ubiFinales.slice(0, 3)) {
-                var coords = await obtenerCoordenadasExactasLimpias(d);
-                var nuevoPunto = {
-                    placa: placa, marca: "-", linea: "-", modelo: "-", color: "-", telefonos: "-",
-                    soat: "SI", tecnomecanica: "SI",
-                    lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
-                };
-                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+            // Coordenadas crudas: 6.2442, -75.5812
+            var mRaw = s.match(/^(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})$/);
+            if (mRaw) {
+                return { lat: parseFloat(mRaw[1]), lng: parseFloat(mRaw[2]) };
             }
 
-            document.getElementById('loading-overlay').style.display = 'none';
-            alert("🚀 ¡Puntos agregados!");
-            cerrarSecciones();
-            actualizarPanelCercano();
+            // Coordenadas en @lat,lng
+            var mAt = s.match(/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+            if (mAt) {
+                return { lat: parseFloat(mAt[1]), lng: parseFloat(mAt[2]) };
+            }
+
+            // Coordenadas protobuf !3dlat!4dlng
+            var m3d4d = s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+            if (m3d4d) {
+                return { lat: parseFloat(m3d4d[1]), lng: parseFloat(m3d4d[2]) };
+            }
+
+            // Parámetros q, ll, query, destination
+            var mQ = s.match(/[?&](?:q|ll|query|destination|daddr)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (mQ) {
+                return { lat: parseFloat(mQ[1]), lng: parseFloat(mQ[2]) };
+            }
+
+            return null;
         }
 
-        function cerrarAsistente() { document.getElementById('modal-asistente').style.display = 'none'; }
+        async function procesarLinkGoogleMaps() {
+            var placa = document.getElementById('linkMapsPlaca').value.toUpperCase().trim();
+            var urlStr = document.getElementById('linkMapsUrl').value.trim();
+            var dirOpcional = document.getElementById('linkMapsDir').value.trim();
+            var cels = document.getElementById('linkMapsCel').value.trim() || '-';
 
-        // MODO MOVER MANUAL
-        map.on('click', function(e) {
-            if (puntoEnEdicionId) {
-                var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
-                if (item) {
-                    item.marker.setLatLng(e.latlng);
-                    item.lat = e.latlng.lat;
-                    item.lng = e.latlng.lng;
-                    guardarPuntosStorage();
-                    alert("📍 ¡Punto fijado en nuevas coordenadas!");
-                    actualizarPanelCercano();
+            if (!placa) { alert("Por favor ingresa la Placa."); return; }
+            if (!urlStr && !dirOpcional) { alert("Ingresa el enlace de Google Maps o la dirección opcional."); return; }
+
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            loadingOverlay.style.display = 'flex';
+            loadingTexto.innerText = "🧭 Procesando enlace de Google Maps...";
+
+            var coords = parsearLinkGoogleMaps(urlStr);
+
+            // Si es un enlace corto tipo maps.app.goo.gl y no tiene coordenadas directas
+            if (!coords && urlStr && (urlStr.includes('goo.gl') || urlStr.includes('maps.app'))) {
+                loadingTexto.innerText = "🔄 Resolviendo enlace de Google Maps...";
+                try {
+                    var proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlStr);
+                    var resp = await fetch(proxyUrl);
+                    var bodyText = await resp.text();
+                    coords = parsearLinkGoogleMaps(bodyText);
+                } catch(e) {}
+            }
+
+            // Si aún no hay coordenadas pero se proporcionó dirección opcional
+            if (!coords && dirOpcional) {
+                loadingTexto.innerText = "🎯 Geocodificando dirección opcional...";
+                coords = await obtenerCoordenadasExactasLimpias(dirOpcional);
+            }
+
+            if (!coords) {
+                if (dirOpcional) {
+                    coords = await obtenerCoordenadasExactasLimpias(dirOpcional);
+                } else {
+                    coords = { lat: 6.2442, lng: -75.5812 };
                 }
-                cancelarEdicion();
             }
-        });
 
-        function iniciarModoMover(markerId, placa, dir) {
-            puntoEnEdicionId = markerId;
-            document.getElementById('info-edicion-texto').innerText = placa + " - " + dir;
-            document.getElementById('input-link-maps-rapido').value = "";
-            document.getElementById('modo-edicion-banner').style.display = 'block';
-            map.closePopup();
+            var dirFinal = dirOpcional || (urlStr ? "Punto Maps: " + urlStr : "Ubicación en mapa");
+
+            var nuevoPunto = {
+                placa: placa,
+                marca: "-",
+                linea: "-",
+                modelo: "-",
+                color: "-",
+                soat: "SI",
+                tecnomecanica: "SI",
+                telefonos: cels,
+                lat: coords.lat,
+                lng: coords.lng,
+                dir: dirFinal,
+                fecha: new Date().toISOString().split('T')[0],
+                foto: null
+            };
+
+            agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+            map.setView([coords.lat, coords.lng], 16);
+
+            loadingOverlay.style.display = 'none';
+            alert("✅ ¡Punto agregado exitosamente para " + placa + "!");
+            document.getElementById('linkMapsPlaca').value = '';
+            document.getElementById('linkMapsUrl').value = '';
+            document.getElementById('linkMapsDir').value = '';
+            document.getElementById('linkMapsCel').value = '';
+            cerrarSecciones();
+            actualizarPanelCercano();
         }
 
-        function cancelarEdicion() {
-            puntoEnEdicionId = null;
-            document.getElementById('modo-edicion-banner').style.display = 'none';
-        }
+        // PROCESADOR DIRECTO DE FOTOS DE TABLAS (SIN COPIAR NI PEGAR)
+        async function procesarFotoTablaDirecta() {
+            var placa = document.getElementById('fotoTablaPlaca').value.toUpperCase().trim();
+            var telsManuales = document.getElementById('fotoTablaCelulares').value.trim();
+            var fileInput = document.getElementById('fotoTablaInput');
 
-        async function confirmarLinkRapido() {
-            var val = document.getElementById('input-link-maps-rapido').value.trim();
-            if(!val) { alert("Ingresa coordenadas o haz clic en el mapa."); return; }
+            if (!placa) { alert("Por favor ingresa la Placa del vehículo."); return; }
+            if (!fileInput.files || !fileInput.files[0]) { alert("Por favor selecciona o toma la foto de la tabla."); return; }
 
-            document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Reubicando...";
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            loadingOverlay.style.display = 'flex';
+            loadingTexto.innerText = "⏳ Escaneando tabla con IA...";
 
-            var coords = await obtenerCoordenadasExactasLimpias(val);
+            try {
+                const imgOptimizada = await preprocesarImagen(fileInput.files[0]);
 
-            var item = puntosData.find(function(d) { return d.id === puntoEnEdicionId; });
-            if (item) {
-                item.marker.setLatLng([coords.lat, coords.lng]);
-                item.lat = coords.lat;
-                item.lng = coords.lng;
-                item.dir = item.dir + " (" + val + ")";
-                item.marker.setPopupContent(generarContenidoPopup(item, item.id));
-                map.setView([coords.lat, coords.lng], 16);
-                guardarPuntosStorage();
-                alert("✅ ¡Ubicación actualizada con éxito!");
-                actualizarPanelCercano();
-            }
+                const { data: { text } } = await Tesseract.recognize(
+                    imgOptimizada,
+                    'spa+eng',
+                    { logger: m => { if (m.status === 'recognizing text') loadingTexto.innerText = "⏳ Analizando tabla... " + Math.round(m.progress * 100) + "%"; }}
+                );
 
-            document.getElementById('loading-overlay').style.display = 'none';
-            cancelarEdicion();
-        }
+                loadingTexto.innerText = "🎯 Filtrando direcciones con 'SI'...";
 
-        // TRAZADO DE RUTA ENTRE PENDIENTES
-        function trazarRutaPendientes() {
-            var pendientes = puntosData.filter(function(p) {
-                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-                return visitas === 0;
-            });
+                var lineas = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                var filasConSi = [];
 
-            if (pendientes.length === 0) {
-                alert("No hay puntos pendientes para trazar ruta.");
-                return;
-            }
-
-            if (polylineRuta) {
-                map.removeLayer(polylineRuta);
-                polylineRuta = null;
-            }
-
-            var latlngs = [];
-            if (userLat && userLng) {
-                latlngs.push([userLat, userLng]);
-            }
-
-            var actual = userLat && userLng ? {lat: userLat, lng: userLng} : {lat: pendientes[0].lat, lng: pendientes[0].lng};
-            var copia = pendientes.slice();
-
-            while (copia.length > 0) {
-                var mejorIdx = 0;
-                var mejorD = Infinity;
-                for (var i = 0; i < copia.length; i++) {
-                    var d = calcularDistancia(actual.lat, actual.lng, copia[i].lat, copia[i].lng);
-                    if (d < mejorD) {
-                        mejorD = d;
-                        mejorIdx = i;
+                lineas.forEach(function(l) {
+                    var up = l.toUpperCase();
+                    var mSi = up.match(/\b(SI|S1|ST|51)\b\s*(\d+)/);
+                    if (mSi) {
+                        var peso = parseInt(mSi[2]);
+                        var dirMatch = l.match(/(?:(?:KR|CR|CL|CLL|CRA|TV|DG|AV|CALLE|CARRERA)\s+[0-9A-Z\s#\-]+)/i);
+                        var dirEncontrada = dirMatch ? dirMatch[0].trim() : l;
+                        if (dirEncontrada.length > 5) {
+                            filasConSi.push({ peso: peso, dir: dirEncontrada, raw: l });
+                        }
                     }
+                });
+
+                filasConSi.sort((a, b) => b.peso - a.peso);
+                var top3 = filasConSi.slice(0, 3);
+
+                if (top3.length === 0) {
+                    loadingOverlay.style.display = 'none';
+                    document.getElementById('asistente-texto').value = text;
+                    document.getElementById('modal-asistente').style.display = 'block';
+                    return;
                 }
-                var sig = copia.splice(mejorIdx, 1)[0];
-                latlngs.push([sig.lat, sig.lng]);
-                actual = sig;
-            }
 
-            polylineRuta = L.polyline(latlngs, {color: '#e74c3c', weight: 4, dashArray: '6, 8', opacity: 0.85}).addTo(map);
-            map.fitBounds(polylineRuta.getBounds(), {padding: [50, 50]});
-            alert("🚗 Ruta de patrullaje trazada entre " + pendientes.length + " punto(s) pendiente(s).");
+                if (placasRegistradas[placa]) eliminarTodasDePlaca(placa);
+                placasRegistradas[placa] = true;
+
+                for (let item of top3) {
+                    loadingTexto.innerText = "📍 Ubicando: " + item.dir.slice(0, 20) + "...";
+                    var coords = await obtenerCoordenadasExactasLimpias(item.dir + ", Medellín, Antioquia");
+                    var nuevoPunto = {
+                        placa: placa, marca: "-", linea: "-", modelo: "-", color: "-",
+                        telefonos: (function(){
+                            if (telsManuales) return telsManuales;
+                            var mCels = text.match(/\b3[0-9]{9}\b/g) || [];
+                            var mUnicos = [];
+                            mCels.forEach(t => { if (!mUnicos.includes(t)) mUnicos.push(t); });
+                            return mUnicos.slice(0, 2).join(', ') || '-';
+                        })(),
+                        soat: "SI", tecnomecanica: "SI",
+                        lat: coords.lat, lng: coords.lng, dir: item.dir, fecha: new Date().toISOString().split('T')[0], foto: null
+                    };
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                }
+
+                loadingOverlay.style.display = 'none';
+                alert("✅ ¡Listo! Se mapearon automáticamente las " + top3.length + " mejores direcciones vigentes para " + placa + " sin copiar ni pegar.");
+                document.getElementById('fotoTablaPlaca').value = '';
+                document.getElementById('fotoTablaCelulares').value = '';
+                fileInput.value = '';
+                cerrarSecciones();
+                actualizarPanelCercano();
+
+            } catch (err) {
+                console.error(err);
+                loadingOverlay.style.display = 'none';
+                alert("Hubo un error al procesar la imagen. Intenta de nuevo.");
+            }
         }
 
-        function abrirRutaGoogleMapsCompleta() {
-            var pendientes = puntosData.filter(function(p) {
-                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-                return visitas === 0;
+        var puntosInicialesPrecargados = [
+            {
+                id: 'gcv_1', placa: 'GCV922', marca: 'SUZUKI', linea: 'SWIFT DZIRE TAM', modelo: '2020', color: 'GRIS METALICO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '-', dir: 'KR 62 A # 74 SUR - 143 CS 102, LA ESTRELLA ( ANTIOQUIA )',
+                fecha: '2026-10-09', lat: 6.1583, lng: -75.6444, foto: null
+            },
+            {
+                id: 'gcv_2', placa: 'GCV922', marca: 'SUZUKI', linea: 'SWIFT DZIRE TAM', modelo: '2020', color: 'GRIS METALICO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '-', dir: 'CL 80 SUR # 60 - 38 LC 104 CENTRO COMERCIAL HECO, LA ESTRELLA ( ANTIOQUIA )',
+                fecha: '2026-10-09', lat: 6.1550, lng: -75.6420, foto: null
+            },
+            {
+                id: 'gcv_3', placa: 'GCV922', marca: 'SUZUKI', linea: 'SWIFT DZIRE TAM', modelo: '2020', color: 'GRIS METALICO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '-', dir: 'KR 62 A # 74 SUR - 147, LA ESTRELLA ( ANTIOQUIA )',
+                fecha: '2026-10-09', lat: 6.1585, lng: -75.6445, foto: null
+            },
+            {
+                id: 'lrw_1', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
+                soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 58 CC # 81 F - 95 AP 301 URBANO, MEDELLIN ( ANTIOQUIA ) [Prioridad 12]',
+                fecha: '2026-10-09', lat: 6.2750, lng: -75.5760, foto: null
+            },
+            {
+                id: 'lrw_2', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
+                soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 45 # 26 - 162 TO 9 AP 24-72, MEDELLIN ( ANTIOQUIA ) [Prioridad 5]',
+                fecha: '2026-10-09', lat: 6.2280, lng: -75.5710, foto: null
+            },
+            {
+                id: 'lrw_3', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
+                soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 58 C # 81 F - 95 AP 301, MEDELLIN ( ANTIOQUIA ) [Prioridad 4]',
+                fecha: '2026-10-09', lat: 6.2748, lng: -75.5758, foto: null
+            }
+        ];
+
+        function cargarPuntosStorage() {
+            var guardados = localStorage.getItem('puntos_raptor_guardados');
+            var lista = null;
+            if (guardados && guardados !== '[]') {
+                try { lista = JSON.parse(guardados); } catch(e) {}
+            }
+            if (!lista || lista.length === 0) {
+                lista = puntosInicialesPrecargados;
+                localStorage.setItem('puntos_raptor_guardados', JSON.stringify(lista));
+            }
+            lista.forEach(function(p, index) {
+                placasRegistradas[p.placa] = true;
+                agregarMarcadorAlMapa(p, index + 1, false);
             });
-
-            if (pendientes.length === 0) {
-                alert("No hay ubicaciones pendientes.");
-                return;
-            }
-
-            var origin = (userLat && userLng) ? (userLat + "," + userLng) : (pendientes[0].lat + "," + pendientes[0].lng);
-            var dest = pendientes[pendientes.length - 1].lat + "," + pendientes[pendientes.length - 1].lng;
-            var waypoints = pendientes.slice(0, Math.min(pendientes.length - 1, 8)).map(function(p) {
-                return p.lat + "," + p.lng;
-            }).join('|');
-
-            var urlMaps = "https://www.google.com/maps/dir/?api=1&origin=" + encodeURIComponent(origin) + "&destination=" + encodeURIComponent(dest);
-            if (waypoints) urlMaps += "&waypoints=" + encodeURIComponent(waypoints);
-
-            window.open(urlMaps, '_blank');
+            actualizarKPIs();
         }
 
-        // GESTIÓN DE CONFIGURACIÓN
-        function abrirConfig() {
-            document.getElementById('cfg-apikey').value = configApp.googleApiKey;
-            document.getElementById('cfg-sonido').checked = configApp.sonidoAlerta;
-            document.getElementById('cfg-vibrar').checked = configApp.vibrarAlerta;
-            document.getElementById('modal-config').style.display = 'block';
-            toggleMenuFilter();
+        // FORMATEADOR DE CELULARES CON BOTONES DE LLAMADA Y WHATSAPP DIRECTO
+        function formatearCelularesHtml(tels) {
+            if (!tels || tels === '-') return '<span style="color:#95a5a6;">-</span>';
+            var matches = tels.match(/\b3[0-9]{9}\b/g);
+            if (!matches || matches.length === 0) return '<span style="font-size:11px; font-weight:bold; color:#2c3e50;">' + tels + '</span>';
+            
+            var cels2 = matches.slice(0, 2);
+            var resHtml = '';
+            cels2.forEach(function(cel) {
+                resHtml += '<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">' +
+                           '<a href="tel:' + cel + '" style="color:#2980b9; font-weight:bold; font-size:12px; text-decoration:none;">📞 ' + cel + '</a>' +
+                           '<a href="https://wa.me/57' + cel + '" target="_blank" style="background:#25d366; color:white; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:bold; text-decoration:none;">💬 WA</a>' +
+                           '</div>';
+            });
+            return resHtml;
         }
 
-        function cerrarConfig() { document.getElementById('modal-config').style.display = 'none'; }
+        function generarContenidoPopup(p, markerId) {
+            var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
+            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+            var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
+            var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail">` : '';
 
-        function guardarConfig() {
-            configApp.googleApiKey = document.getElementById('cfg-apikey').value.trim();
-            configApp.sonidoAlerta = document.getElementById('cfg-sonido').checked;
-            configApp.vibrarAlerta = document.getElementById('cfg-vibrar').checked;
+            var soatClass = (p.soat === 'SI' || p.soat === 'VIGENTE') ? 'badge-si' : 'badge-no';
+            var tecnoClass = (p.tecnomecanica === 'SI' || p.tecnomecanica === 'VIGENTE') ? 'badge-si' : 'badge-no';
 
-            localStorage.setItem('raptor_google_apikey', configApp.googleApiKey);
-            localStorage.setItem('raptor_sonido', configApp.sonidoAlerta ? "1" : "0");
-            localStorage.setItem('raptor_vibrar', configApp.vibrarAlerta ? "1" : "0");
+            var vMarca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '-';
+            var vLinea = (p.linea && p.linea !== '-') ? p.linea : '-';
+            var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '-';
+            var vColor = (p.color && p.color !== '-') ? p.color : '-';
 
-            cerrarConfig();
-            alert("⚙️ Configuración guardada.");
+            return `
+                <div style="font-family: Arial, sans-serif; font-size: 13px; width: 260px;">
+                    <div id="view-mode-${markerId}">
+                        ${imgHtml}
+                        <div style="background:#2c3e50; color:white; padding:6px 10px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:16px; font-weight:900; letter-spacing:0.5px;">${p.placa}</span>
+                            <span style="font-size:10px; font-weight:bold; background:${p.pico ? '#d35400' : '#27ae60'}; padding:2px 6px; border-radius:4px;">${estadoPicoTxt}</span>
+                        </div>
+
+                        <table class="specs-table">
+                            <tr><td class="specs-label">Marca:</td><td class="specs-val">${vMarca}</td></tr>
+                            <tr><td class="specs-label">Línea:</td><td class="specs-val">${vLinea}</td></tr>
+                            <tr><td class="specs-label">Modelo:</td><td class="specs-val">${vModelo}</td></tr>
+                            <tr><td class="specs-label">Color:</td><td class="specs-val">${vColor}</td></tr>
+                            <tr>
+                                <td class="specs-label">SOAT:</td>
+                                <td><span class="badge-status-soat ${soatClass}">${p.soat || 'NO'}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="specs-label">Tecno:</td>
+                                <td><span class="badge-status-soat ${tecnoClass}">${p.tecnomecanica || 'NO'}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="specs-label">Celulares:</td>
+                                <td>${formatearCelularesHtml(p.telefonos)}</td>
+                            </tr>
+                            <tr><td class="specs-label">Dirección:</td><td style="color:#555; font-size:11px;">${p.dir}</td></tr>
+                            <tr><td class="specs-label">Visitas:</td><td><span style="color:#d9534f; font-weight:bold; font-size:13px;">${visitas}</span></td></tr>
+                        </table>
+                        
+                        <div style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 8px;">
+                            <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue">1. 🧭 Navegar (Google Maps)</a>
+                            
+                            <div style="display:flex; gap:6px;">
+                                <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1;">2. ✅ Visitada</button>
+                                <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>
+                            </div>
+                            
+                            <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" class="pop-btn pb-orange">3. 📍 Mover punto manual</button>
+                            <button onclick="reubicarEnGoogleMapsDirecto('${markerId}')" class="pop-btn pb-teal">🔄 Recalcular Ubicación</button>
+                            <button onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red">🗑️ Eliminar</button>
+                        </div>
+                        
+                        <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #fadbd8; padding: 8px; border-radius: 6px;">
+                            <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 4px;">❌ Borrar esta dirección</button>
+                            <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS las de ${p.placa}</button>
+                        </div>
+                    </div>
+
+                    <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                        <b style="color:#2c3e50; font-size:12px;">✏️ Editar Especificaciones:</b><br><br>
+                        
+                        <div style="display:flex; gap:5px;">
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Marca:</label>
+                                <input type="text" id="edit-marca-${markerId}" class="edit-input" value="${vMarca.replace(/"/g, '&quot;')}">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Línea:</label>
+                                <input type="text" id="edit-linea-${markerId}" class="edit-input" value="${vLinea.replace(/"/g, '&quot;')}">
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:5px;">
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Modelo:</label>
+                                <input type="text" id="edit-modelo-${markerId}" class="edit-input" value="${vModelo.replace(/"/g, '&quot;')}">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Color:</label>
+                                <input type="text" id="edit-color-${markerId}" class="edit-input" value="${vColor.replace(/"/g, '&quot;')}">
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:5px;">
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">SOAT:</label>
+                                <input type="text" id="edit-soat-${markerId}" class="edit-input" value="${(p.soat || 'NO').replace(/"/g, '&quot;')}">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Tecno:</label>
+                                <input type="text" id="edit-tecno-${markerId}" class="edit-input" value="${(p.tecnomecanica || 'NO').replace(/"/g, '&quot;')}">
+                            </div>
+                        </div>
+
+                        <label style="font-size:10px; font-weight:bold;">Celulares:</label>
+                        <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${(p.telefonos || '-').replace(/"/g, '&quot;')}">
+                        
+                        <label style="font-size:10px; font-weight:bold;">Dirección:</label>
+                        <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${(p.dir || '').replace(/"/g, '&quot;')}">
+                        
+                        <div style="display:flex; gap:6px; margin-top:8px;">
+                            <button onclick="guardarEdicionPopup('${markerId}')" class="act-green" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">💾 Guardar</button>
+                            <button onclick="toggleEditMode('${markerId}')" class="act-gray" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // MENÚS Y SUBPANELES
@@ -1009,13 +1191,22 @@
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
             document.getElementById('seccion-gemini').style.display = 'none';
-            document.getElementById('seccion-' + tipo).style.display = 'block';
+            var stf = document.getElementById('seccion-tabla-foto');
+            if(stf) stf.style.display = 'none';
+            var slm = document.getElementById('seccion-link-maps');
+            if(slm) slm.style.display = 'none';
+            var target = document.getElementById('seccion-' + tipo);
+            if(target) target.style.display = 'block';
         }
 
         function cerrarSecciones() {
             document.getElementById('seccion-whatsapp').style.display = 'none';
             document.getElementById('seccion-manual').style.display = 'none';
             document.getElementById('seccion-gemini').style.display = 'none';
+            var stf = document.getElementById('seccion-tabla-foto');
+            if(stf) stf.style.display = 'none';
+            var slm = document.getElementById('seccion-link-maps');
+            if(slm) slm.style.display = 'none';
             document.getElementById('menuOpciones').style.display = 'none';
         }
 
@@ -1069,15 +1260,6 @@
             actualizarPanelCercano();
         }
 
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
-
         function reubicarEnGoogleMapsDirecto(markerId) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex === -1) return;
@@ -1096,20 +1278,6 @@
                 };
             });
             localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
-            actualizarKPIs();
-        }
-
-        function cargarPuntosStorage() {
-            var guardados = localStorage.getItem('puntos_raptor_guardados');
-            if (guardados) {
-                try {
-                    var lista = JSON.parse(guardados);
-                    lista.forEach(function(p, index) {
-                        placasRegistradas[p.placa] = true;
-                        agregarMarcadorAlMapa(p, index + 1, false);
-                    });
-                } catch(e) {}
-            }
             actualizarKPIs();
         }
 
@@ -1225,12 +1393,6 @@
             var nuevaDir = document.getElementById('edit-dir-' + markerId).value.trim();
             var nuevoSoat = document.getElementById('edit-soat-' + markerId).value.trim().toUpperCase();
             var nuevaTecno = document.getElementById('edit-tecno-' + markerId).value.trim().toUpperCase();
-            var fileInput = document.getElementById('upload-foto-' + markerId);
-            
-            var nuevaFotoBase64 = puntosData[itemIndex].foto;
-            if (fileInput.files && fileInput.files[0]) {
-                nuevaFotoBase64 = await fileToBase64(fileInput.files[0]);
-            }
 
             puntosData.forEach(function(p) {
                 if (p.placa === placaEditada) {
@@ -1241,7 +1403,6 @@
                     p.telefonos = nuevosTels; 
                     p.soat = nuevoSoat || 'NO';
                     p.tecnomecanica = nuevaTecno || 'NO';
-                    if (nuevaFotoBase64) p.foto = nuevaFotoBase64; 
                     if (p.id === markerId) p.dir = nuevaDir;
                     if (p.marker) p.marker.setPopupContent(generarContenidoPopup(p, p.id));
                 }
@@ -1250,120 +1411,6 @@
             guardarPuntosStorage();
             alert("✅ Información sincronizada para la placa " + placaEditada);
             actualizarPanelCercano();
-        }
-
-        function generarContenidoPopup(p, markerId) {
-            var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
-            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-            var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
-            var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail">` : '';
-
-            var soatClass = (p.soat === 'SI' || p.soat === 'VIGENTE') ? 'badge-si' : 'badge-no';
-            var tecnoClass = (p.tecnomecanica === 'SI' || p.tecnomecanica === 'VIGENTE') ? 'badge-si' : 'badge-no';
-
-            var vMarca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '-';
-            var vLinea = (p.linea && p.linea !== '-') ? p.linea : '-';
-            var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '-';
-            var vColor = (p.color && p.color !== '-') ? p.color : '-';
-
-            return `
-                <div style="font-family: Arial, sans-serif; font-size: 13px; width: 260px;">
-                    <div id="view-mode-${markerId}">
-                        ${imgHtml}
-                        <div style="background:#2c3e50; color:white; padding:6px 10px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:16px; font-weight:900; letter-spacing:0.5px;">${p.placa}</span>
-                            <span style="font-size:10px; font-weight:bold; background:${p.pico ? '#d35400' : '#27ae60'}; padding:2px 6px; border-radius:4px;">${estadoPicoTxt}</span>
-                        </div>
-
-                        <table class="specs-table">
-                            <tr><td class="specs-label">Marca:</td><td class="specs-val">${vMarca}</td></tr>
-                            <tr><td class="specs-label">Línea:</td><td class="specs-val">${vLinea}</td></tr>
-                            <tr><td class="specs-label">Modelo:</td><td class="specs-val">${vModelo}</td></tr>
-                            <tr><td class="specs-label">Color:</td><td class="specs-val">${vColor}</td></tr>
-                            <tr>
-                                <td class="specs-label">SOAT:</td>
-                                <td><span class="badge-status-soat ${soatClass}">${p.soat || 'NO'}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="specs-label">Tecno:</td>
-                                <td><span class="badge-status-soat ${tecnoClass}">${p.tecnomecanica || 'NO'}</span></td>
-                            </tr>
-                            <tr><td class="specs-label">Teléfonos:</td><td style="color:#2980b9; font-weight:bold; font-size:11px;">${p.telefonos || '-'}</td></tr>
-                            <tr><td class="specs-label">Dirección:</td><td style="color:#555; font-size:11px;">${p.dir}</td></tr>
-                            <tr><td class="specs-label">Visitas:</td><td><span style="color:#d9534f; font-weight:bold; font-size:13px;">${visitas}</span></td></tr>
-                        </table>
-                        
-                        <div style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 8px;">
-                            <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue">1. 🧭 Navegar (Google Maps)</a>
-                            
-                            <div style="display:flex; gap:6px;">
-                                <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1;">2. ✅ Visitada</button>
-                                <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>
-                            </div>
-                            
-                            <button onclick="iniciarModoMover('${markerId}', '${p.placa}', '${p.dir.replace(/'/g, "\\'")}')" class="pop-btn pb-orange">3. 📍 Mover punto manual</button>
-                            <button onclick="reubicarEnGoogleMapsDirecto('${markerId}')" class="pop-btn pb-teal">🔄 Recalcular Ubicación</button>
-                            <button onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red">🗑️ Eliminar</button>
-                        </div>
-                        
-                        <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #fadbd8; padding: 8px; border-radius: 6px;">
-                            <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 4px;">❌ Borrar esta dirección</button>
-                            <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS las de ${p.placa}</button>
-                        </div>
-                    </div>
-
-                    <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-                        <b style="color:#2c3e50; font-size:12px;">✏️ Editar Especificaciones:</b><br><br>
-                        
-                        <div style="display:flex; gap:5px;">
-                            <div style="flex:1;">
-                                <label style="font-size:10px; font-weight:bold;">Marca:</label>
-                                <input type="text" id="edit-marca-${markerId}" class="edit-input" value="${vMarca.replace(/"/g, '&quot;')}">
-                            </div>
-                            <div style="flex:1;">
-                                <label style="font-size:10px; font-weight:bold;">Línea:</label>
-                                <input type="text" id="edit-linea-${markerId}" class="edit-input" value="${vLinea.replace(/"/g, '&quot;')}">
-                            </div>
-                        </div>
-
-                        <div style="display:flex; gap:5px;">
-                            <div style="flex:1;">
-                                <label style="font-size:10px; font-weight:bold;">Modelo:</label>
-                                <input type="text" id="edit-modelo-${markerId}" class="edit-input" value="${vModelo.replace(/"/g, '&quot;')}">
-                            </div>
-                            <div style="flex:1;">
-                                <label style="font-size:10px; font-weight:bold;">Color:</label>
-                                <input type="text" id="edit-color-${markerId}" class="edit-input" value="${vColor.replace(/"/g, '&quot;')}">
-                            </div>
-                        </div>
-
-                        <div style="display:flex; gap:5px;">
-                            <div style="flex:1;">
-                                <label style="font-size:10px; font-weight:bold;">SOAT:</label>
-                                <input type="text" id="edit-soat-${markerId}" class="edit-input" value="${(p.soat || 'NO').replace(/"/g, '&quot;')}">
-                            </div>
-                            <div style="flex:1;">
-                                <label style="font-size:10px; font-weight:bold;">Tecno:</label>
-                                <input type="text" id="edit-tecno-${markerId}" class="edit-input" value="${(p.tecnomecanica || 'NO').replace(/"/g, '&quot;')}">
-                            </div>
-                        </div>
-
-                        <label style="font-size:10px; font-weight:bold;">Teléfonos:</label>
-                        <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${(p.telefonos || '-').replace(/"/g, '&quot;')}">
-                        
-                        <label style="font-size:10px; font-weight:bold;">Dirección:</label>
-                        <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${(p.dir || '').replace(/"/g, '&quot;')}">
-                        
-                        <label style="font-size:10px; font-weight:bold; margin-top:4px; display:block;">📷 Foto:</label>
-                        <input type="file" id="upload-foto-${markerId}" accept="image/*" class="edit-input" style="padding:2px;">
-                        
-                        <div style="display:flex; gap:6px; margin-top:8px;">
-                            <button onclick="guardarEdicionPopup('${markerId}')" class="act-green" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">💾 Guardar</button>
-                            <button onclick="toggleEditMode('${markerId}')" class="act-gray" style="color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; flex:1; cursor:pointer;">Cancelar</button>
-                        </div>
-                    </div>
-                </div>
-            `;
         }
 
         function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
