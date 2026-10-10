@@ -605,6 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v3.2</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -4239,11 +4240,24 @@
         }
 
 
-        // REGISTRO DE SERVICE WORKER PARA INSTALACIÓN PWA
+        // REGISTRO DE SERVICE WORKER PARA INSTALACIÓN PWA CON AUTO-ACTUALIZACIÓN
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('./sw.js').then(function(reg) {
+                    reg.update(); // Comprobar inmediatamente nueva versión en GitHub
                     console.log('Service Worker registrado:', reg.scope);
+
+                    reg.onupdatefound = function() {
+                        var installingWorker = reg.installing;
+                        if (installingWorker) {
+                            installingWorker.onstatechange = function() {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    mostrarToastNotificacion("🚀 ¡Nueva versión detectada! Actualizando...", 3000);
+                                    setTimeout(function() { window.location.reload(); }, 1500);
+                                }
+                            };
+                        }
+                    };
                 }).catch(function(err) {
                     console.warn('Error registrando Service Worker:', err);
                 });
