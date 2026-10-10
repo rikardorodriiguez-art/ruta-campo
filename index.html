@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v3.3</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v3.4</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -2197,21 +2197,15 @@
                 var totalPuntos = 0;
 
                 for (let v of vehiculos) {
-                    if (placasRegistradas[v.placa]) {
-                        puntosData = puntosData.filter(function(item) {
-                            if (item.placa === v.placa) {
-                                if (item.marker && map.hasLayer(item.marker)) map.removeLayer(item.marker);
-                                return false;
-                            }
-                            return true;
-                        });
-                    }
-                    placasRegistradas[v.placa] = true;
+                    var placaNorm = v.placa.toUpperCase().trim();
+                    // Limpiar todas las ubicaciones viejas de esta placa para evitar duplicados
+                    eliminarTodasDePlaca(placaNorm);
+                    placasRegistradas[placaNorm] = true;
 
                     var dirsAsignadas = 0;
                     for (let dir of v.direcciones) {
-                        if (dirsAsignadas >= 4) break;
-                        if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando " + v.placa + " (" + dir.slice(0, 22) + "...)...";
+                        if (dirsAsignadas >= 4) break; // LÍMITE ESTRICTO: MÁXIMO 4 DIRECCIONES POR PLACA
+                        if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando " + placaNorm + " (" + dir.slice(0, 22) + "...)...";
                         
                         var coords = null;
                         var mCoord = dir.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
@@ -2221,14 +2215,14 @@
                             coords = await obtenerCoordenadasExactasLimpias(dir);
                         }
 
-                        // Evitar direcciones repetidas a menos de 35 metros
+                        // Evitar direcciones repetidas a menos de 70 metros para la misma placa
                         var yaExisteCerca = puntosData.some(function(pd) {
-                            if (pd.placa !== v.placa) return false;
+                            if (pd.placa.toUpperCase().trim() !== placaNorm) return false;
                             var distMetros = map.distance([pd.lat, pd.lng], [coords.lat, coords.lng]);
-                            return distMetros < 35;
+                            return distMetros < 70; // Menos de 70m es la misma ubicación física
                         });
                         if (yaExisteCerca) {
-                            console.log("Dirección repetida físicamente para " + v.placa + ", omitida:", dir);
+                            console.log("Dirección repetida físicamente (<70m) para " + placaNorm + ", omitida:", dir);
                             continue;
                         }
 
@@ -3251,16 +3245,33 @@
         }
 
         function eliminarTodasDePlaca(placa) {
+            if (!placa) return;
+            var placaUpper = placa.toUpperCase().trim();
             puntosData = puntosData.filter(function(item) {
-                if (item.placa === placa) {
-                    map.removeLayer(item.marker);
+                if (item.placa && item.placa.toUpperCase().trim() === placaUpper) {
+                    if (item.marker && map.hasLayer(item.marker)) {
+                        map.removeLayer(item.marker);
+                    }
                     return false;
                 }
                 return true;
             });
-            delete placasRegistradas[placa];
+            delete placasRegistradas[placaUpper];
             guardarPuntosStorage();
             actualizarPanelCercano();
+
+            // Borrar también en Firestore para que no reaparezcan al sincronizar
+            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+                fbDb.collection('puntos_ubica_rick').where('placa', '==', placaUpper).get().then(function(snapshot) {
+                    if (!snapshot.empty) {
+                        var batch = fbDb.batch();
+                        snapshot.forEach(function(doc) {
+                            batch.delete(doc.ref);
+                        });
+                        batch.commit().catch(function(e){ console.warn("Error borrando placa en Firestore:", e); });
+                    }
+                }).catch(function(e){ console.warn("Error consultando placa en Firestore:", e); });
+            }
         }
 
         function guardarPuntosStorage() {
@@ -3341,6 +3352,17 @@
                 p.visitada = (localStorage.getItem('visitada_' + p.id) === '1') || !!p.visitada;
                 p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
                 p.comentarios = p.comentarios || '';
+
+                // Evitar duplicados físicos a menos de 70 metros para la misma placa
+                var esDuplicadoFisico = listaLimpia.some(function(existente) {
+                    if (existente.placa.toUpperCase().trim() !== placa) return false;
+                    if (existente.lat && existente.lng && p.lat && p.lng) {
+                        var dMetros = map.distance([existente.lat, existente.lng], [p.lat, p.lng]);
+                        return dMetros < 70;
+                    }
+                    return false;
+                });
+                if (esDuplicadoFisico) return;
 
                 var kDir = placa + "_" + normalizarClaveDireccion(p.dirOriginal);
                 var kCoord = placa + "_" + (p.lat ? p.lat.toFixed(3) : '') + "_" + (p.lng ? p.lng.toFixed(3) : '');
@@ -4248,7 +4270,39 @@
             puntosData = [];
             placasRegistradas = {};
 
-            puntosNube.forEach(function(p, idx) {
+            var listaLimpiaNube = [];
+            var conteoPorPlaca = {};
+            var llavesVistasNube = {};
+
+            puntosNube.forEach(function(p) {
+                if (!p.placa) return;
+                var placa = p.placa.toUpperCase().trim();
+                conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
+
+                // MÁXIMO 4 DIRECCIONES POR PLACA
+                if (conteoPorPlaca[placa] >= 4) return;
+
+                // Evitar duplicados físicos a menos de 70 metros para la misma placa
+                var esDuplicadoFisico = listaLimpiaNube.some(function(existente) {
+                    if (existente.placa.toUpperCase().trim() !== placa) return false;
+                    if (existente.lat && existente.lng && p.lat && p.lng) {
+                        var dMetros = map.distance([existente.lat, existente.lng], [p.lat, p.lng]);
+                        return dMetros < 70;
+                    }
+                    return false;
+                });
+                if (esDuplicadoFisico) return;
+
+                var kDir = placa + "_" + normalizarClaveDireccion(p.dirOriginal || p.dir);
+                if (llavesVistasNube[kDir]) return;
+                llavesVistasNube[kDir] = true;
+
+                conteoPorPlaca[placa]++;
+                listaLimpiaNube.push(p);
+            });
+
+            listaLimpiaNube.forEach(function(p, idx) {
+                placasRegistradas[p.placa.toUpperCase().trim()] = true;
                 agregarMarcadorAlMapa(p, idx, false);
             });
 
