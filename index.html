@@ -20,7 +20,7 @@
         /* BARRA SUPERIOR DE ESTADÍSTICAS */
         #barra-kpi {
             position: fixed; top: 12px; left: 60px; z-index: 9999;
-            background: rgba(26, 37, 47, 0.92); backdrop-filter: blur(8px);
+            background: rgba(26, 37, 47, 0.94); backdrop-filter: blur(8px);
             padding: 6px 14px; border-radius: 25px; color: white;
             font-size: 11px; font-weight: bold; display: flex; gap: 12px; align-items: center;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
@@ -141,10 +141,18 @@
             width: 340px; max-width: 92vw; z-index: 9999999; display: none; font-size: 12px;
         }
 
-        /* POPUP DE MARCADOR */
+        /* POPUP DE MARCADOR CON TABLA DE ESPECIFICACIONES */
         .leaflet-popup-content { margin: 10px; line-height: 1.4; }
         .car-thumbnail { width: 100%; max-height: 130px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; }
-        .edit-input { width: 100%; margin-bottom: 6px; padding: 6px; font-size: 12px; border: 1px solid #aaa; border-radius: 4px; }
+        .specs-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-bottom: 8px; }
+        .specs-table td { padding: 2px 0; vertical-align: top; }
+        .specs-label { color: #7f8c8d; font-weight: bold; width: 28%; }
+        .specs-val { color: #2c3e50; font-weight: 600; }
+        .badge-status-soat { font-weight: bold; font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+        .badge-si { background: #d4efdf; color: #1e8449; }
+        .badge-no { background: #fadbd8; color: #922b21; }
+
+        .edit-input { width: 100%; margin-bottom: 5px; padding: 6px; font-size: 12px; border: 1px solid #aaa; border-radius: 4px; }
         .pop-btn {
             color: white; border: none; padding: 8px 10px; width: 100%; border-radius: 6px; cursor: pointer;
             margin-bottom: 6px; font-weight: bold; font-size: 12px; text-align: center; text-decoration: none;
@@ -244,24 +252,24 @@
             <b style="color: #2c3e50; font-size: 14px;">Opciones de Carga:</b>
             <button onclick="toggleMenuAdd()">✖</button>
         </div>
-        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">⚡ 1. Pegar Extracción IA (Recomendado)</button>
-        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">📱 2. Pegar reporte texto (WhatsApp)</button>
+        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">📱 1. Pegar reportes WhatsApp (Múltiples)</button>
+        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">⚡ 2. Pegar Extracción IA (Gemini)</button>
         <button class="main-opt mo-2" onclick="abrirSeccion('manual')">✍️ 3. Ingreso manual / Foto OCR</button>
+
+        <!-- SECCIÓN WHATSAPP / MULTI-REPORTE -->
+        <div id="seccion-whatsapp" class="sub-panel">
+            <b style="color:#2c3e50; font-size:11px;">Pega los reportes tal como vienen de WhatsApp (una o varias placas):</b>
+            <textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ... &#10;&#10;[6:04 p. m.] UBICAR &#10;LRW993 ..." style="height: 140px; font-size: 11px;"></textarea>
+            <button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
 
         <!-- SECCIÓN GEMINI MULTI-PLACA -->
         <div id="seccion-gemini" class="sub-panel">
             <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br>
-            <span style="font-size: 10px; color:#666; display:block; margin: 4px 0 8px 0;">Pega aquí uno o varios vehículos extraídos por la IA:</span>
-            <textarea id="txtGemini" placeholder="PLACA: EQW167&#10;VEHÍCULO: FAW R7 SUV 2019&#10;SOAT: SI | TECNO: SI&#10;CELULARES: 3101234567&#10;DIRECCIÓN 1: Calle 73 # 72C - 191, Medellín&#10;DIRECCIÓN 2: Km 7 autopista Medellín - Bogotá, Copacabana&#10;&#10;PLACA: TTN168&#10;VEHÍCULO: SERVICIO PÚBLICO&#10;DIRECCIÓN 1: Calle 73 # 72C - 191, Medellín" style="height: 140px; font-size: 11px;"></textarea>
-            <button class="action act-green" onclick="procesarExtraccionGemini()">🚀 Mapear Ubicaciones</button>
-            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
-        </div>
-
-        <!-- SECCIÓN WHATSAPP -->
-        <div id="seccion-whatsapp" class="sub-panel">
-            <b style="color:#2c3e50; font-size:11px;">Pega mensajes múltiples de reporte:</b>
-            <textarea id="txtWhatsapp" placeholder="Pega el texto del grupo de WhatsApp aquí..." style="height: 100px;"></textarea>
-            <button class="action act-blue" onclick="procesarLoteMasivo()">Procesar Lote</button>
+            <span style="font-size: 10px; color:#666; display:block; margin: 4px 0 8px 0;">Pega aquí uno o varios vehículos:</span>
+            <textarea id="txtGemini" placeholder="PLACA: GCV922&#10;MARCA: SUZUKI&#10;LÍNEA: SWIFT DZIRE TAM&#10;MODELO: 2020&#10;COLOR: GRIS METALICO&#10;SOAT: SI | TECNO: SI&#10;DIRECCIÓN 1: KR 62 A # 74 SUR - 143, LA ESTRELLA&#10;&#10;PLACA: LRW993&#10;MARCA: RENAULT&#10;LÍNEA: LOGAN&#10;MODELO: 2023&#10;COLOR: GRIS ESTRELLA&#10;SOAT: NO | TECNO: NO&#10;CELULARES: 3106658981, 3017433454&#10;DIRECCIÓN 1: KR 55 B # 79 - 22, MEDELLIN" style="height: 140px; font-size: 11px;"></textarea>
+            <button class="action act-green" onclick="procesarTextoUniversal('txtGemini')">🚀 Mapear Ubicaciones</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
 
@@ -269,11 +277,11 @@
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11px; color:#8e44ad;">Ingreso Directo o Foto:</b>
             <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
-            <input type="text" id="manMarca" placeholder="Marca / Vehículo">
-            <input type="text" id="manLinea" placeholder="Línea / Clase">
+            <input type="text" id="manMarca" placeholder="Marca (ej: SUZUKI)">
+            <input type="text" id="manLinea" placeholder="Línea (ej: SWIFT DZIRE)">
             <div style="display:flex; gap:5px;">
-                <input type="text" id="manModelo" placeholder="Modelo" style="flex:1;">
-                <input type="text" id="manColor" placeholder="Color" style="flex:1;">
+                <input type="text" id="manModelo" placeholder="Modelo (ej: 2020)" style="flex:1;">
+                <input type="text" id="manColor" placeholder="Color (ej: GRIS)" style="flex:1;">
             </div>
             <div style="display:flex; gap:5px;">
                 <input type="text" id="manSoat" placeholder="SOAT (SI/NO)" style="flex:1;">
@@ -434,7 +442,7 @@
                 
                 document.getElementById('cercano-info').innerText = vehStr + ' | SOAT: ' + soatStr + ' | Tecno: ' + tecnoStr;
 
-                // Alerta cuando está a menos de 200 metros (con frecuencia máxima de 1 vez cada 40 segundos)
+                // Alerta cuando está a menos de 200 metros
                 var ahora = Date.now();
                 if (distMinima <= 200 && (ahora - ultimaAlertaTs > 40000)) {
                     ultimaAlertaTs = ahora;
@@ -504,17 +512,24 @@
             else if (t.includes('BARBOSA')) centroMunicipio = {lat: 6.4381, lng: -75.3331};
             else if (t.includes('CALDAS')) centroMunicipio = {lat: 6.0911, lng: -75.6358};
             else if (t.includes('RIONEGRO')) centroMunicipio = {lat: 6.1552, lng: -75.3736};
+            else if (t.includes('GOMEZ PLATA') || t.includes('GÓMEZ PLATA')) centroMunicipio = {lat: 6.6817, lng: -75.2183};
             else if (t.includes('BOGOTA') || t.includes('BOGOTÁ')) centroMunicipio = {lat: 4.6097, lng: -74.0817};
             else if (t.includes('CALI')) centroMunicipio = {lat: 3.4516, lng: -76.5320};
 
-            var dirLimpia = dir.replace(/CL\s*/gi, 'Calle ')
-                               .replace(/KR\s*|CR\s*/gi, 'Carrera ')
-                               .replace(/TV\s*/gi, 'Transversal ')
-                               .replace(/DG\s*/gi, 'Diagonal ')
-                               .replace(/#/g, ' ')
-                               .replace(/-/g, ' ');
-            
-            var query = dirLimpia + ", Antioquia, Colombia";
+            // Limpieza especializada de nomenclatura colombiana eliminando locales, casas, interiores
+            var limpiaBase = dir.replace(/\t/g, ' ')
+                                .replace(/\b(LC|LOCAL|CS|CASA|AP|APTO|IN|INT|INTERIOR|PISO|OF|OFICINA|BOSQUE|CENTRO COMERCIAL[^\(\)]*)\b.*?(?=(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|GOMEZ PLATA|\(|$))/gi, ' ')
+                                .replace(/\(.*?\)/g, ' ')
+                                .replace(/CL\s*/gi, 'Calle ')
+                                .replace(/KR\s*|CR\s*/gi, 'Carrera ')
+                                .replace(/TV\s*/gi, 'Transversal ')
+                                .replace(/DG\s*/gi, 'Diagonal ')
+                                .replace(/#/g, ' ')
+                                .replace(/-/g, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+
+            var query = limpiaBase + ", Antioquia, Colombia";
 
             // 2. Google Maps API (si hay clave configurada)
             if (configApp.googleApiKey) {
@@ -546,224 +561,185 @@
             return { lat: 6.2442, lng: -75.5812 };
         }
 
-        // PARSER UNIVERSAL DE VEHÍCULO
-        function extraerInfoVehiculoUniversal(texto) {
-            var m = "-", l = "-", mod = "-", c = "-", s = "SI", t = "SI", prop = "-";
-            var lineas = texto.split('\n');
-            
-            for (var i = 0; i < lineas.length; i++) {
-                var lText = lineas[i].trim();
-                var up = lText.toUpperCase();
-                
-                if (up.includes("MARCA") || up.includes("VEHICULO") || up.includes("VEHÍCULO")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) m = parts[1].trim();
-                    } else if (i + 1 < lineas.length) {
-                        m = lineas[i + 1].trim();
-                    }
-                }
-                
-                if (up.includes("LÍNEA") || up.includes("LINEA") || up.includes("CLASE")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) l = parts[1].trim();
-                    }
-                }
-                
-                if (up.includes("MODELO")) {
-                    var mMod = lText.match(/MODELO\s*[:\-]?\s*([0-9]{4})/i);
-                    if (mMod) mod = mMod[1];
-                }
-                
-                if (up.includes("COLOR")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) c = parts[1].trim();
-                    }
-                }
+        // PARSER UNIVERSAL MULTI-VEHÍCULO (WHATSAPP, RUNT, GEMINI)
+        function analizarMultiplesVehiculos(texto) {
+            // Dividir por bloques de WhatsApp [timestamp], UBICAR o PLACA:
+            var bloques = texto.split(/(?=(?:\[\d{1,2}:\d{2}\s*(?:[ap]\.?\s*m\.?)?,?[^\]]*\]|\bUBICAR\b|\bPLACA\s*:))/i);
+            var resultados = [];
 
-                if (up.includes("PROPIETARIO") || up.includes("DEMANDADO")) {
-                    if (up.includes(":") || up.includes("-")) {
-                        var parts = lText.split(/[:\-]/);
-                        if (parts[1] && parts[1].trim()) prop = parts[1].trim();
-                    }
-                }
-                
-                if (up.includes("SOAT")) {
-                    if (up.includes("NO") || up.includes("VENCIDO")) s = "NO";
-                    else if (up.includes("SI") || up.includes("VIGENTE")) s = "SI";
-                }
-                
-                if (up.includes("TECNO") || up.includes("RTM")) {
-                    if (up.includes("NO") || up.includes("VENCIDO")) t = "NO";
-                    else if (up.includes("SI") || up.includes("VIGENTE")) t = "SI";
-                }
-            }
-            
-            return { 
-                marca: m !== "-" ? m : "VEHÍCULO", 
-                linea: l !== "-" ? l : "", 
-                modelo: mod !== "-" ? mod : "", 
-                color: c !== "-" ? c : "", 
-                propietario: prop,
-                soat: s.toUpperCase(), 
-                tecnomecanica: t.toUpperCase() 
-            };
-        }
+            bloques.forEach(function(bloque) {
+                var b = bloque.trim();
+                if (!b) return;
 
-        // PROCESAR EXTRACCIÓN GEMINI MULTI-BLOQUE
-        async function procesarExtraccionGemini() {
-            var texto = document.getElementById('txtGemini').value.trim();
-            if(!texto) { alert("Pega el texto extraído primero."); return; }
+                // Buscar placa (3 letras + 3 dígitos/letras)
+                var pMatch = b.match(/\b([A-Z]{3}[0-9]{2}[0-9A-Z])\b/i);
+                if (!pMatch) return;
+                var placa = pMatch[1].toUpperCase();
+                if (placa === 'UBICAR' || placa === 'PARTES' || placa === 'DETALLE') return;
 
-            var loadingOverlay = document.getElementById('loading-overlay');
-            var loadingTexto = document.getElementById('loading-texto');
-            loadingOverlay.style.display = 'flex';
-            loadingTexto.innerText = "⚡ Procesando vehículos extraídos...";
+                var lineas = b.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-            // Separar por bloques con PLACA:
-            var bloques = texto.split(/(?=PLACA\s*:)/i);
-            var totalPlacas = 0;
-            var totalPuntos = 0;
+                // Función auxiliar para leer valor en la misma línea o en la siguiente
+                function extraerCampo(keywords) {
+                    for (var i = 0; i < lineas.length; i++) {
+                        var l = lineas[i];
+                        var up = l.toUpperCase();
+                        
+                        var coincide = keywords.some(k => up.includes(k));
+                        if (!coincide) continue;
 
-            for (let bloque of bloques) {
-                if (!bloque.trim()) continue;
-                var placaMatch = bloque.match(/PLACA:\s*([A-Za-z0-9]+)/i);
-                if (!placaMatch) continue;
-                var placa = placaMatch[1].toUpperCase().trim();
+                        // Descartar falsos positivos
+                        if (keywords.includes('VEHICULO') && (up.includes('CLASE') || up.includes('TIPO') || up.includes('INFORMACIÓN') || up.includes('INFORMACION'))) continue;
+                        if (keywords.includes('LINEA') && (up.includes('FÉRREA') || up.includes('FERREA'))) continue;
 
-                var infoVeh = extraerInfoVehiculoUniversal(bloque);
-
-                var telsMatch = bloque.match(/CELULARES?:\s*([0-9\s,\-_]+)/i);
-                var celulares = telsMatch ? telsMatch[1].trim() : "-";
-
-                // Reemplazar puntos anteriores de esta placa si ya existían
-                if (placasRegistradas[placa]) {
-                    puntosData = puntosData.filter(function(item) {
-                        if (item.placa === placa) {
-                            map.removeLayer(item.marker);
-                            return false;
+                        // Si tiene dos puntos o guión y texto en la misma línea
+                        if (l.includes(':') || l.includes('-')) {
+                            var partes = l.split(/[:\-]/);
+                            if (partes.length > 1 && partes[1].trim()) {
+                                var v = partes[1].trim();
+                                if (!keywords.some(k => v.toUpperCase().includes(k))) return v;
+                            }
                         }
-                        return true;
-                    });
-                }
-                placasRegistradas[placa] = true;
 
-                // Extraer direcciones
-                var lineas = bloque.split('\n');
+                        // Si no, tomar la línea siguiente si no es una etiqueta clave
+                        if (i + 1 < lineas.length) {
+                            var prox = lineas[i + 1].trim();
+                            var proxUp = prox.toUpperCase();
+                            var esPalabraClave = ['MARCA', 'LINEA', 'LÍNEA', 'MODELO', 'COLOR', 'SOAT', 'TECNO', 'UBICACION', 'PARTES', 'DETALLE', 'CEL'].some(k => proxUp.includes(k));
+                            if (!esPalabraClave && prox.length > 0) {
+                                return prox;
+                            }
+                        }
+                    }
+                    return '-';
+                }
+
+                var marca = extraerCampo(['MARCA']);
+                var linea = extraerCampo(['LÍNEA', 'LINEA']);
+                var modelo = extraerCampo(['MODELO']);
+                var color = extraerCampo(['COLOR']);
+
+                // SOAT
+                var soat = 'NO';
+                for (var i = 0; i < lineas.length; i++) {
+                    var up = lineas[i].toUpperCase();
+                    if (up.includes('SOAT')) {
+                        if (up.includes('SI') || up.includes('VIGENTE')) soat = 'SI';
+                        else if (up.includes('NO') || up.includes('VENCIDO')) soat = 'NO';
+                        break;
+                    }
+                }
+
+                // TECNO
+                var tecno = 'NO';
+                for (var i = 0; i < lineas.length; i++) {
+                    var up = lineas[i].toUpperCase();
+                    if (up.includes('TECNO') || up.includes('RTM')) {
+                        if (up.includes('SI') || up.includes('VIGENTE')) tecno = 'SI';
+                        else if (up.includes('NO') || up.includes('VENCIDO')) tecno = 'NO';
+                        break;
+                    }
+                }
+
+                // TELÉFONOS
+                var telsMatch = b.match(/\b3[0-9]{9}\b/g) || [];
+                var telsUnicos = [];
+                telsMatch.forEach(t => { if (!telsUnicos.includes(t)) telsUnicos.push(t); });
+                var telefonos = telsUnicos.length > 0 ? telsUnicos.join(', ') : '-';
+
+                // DIRECCIONES
                 var direcciones = [];
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
-                    if (up.includes("DIRECCIÓN") || up.includes("DIRECCION")) {
-                        var limpio = l.replace(/DIRECCIÓN\s*\d*:\s*|DIRECCION\s*\d*:\s*/gi, '').trim();
-                        if (limpio && !direcciones.includes(limpio)) direcciones.push(limpio);
+                    var tieneNom = (up.includes('CL ') || up.includes('KR ') || up.includes('CR ') || up.includes('TV ') || up.includes('DG ') || up.includes('AV ') || up.includes('CALLE ') || up.includes('CARRERA ') || up.includes('#'));
+                    if (tieneNom && up.length > 6) {
+                        var noEsRuido = !['UBICAR', 'DETALLE', 'PARTES', 'SOAT', 'TECNO', 'CEL'].some(k => up.includes(k));
+                        if (noEsRuido && !direcciones.includes(l)) {
+                            direcciones.push(l);
+                        }
                     }
                 });
 
                 if (direcciones.length === 0) {
-                    direcciones.push("Medellin, Antioquia");
+                    direcciones.push('Medellin, Antioquia');
                 }
 
-                for (let dir of direcciones.slice(0, 4)) {
-                    loadingTexto.innerText = "🎯 Geocodificando " + placa + " (" + dir.slice(0, 20) + "...)...";
-                    var coords = await obtenerCoordenadasExactasLimpias(dir);
-                    var nuevoPunto = {
-                        placa: placa, marca: infoVeh.marca, linea: infoVeh.linea, modelo: infoVeh.modelo, color: infoVeh.color,
-                        telefonos: celulares, soat: infoVeh.soat, tecnomecanica: infoVeh.tecnomecanica,
-                        propietario: infoVeh.propietario, lat: coords.lat, lng: coords.lng, dir: dir,
-                        fecha: new Date().toISOString().split('T')[0], foto: null
-                    };
-                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-                    totalPuntos++;
-                }
-                totalPlacas++;
-            }
+                resultados.push({
+                    placa: placa,
+                    marca: marca,
+                    linea: linea,
+                    modelo: modelo,
+                    color: color,
+                    soat: soat,
+                    tecnomecanica: tecno,
+                    telefonos: telefonos,
+                    direcciones: direcciones.slice(0, 4)
+                });
+            });
 
-            loadingOverlay.style.display = 'none';
-            alert("🚀 ¡Proceso completado! Se mapearon " + totalPuntos + " ubicaciones para " + totalPlacas + " vehículo(s).");
-            document.getElementById('txtGemini').value = '';
-            cerrarSecciones();
-            actualizarPanelCercano();
+            return resultados;
         }
 
-        // PROCESAR LOTE WHATSAPP
-        async function procesarLoteMasivo() {
-            var texto = document.getElementById('txtWhatsapp').value.trim();
-            if(!texto) { alert("Pega el texto primero."); return; }
+        // PROCESAR TEXTO UNIVERSAL (WHATSAPP O GEMINI)
+        async function procesarTextoUniversal(elementId) {
+            var raw = document.getElementById(elementId).value.trim();
+            if (!raw) { alert("Pega el texto antes de procesar."); return; }
 
-            document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('loading-texto').innerText = "🎯 Analizando mensajes de WhatsApp...";
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            loadingOverlay.style.display = 'flex';
+            loadingTexto.innerText = "⚡ Analizando vehículos y especificaciones...";
 
-            var bloques = texto.split(/(?=[A-Z]{3}[0-9A-Z]{3}\s+(?:CC|NIT|CE)|UBICAR)/g);
-            var totalAgregados = 0;
+            var vehiculos = analizarMultiplesVehiculos(raw);
+            if (vehiculos.length === 0) {
+                loadingOverlay.style.display = 'none';
+                alert("No se detectaron placas válidas. Revisa el texto pegado.");
+                return;
+            }
 
-            for (let bloque of bloques) {
-                if (bloque.trim().length < 5) continue;
-                var matches = bloque.match(/[A-Z]{3}[0-9A-Z]{3}/gi);
-                if (!matches) continue;
+            var totalPuntos = 0;
 
-                var placa = "";
-                var ignorar = ["UBICAR", "PRINC", "PARTES", "DETAL", "CELUL", "SOATX"];
-                for (var i = 0; i < matches.length; i++) {
-                    var cand = matches[i].toUpperCase();
-                    var bad = false;
-                    for (var j = 0; j < ignorar.length; j++) {
-                        if (cand.includes(ignorar[j])) { bad = true; break; }
-                    }
-                    if (!bad) { placa = cand; break; }
-                }
-
-                if (!placa) continue;
-
-                if (placasRegistradas[placa]) {
+            for (let v of vehiculos) {
+                // Eliminar marcadores previos de esta placa para evitar duplicados
+                if (placasRegistradas[v.placa]) {
                     puntosData = puntosData.filter(function(item) {
-                        if (item.placa === placa) {
+                        if (item.placa === v.placa) {
                             map.removeLayer(item.marker);
                             return false;
                         }
                         return true;
                     });
                 }
-                placasRegistradas[placa] = true;
+                placasRegistradas[v.placa] = true;
 
-                var infoVeh = extraerInfoVehiculoUniversal(bloque);
-                var telsMatch = bloque.match(/3[0-9]{9}/g);
-                var telefonos = telsMatch ? telsMatch.slice(0, 2).join(', ') : "-";
-
-                var direcciones = [];
-                bloque.split('\n').forEach(function(l) {
-                    var dirLimpia = l.trim();
-                    var up = dirLimpia.toUpperCase();
-                    if ((up.includes("#") || up.includes("CL ") || up.includes("KR ") || up.includes("CR ") || up.includes("TV ") || up.includes("AV ")) && up.length > 5) {
-                        if (!up.includes("PARTES") && !up.includes("DETALLE") && !up.includes("SOAT") && !up.includes("TECNO") && !up.includes("CEL")) {
-                            direcciones.push(dirLimpia);
-                        }
-                    }
-                });
-
-                var ubicacionesFinales = direcciones.slice(0, 3);
-                if (ubicacionesFinales.length === 0) ubicacionesFinales = ["Medellin, Antioquia"];
-
-                for (let dir of ubicacionesFinales) {
+                for (let dir of v.direcciones) {
+                    loadingTexto.innerText = "🎯 Geocodificando " + v.placa + " (" + dir.slice(0, 22) + "...)...";
                     var coords = await obtenerCoordenadasExactasLimpias(dir);
                     var nuevoPunto = {
-                        placa: placa, marca: infoVeh.marca, linea: infoVeh.linea, modelo: infoVeh.modelo, color: infoVeh.color, telefonos: telefonos,
-                        soat: infoVeh.soat, tecnomecanica: infoVeh.tecnomecanica,
-                        lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
+                        placa: v.placa,
+                        marca: v.marca,
+                        linea: v.linea,
+                        modelo: v.modelo,
+                        color: v.color,
+                        soat: v.soat,
+                        tecnomecanica: v.tecnomecanica,
+                        telefonos: v.telefonos,
+                        lat: coords.lat,
+                        lng: coords.lng,
+                        dir: dir,
+                        fecha: new Date().toISOString().split('T')[0],
+                        foto: null
                     };
                     agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                    totalPuntos++;
                 }
-                totalAgregados++;
             }
 
-            document.getElementById('loading-overlay').style.display = 'none';
-            if (totalAgregados > 0) {
-                document.getElementById('txtWhatsapp').value = '';
-                cerrarSecciones();
-                actualizarPanelCercano();
-                alert("✅ Se cargaron " + totalAgregados + " vehículos correctamente.");
-            }
+            loadingOverlay.style.display = 'none';
+            alert("🚀 ¡Éxito! Se cargaron " + vehiculos.length + " vehículo(s) con un total de " + totalPuntos + " ubicaciones.");
+            document.getElementById(elementId).value = '';
+            cerrarSecciones();
+            actualizarPanelCercano();
         }
 
         // PROCESAR MANUAL O FOTO
@@ -853,7 +829,7 @@
             for (let d of ubiFinales.slice(0, 3)) {
                 var coords = await obtenerCoordenadasExactasLimpias(d);
                 var nuevoPunto = {
-                    placa: placa, marca: "VEHÍCULO", linea: "-", modelo: "-", color: "-", telefonos: "-",
+                    placa: placa, marca: "-", linea: "-", modelo: "-", color: "-", telefonos: "-",
                     soat: "SI", tecnomecanica: "SI",
                     lat: coords.lat, lng: coords.lng, dir: d, fecha: new Date().toISOString().split('T')[0], foto: null
                 };
@@ -945,7 +921,6 @@
                 latlngs.push([userLat, userLng]);
             }
 
-            // Ordenamiento voraz por cercanía
             var actual = userLat && userLng ? {lat: userLat, lng: userLng} : {lat: pendientes[0].lat, lng: pendientes[0].lng};
             var copia = pendientes.slice();
 
@@ -1117,7 +1092,7 @@
                 return {
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, fecha: item.fecha, lat: item.lat, lng: item.lng, foto: item.foto,
-                    soat: item.soat, tecnomecanica: item.tecnomecanica, propietario: item.propietario
+                    soat: item.soat, tecnomecanica: item.tecnomecanica
                 };
             });
             localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
@@ -1215,7 +1190,6 @@
 
         var hoyStr = new Date().toISOString().split('T')[0];
         var diaSemana = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-        // Rotación de Pico y Placa para vehículos particulares en Medellín
         var reglasPico = { 0: ['5', '8'], 1: ['1', '4'], 2: ['0', '2'], 3: ['3', '6'], 4: ['7', '9'] };
 
         function tienePicoYPlaca(placa) {
@@ -1243,11 +1217,14 @@
             if (itemIndex === -1) return;
 
             var placaEditada = puntosData[itemIndex].placa;
-            var nuevoVehiculo = document.getElementById('edit-vehiculo-' + markerId).value.trim();
+            var nuevaMarca = document.getElementById('edit-marca-' + markerId).value.trim();
+            var nuevaLinea = document.getElementById('edit-linea-' + markerId).value.trim();
+            var nuevoModelo = document.getElementById('edit-modelo-' + markerId).value.trim();
+            var nuevoColor = document.getElementById('edit-color-' + markerId).value.trim();
             var nuevosTels = document.getElementById('edit-telefonos-' + markerId).value.trim();
             var nuevaDir = document.getElementById('edit-dir-' + markerId).value.trim();
-            var nuevoSoat = document.getElementById('edit-soat-' + markerId).value.trim();
-            var nuevaTecno = document.getElementById('edit-tecno-' + markerId).value.trim();
+            var nuevoSoat = document.getElementById('edit-soat-' + markerId).value.trim().toUpperCase();
+            var nuevaTecno = document.getElementById('edit-tecno-' + markerId).value.trim().toUpperCase();
             var fileInput = document.getElementById('upload-foto-' + markerId);
             
             var nuevaFotoBase64 = puntosData[itemIndex].foto;
@@ -1257,10 +1234,10 @@
 
             puntosData.forEach(function(p) {
                 if (p.placa === placaEditada) {
-                    p.marca = nuevoVehiculo || '-'; 
-                    p.linea = '-'; 
-                    p.modelo = '-'; 
-                    p.color = '-';
+                    p.marca = nuevaMarca || '-'; 
+                    p.linea = nuevaLinea || '-'; 
+                    p.modelo = nuevoModelo || '-'; 
+                    p.color = nuevoColor || '-';
                     p.telefonos = nuevosTels; 
                     p.soat = nuevoSoat || 'NO';
                     p.tecnomecanica = nuevaTecno || 'NO';
@@ -1279,35 +1256,44 @@
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
             var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
             var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
-            
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail">` : '';
 
-            var v = [];
-            if (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') v.push(p.marca);
-            if (p.linea && p.linea !== '-') v.push(p.linea);
-            if (p.modelo && p.modelo !== '-') v.push(p.modelo);
-            if (p.color && p.color !== '-') v.push(p.color);
-            
-            var vehiculoTexto = v.length > 0 ? v.join(' ') : 'No especificado (Editar ✏️)';
-            var valEdicionSeguro = (v.length > 0 ? v.join(' ') : '').replace(/"/g, '&quot;');
-            var dirSegura = (p.dir || '').replace(/"/g, '&quot;');
-            var telSeguro = (p.telefonos || '-').replace(/"/g, '&quot;');
-            var valSoatSeguro = (p.soat || 'NO').replace(/"/g, '&quot;');
-            var valTecnoSeguro = (p.tecnomecanica || 'NO').replace(/"/g, '&quot;');
+            var soatClass = (p.soat === 'SI' || p.soat === 'VIGENTE') ? 'badge-si' : 'badge-no';
+            var tecnoClass = (p.tecnomecanica === 'SI' || p.tecnomecanica === 'VIGENTE') ? 'badge-si' : 'badge-no';
+
+            var vMarca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '-';
+            var vLinea = (p.linea && p.linea !== '-') ? p.linea : '-';
+            var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '-';
+            var vColor = (p.color && p.color !== '-') ? p.color : '-';
 
             return `
-                <div style="font-family: Arial, sans-serif; font-size: 13px; width: 250px;">
+                <div style="font-family: Arial, sans-serif; font-size: 13px; width: 260px;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <b>Placa:</b> <span style="font-size:15px; font-weight:900; color:#2c3e50;">${p.placa}</span><br>
-                        <b>Vehículo:</b> <span>${vehiculoTexto}</span><br>
-                        <b>SOAT:</b> ${p.soat || 'NO'} | <b>Tecno:</b> ${p.tecnomecanica || 'NO'}<br>
-                        <b>Teléfonos:</b> ${p.telefonos || '-'}<br>
-                        <b>Estado:</b> <span style="font-weight:bold; color:${p.pico ? '#d35400' : '#27ae60'}">${estadoPicoTxt}</span><br>
-                        <b>Dirección:</b> <span style="color:#555;">${p.dir}</span><br>
-                        <b>Visitas:</b> <span style="color:#d9534f; font-weight:bold;">${visitas}</span><br>
+                        <div style="background:#2c3e50; color:white; padding:6px 10px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:16px; font-weight:900; letter-spacing:0.5px;">${p.placa}</span>
+                            <span style="font-size:10px; font-weight:bold; background:${p.pico ? '#d35400' : '#27ae60'}; padding:2px 6px; border-radius:4px;">${estadoPicoTxt}</span>
+                        </div>
+
+                        <table class="specs-table">
+                            <tr><td class="specs-label">Marca:</td><td class="specs-val">${vMarca}</td></tr>
+                            <tr><td class="specs-label">Línea:</td><td class="specs-val">${vLinea}</td></tr>
+                            <tr><td class="specs-label">Modelo:</td><td class="specs-val">${vModelo}</td></tr>
+                            <tr><td class="specs-label">Color:</td><td class="specs-val">${vColor}</td></tr>
+                            <tr>
+                                <td class="specs-label">SOAT:</td>
+                                <td><span class="badge-status-soat ${soatClass}">${p.soat || 'NO'}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="specs-label">Tecno:</td>
+                                <td><span class="badge-status-soat ${tecnoClass}">${p.tecnomecanica || 'NO'}</span></td>
+                            </tr>
+                            <tr><td class="specs-label">Teléfonos:</td><td style="color:#2980b9; font-weight:bold; font-size:11px;">${p.telefonos || '-'}</td></tr>
+                            <tr><td class="specs-label">Dirección:</td><td style="color:#555; font-size:11px;">${p.dir}</td></tr>
+                            <tr><td class="specs-label">Visitas:</td><td><span style="color:#d9534f; font-weight:bold; font-size:13px;">${visitas}</span></td></tr>
+                        </table>
                         
-                        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px;">
+                        <div style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 8px;">
                             <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue">1. 🧭 Navegar (Google Maps)</a>
                             
                             <div style="display:flex; gap:6px;">
@@ -1327,29 +1313,48 @@
                     </div>
 
                     <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-                        <b style="color:#2c3e50;">✏️ Editar Información:</b><br><br>
-                        
-                        <label style="font-size:11px; font-weight:bold;">Vehículo / Detalles:</label>
-                        <input type="text" id="edit-vehiculo-${markerId}" class="edit-input" value="${valEdicionSeguro}">
+                        <b style="color:#2c3e50; font-size:12px;">✏️ Editar Especificaciones:</b><br><br>
                         
                         <div style="display:flex; gap:5px;">
                             <div style="flex:1;">
-                                <label style="font-size:11px; font-weight:bold;">SOAT:</label>
-                                <input type="text" id="edit-soat-${markerId}" class="edit-input" value="${valSoatSeguro}">
+                                <label style="font-size:10px; font-weight:bold;">Marca:</label>
+                                <input type="text" id="edit-marca-${markerId}" class="edit-input" value="${vMarca.replace(/"/g, '&quot;')}">
                             </div>
                             <div style="flex:1;">
-                                <label style="font-size:11px; font-weight:bold;">Tecno:</label>
-                                <input type="text" id="edit-tecno-${markerId}" class="edit-input" value="${valTecnoSeguro}">
+                                <label style="font-size:10px; font-weight:bold;">Línea:</label>
+                                <input type="text" id="edit-linea-${markerId}" class="edit-input" value="${vLinea.replace(/"/g, '&quot;')}">
                             </div>
                         </div>
 
-                        <label style="font-size:11px; font-weight:bold;">Teléfonos:</label>
-                        <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${telSeguro}">
+                        <div style="display:flex; gap:5px;">
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Modelo:</label>
+                                <input type="text" id="edit-modelo-${markerId}" class="edit-input" value="${vModelo.replace(/"/g, '&quot;')}">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Color:</label>
+                                <input type="text" id="edit-color-${markerId}" class="edit-input" value="${vColor.replace(/"/g, '&quot;')}">
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:5px;">
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">SOAT:</label>
+                                <input type="text" id="edit-soat-${markerId}" class="edit-input" value="${(p.soat || 'NO').replace(/"/g, '&quot;')}">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:10px; font-weight:bold;">Tecno:</label>
+                                <input type="text" id="edit-tecno-${markerId}" class="edit-input" value="${(p.tecnomecanica || 'NO').replace(/"/g, '&quot;')}">
+                            </div>
+                        </div>
+
+                        <label style="font-size:10px; font-weight:bold;">Teléfonos:</label>
+                        <input type="text" id="edit-telefonos-${markerId}" class="edit-input" value="${(p.telefonos || '-').replace(/"/g, '&quot;')}">
                         
-                        <label style="font-size:11px; font-weight:bold;">Dirección:</label>
-                        <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${dirSegura}">
+                        <label style="font-size:10px; font-weight:bold;">Dirección:</label>
+                        <input type="text" id="edit-dir-${markerId}" class="edit-input" value="${(p.dir || '').replace(/"/g, '&quot;')}">
                         
-                        <label style="font-size:11px; font-weight:bold; margin-top:5px; display:block;">📷 Foto:</label>
+                        <label style="font-size:10px; font-weight:bold; margin-top:4px; display:block;">📷 Foto:</label>
                         <input type="file" id="upload-foto-${markerId}" accept="image/*" class="edit-input" style="padding:2px;">
                         
                         <div style="display:flex; gap:6px; margin-top:8px;">
