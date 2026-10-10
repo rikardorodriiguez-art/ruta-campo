@@ -581,6 +581,7 @@
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
+                <button type="button" onclick="event.stopPropagation(); iniciarPipRadar();" class="hud-btn-mini" style="background:linear-gradient(135deg, #7c3aed, #6d28d9); border-color:#a78bfa;" title="Flotar sobre WhatsApp y otras apps">🪟</button>
                 <button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Google Maps">🧭</button>
                 <button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3);" title="Expandir Radar HUD">➕</button>
             </div>
@@ -1070,9 +1071,10 @@
             if (radarActivo) {
                 if (panel) panel.style.display = 'block';
                 if (hud) hud.style.display = 'block';
-                mostrarToastNotificacion("🚨 Radar ENCENDIDO: Monitoreando vehículos en tu zona...");
+                mostrarToastNotificacion("🚨 Radar ON: Toca el botón morado 🪟 para que flote sobre WhatsApp y Maps.");
                 actualizarPanelCercano();
                 iniciarArrastreHud();
+                prepararPipVideo();
             } else {
                 if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
@@ -1436,10 +1438,14 @@
             }
         }
 
-        function iniciarPipRadar() {
-            if (!document.pictureInPictureEnabled && !('pictureInPictureEnabled' in document)) {
-                mostrarToastNotificacion("⚠️ Tu navegador no soporta ventana flotante PiP nativa.");
-                return;
+        function prepararPipVideo() {
+            if (!document.pictureInPictureEnabled && !('pictureInPictureEnabled' in document)) return;
+
+            if (!pipCanvasEl) {
+                pipCanvasEl = document.createElement('canvas');
+                pipCanvasEl.width = 440;
+                pipCanvasEl.height = 240;
+                pipCtxEl = pipCanvasEl.getContext('2d');
             }
 
             actualizarPipCanvas();
@@ -1449,40 +1455,78 @@
                 pipVideoEl.muted = true;
                 pipVideoEl.autoplay = true;
                 pipVideoEl.playsInline = true;
-                pipVideoEl.style.width = '1px';
-                pipVideoEl.style.height = '1px';
-                pipVideoEl.style.opacity = '0';
+                pipVideoEl.setAttribute('autoplay', '');
+                pipVideoEl.setAttribute('muted', '');
+                pipVideoEl.setAttribute('playsinline', '');
+                pipVideoEl.setAttribute('autopictureinpicture', '');
+                pipVideoEl.autoPictureInPicture = true;
+
+                // Dimensiones reales pero fuera de la vista para cumplir requisitos de Chrome Android
+                pipVideoEl.style.width = '160px';
+                pipVideoEl.style.height = '90px';
                 pipVideoEl.style.position = 'fixed';
-                pipVideoEl.style.bottom = '0';
+                pipVideoEl.style.bottom = '-9999px';
+                pipVideoEl.style.left = '-9999px';
+                pipVideoEl.style.opacity = '0.01';
+                pipVideoEl.style.pointerEvents = 'none';
+                pipVideoEl.style.zIndex = '-999';
                 document.body.appendChild(pipVideoEl);
 
-                pipStreamTrack = pipCanvasEl.captureStream(10);
+                pipStreamTrack = pipCanvasEl.captureStream(12);
                 pipVideoEl.srcObject = pipStreamTrack;
 
-                // Animación continua del canvas para PiP
+                pipVideoEl.play().catch(function(e) { console.warn("Video play:", e); });
+
+                // Actualización periódica mientras esté en PiP
                 setInterval(function() {
-                    if (document.pictureInPictureElement === pipVideoEl) {
+                    if (radarActivo && (document.pictureInPictureElement === pipVideoEl || document.hidden)) {
                         actualizarPipCanvas();
                     }
-                }, 800);
+                }, 750);
+            }
+        }
+
+        function iniciarPipRadar() {
+            if (!document.pictureInPictureEnabled && !('pictureInPictureEnabled' in document)) {
+                mostrarToastNotificacion("⚠️ Tu navegador no soporta ventana flotante PiP nativa.");
+                return;
             }
 
-            pipVideoEl.play().then(function() {
-                if (document.pictureInPictureElement) {
-                    document.exitPictureInPicture();
+            prepararPipVideo();
+
+            if (document.pictureInPictureElement === pipVideoEl) {
+                document.exitPictureInPicture().then(function() {
                     mostrarToastNotificacion("🪟 Ventana flotante cerrada.");
-                } else {
+                }).catch(function(e){});
+                return;
+            }
+
+            if (pipVideoEl) {
+                pipVideoEl.play().then(function() {
                     pipVideoEl.requestPictureInPicture().then(function() {
-                        mostrarToastNotificacion("🛰️ ¡Ventana flotante activa! Puedes abrir Google Maps u otra app.");
+                        mostrarToastNotificacion("🛰️ ¡Ventana flotante activa! Ahora sal a WhatsApp o Maps y se mantendrá en pantalla.");
                     }).catch(function(err) {
-                        console.warn("PiP error:", err);
-                        mostrarToastNotificacion("ℹ️ Toca la pantalla para autorizar la ventana flotante.");
+                        console.warn("PiP request error:", err);
+                        mostrarToastNotificacion("ℹ️ Toca la pantalla de nuevo para autorizar la ventana flotante.");
                     });
-                }
-            }).catch(function(e) {
-                console.warn("Play error:", e);
-            });
+                }).catch(function(err) {
+                    console.warn("Play error:", err);
+                });
+            }
         }
+
+        // AUTO-PIP AL CAMBIAR DE APLICACIÓN O PESTAÑA (WHATSAPP / GOOGLE MAPS)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && radarActivo && pipVideoEl && document.pictureInPictureEnabled) {
+                if (!document.pictureInPictureElement) {
+                    try {
+                        pipVideoEl.play().then(function() {
+                            pipVideoEl.requestPictureInPicture().catch(function(){});
+                        }).catch(function(){});
+                    } catch(e){}
+                }
+            }
+        });
 
         function obtenerColorPorAntiguedad(p, esVisitada) {
             if (esVisitada) {
