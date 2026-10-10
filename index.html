@@ -2013,6 +2013,14 @@
             } else if (m.includes('BELLO')) {
                 lat = 6.3373 + ((cNum - 45) * 0.00085);
                 lng = -75.5580 - ((kNum - 50) * 0.00075);
+            } else if (m.includes('COPACABANA')) {
+                // Parque Principal Copacabana: Calle 50 con Cra 50 (6.3470, -75.5100)
+                lat = 6.3470 + ((cNum - 50) * 0.00085);
+                lng = -75.5100 - ((kNum - 50) * 0.00075);
+            } else if (m.includes('CALDAS')) {
+                // Parque Principal Caldas: Calle 130 Sur con Cra 50 (6.0910, -75.6360)
+                lat = 6.0910 + ((130 - cNum) * 0.00085);
+                lng = -75.6360 - ((kNum - 50) * 0.00075);
             } else if (m.includes('BOGOTA') || m.includes('BOGOTÁ')) {
                 lat = esSur ? (4.5980 - (cNum * 0.00090)) : (4.5980 + (cNum * 0.00090));
                 lng = -74.0750 - (kNum * 0.00085);
@@ -3812,8 +3820,14 @@
         }
 
         function tienePicoYPlaca(placa, dir) {
-            return calcularPicoYPlacaNacional(placa, dir).aplica;
+            try {
+                if (typeof calcularPicoYPlacaNacional === 'function') {
+                    return calcularPicoYPlacaNacional(placa, dir).aplica;
+                }
+            } catch(e) {}
+            return false;
         }
+        window.calcularPicoYPlacaNacional = calcularPicoYPlacaNacional;
 
         
         // GESTOR DE AGRANDAR Y MINIMIZAR CON DOS DEDOS (PINCH-TO-ZOOM) EN LA FICHA
@@ -4144,7 +4158,14 @@
         }
 
         function generarContenidoPopup(p, markerId) {
-            var resPicoNac = calcularPicoYPlacaNacional(p.placa, p.dirOriginal || p.dir);
+            var resPicoNac = { aplica: false, ciudad: 'COLOMBIA' };
+            try {
+                if (typeof calcularPicoYPlacaNacional === 'function') {
+                    resPicoNac = calcularPicoYPlacaNacional(p.placa, p.dirOriginal || p.dir);
+                }
+            } catch(ePico) {
+                console.warn('Aviso Pico y Placa:', ePico);
+            }
             p.pico = resPicoNac.aplica;
             var estadoPicoTxt = resPicoNac.aplica ? ("⚠️ PICO Y PLACA (" + resPicoNac.ciudad + ")") : ("✅ HÁBIL (" + resPicoNac.ciudad + ")");
             var esVisitada = !!p.visitada;
