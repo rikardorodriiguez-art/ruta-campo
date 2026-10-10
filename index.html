@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Ruta de Campo - Raptor S.A.S. (Pro)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.5, user-scalable=yes">
     
     <!-- LEAFLET & CONTROLES -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -177,20 +177,20 @@
         }
 
         /* POPUP DE MARCADOR CON TABLA DE ESPECIFICACIONES */
-        .leaflet-popup-content { margin: 10px; line-height: 1.4; }
-        .car-thumbnail { width: 100%; max-height: 130px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; }
-        .specs-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-bottom: 8px; }
-        .specs-table td { padding: 2px 0; vertical-align: top; }
-        .specs-label { color: #7f8c8d; font-weight: bold; width: 28%; }
-        .specs-val { color: #2c3e50; font-weight: 600; }
-        .badge-status-soat { font-weight: bold; font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+        .leaflet-popup-content { margin: 8px 10px; line-height: 1.4; max-width: none !important; }
+        .car-thumbnail { width: 100%; max-height: 130px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; pointer-events: none; -webkit-user-drag: none; user-select: none; }
+        .specs-table { width: 100%; font-size: 0.92em; border-collapse: collapse; margin-bottom: 8px; }
+        .specs-table td { padding: 2px 0; vertical-align: top; font-size: inherit; }
+        .specs-label { color: #7f8c8d; font-weight: bold; width: 28%; font-size: inherit; }
+        .specs-val { color: #2c3e50; font-weight: 600; font-size: inherit; }
+        .badge-status-soat { font-weight: bold; font-size: 0.88em; padding: 1px 6px; border-radius: 4px; }
         .badge-si { background: #d4efdf; color: #1e8449; }
         .badge-no { background: #fadbd8; color: #922b21; }
 
-        .edit-input { width: 100%; margin-bottom: 5px; padding: 6px; font-size: 12px; border: 1px solid #aaa; border-radius: 4px; }
+        .edit-input { width: 100%; margin-bottom: 5px; padding: 6px; font-size: 0.92em; border: 1px solid #aaa; border-radius: 4px; }
         .pop-btn {
-            color: white; border: none; padding: 8px 10px; width: 100%; border-radius: 6px; cursor: pointer;
-            margin-bottom: 6px; font-weight: bold; font-size: 12px; text-align: center; text-decoration: none;
+            color: white; border: none; padding: 0.6em 0.8em; width: 100%; border-radius: 6px; cursor: pointer;
+            margin-bottom: 6px; font-weight: bold; font-size: 0.92em; text-align: center; text-decoration: none;
             display: block; box-shadow: 0 3px 6px rgba(0,0,0,0.2); transition: all 0.15s ease;
         }
         .pop-btn:active { transform: translateY(2px); }
@@ -211,6 +211,321 @@
             display: none; pointer-events: none; transition: opacity 0.3s ease;
             text-align: center; max-width: 90vw; line-height: 1.3;
         }
+
+    
+        /* BOTONES Y ESTILOS DE ZOOM TÁCTIL EN LA FICHA */
+        .btn-zoom-pop {
+            background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: bold;
+            cursor: pointer; line-height: 1.2;
+        }
+        .btn-zoom-pop:active { background: rgba(255, 255, 255, 0.45); }
+        .popup-zoom-container {
+            touch-action: pan-y; user-select: none; -webkit-user-select: none;
+        }
+        .leaflet-popup,
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-content {
+            touch-action: pan-y;
+        }
+
+
+        /* ESTILOS RADAR HUD FUTURISTA FLOTANTE */
+        @keyframes radar-sweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes neon-pulse-cyan {
+            0%, 100% { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 240, 255, 0.45); border-color: #00f0ff; }
+            50% { box-shadow: 0 8px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 255, 135, 0.75); border-color: #00ff87; }
+        }
+        @keyframes neon-pulse-alert {
+            0%, 100% { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 0, 85, 0.6); border-color: #ff0055; }
+            50% { box-shadow: 0 8px 40px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 0, 85, 0.95); border-color: #ff3377; }
+        }
+        @keyframes blip-pulse {
+            0% { transform: scale(0.85); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.85); opacity: 0.8; }
+        }
+
+        .radar-hud-flotante {
+            position: fixed;
+            bottom: 85px;
+            right: 12px;
+            z-index: 999999;
+            max-width: 94vw;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* MODO CÁPSULA FUTURISTA COMPACTA */
+        .hud-capsula {
+            background: linear-gradient(135deg, rgba(8, 14, 26, 0.95), rgba(15, 23, 42, 0.97));
+            border: 1.5px solid #00f0ff;
+            border-radius: 30px;
+            padding: 6px 12px 6px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 240, 255, 0.45);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            cursor: grab;
+            animation: neon-pulse-cyan 3s infinite;
+        }
+
+        .hud-capsula.alerta-rango {
+            border-color: #ff0055;
+            animation: neon-pulse-alert 1.2s infinite;
+        }
+
+        /* MINI SCANNER DE RADAR */
+        .hud-radar-disc {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 135, 0.25) 0%, rgba(10, 20, 35, 0.95) 70%);
+            border: 1px solid rgba(0, 240, 255, 0.6);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.3);
+        }
+        .hud-radar-sweep {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 17px;
+            height: 17px;
+            transform-origin: 0 0;
+            background: conic-gradient(from 0deg, rgba(0, 255, 135, 0.85) 0deg, rgba(0, 255, 135, 0) 60deg);
+            animation: radar-sweep 2s linear infinite;
+        }
+        .hud-radar-dot {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #00ff87;
+            box-shadow: 0 0 7px #00ff87;
+            top: 32%;
+            left: 58%;
+            animation: blip-pulse 1s infinite;
+        }
+        .hud-capsula.alerta-rango .hud-radar-dot,
+        .hud-panel-expandido.alerta-rango .hud-radar-dot {
+            background: #ff0055;
+            box-shadow: 0 0 8px #ff0055;
+        }
+
+        /* TEXTOS DENTRO DE LA CÁPSULA */
+        .hud-capsula-datos {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+            cursor: pointer;
+        }
+        .hud-capsula-placa-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hud-tag-placa {
+            font-size: 14.5px;
+            font-weight: 900;
+            letter-spacing: 1.2px;
+            color: #ffea00;
+            text-shadow: 0 0 8px rgba(255, 234, 0, 0.7);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 1px 7px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 234, 0, 0.45);
+        }
+        .hud-tag-dist {
+            font-size: 11px;
+            font-weight: 800;
+            color: #00ff87;
+            text-shadow: 0 0 6px rgba(0, 255, 135, 0.6);
+        }
+        .hud-capsula.alerta-rango .hud-tag-dist {
+            color: #ff0055;
+            text-shadow: 0 0 8px rgba(255, 0, 85, 0.8);
+        }
+        .hud-capsula-vehiculo {
+            font-size: 10.5px;
+            color: #94a3b8;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 175px;
+            margin-top: 1px;
+        }
+        .hud-capsula-vehiculo b {
+            color: #f1f5f9;
+        }
+        .hud-capsula-color {
+            color: #38bdf8;
+            font-weight: bold;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        /* BOTONES MINI ACCIONES EN CÁPSULA */
+        .hud-btn-mini {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border: 1px solid #38bdf8;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            box-shadow: 0 0 10px rgba(2, 132, 199, 0.5);
+            flex-shrink: 0;
+            transition: transform 0.15s ease;
+        }
+        .hud-btn-mini:active { transform: scale(0.9); }
+
+        /* MODO PANEL TÁCTICO FUTURISTA EXPANDIDO */
+        .hud-panel-expandido {
+            width: 295px;
+            background: linear-gradient(145deg, rgba(8, 14, 26, 0.97), rgba(15, 23, 42, 0.98));
+            border: 1.5px solid #00f0ff;
+            border-radius: 18px;
+            padding: 12px 14px;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 22px rgba(0, 240, 255, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            animation: neon-pulse-cyan 3s infinite;
+        }
+        .hud-panel-expandido.alerta-rango {
+            border-color: #ff0055;
+            animation: neon-pulse-alert 1.2s infinite;
+        }
+        .hud-header-futurista {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+            padding-bottom: 6px;
+        }
+        .hud-title-futurista {
+            font-size: 10.5px;
+            font-weight: 900;
+            letter-spacing: 1.2px;
+            color: #00f0ff;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hud-status-badge {
+            font-size: 9px;
+            background: rgba(0, 255, 135, 0.15);
+            color: #00ff87;
+            border: 1px solid #00ff87;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        .hud-panel-expandido.alerta-rango .hud-status-badge {
+            background: rgba(255, 0, 85, 0.2);
+            color: #ff0055;
+            border-color: #ff0055;
+        }
+        .hud-placa-box {
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 234, 0, 0.5);
+            border-radius: 8px;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hud-placa-grande {
+            font-size: 22px;
+            font-weight: 900;
+            color: #ffea00;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 10px rgba(255, 234, 0, 0.7);
+        }
+        .hud-dist-grande {
+            font-size: 14px;
+            font-weight: 900;
+            color: #00ff87;
+            text-shadow: 0 0 8px rgba(0, 255, 135, 0.6);
+        }
+        .hud-panel-expandido.alerta-rango .hud-dist-grande {
+            color: #ff0055;
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.85);
+        }
+        .hud-specs-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 6px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+        .hud-spec-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .hud-spec-label {
+            font-size: 9px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .hud-spec-val {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+        .hud-actions-row {
+            display: flex;
+            gap: 5px;
+            margin-top: 6px;
+        }
+        .hud-btn-action {
+            flex: 1;
+            border: none;
+            padding: 8px 4px;
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 3px;
+        }
+        .hud-btn-action:active { transform: translateY(1px); }
+        .hud-btn-maps { background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; }
+        .hud-btn-visitar { background: linear-gradient(135deg, #16a34a, #15803d); border: 1px solid #4ade80; }
+        .hud-btn-pip { background: linear-gradient(135deg, #7c3aed, #6d28d9); border: 1px solid #a78bfa; }
 
     </style>
 </head>
@@ -247,6 +562,80 @@
             <button onclick="visitarCercanoDesdeRadar()" class="btn-radar-ok">✅ MARCAR VISITADA</button>
         </div>
     </div>
+
+    <!-- BOTÓN / WIDGET FLOTANTE RADAR FUTURISTA -->
+    <div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
+        <!-- MODO CÁPSULA COMPACTA (BOTÓN FLOTANTE) -->
+        <div id="hud-capsula-view" class="hud-capsula" onclick="toggleExpandirHud(event)" title="Toca para expandir el Radar">
+            <div class="hud-radar-disc">
+                <div class="hud-radar-sweep"></div>
+                <div class="hud-radar-dot"></div>
+            </div>
+            <div class="hud-capsula-datos">
+                <div class="hud-capsula-placa-row">
+                    <span id="hud-cap-placa" class="hud-tag-placa">---</span>
+                    <span id="hud-cap-dist" class="hud-tag-dist">-- m</span>
+                </div>
+                <div id="hud-cap-vehiculo" class="hud-capsula-vehiculo">
+                    <b id="hud-cap-carro-txt">CARRO</b> • <span id="hud-cap-color-txt" class="hud-capsula-color">COLOR</span>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
+                <button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Google Maps">🧭</button>
+                <button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3);" title="Expandir Radar HUD">➕</button>
+            </div>
+        </div>
+
+        <!-- MODO PANEL TÁCTICO EXPANDIDO -->
+        <div id="hud-panel-view" class="hud-panel-expandido" style="display:none;">
+            <div class="hud-header-futurista">
+                <div class="hud-title-futurista">
+                    <span class="hud-radar-dot" style="position:static; display:inline-block;"></span>
+                    <span>RADAR TÁCTICO RAPTOR</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span id="hud-status-badge" class="hud-status-badge">TRACKING</span>
+                    <button type="button" onclick="toggleExpandirHud(event)" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;" title="Minimizar a botón">➖</button>
+                    <button type="button" onclick="toggleRadar()" style="background:none; border:none; color:#f43f5e; font-size:16px; cursor:pointer;" title="Apagar radar">✖</button>
+                </div>
+            </div>
+
+            <div class="hud-placa-box">
+                <div>
+                    <div style="font-size:9px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">OBJETIVO MÁS CERCANO</div>
+                    <div id="hud-exp-placa" class="hud-placa-grande">---</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:9px; color:#94a3b8; font-weight:bold;">DISTANCIA</div>
+                    <div id="hud-exp-dist" class="hud-dist-grande">-- m</div>
+                </div>
+            </div>
+
+            <div class="hud-specs-grid">
+                <div class="hud-spec-card">
+                    <span class="hud-spec-label">🚗 Vehículo</span>
+                    <span id="hud-exp-carro" class="hud-spec-val">---</span>
+                </div>
+                <div class="hud-spec-card">
+                    <span class="hud-spec-label">🎨 Color</span>
+                    <span id="hud-exp-color" class="hud-spec-val" style="color:#38bdf8;">---</span>
+                </div>
+            </div>
+
+            <div style="background:rgba(0,0,0,0.4); padding:5px 8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.06);">
+                <span class="hud-spec-label">📍 Dirección</span>
+                <span id="hud-exp-dir" style="font-size:10.5px; color:#e2e8f0; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">---</span>
+            </div>
+
+            <div class="hud-actions-row">
+                <button type="button" onclick="irCercanoMaps()" class="hud-btn-action hud-btn-maps" title="Abrir ruta en Google Maps">🧭 Maps</button>
+                <button type="button" onclick="visitarCercanoDesdeRadar()" class="hud-btn-action hud-btn-visitar" title="Marcar como visitada">✅ Visitada</button>
+                <button type="button" onclick="centrarEnVehiculoCercano()" class="hud-btn-action" style="background:#334155; border:1px solid #64748b;" title="Ver en el mapa">🎯 Ver</button>
+                <button type="button" onclick="iniciarPipRadar()" class="hud-btn-action hud-btn-pip" title="Flotar sobre Google Maps / Celular">🪟 Flotar</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- OVERLAYS & MODALES -->
     <div id="loading-overlay">
@@ -663,18 +1052,33 @@
             }
         }
 
+        var menorDistanciaMetros = Infinity;
+        var pipVideoEl = null;
+        var pipCanvasEl = null;
+        var pipCtxEl = null;
+        var pipStreamTrack = null;
+        var radarSweepAngle = 0;
+
         function toggleRadar() {
             radarActivo = !radarActivo;
             localStorage.setItem('raptor_radar_activo', radarActivo ? '1' : '0');
             actualizarBotonRadarUI();
             
-            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
+            var panel = document.getElementById('panel-cercano');
+            var hud = document.getElementById('radar-hud-flotante');
+
             if (radarActivo) {
                 if (panel) panel.style.display = 'block';
+                if (hud) hud.style.display = 'block';
                 mostrarToastNotificacion("🚨 Radar ENCENDIDO: Monitoreando vehículos en tu zona...");
                 actualizarPanelCercano();
+                iniciarArrastreHud();
             } else {
                 if (panel) panel.style.display = 'none';
+                if (hud) hud.style.display = 'none';
+                if (document.pictureInPictureElement) {
+                    try { document.exitPictureInPicture(); } catch(e){}
+                }
                 mostrarToastNotificacion("⚪ Radar APAGADO: Alertas silenciadas.");
             }
         }
@@ -683,48 +1087,116 @@
             radarActivo = true;
             localStorage.setItem('raptor_radar_activo', '1');
             actualizarBotonRadarUI();
-            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
+            var panel = document.getElementById('panel-cercano');
+            var hud = document.getElementById('radar-hud-flotante');
             if (panel) panel.style.display = 'block';
+            if (hud) hud.style.display = 'block';
             actualizarPanelCercano();
+            iniciarArrastreHud();
             mostrarToastNotificacion("🚨 Radar ENCENDIDO.");
         }
 
         function cerrarRadar() {
-            radarActivo = false;
-            localStorage.setItem('raptor_radar_activo', '0');
-            actualizarBotonRadarUI();
-            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
+            // Al tocar la X en el panel superior, en lugar de apagar el radar, se oculta el panel superior
+            // y se mantiene el botón flotante futurista activo para no tapar el mapa
+            var panel = document.getElementById('panel-cercano');
             if (panel) panel.style.display = 'none';
-            mostrarToastNotificacion("⚪ Radar APAGADO.");
+            mostrarToastNotificacion("ℹ️ Panel superior minimizado. Radar activo en el botón flotante.");
+        }
+
+        function toggleExpandirHud(e) {
+            if (e && e.stopPropagation) e.stopPropagation();
+            var cap = document.getElementById('hud-capsula-view');
+            var pan = document.getElementById('hud-panel-view');
+            if (!cap || !pan) return;
+            if (pan.style.display === 'none') {
+                pan.style.display = 'block';
+                cap.style.display = 'none';
+            } else {
+                pan.style.display = 'none';
+                cap.style.display = 'flex';
+            }
+        }
+
+        function centrarEnVehiculoCercano() {
+            if (placaMasCercanaObj) {
+                map.setView([placaMasCercanaObj.lat, placaMasCercanaObj.lng], 17);
+                if (placaMasCercanaObj.marker) {
+                    placaMasCercanaObj.marker.openPopup();
+                }
+            }
+        }
+
+        function iniciarArrastreHud() {
+            var el = document.getElementById('radar-hud-flotante');
+            if (!el || el._dragInit) return;
+            el._dragInit = true;
+
+            var startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+            var isDragging = false;
+
+            el.addEventListener('touchstart', function(e) {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
+                    return;
+                }
+                var touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                var rect = el.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+                isDragging = false;
+            }, { passive: true });
+
+            el.addEventListener('touchmove', function(e) {
+                if (e.touches.length !== 1) return;
+                var touch = e.touches[0];
+                var dx = touch.clientX - startX;
+                var dy = touch.clientY - startY;
+                if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                    isDragging = true;
+                    var newLeft = Math.max(8, Math.min(window.innerWidth - el.offsetWidth - 8, initialLeft + dx));
+                    var newTop = Math.max(48, Math.min(window.innerHeight - el.offsetHeight - 12, initialTop + dy));
+                    el.style.left = newLeft + 'px';
+                    el.style.top = newTop + 'px';
+                    el.style.right = 'auto';
+                    el.style.bottom = 'auto';
+                    e.preventDefault();
+                }
+            }, { passive: false });
         }
 
         function actualizarPanelCercano() {
             actualizarBotonRadarUI();
-            var panel = document.getElementById('radar-panel-flotante') || document.getElementById('panel-cercano');
-            if (!panel) return;
+            var panel = document.getElementById('panel-cercano');
+            var hud = document.getElementById('radar-hud-flotante');
 
             if (!radarActivo) {
-                panel.style.display = 'none';
+                if (panel) panel.style.display = 'none';
+                if (hud) hud.style.display = 'none';
                 return;
             }
 
             if (puntosData.length === 0) {
-                panel.style.display = 'none';
+                if (panel) panel.style.display = 'none';
+                if (hud) hud.style.display = 'none';
                 return;
             }
 
+            if (hud) hud.style.display = 'block';
+
             // Si el radar está encendido pero el GPS móvil aún no detecta posición
             if (!userLat || !userLng) {
-                panel.style.display = 'block';
-                var elEstado = document.getElementById('radar-estado');
-                var elTexto = document.getElementById('radar-texto-cercano');
-                if (elEstado) {
-                    elEstado.innerText = "🚨 Radar Activo (Esperando GPS)";
-                    elEstado.style.color = "#27ae60";
+                if (panel) {
+                    panel.style.display = 'block';
+                    var cPlaca = document.getElementById('cercano-placa');
+                    var cDist = document.getElementById('cercano-dist');
+                    var cInfo = document.getElementById('cercano-info');
+                    if (cPlaca) cPlaca.innerText = "GPS...";
+                    if (cDist) cDist.innerText = "(Buscando señal)";
+                    if (cInfo) cInfo.innerText = "Toca 🎯 para activar";
                 }
-                if (elTexto) {
-                    elTexto.innerHTML = "🛰️ Buscando señal GPS... <a href='javascript:void(0)' onclick='centrarEnMiGPS()' style='color:#3498db; font-weight:bold;'>Toca aquí o en 🎯 para activar</a>";
-                }
+                actualizarTextosHud(null, null);
                 return;
             }
 
@@ -733,17 +1205,18 @@
             });
 
             if (pendientes.length === 0) {
-                panel.style.display = 'block';
-                var elEstado = document.getElementById('radar-estado');
-                var elTexto = document.getElementById('radar-texto-cercano');
-                if (elEstado) {
-                    elEstado.innerText = "✅ Ruta Completada";
-                    elEstado.style.color = "#27ae60";
-                }
-                if (elTexto) {
-                    elTexto.innerHTML = "🎉 ¡Todos los vehículos han sido visitados!";
+                if (panel) {
+                    panel.style.display = 'block';
+                    var cPlaca = document.getElementById('cercano-placa');
+                    var cDist = document.getElementById('cercano-dist');
+                    var cInfo = document.getElementById('cercano-info');
+                    if (cPlaca) cPlaca.innerText = "Completado";
+                    if (cDist) cDist.innerText = "✅";
+                    if (cInfo) cInfo.innerText = "¡Todos visitados!";
                 }
                 placaMasCercanaObj = null;
+                menorDistanciaMetros = Infinity;
+                actualizarTextosHud(null, null);
                 return;
             }
 
@@ -760,35 +1233,85 @@
 
             if (masCercano) {
                 placaMasCercanaObj = masCercano;
-                panel.style.display = 'block';
-                var distTxt = menorDist < 1000 ? Math.round(menorDist) + " metros" : (menorDist / 1000).toFixed(1) + " km";
-                var detCarro = (masCercano.marca && masCercano.marca !== '-') ? " (" + masCercano.marca + " " + (masCercano.color || '') + ")" : "";
-                
-                var elTexto = document.getElementById('radar-texto-cercano');
-                var elEstado = document.getElementById('radar-estado');
-                
-                if (elTexto) {
-                    elTexto.innerHTML = 
-                        "🚨 <b>" + masCercano.placa + "</b>" + detCarro + " a <b>" + distTxt + "</b><br>" +
-                        "<span style='font-size:10px; color:#555;'>📍 " + (masCercano.dirOriginal || masCercano.dir).slice(0, 35) + "...</span>";
-                }
+                menorDistanciaMetros = menorDist;
 
+                var distTxt = menorDist < 1000 ? Math.round(menorDist) + " metros" : (menorDist / 1000).toFixed(1) + " km";
+                var detCarro = (masCercano.marca && masCercano.marca !== '-' && masCercano.marca !== 'VEHÍCULO') ? masCercano.marca : 'VEHÍCULO';
+                var colorTxt = (masCercano.color && masCercano.color !== '-') ? masCercano.color : 'SIN COLOR';
+
+                // Actualizar Panel Superior
+                var cPlaca = document.getElementById('cercano-placa');
+                var cDist = document.getElementById('cercano-dist');
+                var cInfo = document.getElementById('cercano-info');
+                if (cPlaca) cPlaca.innerText = masCercano.placa;
+                if (cDist) cDist.innerText = "(" + distTxt + ")";
+                if (cInfo) cInfo.innerText = detCarro + " • " + colorTxt;
+
+                // Actualizar Botón Flotante Futurista HUD
+                actualizarTextosHud(masCercano, distTxt);
+
+                // Alerta sonora y vibración si está a 500m o menos
                 if (menorDist <= 500) {
-                    if (elEstado) {
-                        elEstado.innerText = "🚨 ¡VEHÍCULO EN RANGO (" + distTxt + ")!";
-                        elEstado.style.color = "#c0392b";
-                    }
                     var ahora = Date.now();
                     if (ahora - ultimaAlertaTs > 25000) {
                         emitirAlertaSonora();
                         emitirVibracion();
                         ultimaAlertaTs = ahora;
                     }
-                } else {
-                    if (elEstado) {
-                        elEstado.innerText = "Radar Activo (Siguiente en ruta)";
-                        elEstado.style.color = "#2980b9";
-                    }
+                }
+
+                // Actualizar Canvas de Ventana Flotante (PiP) si está activo
+                actualizarPipCanvas();
+            }
+        }
+
+        function actualizarTextosHud(p, distTxt) {
+            var hud = document.getElementById('radar-hud-flotante');
+            var cap = document.getElementById('hud-capsula-view');
+            var pan = document.getElementById('hud-panel-view');
+            if (!hud || !cap) return;
+
+            if (!p) {
+                document.getElementById('hud-cap-placa').innerText = "---";
+                document.getElementById('hud-cap-dist').innerText = "--";
+                document.getElementById('hud-cap-carro-txt').innerText = "Sin vehículos";
+                document.getElementById('hud-cap-color-txt').innerText = "";
+                cap.classList.remove('alerta-rango');
+                if (pan) pan.classList.remove('alerta-rango');
+                return;
+            }
+
+            var marca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
+            var linea = (p.linea && p.linea !== '-') ? p.linea : '';
+            var carroDesc = (marca + ' ' + linea).trim() || 'VEHÍCULO';
+            var colorDesc = (p.color && p.color !== '-') ? p.color : 'COLOR N/D';
+            var enAlerta = (menorDistanciaMetros <= 500);
+
+            // Vista Cápsula
+            document.getElementById('hud-cap-placa').innerText = p.placa;
+            document.getElementById('hud-cap-dist').innerText = '🎯 ' + distTxt;
+            document.getElementById('hud-cap-carro-txt').innerText = carroDesc;
+            document.getElementById('hud-cap-color-txt').innerText = colorDesc;
+
+            if (enAlerta) {
+                cap.classList.add('alerta-rango');
+                if (pan) pan.classList.add('alerta-rango');
+            } else {
+                cap.classList.remove('alerta-rango');
+                if (pan) pan.classList.remove('alerta-rango');
+            }
+
+            // Vista Expandida
+            if (pan) {
+                document.getElementById('hud-exp-placa').innerText = p.placa;
+                document.getElementById('hud-exp-dist').innerText = distTxt;
+                document.getElementById('hud-exp-carro').innerText = carroDesc + (p.modelo && p.modelo !== '-' ? ' ' + p.modelo : '');
+                document.getElementById('hud-exp-color').innerText = colorDesc.toUpperCase();
+                document.getElementById('hud-exp-dir').innerText = p.dirOriginal || p.dir || 'Dirección registrada';
+                
+                var badge = document.getElementById('hud-status-badge');
+                if (badge) {
+                    badge.innerText = enAlerta ? "🚨 EN RANGO (<500M)" : "🎯 TRACKING";
                 }
             }
         }
@@ -796,6 +1319,10 @@
         function irCercanoMaps() {
             if (placaMasCercanaObj) {
                 var urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(placaMasCercanaObj.lat + "," + placaMasCercanaObj.lng);
+                // Si el dispositivo soporta Picture-in-Picture, intentamos abrir la ventana flotante
+                if (document.pictureInPictureEnabled && !document.pictureInPictureElement) {
+                    try { iniciarPipRadar(); } catch(e){}
+                }
                 window.open(urlMaps, '_blank');
             }
         }
@@ -804,6 +1331,157 @@
             if (placaMasCercanaObj) {
                 marcarVisitada(placaMasCercanaObj.placa, placaMasCercanaObj.id);
             }
+        }
+
+        // VENTANA FLOTANTE NATIVA PICTURE-IN-PICTURE (SOBRE OTRAS APPS COMO GOOGLE MAPS)
+        function actualizarPipCanvas() {
+            if (!pipCanvasEl) {
+                pipCanvasEl = document.createElement('canvas');
+                pipCanvasEl.width = 440;
+                pipCanvasEl.height = 240;
+                pipCtxEl = pipCanvasEl.getContext('2d');
+            }
+            var ctx = pipCtxEl;
+            var w = pipCanvasEl.width;
+            var h = pipCanvasEl.height;
+
+            // Fondo futurista cyberpunk oscuro
+            var bgGrad = ctx.createLinearGradient(0, 0, w, h);
+            bgGrad.addColorStop(0, '#070b14');
+            bgGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            var enAlerta = (placaMasCercanaObj && menorDistanciaMetros <= 500);
+
+            // Borde Neón
+            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00f0ff';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(3, 3, w - 6, h - 6);
+
+            // Mini radar circular
+            var rx = 48, ry = 48, rr = 30;
+            ctx.strokeStyle = enAlerta ? 'rgba(255, 0, 85, 0.4)' : 'rgba(0, 240, 255, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(rx, ry, rr, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(rx, ry, rr * 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Línea de barrido
+            radarSweepAngle = (radarSweepAngle + 0.12) % (Math.PI * 2);
+            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00ff87';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(rx + Math.cos(radarSweepAngle) * rr, ry + Math.sin(radarSweepAngle) * rr);
+            ctx.stroke();
+
+            // Punto de objetivo
+            ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
+            ctx.beginPath();
+            ctx.arc(rx + 10, ry - 8, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Título HUD
+            ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
+            ctx.font = 'bold 15px monospace';
+            ctx.fillText(enAlerta ? '🚨 ¡VEHÍCULO EN RANGO (<500M)!' : '🛰️ RADAR RAPTOR • EN VIVO', 90, 42);
+
+            if (placaMasCercanaObj) {
+                var p = placaMasCercanaObj;
+                var marca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : 'VEHÍCULO';
+                var linea = (p.linea && p.linea !== '-') ? p.linea : '';
+                var carroStr = (marca + ' ' + linea).trim();
+                var colorStr = (p.color && p.color !== '-') ? p.color : 'SIN COLOR';
+                var distTxt = menorDistanciaMetros < 1000 ? Math.round(menorDistanciaMetros) + ' M' : (menorDistanciaMetros / 1000).toFixed(1) + ' KM';
+
+                // Caja de placa amarilla reflectiva
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(18, 92, 175, 52);
+                ctx.strokeStyle = '#ffea00';
+                ctx.lineWidth = 2.5;
+                ctx.strokeRect(18, 92, 175, 52);
+
+                ctx.fillStyle = '#ffea00';
+                ctx.font = '900 32px sans-serif';
+                ctx.fillText(p.placa, 28, 131);
+
+                // Distancia
+                ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
+                ctx.font = '900 24px monospace';
+                ctx.fillText('🎯 ' + distTxt, 208, 128);
+
+                // Carro
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 18px sans-serif';
+                ctx.fillText('🚗 ' + carroStr.slice(0, 24), 20, 174);
+
+                // Color
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = 'bold 17px sans-serif';
+                ctx.fillText('🎨 ' + colorStr.toUpperCase(), 20, 204);
+
+                // Dirección resumida
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '12px sans-serif';
+                var dir = (p.dirOriginal || p.dir || '').slice(0, 42);
+                ctx.fillText('📍 ' + dir, 20, 228);
+            } else {
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = 'bold 18px sans-serif';
+                ctx.fillText('Esperando señal GPS / Vehículos...', 30, 140);
+            }
+        }
+
+        function iniciarPipRadar() {
+            if (!document.pictureInPictureEnabled && !('pictureInPictureEnabled' in document)) {
+                mostrarToastNotificacion("⚠️ Tu navegador no soporta ventana flotante PiP nativa.");
+                return;
+            }
+
+            actualizarPipCanvas();
+
+            if (!pipVideoEl) {
+                pipVideoEl = document.createElement('video');
+                pipVideoEl.muted = true;
+                pipVideoEl.autoplay = true;
+                pipVideoEl.playsInline = true;
+                pipVideoEl.style.width = '1px';
+                pipVideoEl.style.height = '1px';
+                pipVideoEl.style.opacity = '0';
+                pipVideoEl.style.position = 'fixed';
+                pipVideoEl.style.bottom = '0';
+                document.body.appendChild(pipVideoEl);
+
+                pipStreamTrack = pipCanvasEl.captureStream(10);
+                pipVideoEl.srcObject = pipStreamTrack;
+
+                // Animación continua del canvas para PiP
+                setInterval(function() {
+                    if (document.pictureInPictureElement === pipVideoEl) {
+                        actualizarPipCanvas();
+                    }
+                }, 800);
+            }
+
+            pipVideoEl.play().then(function() {
+                if (document.pictureInPictureElement) {
+                    document.exitPictureInPicture();
+                    mostrarToastNotificacion("🪟 Ventana flotante cerrada.");
+                } else {
+                    pipVideoEl.requestPictureInPicture().then(function() {
+                        mostrarToastNotificacion("🛰️ ¡Ventana flotante activa! Puedes abrir Google Maps u otra app.");
+                    }).catch(function(err) {
+                        console.warn("PiP error:", err);
+                        mostrarToastNotificacion("ℹ️ Toca la pantalla para autorizar la ventana flotante.");
+                    });
+                }
+            }).catch(function(e) {
+                console.warn("Play error:", e);
+            });
         }
 
         function obtenerColorPorAntiguedad(p, esVisitada) {
@@ -2304,6 +2982,186 @@
             return false;
         }
 
+        
+        // GESTOR DE AGRANDAR Y MINIMIZAR CON DOS DEDOS (PINCH-TO-ZOOM) EN LA FICHA
+        function ajustarZoomPopup(markerId, delta) {
+            var contenedor = document.getElementById('popup-zoomable-' + markerId);
+            if (!contenedor) return;
+            var currentScale = parseFloat(contenedor.getAttribute('data-scale') || '1');
+            var targetScale = Math.min(Math.max(currentScale + delta, 0.65), 1.85);
+            aplicarZoomPopup(markerId, targetScale);
+        }
+
+        function aplicarZoomPopup(markerId, scale) {
+            var contenedor = document.getElementById('popup-zoomable-' + markerId);
+            if (!contenedor) return;
+
+            scale = Math.round(scale * 100) / 100;
+            contenedor.setAttribute('data-scale', scale);
+
+            var anchoBase = Math.round(270 * scale);
+            var maxWidth = Math.min(window.innerWidth * 0.95, 480);
+            var targetWidth = Math.max(Math.min(anchoBase, maxWidth), 160);
+            contenedor.style.width = targetWidth + 'px';
+
+            var fontSize = Math.round(13 * scale);
+            contenedor.style.fontSize = fontSize + 'px';
+
+            var img = contenedor.querySelector('.car-thumbnail');
+            if (img) {
+                img.style.maxHeight = Math.round(150 * scale) + 'px';
+            }
+
+            var detalles = document.getElementById('popup-detalles-' + markerId);
+            if (detalles) {
+                detalles.style.maxHeight = Math.min(Math.round(52 * scale), 75) + 'vh';
+            }
+
+            var zoomLbl = document.getElementById('zoom-val-' + markerId);
+            if (zoomLbl) {
+                zoomLbl.innerText = Math.round(scale * 100) + '%';
+            }
+
+            var item = puntosData.find(function(d) { return d.id === markerId; });
+            if (item && item.marker && item.marker.getPopup()) {
+                item.marker.getPopup().update();
+            }
+        }
+
+        function inicializarZoomDosDedos(markerId, targetEl) {
+            var contenedor = document.getElementById('popup-zoomable-' + markerId);
+            if (!contenedor) return;
+
+            var popupEl = targetEl || contenedor.closest('.leaflet-popup') || contenedor;
+            if (popupEl._pinchInitialized) return;
+            popupEl._pinchInitialized = true;
+
+            var startDist = 0;
+            var baseScale = 1;
+            var isPinching = false;
+
+            function calcDist(touches) {
+                if (!touches || touches.length < 2) return 0;
+                var dx = touches[0].clientX - touches[1].clientX;
+                var dy = touches[0].clientY - touches[1].clientY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            function onTouchStart(e) {
+                if (e.touches && e.touches.length === 2) {
+                    isPinching = true;
+                    startDist = calcDist(e.touches);
+                    baseScale = parseFloat(contenedor.getAttribute('data-scale') || '1');
+
+                    // Pausar interacción del mapa mientras se pellizca la ficha
+                    if (window.map) {
+                        if (map.touchZoom && map.touchZoom.enabled()) {
+                            map.touchZoom.disable();
+                            map._touchZoomDisabledByPinch = true;
+                        }
+                        if (map.dragging && map.dragging.enabled()) {
+                            map.dragging.disable();
+                            map._draggingDisabledByPinch = true;
+                        }
+                    }
+
+                    contenedor.style.transition = 'none';
+
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (window.L && L.DomEvent) L.DomEvent.stopPropagation(e);
+
+                    document.addEventListener('touchmove', onTouchMoveDoc, { passive: false });
+                    document.addEventListener('touchend', onTouchEndDoc, { passive: false });
+                    document.addEventListener('touchcancel', onTouchEndDoc, { passive: false });
+                }
+            }
+
+            function onTouchMoveDoc(e) {
+                if (e.touches && e.touches.length === 2) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (window.L && L.DomEvent) L.DomEvent.stopPropagation(e);
+
+                    if (!isPinching || startDist <= 0) {
+                        isPinching = true;
+                        startDist = calcDist(e.touches);
+                        baseScale = parseFloat(contenedor.getAttribute('data-scale') || '1');
+                        contenedor.style.transition = 'none';
+                        if (window.map) {
+                            if (map.touchZoom && map.touchZoom.enabled()) {
+                                map.touchZoom.disable();
+                                map._touchZoomDisabledByPinch = true;
+                            }
+                            if (map.dragging && map.dragging.enabled()) {
+                                map.dragging.disable();
+                                map._draggingDisabledByPinch = true;
+                            }
+                        }
+                    }
+
+                    var currentDist = calcDist(e.touches);
+                    if (startDist > 0 && currentDist > 0) {
+                        var factor = currentDist / startDist;
+                        var newScale = baseScale * factor;
+                        newScale = Math.min(Math.max(newScale, 0.65), 1.85);
+                        aplicarZoomPopup(markerId, newScale);
+                    }
+                }
+            }
+
+            function onTouchEndDoc(e) {
+                if (!e.touches || e.touches.length < 2) {
+                    document.removeEventListener('touchmove', onTouchMoveDoc);
+                    document.removeEventListener('touchend', onTouchEndDoc);
+                    document.removeEventListener('touchcancel', onTouchEndDoc);
+
+                    if (isPinching) {
+                        isPinching = false;
+                        startDist = 0;
+
+                        // Restaurar animación fluida para toques de botón
+                        contenedor.style.transition = 'width 0.15s ease, font-size 0.15s ease';
+
+                        // Reactivar interacción del mapa
+                        if (window.map) {
+                            if (map._touchZoomDisabledByPinch && map.touchZoom) {
+                                map.touchZoom.enable();
+                                map._touchZoomDisabledByPinch = false;
+                            }
+                            if (map._draggingDisabledByPinch && map.dragging) {
+                                map.dragging.enable();
+                                map._draggingDisabledByPinch = false;
+                            }
+                        }
+
+                        var finalScale = parseFloat(contenedor.getAttribute('data-scale') || '1');
+                        var detalles = document.getElementById('popup-detalles-' + markerId);
+                        var resumen = document.getElementById('popup-resumen-' + markerId);
+                        var btn = document.getElementById('btn-min-' + markerId);
+
+                        // Si juntaron los dos dedos hasta < 72%, auto-minimizar
+                        if (finalScale <= 0.72) {
+                            if (detalles && detalles.style.display !== 'none') {
+                                detalles.style.display = 'none';
+                                if (resumen) resumen.style.display = 'block';
+                                if (btn) btn.innerHTML = '➕ Ampliar';
+                                aplicarZoomPopup(markerId, 1);
+                            }
+                        } else if (finalScale >= 1.05 && detalles && detalles.style.display === 'none') {
+                            // Si estaba minimizado y separaron los dedos, auto-expandir
+                            detalles.style.display = 'block';
+                            if (resumen) resumen.style.display = 'none';
+                            if (btn) btn.innerHTML = '➖ Minimizar';
+                        }
+                    }
+                }
+            }
+
+            popupEl.addEventListener('touchstart', onTouchStart, { passive: false });
+            contenedor.addEventListener('touchstart', onTouchStart, { passive: false });
+        }
+
         function toggleMinimizarPopup(markerId) {
             var detallesDiv = document.getElementById('popup-detalles-' + markerId);
             var resumenDiv = document.getElementById('popup-resumen-' + markerId);
@@ -2427,16 +3285,19 @@
             var txtBtnVisitada = esVisitada ? "2. ↩️ Desmarcar Visitada" : "2. ✅ Marcar Visitada";
 
             return `
-                <div style="font-family: Arial, sans-serif; font-size: 13px; width: 260px;">
+                <div id="popup-zoomable-${markerId}" class="popup-zoom-container" data-scale="1" ontouchstart="inicializarZoomDosDedos('${markerId}', this)" style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; width: 270px; max-width: 94vw; transition: width 0.15s ease, font-size 0.15s ease;">
                     <div id="view-mode-${markerId}">
                         ${imgHtml}
-                        <div class="popup-header-bar" onclick="toggleMinimizarPopup('${markerId}')" style="background:#2c3e50; color:white; padding:7px 10px; border-radius:6px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" title="Toca para Minimizar o Ampliar ventana">
+                        <div class="popup-header-bar" onclick="toggleMinimizarPopup('${markerId}')" style="background:#1e293b; color:white; padding:7px 10px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" title="Toca para Minimizar o Ampliar">
                             <div style="display:flex; align-items:center; gap:6px;">
                                 <span style="font-size:16px; font-weight:900; letter-spacing:0.5px;">${p.placa}</span>
                                 <span style="font-size:10px; font-weight:bold; background:${p.pico ? '#d35400' : '#27ae60'}; padding:2px 6px; border-radius:4px;">${estadoPicoTxt}</span>
                             </div>
-                            <div style="display:flex; align-items:center; gap:4px;">
-                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}')" id="btn-min-${markerId}" style="background:#34495e; border:1px solid rgba(255,255,255,0.4); color:white; border-radius:4px; padding:3px 7px; font-size:10.5px; font-weight:bold; cursor:pointer;">➖ Minimizar</button>
+                            <div style="display:flex; align-items:center; gap:3px;">
+                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', -0.2)" class="btn-zoom-pop" title="Apequeñar">-🔍</button>
+                                <span id="zoom-val-${markerId}" style="font-size:9.5px; font-weight:bold; color:#94a3b8; min-width:28px; text-align:center;">100%</span>
+                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', 0.2)" class="btn-zoom-pop" title="Agrandar">+🔍</button>
+                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}')" id="btn-min-${markerId}" style="background:#334155; border:1px solid rgba(255,255,255,0.3); color:white; border-radius:4px; padding:3px 7px; font-size:10px; font-weight:bold; cursor:pointer; margin-left:3px;">➖ Minimizar</button>
                             </div>
                         </div>
 
@@ -2604,6 +3465,8 @@
             // autoPanPadding para que el popup nunca se sobreponga bajo la barra superior
             marker.bindPopup(generarContenidoPopup(p, p.id), {
                 autoPan: true,
+                maxWidth: 480,
+                minWidth: 160,
                 autoPanPaddingTopLeft: [20, 75],
                 autoPanPaddingBottomRight: [20, 75]
             });
@@ -2616,6 +3479,26 @@
                 if(!puntosData.find(d => d.id === p.id)) puntosData.push(p);
             }
         }
+
+        
+        // ACTIVAR GESTO DE PELLIZCO CON DOS DEDOS AL ABRIR CUALQUIER FICHA
+        map.on('popupopen', function(e) {
+            var el = e.popup.getElement();
+            if (el) {
+                var zoomable = el.querySelector('[id^="popup-zoomable-"]');
+                if (zoomable) {
+                    var markerId = zoomable.id.replace('popup-zoomable-', '');
+                    inicializarZoomDosDedos(markerId, el);
+                }
+            }
+        });
+
+        map.on('popupclose', function() {
+            if (window.map) {
+                if (map.touchZoom && !map.touchZoom.enabled()) map.touchZoom.enable();
+                if (map.dragging && !map.dragging.enabled()) map.dragging.enable();
+            }
+        });
 
         window.onload = function() {
             cargarPuntosStorage();
