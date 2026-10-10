@@ -1322,50 +1322,41 @@
             }
         }
 
-        // VENTANA FLOTANTE NATIVA PICTURE-IN-PICTURE CIRCULAR (1:1) PARA CUANDO SALGA DEL MAPA
+        // VENTANA FLOTANTE NATIVA PICTURE-IN-PICTURE CIRCULAR BORDE A BORDE (ESTILO APP ICON)
         function actualizarPipCanvas() {
             if (!pipCanvasEl) {
                 pipCanvasEl = document.createElement('canvas');
-                pipCanvasEl.width = 320;
-                pipCanvasEl.height = 320;
+                pipCanvasEl.width = 240;
+                pipCanvasEl.height = 240;
                 pipCtxEl = pipCanvasEl.getContext('2d');
             }
             var ctx = pipCtxEl;
-            var w = 320;
-            var h = 320;
-            var cx = 160;
-            var cy = 160;
-            var cr = 148;
+            var w = 240;
+            var h = 240;
+            var cx = 120;
+            var cy = 120;
+            var cr = 117; // Llena el 100% del cuadro para eliminar márgenes negros exteriores
 
             var enAlerta = (placaMasCercanaObj && menorDistanciaMetros <= 500);
 
-            // Fondo base oscuro
+            // Limpiar canvas
             ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = '#030712';
-            ctx.fillRect(0, 0, w, h);
 
-            // CÍRCULO TÁCTICO RADAR PRINCIPAL
+            // CÍRCULO TÁCTICO RADAR PRINCIPAL QUE OCUPA TODO EL TAMAÑO
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+            ctx.clip(); // Recorta estrictamente al círculo: nada de bordes o esquinas negras sobrantes
 
             // Gradiente circular dentro del disco
             var rGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, cr);
-            rGrad.addColorStop(0, enAlerta ? 'rgba(255, 0, 85, 0.25)' : 'rgba(0, 240, 255, 0.2)');
+            rGrad.addColorStop(0, enAlerta ? 'rgba(255, 0, 85, 0.28)' : 'rgba(0, 240, 255, 0.22)');
             rGrad.addColorStop(0.65, '#0a1324');
-            rGrad.addColorStop(1, '#050914');
+            rGrad.addColorStop(1, '#050811');
             ctx.fillStyle = rGrad;
             ctx.fill();
 
-            // Borde Neón Circular con Resplandor
-            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00f0ff';
-            ctx.lineWidth = 4;
-            ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.95)' : 'rgba(0, 240, 255, 0.9)';
-            ctx.shadowBlur = 15;
-            ctx.stroke();
-
-            // Anillos interiores tácticos
-            ctx.shadowBlur = 0;
+            // Anillos interiores tácticos de radar
             ctx.strokeStyle = enAlerta ? 'rgba(255, 0, 85, 0.35)' : 'rgba(0, 240, 255, 0.35)';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -1379,8 +1370,8 @@
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(cx - cr + 15, cy); ctx.lineTo(cx + cr - 15, cy);
-            ctx.moveTo(cx, cy - cr + 15); ctx.lineTo(cx, cy + cr - 15);
+            ctx.moveTo(cx - cr, cy); ctx.lineTo(cx + cr, cy);
+            ctx.moveTo(cx, cy - cr); ctx.lineTo(cx, cy + cr);
             ctx.stroke();
 
             // Línea de barrido de radar giratoria (360°)
@@ -1395,19 +1386,18 @@
             // Punto objetivo parpadeante
             ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
             ctx.shadowColor = enAlerta ? '#ff0055' : '#00ff87';
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = 8;
             ctx.beginPath();
-            ctx.arc(cx + 42, cy - 35, 5, 0, Math.PI * 2);
+            ctx.arc(cx + 34, cy - 28, 4.5, 0, Math.PI * 2);
             ctx.fill();
-            ctx.restore();
 
-            // CONTENIDO EN EL CÍRCULO (CENTRADO Y CLARO)
+            // CONTENIDO EN EL CÍRCULO (CENTRADO Y CLARO TIPO APP ICON)
             ctx.textAlign = 'center';
 
             // 1. Título superior
             ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
-            ctx.font = '900 11px monospace';
-            ctx.fillText(enAlerta ? '🚨 ¡EN RANGO (<500M)!' : '🛰️ RADAR RAPTOR', cx, 48);
+            ctx.font = '900 10px monospace';
+            ctx.fillText(enAlerta ? '🚨 EN RANGO (<500M)' : '🛰️ RADAR RAPTOR', cx, 38);
 
             if (placaMasCercanaObj) {
                 var p = placaMasCercanaObj;
@@ -1420,58 +1410,64 @@
 
                 // 2. Caja de Placa Central (Amarilla reflectiva)
                 ctx.save();
-                var bw = 170, bh = 44, bx = cx - bw / 2, by = 68;
+                var bw = 146, bh = 36, bx = cx - bw / 2, by = 52;
                 ctx.fillStyle = '#000000';
                 ctx.beginPath();
-                if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 8);
+                if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 6);
                 else ctx.rect(bx, by, bw, bh);
                 ctx.fill();
 
                 ctx.strokeStyle = '#ffea00';
-                ctx.lineWidth = 2.5;
+                ctx.lineWidth = 2;
                 ctx.shadowColor = 'rgba(255, 234, 0, 0.7)';
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 6;
                 ctx.stroke();
 
                 ctx.fillStyle = '#ffea00';
-                ctx.font = '900 30px -apple-system, sans-serif';
-                ctx.fillText(p.placa, cx, by + 33);
+                ctx.font = '900 25px -apple-system, sans-serif';
+                ctx.fillText(p.placa, cx, by + 27);
                 ctx.restore();
 
                 // 3. Distancia en vivo
                 ctx.save();
                 ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
-                ctx.font = '900 24px monospace';
+                ctx.font = '900 20px monospace';
                 ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.8)' : 'rgba(0, 255, 135, 0.8)';
-                ctx.shadowBlur = 8;
-                ctx.fillText('🎯 ' + distTxt, cx, 148);
+                ctx.shadowBlur = 7;
+                ctx.fillText('🎯 ' + distTxt, cx, 114);
                 ctx.restore();
 
                 // 4. Vehículo
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 15px -apple-system, sans-serif';
-                ctx.fillText('🚗 ' + carroStr.slice(0, 22), cx, 184);
+                ctx.font = 'bold 13.5px -apple-system, sans-serif';
+                ctx.fillText('🚗 ' + carroStr.slice(0, 20), cx, 142);
 
                 // 5. Color
                 ctx.fillStyle = '#38bdf8';
-                ctx.font = 'bold 14px -apple-system, sans-serif';
-                ctx.fillText('🎨 ' + colorStr.toUpperCase(), cx, 210);
+                ctx.font = 'bold 12.5px -apple-system, sans-serif';
+                ctx.fillText('🎨 ' + colorStr.toUpperCase(), cx, 166);
 
-                // 6. Dirección o Estado inferior
-                ctx.fillStyle = '#94a3b8';
-                ctx.font = '11.5px sans-serif';
-                var dir = (p.dirOriginal || p.dir || 'Dirección registrada').slice(0, 30);
-                ctx.fillText('📍 ' + dir, cx, 238);
-
-                // 7. Pie táctico
-                ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
-                ctx.font = '800 10px monospace';
-                ctx.fillText('STATUS: TRACKING GPS', cx, 268);
+                // 6. Pie táctico
+                ctx.fillStyle = enAlerta ? '#ff0055' : '#00ff87';
+                ctx.font = '800 9.5px monospace';
+                ctx.fillText('STATUS: TRACKING', cx, 194);
             } else {
                 ctx.fillStyle = '#94a3b8';
-                ctx.font = 'bold 16px sans-serif';
-                ctx.fillText('🛰️ Buscando señal GPS...', cx, 160);
+                ctx.font = 'bold 13px sans-serif';
+                ctx.fillText('🛰️ Buscando GPS...', cx, 120);
             }
+            ctx.restore();
+
+            // BORDE EXTERIOR NEÓN FINAL (TOTALMENTE CIRCULAR)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, cr - 1, 0, Math.PI * 2);
+            ctx.strokeStyle = enAlerta ? '#ff0055' : '#00f0ff';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = enAlerta ? 'rgba(255, 0, 85, 0.95)' : 'rgba(0, 240, 255, 0.9)';
+            ctx.shadowBlur = 12;
+            ctx.stroke();
+            ctx.restore();
         }
 
         function prepararPipVideo(autoLanzar) {
@@ -1479,8 +1475,8 @@
 
             if (!pipCanvasEl) {
                 pipCanvasEl = document.createElement('canvas');
-                pipCanvasEl.width = 320;
-                pipCanvasEl.height = 320;
+                pipCanvasEl.width = 240;
+                pipCanvasEl.height = 240;
                 pipCtxEl = pipCanvasEl.getContext('2d');
             }
 
@@ -1497,9 +1493,9 @@
                 pipVideoEl.setAttribute('autopictureinpicture', '');
                 pipVideoEl.autoPictureInPicture = true;
 
-                // Dimensiones cuadradas reales 1:1 fuera de pantalla
-                pipVideoEl.style.width = '160px';
-                pipVideoEl.style.height = '160px';
+                // Dimensiones compactas de app icon
+                pipVideoEl.style.width = '100px';
+                pipVideoEl.style.height = '100px';
                 pipVideoEl.style.position = 'fixed';
                 pipVideoEl.style.bottom = '-9999px';
                 pipVideoEl.style.left = '-9999px';
@@ -1545,7 +1541,7 @@
             if (pipVideoEl) {
                 pipVideoEl.play().then(function() {
                     pipVideoEl.requestPictureInPicture().then(function() {
-                        mostrarToastNotificacion("🛰️ ¡Radar circular flotante activo! Puedes agrandarlo o apequeñarlo con dos dedos.");
+                        mostrarToastNotificacion("🛰️ ¡Radar circular flotante activo! Puedes moverlo o agrandarlo/achicarlo con dos dedos.");
                     }).catch(function(err) {
                         console.warn("PiP error:", err);
                     });
