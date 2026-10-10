@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Ruta de Campo - Raptor S.A.S. (Pro)</title>
+    <title>UBICA-RICK - Sistema de Ruta y Rastreo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.5, user-scalable=yes">
     
     <!-- LEAFLET & CONTROLES -->
@@ -546,6 +546,7 @@
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
+            <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()">☁️ Nube</button>
             <button class="btn-top-action" onclick="toggleMenuFilter()">🗺️ Menú / Filtros</button>
         </div>
     </div>
@@ -581,7 +582,7 @@
             <div class="hud-header-futurista">
                 <div class="hud-title-futurista">
                     <span class="hud-radar-dot" style="position:static; display:inline-block;"></span>
-                    <span>RADAR TÁCTICO RAPTOR</span>
+                    <span>RADAR TÁCTICO UBICA-RICK</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px;">
                     <span id="hud-status-badge" class="hud-status-badge">TRACKING</span>
@@ -628,6 +629,45 @@
 
 
     <!-- OVERLAYS & MODALES -->
+    
+    <!-- MODAL DE AUTENTICACIÓN / NUBE EN VIVO -->
+    <div id="modal-auth" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#0f172a; border:1.5px solid #00f0ff; border-radius:16px; padding:18px 20px; width:330px; max-width:92vw; z-index:99999999; color:white; box-shadow:0 12px 40px rgba(0,0,0,0.85); font-family:-apple-system, BlinkMacSystemFont, sans-serif;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(0,240,255,0.25); padding-bottom:8px;">
+            <div style="font-size:13px; font-weight:900; color:#00f0ff; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
+                <span>🛰️ UBICA-RICK CLOUD</span>
+            </div>
+            <button onclick="cerrarModalAuth()" style="background:none; border:none; color:#f43f5e; font-size:16px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <div id="auth-seccion-login">
+            <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:10px;">Inicia sesión con tu cuenta para sincronizar el mapa en vivo entre tu PC y celulares:</span>
+            
+            <label style="font-size:10.5px; color:#cbd5e1; font-weight:bold;">Correo Electrónico:</label>
+            <input type="email" id="auth-email" placeholder="ejemplo@correo.com" style="width:100%; box-sizing:border-box; padding:8px 10px; margin-top:3px; margin-bottom:10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:white; font-size:12px;">
+
+            <label style="font-size:10.5px; color:#cbd5e1; font-weight:bold;">Contraseña:</label>
+            <input type="password" id="auth-pass" placeholder="••••••••" style="width:100%; box-sizing:border-box; padding:8px 10px; margin-top:3px; margin-bottom:12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:white; font-size:12px;">
+
+            <button type="button" onclick="ejecutarLoginFirebase()" class="pop-btn pb-blue" style="margin:0 0 8px 0; padding:10px; font-size:12px;">🚀 Iniciar Sesión</button>
+            <button type="button" onclick="cerrarModalAuth()" style="background:none; border:1px solid #475569; color:#94a3b8; width:100%; padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">Continuar sin cuenta (Modo Local)</button>
+        </div>
+
+        <div id="auth-seccion-perfil" style="display:none;">
+            <div style="background:rgba(255,255,255,0.06); padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.1);">
+                <div style="font-size:10.5px; color:#94a3b8;">Usuario conectado:</div>
+                <div id="auth-user-email" style="font-size:13px; font-weight:bold; color:#f8fafc; margin-top:2px;"></div>
+                <div id="auth-user-badge" style="font-size:11px; margin-top:4px; font-weight:bold;"></div>
+            </div>
+
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:12px; line-height:1.4;">
+                <span id="auth-rol-explicacion"></span>
+            </div>
+
+            <button type="button" onclick="sincronizarTodoManualAFirebase()" id="btn-sync-manual" class="pop-btn pb-green" style="margin:0 0 6px 0; padding:8px; font-size:11.5px;">☁️ Subir Puntos Locales a la Nube</button>
+            <button type="button" onclick="ejecutarLogoutFirebase()" class="pop-btn pb-red" style="margin:0; padding:8px; font-size:11.5px;">🚪 Cerrar Sesión</button>
+        </div>
+    </div>
+
     <div id="loading-overlay">
         <div style="font-size: 32px;">⏳</div>
         <span id="loading-texto">Procesando...</span>
@@ -816,6 +856,10 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
+    <!-- FIREBASE COMPAT SDK (SINCRONIZACIÓN NUBE Y USUARIOS) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script>
         // CONFIGURACIÓN GLOBAL
         var configApp = {
@@ -833,24 +877,24 @@
         var capaGoogle = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             subdomains: '0123',
             maxZoom: 20,
-            attribution: '© Google Maps | Raptor S.A.S.'
+            attribution: '© Google Maps | UBICA-RICK'
         });
 
         var capaCarto = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
             subdomains: 'abcd',
             maxZoom: 20,
-            attribution: '© CARTO | © OpenStreetMap contributors | Raptor S.A.S.'
+            attribution: '© CARTO | © OpenStreetMap contributors | UBICA-RICK'
         });
 
         var capaSatelite = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             subdomains: '0123',
             maxZoom: 20,
-            attribution: '© Google Satélite | Raptor S.A.S.'
+            attribution: '© Google Satélite | UBICA-RICK'
         });
 
         var capaEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
-            attribution: '© ESRI | Raptor S.A.S.'
+            attribution: '© ESRI | UBICA-RICK'
         });
 
         // Activar capa Google Maps por defecto (ultra rápida y sin bloqueos)
@@ -1397,7 +1441,7 @@
             // 1. Título superior
             ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
             ctx.font = '900 10px monospace';
-            ctx.fillText(enAlerta ? '🚨 EN RANGO (<500M)' : '🛰️ RADAR RAPTOR', cx, 38);
+            ctx.fillText(enAlerta ? '🚨 EN RANGO (<500M)' : '🛰️ RADAR UBICA-RICK', cx, 38);
 
             if (placaMasCercanaObj) {
                 var p = placaMasCercanaObj;
@@ -2840,6 +2884,9 @@
             }
 
             guardarPuntosStorage();
+            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+                fbDb.collection('puntos_ubica_rick').doc(markerId).update({ visitada: item.visitada }).catch(function(){});
+            }
             actualizarKPIs();
             actualizarPanelCercano();
 
@@ -2861,6 +2908,7 @@
                 map.removeLayer(puntosData[itemIndex].marker);
                 puntosData.splice(itemIndex, 1);
                 guardarPuntosStorage();
+                eliminarPuntoFirestore(markerId);
                 actualizarPanelCercano();
             }
         }
@@ -2889,7 +2937,13 @@
                 };
             });
             localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosASeguardar));
+            localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosASeguardar));
             actualizarKPIs();
+
+            // Si está conectado como admin, sincronizar los puntos con la nube
+            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual && rolUsuarioActual === 'admin') {
+                subirPuntosLocalesAFirebase();
+            }
         }
 
         var puntosInicialesPrecargados = [
@@ -2992,7 +3046,7 @@
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
             a.href = url;
-            a.download = "respaldo_rutas_raptor_" + new Date().toISOString().split('T')[0] + ".json";
+            a.download = "respaldo_ubica_rick_" + new Date().toISOString().split('T')[0] + ".json";
             a.click();
         }
 
@@ -3441,8 +3495,10 @@
                                 
                                 <div style="display:flex; gap:6px;">
                                     <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn ${esVisitada ? 'pb-teal' : 'pb-green'}" style="flex:1;">${txtBtnVisitada}</button>
-                                    <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>
+                                    ${(rolUsuarioActual === 'lector') ? '' : `<button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>`}
                                 </div>
+                                
+                                ${(rolUsuarioActual === 'lector') ? '' : `
                                 <label class="pop-btn pb-purple" style="cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:6px; font-size:11.5px; text-decoration:none;">
                                     📸 ${p.foto ? 'Cambiar Foto del Vehículo' : 'Subir Foto del Vehículo'}
                                     <input type="file" accept="image/*" onchange="subirFotoVehiculo('${p.placa}', '${markerId}', event)" style="display:none;">
@@ -3451,6 +3507,7 @@
                                 <button onclick="iniciarModoMover('${markerId}')" class="pop-btn pb-orange">3. 📍 Mover punto / Arrastrar</button>
                                 <button onclick="iniciarRecalcular('${markerId}')" class="pop-btn pb-teal">🔄 Recalcular / Cambiar Enlace</button>
                                 <button onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red">🗑️ Eliminar</button>
+                                `}
                             </div>
                             
                             <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #fadbd8; padding: 8px; border-radius: 6px;">
@@ -3590,7 +3647,288 @@
             }
         });
 
+
+        // ==========================================
+        // CONFIGURACIÓN Y SINCRONIZACIÓN FIREBASE CLOUD
+        // ==========================================
+        var firebaseConfig = {
+            apiKey: "AIzaSyBiua_1tUBMvrM2Kbj_7BrCQ1hji1Y5F_I",
+            authDomain: "ubica-rick.firebaseapp.com",
+            projectId: "ubica-rick",
+            storageBucket: "ubica-rick.firebasestorage.app",
+            messagingSenderId: "16470090793",
+            appId: "1:16470090793:web:ab73486fc4b0bf61b26838"
+        };
+
+        var fbApp = null;
+        var fbAuth = null;
+        var fbDb = null;
+        var usuarioActual = null;
+        var rolUsuarioActual = localStorage.getItem('ubica_rick_rol') || 'invitado'; // 'admin', 'lector', 'invitado'
+        var desuscribirFirestorePuntos = null;
+
+        function inicializarFirebase() {
+            if (!window.firebase) return;
+            try {
+                if (!firebase.apps.length) {
+                    fbApp = firebase.initializeApp(firebaseConfig);
+                } else {
+                    fbApp = firebase.app();
+                }
+                fbAuth = firebase.auth();
+                fbDb = firebase.firestore();
+
+                fbAuth.onAuthStateChanged(function(user) {
+                    usuarioActual = user;
+                    actualizarUIAuth(user);
+                    if (user) {
+                        determinarRolYSincronizar(user);
+                    } else {
+                        aplicarPermisosPorRol('invitado');
+                    }
+                });
+            } catch(e) {
+                console.warn("Error inicializando Firebase:", e);
+            }
+        }
+
+        function abrirModalAuth() {
+            var modal = document.getElementById('modal-auth');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'block';
+            if (backdrop) backdrop.style.display = 'block';
+            actualizarUIAuth(usuarioActual);
+        }
+
+        function cerrarModalAuth() {
+            var modal = document.getElementById('modal-auth');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'none';
+            if (backdrop) backdrop.style.display = 'none';
+        }
+
+        function actualizarUIAuth(user) {
+            var secLogin = document.getElementById('auth-seccion-login');
+            var secPerfil = document.getElementById('auth-seccion-perfil');
+            var btnCloud = document.getElementById('btn-user-cloud');
+
+            if (user) {
+                if (secLogin) secLogin.style.display = 'none';
+                if (secPerfil) secPerfil.style.display = 'block';
+                var elEmail = document.getElementById('auth-user-email');
+                var elBadge = document.getElementById('auth-user-badge');
+                var elDesc = document.getElementById('auth-rol-explicacion');
+                var btnSync = document.getElementById('btn-sync-manual');
+
+                if (elEmail) elEmail.innerText = user.email;
+                if (rolUsuarioActual === 'admin') {
+                    if (elBadge) elBadge.innerHTML = '<span style="color:#22c55e;">👑 Administrador (Control Total)</span>';
+                    if (elDesc) elDesc.innerText = 'Tienes permisos completos para agregar vehículos, editar, mover y borrar puntos. Todo se sincroniza en vivo con tu equipo.';
+                    if (btnCloud) {
+                        btnCloud.innerHTML = '👑 Admin';
+                        btnCloud.style.background = 'linear-gradient(145deg, #16a34a, #15803d)';
+                    }
+                    if (btnSync) btnSync.style.display = 'block';
+                } else {
+                    if (elBadge) elBadge.innerHTML = '<span style="color:#38bdf8;">👁️ Operador (Solo Lectura)</span>';
+                    if (elDesc) elDesc.innerText = 'Puedes consultar el mapa en tiempo real, buscar placas y usar el radar. Las opciones de edición y eliminación están bloqueadas.';
+                    if (btnCloud) {
+                        btnCloud.innerHTML = '👁️ Operador';
+                        btnCloud.style.background = 'linear-gradient(145deg, #0284c7, #0369a1)';
+                    }
+                    if (btnSync) btnSync.style.display = 'none';
+                }
+            } else {
+                if (secLogin) secLogin.style.display = 'block';
+                if (secPerfil) secPerfil.style.display = 'none';
+                if (btnCloud) {
+                    btnCloud.innerHTML = '☁️ Nube';
+                    btnCloud.style.background = 'linear-gradient(145deg, #2c3e50, #1a252f)';
+                }
+            }
+        }
+
+        function ejecutarLoginFirebase() {
+            var email = document.getElementById('auth-email').value.trim();
+            var pass = document.getElementById('auth-pass').value.trim();
+            if (!email || !pass) {
+                alert("Por favor ingresa tu correo y contraseña.");
+                return;
+            }
+            if (!fbAuth) {
+                alert("Firebase no está listo. Verifica tu conexión a internet.");
+                return;
+            }
+
+            fbAuth.signInWithEmailAndPassword(email, pass).then(function(cred) {
+                mostrarToastNotificacion("🚀 ¡Bienvenido a UBICA-RICK Cloud!");
+                cerrarModalAuth();
+            }).catch(function(err) {
+                console.error("Error login:", err);
+                if (err.code === 'auth/user-not-found') {
+                    alert("Usuario no encontrado en Firebase. Recuerda crear el usuario en Firebase Console.");
+                } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                    alert("Contraseña incorrecta.");
+                } else {
+                    alert("Error al iniciar sesión: " + err.message);
+                }
+            });
+        }
+
+        function ejecutarLogoutFirebase() {
+            if (fbAuth) {
+                fbAuth.signOut().then(function() {
+                    aplicarPermisosPorRol('invitado');
+                    cerrarModalAuth();
+                    mostrarToastNotificacion("Sesión cerrada. Modo local activo.");
+                });
+            }
+        }
+
+        function determinarRolYSincronizar(user) {
+            if (!fbDb) return;
+            fbDb.collection('usuarios').doc(user.uid).get().then(function(doc) {
+                if (doc.exists && doc.data().rol) {
+                    aplicarPermisosPorRol(doc.data().rol);
+                } else {
+                    // Si es el primer usuario que inicia sesión en la base de datos, lo asigna como Admin automáticamente
+                    fbDb.collection('usuarios').where('rol', '==', 'admin').get().then(function(snap) {
+                        var esPrimerAdmin = snap.empty;
+                        var rolAsignado = esPrimerAdmin ? 'admin' : 'lector';
+                        fbDb.collection('usuarios').doc(user.uid).set({
+                            email: user.email,
+                            rol: rolAsignado,
+                            fecha: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        aplicarPermisosPorRol(rolAsignado);
+                    }).catch(function() {
+                        aplicarPermisosPorRol('lector');
+                    });
+                }
+                iniciarSincronizacionFirestore();
+            }).catch(function(err) {
+                console.warn("Error leyendo rol:", err);
+                aplicarPermisosPorRol('lector');
+                iniciarSincronizacionFirestore();
+            });
+        }
+
+        function aplicarPermisosPorRol(rol) {
+            rolUsuarioActual = rol;
+            localStorage.setItem('ubica_rick_rol', rol);
+
+            var btnAdd = document.querySelector('.floating-btn-add');
+            if (btnAdd) {
+                btnAdd.style.display = (rol === 'lector') ? 'none' : 'flex';
+            }
+
+            actualizarUIAuth(usuarioActual);
+
+            // Refrescar fichas de los carros para reflejar permisos
+            puntosData.forEach(function(p) {
+                if (p.marker) {
+                    p.marker.setPopupContent(generarContenidoPopup(p, p.id));
+                }
+            });
+        }
+
+        function iniciarSincronizacionFirestore() {
+            if (!fbDb) return;
+            if (desuscribirFirestorePuntos) desuscribirFirestorePuntos();
+
+            desuscribirFirestorePuntos = fbDb.collection('puntos_ubica_rick').onSnapshot(function(snapshot) {
+                var puntosNube = [];
+                snapshot.forEach(function(doc) {
+                    var data = doc.data();
+                    data.id = doc.id;
+                    puntosNube.push(data);
+                });
+
+                if (puntosNube.length > 0) {
+                    actualizarPuntosDesdeNube(puntosNube);
+                } else if (puntosData.length > 0 && rolUsuarioActual === 'admin') {
+                    subirPuntosLocalesAFirebase();
+                }
+            }, function(error) {
+                console.warn("Firestore sync error:", error);
+            });
+        }
+
+        function actualizarPuntosDesdeNube(puntosNube) {
+            puntosData.forEach(function(p) {
+                if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
+            });
+            puntosData = [];
+            placasRegistradas = {};
+
+            puntosNube.forEach(function(p, idx) {
+                agregarMarcadorAlMapa(p, idx, false);
+            });
+
+            // Guardar copia local en caché para modo sin internet
+            var datosCache = puntosData.map(function(item) {
+                return {
+                    id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
+                    telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
+                    fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    lat: item.lat, lng: item.lng, foto: item.foto,
+                    soat: item.soat, tecnomecanica: item.tecnomecanica
+                };
+            });
+            localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosCache));
+            localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosCache));
+            actualizarKPIs();
+            actualizarPanelCercano();
+        }
+
+        function subirPuntosLocalesAFirebase() {
+            if (!fbDb || !usuarioActual || rolUsuarioActual !== 'admin') return;
+            if (puntosData.length === 0) return;
+
+            var batch = fbDb.batch();
+            puntosData.forEach(function(p) {
+                var docRef = fbDb.collection('puntos_ubica_rick').doc(p.id);
+                var data = {
+                    placa: p.placa, marca: p.marca || '-', linea: p.linea || '-', modelo: p.modelo || '-', color: p.color || '-',
+                    telefonos: p.telefonos || '-', dir: p.dir, dirOriginal: p.dirOriginal || p.dir, dirAjustada: p.dirAjustada || null,
+                    fecha: p.fecha || '', timestamp: p.timestamp || Date.now(), visitada: !!p.visitada,
+                    lat: p.lat, lng: p.lng, foto: p.foto || null,
+                    soat: p.soat || 'NO', tecnomecanica: p.tecnomecanica || 'NO'
+                };
+                batch.set(docRef, data, { merge: true });
+            });
+            batch.commit().then(function() {
+                mostrarToastNotificacion("☁️ " + puntosData.length + " vehículos respaldados en la nube.");
+            }).catch(function(e) {
+                console.warn("Batch upload error:", e);
+            });
+        }
+
+        function sincronizarTodoManualAFirebase() {
+            subirPuntosLocalesAFirebase();
+        }
+
+        function sincronizarPuntoFirestore(item) {
+            if (fbDb && usuarioActual && rolUsuarioActual === 'admin') {
+                var data = {
+                    placa: item.placa, marca: item.marca || '-', linea: item.linea || '-', modelo: item.modelo || '-', color: item.color || '-',
+                    telefonos: item.telefonos || '-', dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
+                    fecha: item.fecha || '', timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    lat: item.lat, lng: item.lng, foto: item.foto || null,
+                    soat: item.soat || 'NO', tecnomecanica: item.tecnomecanica || 'NO'
+                };
+                fbDb.collection('puntos_ubica_rick').doc(item.id).set(data, { merge: true }).catch(function(e){ console.warn(e); });
+            }
+        }
+
+        function eliminarPuntoFirestore(markerId) {
+            if (fbDb && usuarioActual && rolUsuarioActual === 'admin') {
+                fbDb.collection('puntos_ubica_rick').doc(markerId).delete().catch(function(e){ console.warn(e); });
+            }
+        }
+
         window.onload = function() {
+            inicializarFirebase();
             cargarPuntosStorage();
             actualizarBotonRadarUI();
             setTimeout(actualizarPanelCercano, 1200);
