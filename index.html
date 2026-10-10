@@ -359,6 +359,11 @@
             <input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
             <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
             
+            <div style="margin-bottom:8px; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                <label style="font-size:11px; font-weight:bold; color:#2c3e50; display:block; margin-bottom:4px;">📸 Adjuntar Foto del Vehículo (Cámara / Galería):</label>
+                <input type="file" id="manFoto" accept="image/*" style="font-size:11px; width:100%;">
+            </div>
+
             <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
@@ -724,8 +729,7 @@
             }
 
             var pendientes = puntosData.filter(function(p) {
-                var vis = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-                return vis === 0;
+                return !p.visitada;
             });
 
             if (pendientes.length === 0) {
@@ -802,21 +806,105 @@
             }
         }
 
-        function generarMarcadorProfesional(placa, esVisitada) {
-            var colorDot = esVisitada ? '#27ae60' : '#e74c3c'; 
-            var shadowDot = esVisitada ? 'rgba(39, 174, 96, 0.8)' : 'rgba(231, 76, 60, 0.8)';
-            
-            return '<div style="position: relative; display: inline-flex; justify-content: center; align-items: center;">' +
-                   '<div style="background: #ffffff; border: 2px solid ' + (esVisitada ? '#27ae60' : '#e74c3c') + '; padding: 3px 12px; border-radius: 25px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); font-family: Arial, sans-serif; font-weight: 900; font-size: 12px; color: #1a252f; white-space: nowrap; min-width: 82px; box-sizing: border-box;">' +
-                   '<div style="width: 9px; height: 9px; background-color: ' + colorDot + '; border-radius: 50%; margin-right: 6px; flex-shrink: 0; box-shadow: 0 0 8px ' + shadowDot + ';"></div>' +
+        function obtenerColorPorAntiguedad(p, esVisitada) {
+            if (esVisitada) {
+                return {
+                    color: '#64748b',
+                    borde: '#94a3b8',
+                    bg: '#f1f5f9',
+                    texto: '#475569',
+                    nombre: 'Visitada',
+                    etiqueta: '✅ Visitada',
+                    icono: '✔'
+                };
+            }
+
+            var ahora = Date.now();
+            var creado = p.timestamp;
+            if (!creado) {
+                if (p.fecha) {
+                    var f = new Date(p.fecha).getTime();
+                    creado = isNaN(f) ? ahora : f;
+                } else {
+                    creado = ahora;
+                }
+            }
+            var horas = (ahora - creado) / (1000 * 60 * 60);
+
+            // 1. Menos de 36 horas: ROJO
+            if (horas <= 36) {
+                return {
+                    color: '#e74c3c',
+                    borde: '#e74c3c',
+                    bg: '#ffffff',
+                    texto: '#c0392b',
+                    nombre: 'Rojo',
+                    etiqueta: '🔴 Reciente (< 36h)',
+                    icono: '🔴'
+                };
+            }
+            // 2. De 36 horas hasta 8 días (192 horas): VERDE
+            else if (horas <= 192) {
+                return {
+                    color: '#27ae60',
+                    borde: '#27ae60',
+                    bg: '#ffffff',
+                    texto: '#1e8449',
+                    nombre: 'Verde',
+                    etiqueta: '🟢 Activa (36h a 8d)',
+                    icono: '🟢'
+                };
+            }
+            // 3. De 8 días hasta 1 mes (720 horas): AZUL
+            else if (horas <= 720) {
+                return {
+                    color: '#2980b9',
+                    borde: '#2980b9',
+                    bg: '#ffffff',
+                    texto: '#1f618d',
+                    nombre: 'Azul',
+                    etiqueta: '🔵 En proceso (8d a 1 mes)',
+                    icono: '🔵'
+                };
+            }
+            // 4. Después de 1 mes (> 720 horas): MORADO
+            else {
+                return {
+                    color: '#8e44ad',
+                    borde: '#8e44ad',
+                    bg: '#ffffff',
+                    texto: '#6c3483',
+                    nombre: 'Morado',
+                    etiqueta: '🟣 Histórica (> 1 mes)',
+                    icono: '🟣'
+                };
+            }
+        }
+
+        // GENERADOR DE MARCADORES CON COLOR POR ANTIGÜEDAD Y ESTADO VISITADA POR DIRECCIÓN
+        function generarMarcadorProfesional(p, esVisitada) {
+            var placa = (typeof p === 'object') ? p.placa : p;
+            var objP = (typeof p === 'object') ? p : { placa: p };
+            var info = obtenerColorPorAntiguedad(objP, esVisitada);
+
+            var estiloBorde = esVisitada ? '2px solid #94a3b8' : '3px solid ' + info.borde;
+            var estiloBg = info.bg;
+            var colorTxt = esVisitada ? '#64748b' : '#0f172a';
+            var dotHtml = esVisitada 
+                ? '<span style="color:#27ae60; font-weight:bold; font-size:11px; margin-right:4px;">✔</span>'
+                : '<span style="width:8px; height:8px; background:' + info.color + '; border-radius:50%; margin-right:5px; flex-shrink:0; box-shadow:0 0 6px ' + info.color + ';"></span>';
+
+            return '<div style="position: relative; display: inline-flex; justify-content: center; align-items: center; cursor: pointer;">' +
+                   '<div style="background: ' + estiloBg + '; border: ' + estiloBorde + '; padding: 3px 10px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); font-family: Arial, sans-serif; font-weight: 900; font-size: 11.5px; color: ' + colorTxt + '; white-space: nowrap; min-width: 80px; box-sizing: border-box;">' +
+                   dotHtml +
                    '<span style="letter-spacing: 0.5px; line-height: 1;">' + placa + '</span>' +
                    '</div>' +
-                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 7px solid ' + (esVisitada ? '#27ae60' : '#e74c3c') + ';"></div>' +
-                   '<div style="position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #ffffff;"></div>' +
+                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid ' + (esVisitada ? '#94a3b8' : info.borde) + ';"></div>' +
+                   '<div style="position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #ffffff;"></div>' +
                    '</div>';
         }
 
-        // APROXIMACIÓN DE CUADRÍCULA URBANA DEL VALLE DE ABURRÁ (OFFLINE FALLBACK INTELIGENTE)
+        // APROXIMACIÓN DE CUADRÍCULA// APROXIMACIÓN DE CUADRÍCULA URBANA DEL VALLE DE ABURRÁ (OFFLINE FALLBACK INTELIGENTE)
         function aproximarCoordenadasPorNomenclatura(calleNum, craNum, esSur, munTexto) {
             var mun = (munTexto || '').toUpperCase();
             var baseLat = 6.2442;
@@ -1229,10 +1317,24 @@
             
             var coords = await obtenerCoordenadasExactasLimpias(dir);
 
+            var fotoAdjunta = null;
+            var inputFoto = document.getElementById('manFoto');
+            if (inputFoto && inputFoto.files && inputFoto.files[0]) {
+                loadingTexto.innerText = "📸 Procesando foto del vehículo...";
+                await new Promise(function(resolve) {
+                    comprimirYGuardarFoto(inputFoto.files[0], function(b64) {
+                        fotoAdjunta = b64;
+                        resolve();
+                    });
+                });
+            }
+
             var nuevoPunto = {
                 placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel, 
                 soat: msoat, tecnomecanica: mtecno,
-                lat: coords.lat, lng: coords.lng, dir: dir, fecha: new Date().toISOString().split('T')[0], foto: null
+                lat: coords.lat, lng: coords.lng, dir: dir, dirOriginal: dir, dirAjustada: null,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(), visitada: false,
+                foto: fotoAdjunta
             };
 
             agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -1892,25 +1994,92 @@
         }
 
         // VISITAS Y MARCADORES
-        function marcarVisitada(placa, markerId) {
-            var key = 'visitas_' + placa;
-            var actual = parseInt(localStorage.getItem(key) || 0) + 1;
-            localStorage.setItem(key, actual);
-            
-            puntosData.forEach(function(p) {
-                if (p.placa === placa) {
-                    var customIcon = L.divIcon({
-                        className: '', 
-                        html: generarMarcadorProfesional(p.placa, true),
-                        iconAnchor: [42, 30],
-                        popupAnchor: [0, -30]
-                    });
-                    p.marker.setIcon(customIcon);
-                    p.marker.setPopupContent(generarContenidoPopup(p, p.id));
-                }
+        
+        // COMPRESIÓN Y SUBIDA DE FOTO DE VEHÍCULO (CÁMARA / GALERÍA)
+        function comprimirYGuardarFoto(file, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var ctx = canvas.getContext('2d');
+                    var maxDim = 800;
+                    var w = img.width;
+                    var h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    ctx.drawImage(img, 0, 0, w, h);
+                    var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                    callback(dataUrl);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function subirFotoVehiculo(placa, markerId, event) {
+            var file = event.target.files[0];
+            if (!file) return;
+
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                if (loadingTexto) loadingTexto.innerText = "📸 Guardando foto del vehículo...";
+            }
+
+            comprimirYGuardarFoto(file, function(base64Img) {
+                puntosData.forEach(function(p) {
+                    if (p.placa === placa) {
+                        p.foto = base64Img;
+                        if (p.marker) {
+                            p.marker.setPopupContent(generarContenidoPopup(p, p.id));
+                        }
+                    }
+                });
+                guardarPuntosStorage();
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                mostrarToastNotificacion("📸 ¡Foto del vehículo " + placa + " guardada con éxito!");
             });
-            
+        }
+
+        function marcarVisitada(placa, markerId) {
+            var item = puntosData.find(function(d) { return d.id === markerId; });
+            if (!item) return;
+
+            // Alternar estado de visitada SOLO de esta dirección / marcador específico
+            item.visitada = !item.visitada;
+            localStorage.setItem('visitada_' + item.id, item.visitada ? '1' : '0');
+
+            if (item.marker) {
+                var customIcon = L.divIcon({
+                    className: '',
+                    html: generarMarcadorProfesional(item, item.visitada),
+                    iconAnchor: [42, 30],
+                    popupAnchor: [0, -30]
+                });
+                item.marker.setIcon(customIcon);
+                item.marker.setPopupContent(generarContenidoPopup(item, item.id));
+            }
+
+            guardarPuntosStorage();
+            actualizarKPIs();
             actualizarPanelCercano();
+
+            if (item.visitada) {
+                mostrarToastNotificacion("✅ Dirección de " + placa + " marcada como visitada.");
+            } else {
+                mostrarToastNotificacion("↩️ Dirección de " + placa + " marcada como pendiente.");
+            }
         }
 
         function mostrarOpcionesEliminar(markerId) {
@@ -1946,7 +2115,8 @@
                 return {
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
-                    fecha: item.fecha, lat: item.lat, lng: item.lng, foto: item.foto,
+                    fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    lat: item.lat, lng: item.lng, foto: item.foto,
                     soat: item.soat, tecnomecanica: item.tecnomecanica
                 };
             });
@@ -1959,13 +2129,29 @@
                 id: 'gcv_1', placa: 'GCV922', marca: 'SUZUKI', linea: 'SWIFT DZIRE TAM', modelo: '2020', color: 'GRIS METALICO',
                 soat: 'SI', tecnomecanica: 'SI', telefonos: '-', dir: 'CL 80 SUR # 60 - 38 LC 104 CENTRO COMERCIAL HECO, LA ESTRELLA ( ANTIOQUIA )',
                 dirOriginal: 'CL 80 SUR # 60 - 38 LC 104 CENTRO COMERCIAL HECO, LA ESTRELLA ( ANTIOQUIA )', dirAjustada: null,
-                fecha: '2026-10-09', lat: 6.1550, lng: -75.6420, foto: null
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 5 * 3600 * 1000, visitada: false,
+                lat: 6.1550, lng: -75.6420, foto: null
             },
             {
                 id: 'lrw_1', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
                 soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 45 # 26 - 162 TO 9 AP 24-72, MEDELLIN ( ANTIOQUIA ) [Prioridad 5]',
                 dirOriginal: 'KR 45 # 26 - 162 TO 9 AP 24-72, MEDELLIN ( ANTIOQUIA ) [Prioridad 5]', dirAjustada: null,
-                fecha: '2026-10-09', lat: 6.2280, lng: -75.5710, foto: null
+                fecha: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 4 * 86400000, visitada: false,
+                lat: 6.2280, lng: -75.5710, foto: null
+            },
+            {
+                id: 'ttn_1', placa: 'TTN168', marca: 'CHEVROLET', linea: 'ONIX', modelo: '2022', color: 'BLANCO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '3005551234', dir: 'CL 50 # 50 - 20, MEDELLIN ( ANTIOQUIA )',
+                dirOriginal: 'CL 50 # 50 - 20, MEDELLIN ( ANTIOQUIA )', dirAjustada: null,
+                fecha: new Date(Date.now() - 15 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 15 * 86400000, visitada: false,
+                lat: 6.2510, lng: -75.5680, foto: null
+            },
+            {
+                id: 'eqw_1', placa: 'EQW167', marca: 'MAZDA', linea: 'CX-30', modelo: '2021', color: 'ROJO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '3124449876', dir: 'CR 43 A # 1 SUR - 150, MEDELLIN ( ANTIOQUIA )',
+                dirOriginal: 'CR 43 A # 1 SUR - 150, MEDELLIN ( ANTIOQUIA )', dirAjustada: null,
+                fecha: new Date(Date.now() - 40 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 40 * 86400000, visitada: false,
+                lat: 6.2080, lng: -75.5720, foto: null
             }
         ];
 
@@ -1979,7 +2165,6 @@
                 lista = puntosInicialesPrecargados;
             }
 
-            // DEDUPLICACIÓN ESTRICTA Y LÍMITE DE MÁXIMO 4 DIRECCIONES POR PLACA
             var listaLimpia = [];
             var conteoPorPlaca = {};
             var llavesVistasStorage = {};
@@ -1988,15 +2173,16 @@
                 if (!p.placa) return;
                 var placa = p.placa.toUpperCase();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
-                if (conteoPorPlaca[placa] >= 4) return; // Máximo 4 direcciones por placa
+                if (conteoPorPlaca[placa] >= 4) return;
 
                 p.dirOriginal = p.dirOriginal || p.dir;
-                p.dir = p.dirOriginal; // Mantener siempre la dirección real
+                p.dir = p.dirOriginal;
+                p.timestamp = p.timestamp || (p.fecha ? new Date(p.fecha).getTime() : Date.now());
+                p.visitada = (localStorage.getItem('visitada_' + p.id) === '1') || !!p.visitada;
 
                 var kDir = placa + "_" + normalizarClaveDireccion(p.dirOriginal);
                 var kCoord = placa + "_" + (p.lat ? p.lat.toFixed(3) : '') + "_" + (p.lng ? p.lng.toFixed(3) : '');
 
-                // Si ya existe una dirección idéntica o en la misma posición, anularla y dejar solo una
                 if (llavesVistasStorage[kDir] || (p.lat && llavesVistasStorage[kCoord])) {
                     return;
                 }
@@ -2058,18 +2244,18 @@
 
         function actualizarKPIs() {
             var total = puntosData.length;
-            var vis = 0;
+            var vis = puntosData.filter(function(p) { return !!p.visitada; }).length;
+            var hoy = 0;
             var pico = 0;
 
             puntosData.forEach(function(p) {
-                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-                if (visitas > 0) vis++;
+                if (p.esHoy) hoy++;
                 if (p.pico) pico++;
             });
 
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-vis').innerText = vis;
-            document.getElementById('kpi-pend').innerText = (total - vis);
+            document.getElementById('kpi-total').innerText = total - vis;
+            document.getElementById('kpi-visitadas').innerText = vis;
+            document.getElementById('kpi-hoy').innerText = hoy;
             document.getElementById('kpi-pico').innerText = pico;
         }
 
@@ -2082,8 +2268,7 @@
 
             puntosData.forEach(function(item) {
                 var coincideBusqueda = (textoBusqueda === "" || item.placa.includes(textoBusqueda));
-                var visitas = parseInt(localStorage.getItem('visitas_' + item.placa) || 0);
-                var esVisitada = visitas > 0;
+                var esVisitada = !!item.visitada;
 
                 if (ocultarVisitadas && esVisitada) {
                     if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
@@ -2170,6 +2355,17 @@
             var nuevoSoat = document.getElementById('edit-soat-' + markerId).value.trim().toUpperCase();
             var nuevaTecno = document.getElementById('edit-tecno-' + markerId).value.trim().toUpperCase();
 
+            var inputFotoEdit = document.getElementById('edit-foto-' + markerId);
+            var nuevaFoto = null;
+            if (inputFotoEdit && inputFotoEdit.files && inputFotoEdit.files[0]) {
+                await new Promise(function(resolve) {
+                    comprimirYGuardarFoto(inputFotoEdit.files[0], function(b64) {
+                        nuevaFoto = b64;
+                        resolve();
+                    });
+                });
+            }
+
             puntosData.forEach(function(p) {
                 if (p.placa === placaEditada) {
                     p.marca = nuevaMarca || '-'; 
@@ -2179,13 +2375,18 @@
                     p.telefonos = nuevosTels; 
                     p.soat = nuevoSoat || 'NO';
                     p.tecnomecanica = nuevaTecno || 'NO';
-                    if (p.id === markerId) { p.dir = nuevaDir; p.dirOriginal = nuevaDir; p.dirAjustada = null; }
+                    if (nuevaFoto) p.foto = nuevaFoto;
+                    if (p.id === markerId) {
+                        p.dir = nuevaDir;
+                        p.dirOriginal = nuevaDir;
+                        p.dirAjustada = null;
+                    }
                     if (p.marker) p.marker.setPopupContent(generarContenidoPopup(p, p.id));
                 }
             });
 
             guardarPuntosStorage();
-            alert("✅ Información sincronizada para la placa " + placaEditada);
+            mostrarToastNotificacion("✅ Datos guardados para " + placaEditada);
             actualizarPanelCercano();
         }
 
@@ -2210,7 +2411,8 @@
 
         function generarContenidoPopup(p, markerId) {
             var estadoPicoTxt = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
-            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
+            var esVisitada = !!p.visitada;
+            var infoColor = obtenerColorPorAntiguedad(p, esVisitada);
             var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail">` : '';
 
@@ -2222,6 +2424,7 @@
             var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '-';
             var vColor = (p.color && p.color !== '-') ? p.color : '-';
             var dirReal = p.dirOriginal || p.dir || "-";
+            var txtBtnVisitada = esVisitada ? "2. ↩️ Desmarcar Visitada" : "2. ✅ Marcar Visitada";
 
             return `
                 <div style="font-family: Arial, sans-serif; font-size: 13px; width: 260px;">
@@ -2276,16 +2479,23 @@
                                     <td style="color:#d35400; font-size:10.5px; font-weight:bold;">📍 ${p.dirAjustada}</td>
                                 </tr>
                                 ` : ''}
-                                <tr><td class="specs-label">Visitas:</td><td><span style="color:#d9534f; font-weight:bold; font-size:13px;">${visitas}</span></td></tr>
+                                <tr>
+                                    <td class="specs-label">Antigüedad:</td>
+                                    <td><span style="font-weight:bold; color:${infoColor.color}; font-size:11px;">${infoColor.etiqueta}</span></td>
+                                </tr>
                             </table>
                             
                             <div style="margin-top: 6px; border-top: 1px solid #eee; padding-top: 6px;">
                                 <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue">1. 🧭 Navegar (Google Maps)</a>
                                 
                                 <div style="display:flex; gap:6px;">
-                                    <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1;">2. ✅ Visitada</button>
+                                    <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn ${esVisitada ? 'pb-teal' : 'pb-green'}" style="flex:1;">${txtBtnVisitada}</button>
                                     <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>
                                 </div>
+                                <label class="pop-btn pb-purple" style="cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:6px; font-size:11.5px; text-decoration:none;">
+                                    📸 ${p.foto ? 'Cambiar Foto del Vehículo' : 'Subir Foto del Vehículo'}
+                                    <input type="file" accept="image/*" onchange="subirFotoVehiculo('${p.placa}', '${markerId}', event)" style="display:none;">
+                                </label>
                                 
                                 <button onclick="iniciarModoMover('${markerId}')" class="pop-btn pb-orange">3. 📍 Mover punto / Arrastrar</button>
                                 <button onclick="iniciarRecalcular('${markerId}')" class="pop-btn pb-teal">🔄 Recalcular / Cambiar Enlace</button>
@@ -2296,7 +2506,7 @@
                                 <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 4px;">❌ Borrar esta dirección</button>
                                 <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS las de ${p.placa}</button>
                             </div>
-                        </div><!-- /popup-detalles -->
+                        </div>
                     </div>
 
                     <div id="edit-mode-${markerId}" style="display:none; background-color: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd; max-height: 52vh; overflow-y: auto;">
@@ -2351,6 +2561,11 @@
                             </div>
                         </div>
 
+                        <div style="margin-top:6px; background:#fff; padding:6px; border-radius:6px; border:1px solid #ccc;">
+                            <label style="font-size:10px; font-weight:bold; color:#2c3e50; display:block; margin-bottom:3px;">📸 Cambiar / Subir Foto:</label>
+                            <input type="file" id="edit-foto-${markerId}" accept="image/*" style="font-size:11px; width:100%;">
+                        </div>
+
                         <div style="display:flex; gap:5px; margin-top:10px;">
                             <button onclick="guardarEdicionPopup('${markerId}')" class="pop-btn pb-green" style="flex:1;">💾 Guardar</button>
                             <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-red" style="flex:1;">Cancelar</button>
@@ -2366,11 +2581,17 @@
             p.esHoy = (p.fecha === hoyStr);
             p.dirOriginal = p.dirOriginal || p.dir;
             p.dir = p.dirOriginal;
+            p.timestamp = p.timestamp || (p.fecha ? new Date(p.fecha).getTime() : Date.now());
+            p.visitada = (localStorage.getItem('visitada_' + p.id) === '1') || !!p.visitada;
 
-            var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-            var esVisitada = visitas > 0;
+            var esVisitada = !!p.visitada;
 
             var customIcon = L.divIcon({
+                className: '', 
+                html: generarMarcadorProfesional(p, esVisitada),
+                iconAnchor: [42, 30],
+                popupAnchor: [0, -30]
+            });var customIcon = L.divIcon({
                 className: '', 
                 html: generarMarcadorProfesional(p.placa, esVisitada),
                 iconAnchor: [42, 30],
