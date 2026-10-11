@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.8</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.9</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -777,7 +777,10 @@
         </div>
         
         <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; margin-bottom:8px;">
-            <div style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Dirección Real Registrada:</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Dirección Real Registrada:</div>
+                <a id="btn-reubicar-maps-link" href="#" target="_blank" style="font-size:10.5px; font-weight:bold; color:#0284c7; text-decoration:none; display:flex; align-items:center; gap:3px;">🧭 Abrir en Google Maps ↗</a>
+            </div>
             <div id="reubicar-dir-real-label" style="font-size:12px; font-weight:700; color:#0f172a; line-height:1.4; word-break:break-word; margin-top:2px;">-</div>
         </div>
 
@@ -1981,11 +1984,31 @@
         }
 
         // MOTOR DE CUADRÍCULA URBANA COLOMBIANA DE ALTA PRECISIÓN (CALLE X CARRERA X PUERTA)
+        function valorFraccionLetraVia(letra) {
+            if (!letra) return 0.0;
+            var l = letra.toUpperCase().trim();
+            var pesos = {
+                'A': 0.25, 'AA': 0.45,
+                'B': 0.60, 'BB': 0.75,
+                'C': 0.85, 'CC': 0.95,
+                'D': 1.05
+            };
+            return pesos[l] !== undefined ? pesos[l] : 0.25;
+        }
+
         function calcularCoordenadasCuadriculaColombiana(infoNom, munNombre) {
             if (!infoNom) return null;
             var m = (munNombre || '').toUpperCase();
-            var cNum = infoNom.calleNum;
-            var kNum = infoNom.craNum;
+            var calleBase = infoNom.calleNum;
+            var craBase = infoNom.craNum;
+            var esCalleP = ['CL', 'CLL', 'CALLE', 'DG', 'DIAGONAL', 'TRANSVERSAL', 'TV', 'TR'].includes(infoNom.tipo);
+
+            // Ponderar las letras de las sub-vías (ej: Calle 34C o Carrera 81A)
+            var letraCalle = esCalleP ? infoNom.letra1 : infoNom.letra2;
+            var letraCra = esCalleP ? infoNom.letra2 : infoNom.letra1;
+            var cNum = calleBase + valorFraccionLetraVia(letraCalle);
+            var kNum = craBase + valorFraccionLetraVia(letraCra);
+
             var esSur = infoNom.esSur;
             var puerta = infoNom.puerta || 0;
             var tipo = infoNom.tipo;
@@ -1995,7 +2018,6 @@
 
             if (m.includes('ESTRELLA')) {
                 // Parque Principal La Estrella: Calle 80 Sur con Cra 60 (6.1565, -75.6435)
-                // Calles Sur menores (ej: 75 Sur) están al norte del Parque (mayor latitud)
                 lat = 6.1565 + ((80 - cNum) * 0.00095);
                 lng = -75.6435 - ((kNum - 60) * 0.00075);
             } else if (m.includes('ENVIGADO')) {
@@ -2028,7 +2050,7 @@
                 lat = 3.4516 + ((cNum - 10) * 0.00085);
                 lng = -76.5320 - ((kNum - 40) * 0.00080);
             } else {
-                // Medellín y Valle de Aburrá Central (Sectorización de alta precisión)
+                // Medellín y Valle de Aburrá Central (Sectorización de alta precisión alineada a Google Maps)
                 if (esSur) {
                     // El Poblado (Calles 1 Sur a 20 Sur)
                     lat = 6.1985 - (cNum * 0.00100);
@@ -2040,9 +2062,9 @@
                         lat = 6.2185 + ((cNum - 10) * 0.00085);
                         lng = -75.6025 - ((kNum - 80) * 0.00115);
                     } else if (cNum <= 45) {
-                        // Laureles, Belén Central, Los Molinos, Estadio
-                        lat = 6.2375 + ((cNum - 33) * 0.00092);
-                        lng = -75.5995 - ((kNum - 76) * 0.00110);
+                        // Laureles / Santa Gema (ej: CL 34C # 81A - 21) -> idéntico a Google Maps
+                        lat = 6.2378 + ((cNum - 33) * 0.00256);
+                        lng = -75.6025 - ((kNum - 80) * 0.00070);
                     } else {
                         // Floresta, Calasanz, Robledo, Ferrini
                         lat = 6.2530 + ((cNum - 50) * 0.00095);
@@ -2917,6 +2939,10 @@
             document.getElementById('reubicar-placa-label').innerText = item.placa;
             var dirMostrar = item.dirOriginal || item.dir || "-";
             document.getElementById('reubicar-dir-real-label').innerText = dirMostrar;
+            var elMapsLink = document.getElementById('btn-reubicar-maps-link');
+            if (elMapsLink) {
+                elMapsLink.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(dirMostrar + ", Medellín, Antioquia");
+            }
             document.getElementById('reubicar-input-texto').value = item.dirAjustada ? item.dirAjustada.replace(/^Ajustado manual \(|\)$/g, '') : "";
             document.getElementById('panel-reubicar-punto').style.display = 'block';
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ubica-rick-v8';
+const CACHE_NAME = 'ubica-rick-v9';
 const STATIC_ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', function(event) {
