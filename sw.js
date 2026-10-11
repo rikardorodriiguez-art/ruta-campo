@@ -1,21 +1,34 @@
-const CACHE_NAME = 'ubica-rick-v13';
-const STATIC_ASSETS = ['./', './index.html'];
+// Service Worker para UBICA-RICK PWA
+// Versión v14 - Network First con fallback a caché
+const CACHE_NAME = 'ubica-rick-v14';
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './ruta_campo_raptor.html',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+];
 
-self.addEventListener('install', function(event) {
-  self.skipWaiting();
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(STATIC_ASSETS).catch(function(e) { console.warn(e); });
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
+        console.warn('Advertencia precaching SW:', err);
+      });
     })
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(function(keys) {
+    caches.keys().then((keys) => {
       return Promise.all(
-        keys.map(function(key) {
-          if (key !== CACHE_NAME) return caches.delete(key);
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('Limpiando caché antigua:', key);
+            return caches.delete(key);
+          }
         })
       );
     })
@@ -23,34 +36,28 @@ self.addEventListener('activate', function(event) {
   self.clients.claim();
 });
 
-self.addEventListener('fetch', function(event) {
-  if (event.request.url.includes('firestore.googleapis.com') ||
-      event.request.url.includes('identitytoolkit.googleapis.com') ||
-      event.request.url.includes('google.com/maps') ||
-      event.request.url.includes('geocode.arcgis.com') ||
-      event.request.url.includes('allorigins.win') ||
-      event.request.url.includes('nominatim.openstreetmap.org') ||
-      event.request.url.includes('tile.openstreetmap.org')) {
-    return;
-  }
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
 
-  // Documentos HTML: SIEMPRE Network First
-  if (event.request.mode === 'navigate' || event.request.destination === 'document' || event.request.url.endsWith('index.html') || event.request.url.endsWith('/')) {
-    event.respondWith(
-      fetch(event.request).then(function(networkResponse) {
+  // Network-First para archivos HTML y scripts principales
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
-          var clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, clone); });
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
         return networkResponse;
-      }).catch(function() {
-        return caches.match(event.request).then(function(cached) { return cached || caches.match('./index.html'); });
       })
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then(function(cached) { return cached || fetch(event.request); })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+            return caches.match('./index.html');
+          }
+        });
+      })
   );
 });

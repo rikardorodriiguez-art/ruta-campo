@@ -605,9 +605,10 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.3</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.4</span>
         </div>
         <div id="top-actions">
+            <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
             <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()">☁️ Nube</button>
             <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
@@ -900,7 +901,23 @@
             <b style="color: #2c3e50; font-size: 14px;">Filtrar y Opciones:</b>
             <button onclick="cerrarFiltros()">✖</button>
         </div>
-        <input type="text" id="inputBuscarPlaca" class="filter-search" placeholder="🔍 Buscar placa..." oninput="actualizarFiltros()">
+        <input type="text" id="inputBuscarPlaca" class="filter-search" placeholder="🔍 Buscar placa (Enter para ubicar)..." oninput="actualizarFiltros()" onkeydown="onKeyDownBuscarPlaca(event)">
+        <div style="margin: 8px 0 6px 0;">
+            <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🏙️ Filtrar por Municipio:</label>
+            <select id="filtroMunicipio" class="filter-search" style="padding:5px 8px; font-size:11.5px; font-weight:600; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;" onchange="actualizarFiltros()">
+                <option value="TODOS">Todos los Municipios</option>
+                <option value="MEDELLIN">Medellín</option>
+                <option value="BELLO">Bello</option>
+                <option value="ITAGUI">Itagüí</option>
+                <option value="ENVIGADO">Envigado</option>
+                <option value="SABANETA">Sabaneta</option>
+                <option value="LA ESTRELLA">La Estrella</option>
+                <option value="COPACABANA">Copacabana</option>
+                <option value="CALDAS">Caldas</option>
+                <option value="RIONEGRO">Rionegro</option>
+                <option value="OTRO">Otros / Nacional</option>
+            </select>
+        </div>
         <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Con Pico y Placa</label>
         <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
         <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
@@ -1777,19 +1794,26 @@
             var objP = (typeof p === 'object') ? p : { placa: p };
             var info = obtenerColorPorAntiguedad(objP, esVisitada);
 
-            var estiloBorde = esVisitada ? '2px solid #94a3b8' : '3px solid ' + info.borde;
-            var estiloBg = info.bg;
-            var colorTxt = esVisitada ? '#64748b' : '#0f172a';
+            var estiloBorde = esVisitada ? '2px solid #86efac' : '3px solid ' + info.borde;
+            var estiloBg = esVisitada ? '#f0fdf4' : info.bg;
+            var colorTxt = esVisitada ? '#166534' : '#0f172a';
+
+            // Gestión de evidencias: primera letra del visitador (ej. [S]) y conteo de visitas
+            var inicial = (objP.gestorInicial || (objP.gestor ? objP.gestor.charAt(0) : '')) ? (objP.gestorInicial || objP.gestor.charAt(0)).toUpperCase() : '✔';
+            var numVisitas = objP.visitas || 1;
+            var etiquetaVisitas = numVisitas > 1 ? '<span style="font-size:9.5px; color:#15803d; font-weight:900; margin-left:3px;">(' + numVisitas + 'v)</span>' : '';
+
             var dotHtml = esVisitada 
-                ? '<span style="color:#27ae60; font-weight:bold; font-size:11px; margin-right:4px;">✔</span>'
+                ? '<span style="color:#ffffff; background:#16a34a; font-weight:900; font-size:10px; width:16px; height:16px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-right:4px; text-transform:uppercase; box-shadow:0 0 5px rgba(22,163,74,0.6); flex-shrink:0;" title="Visitado por [' + inicial + '] (' + numVisitas + ' ' + (numVisitas === 1 ? 'vez' : 'veces') + ')">' + inicial + '</span>'
                 : '<span style="width:8px; height:8px; background:' + info.color + '; border-radius:50%; margin-right:5px; flex-shrink:0; box-shadow:0 0 6px ' + info.color + ';"></span>';
 
             return '<div style="position: relative; display: inline-flex; justify-content: center; align-items: center; cursor: pointer;">' +
-                   '<div style="background: ' + estiloBg + '; border: ' + estiloBorde + '; padding: 3px 10px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); font-family: Arial, sans-serif; font-weight: 900; font-size: 11.5px; color: ' + colorTxt + '; white-space: nowrap; min-width: 80px; box-sizing: border-box;">' +
+                   '<div style="background: ' + estiloBg + '; border: ' + estiloBorde + '; padding: 3px 9px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); font-family: Arial, sans-serif; font-weight: 900; font-size: 11.5px; color: ' + colorTxt + '; white-space: nowrap; min-width: 80px; box-sizing: border-box;">' +
                    dotHtml +
                    '<span style="letter-spacing: 0.5px; line-height: 1;">' + placa + '</span>' +
+                   (esVisitada ? etiquetaVisitas : '') +
                    '</div>' +
-                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid ' + (esVisitada ? '#94a3b8' : info.borde) + ';"></div>' +
+                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid ' + (esVisitada ? '#86efac' : info.borde) + ';"></div>' +
                    '<div style="position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #ffffff;"></div>' +
                    '</div>';
         }
@@ -3534,11 +3558,32 @@
             var item = puntosData.find(function(d) { return d.id === markerId; });
             if (!item) return;
 
-            // Alternar estado de visitada SOLO de esta dirección / marcador específico
             item.visitada = !item.visitada;
             localStorage.setItem('visitada_' + item.id, item.visitada ? '1' : '0');
+
             if (item.visitada) {
+                // Solicitar nombre del gestor si no está guardado previamente
+                var nombreGuardado = localStorage.getItem('nombre_gestor_actual') || '';
+                var nombreIngresado = prompt("👤 ¿Quién realizó la visita? (Ingresa el nombre del gestor):", nombreGuardado);
+                if (nombreIngresado !== null && nombreIngresado.trim() !== '') {
+                    item.gestor = nombreIngresado.trim();
+                    item.gestorInicial = item.gestor.charAt(0).toUpperCase();
+                    localStorage.setItem('nombre_gestor_actual', item.gestor);
+                } else if (!item.gestorInicial) {
+                    if (nombreGuardado) {
+                        item.gestor = nombreGuardado;
+                        item.gestorInicial = nombreGuardado.charAt(0).toUpperCase();
+                    } else if (usuarioActual && usuarioActual.email) {
+                        item.gestor = usuarioActual.email.split('@')[0];
+                        item.gestorInicial = item.gestor.charAt(0).toUpperCase();
+                    } else {
+                        item.gestor = "Sergio";
+                        item.gestorInicial = "S";
+                    }
+                }
                 item.visitas = (item.visitas || 0) + 1;
+                localStorage.setItem('gestor_inicial_' + item.id, item.gestorInicial);
+                localStorage.setItem('gestor_nombre_' + item.id, item.gestor || '');
             }
             localStorage.setItem('visitas_' + item.id, item.visitas || 0);
 
@@ -3555,13 +3600,19 @@
 
             guardarPuntosStorage();
             if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
-                fbDb.collection('puntos_ubica_rick').doc(markerId).update({ visitada: item.visitada, visitas: item.visitas || 0 }).catch(function(){});
+                fbDb.collection('puntos_ubica_rick').doc(markerId).update({
+                    visitada: item.visitada,
+                    visitas: item.visitas || 0,
+                    gestorInicial: item.gestorInicial || '',
+                    gestor: item.gestor || ''
+                }).catch(function(){});
             }
             actualizarKPIs();
             actualizarPanelCercano();
 
             if (item.visitada) {
-                mostrarToastNotificacion("✅ Dirección de " + placa + " marcada como visitada.");
+                var vecesTxt = (item.visitas === 1) ? "1 visita" : (item.visitas + " visitas");
+                mostrarToastNotificacion("✅ " + placa + " visitada por [" + item.gestorInicial + "] (" + vecesTxt + ")");
             } else {
                 mostrarToastNotificacion("↩️ Dirección de " + placa + " marcada como pendiente.");
             }
@@ -3619,7 +3670,7 @@
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
                     fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
-                    visitas: item.visitas || 0, comentarios: item.comentarios || '',
+                    visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
                     lat: item.lat, lng: item.lng, foto: item.foto,
                     soat: item.soat, tecnomecanica: item.tecnomecanica
                 };
@@ -3859,6 +3910,7 @@
 
         function actualizarFiltros() {
             var textoBusqueda = document.getElementById('inputBuscarPlaca').value.toUpperCase().trim();
+            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
             var verPico = document.getElementById('chkPico').checked;
             var verHoy = document.getElementById('chkHoy').checked;
             var verTodas = document.getElementById('chkTodas').checked;
@@ -3871,6 +3923,24 @@
                 if (ocultarVisitadas && esVisitada) {
                     if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
                     return;
+                }
+
+                if (selMun !== 'TODOS') {
+                    var dirTexto = ((item.dirOriginal || item.dir || '') + ' ' + (item.marca || '')).toUpperCase();
+                    if (selMun === 'OTRO') {
+                        var esAburra = ['MEDELLIN', 'BELLO', 'ITAGUI', 'ENVIGADO', 'SABANETA', 'ESTRELLA', 'COPACABANA', 'CALDAS', 'RIONEGRO'].some(function(m){ return dirTexto.includes(m); });
+                        if (esAburra) {
+                            if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
+                            return;
+                        }
+                    } else {
+                        var normTarget = selMun.replace('ITAGUI', 'ITAGU').replace('MEDELLIN', 'MEDELL');
+                        var matchMun = dirTexto.includes(selMun) || dirTexto.includes(normTarget);
+                        if (!matchMun) {
+                            if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
+                            return;
+                        }
+                    }
                 }
 
                 var pasaFiltroEstado = false;
@@ -3888,6 +3958,69 @@
                     if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
                 }
             });
+        }
+
+        function onKeyDownBuscarPlaca(event) {
+            if (event.key === 'Enter') {
+                var texto = event.target.value.toUpperCase().trim();
+                if (!texto) return;
+                var match = puntosData.find(function(p) {
+                    return (p.placa || '').toUpperCase().includes(texto);
+                });
+                if (match && match.lat && match.lng) {
+                    map.flyTo([match.lat, match.lng], 17, { duration: 1.2 });
+                    if (match.marker) {
+                        setTimeout(function() {
+                            if (!map.hasLayer(match.marker)) map.addLayer(match.marker);
+                            match.marker.openPopup();
+                        }, 700);
+                    }
+                    cerrarFiltros();
+                    mostrarToastNotificacion("🎯 Ubicado: " + match.placa);
+                } else {
+                    mostrarToastNotificacion("🔍 No se encontró vehículo con placa " + texto);
+                }
+            }
+        }
+
+        var wakeLockSentinel = null;
+        async function toggleWakeLock() {
+            var btn = document.getElementById('btn-wake-lock');
+            if (!('wakeLock' in navigator)) {
+                mostrarToastNotificacion("⚠️ Tu navegador no soporta bloqueo de apagado de pantalla.");
+                return;
+            }
+            try {
+                if (!wakeLockSentinel) {
+                    wakeLockSentinel = await navigator.wakeLock.request('screen');
+                    if (btn) {
+                        btn.style.background = 'linear-gradient(145deg, #eab308, #ca8a04)';
+                        btn.style.borderColor = '#fde047';
+                        btn.innerHTML = '💡 Pantalla Fija';
+                    }
+                    mostrarToastNotificacion("💡 Pantalla fija activa: No se apagará mientras estés en ruta.");
+                    wakeLockSentinel.addEventListener('release', function() {
+                        wakeLockSentinel = null;
+                        if (btn) {
+                            btn.style.background = 'linear-gradient(145deg, #1e293b, #0f172a)';
+                            btn.style.borderColor = '';
+                            btn.innerHTML = '💡 Pantalla';
+                        }
+                    });
+                } else {
+                    await wakeLockSentinel.release();
+                    wakeLockSentinel = null;
+                    if (btn) {
+                        btn.style.background = 'linear-gradient(145deg, #1e293b, #0f172a)';
+                        btn.style.borderColor = '';
+                        btn.innerHTML = '💡 Pantalla';
+                    }
+                    mostrarToastNotificacion("🌙 Pantalla normal: Ahorro de batería restaurado.");
+                }
+            } catch(err) {
+                console.warn("Error WakeLock:", err);
+                mostrarToastNotificacion("⚠️ Pantalla activa: " + err.message);
+            }
         }
 
         var hoyStr = new Date().toISOString().split('T')[0];
@@ -4342,6 +4475,7 @@
             var esVisitada = !!p.visitada;
             var infoColor = obtenerColorPorAntiguedad(p, esVisitada);
             var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
+            var wazeUrl = "https://waze.com/ul?ll=" + encodeURIComponent(p.lat + "," + p.lng) + "&navigate=yes";
             var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail">` : '';
 
             var soatClass = (p.soat === 'SI' || p.soat === 'VIGENTE') ? 'badge-si' : 'badge-no';
@@ -4352,7 +4486,14 @@
             var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '-';
             var vColor = (p.color && p.color !== '-') ? p.color : '-';
             var dirReal = p.dirOriginal || p.dir || "-";
-            var txtBtnVisitada = esVisitada ? "2. ↩️ Desmarcar Visitada" : "2. ✅ Marcar Visitada";
+            var txtBtnVisitada = esVisitada ? "↩️ Desmarcar Visitada" : "✅ Marcar Visitado";
+
+            // Primera letra del visitador y conteo de visitas para evidencia
+            var gestorInicial = (p.gestorInicial || (p.gestor ? p.gestor.charAt(0) : '') || '').toUpperCase();
+            var vecesTxt = (p.visitas === 1) ? '1 vez' : ((p.visitas || 1) + ' veces');
+            var infoVisitasHtml = esVisitada 
+                ? `<span id="visitas-val-${markerId}" style="color:#15803d; font-weight:bold;">✅ <b>[${gestorInicial || 'V'}]</b> Visitado (${vecesTxt})</span>`
+                : `<span id="visitas-val-${markerId}" style="color:#64748b; font-weight:600;">⏳ Pendiente (0 visitas)</span>`;
 
             return `
                 <div id="popup-zoomable-${markerId}" class="popup-zoom-container" data-scale="1" ontouchstart="inicializarZoomDosDedos('${markerId}', this)" style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; width: 295px; max-width: 95vw; box-sizing: border-box; transition: width 0.15s ease, font-size 0.15s ease;">
@@ -4375,9 +4516,10 @@
                         <div id="popup-resumen-${markerId}" style="display:none; padding:4px 2px; font-size:11px; color:#333;">
                             <div style="margin-bottom:6px; color:#2c3e50; font-size:11px; line-height:1.3; font-weight:600;"><b>📍 Dir Real:</b> ${dirReal}</div>
                             <div style="display:flex; gap:4px;">
-                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="margin:0; flex:1; padding:5px 6px; font-size:10.5px; text-align:center;">🧭 Maps</a>
-                                <button type="button" onclick="iniciarModoMover('${markerId}')" class="pop-btn pb-orange" style="margin:0; flex:1; padding:5px 6px; font-size:10.5px;">📍 Mover</button>
-                                <button type="button" onclick="toggleMinimizarPopup('${markerId}')" class="pop-btn pb-teal" style="margin:0; flex:1; padding:5px 6px; font-size:10.5px;">➕ Ficha</button>
+                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="margin:0; flex:1; padding:5px 4px; font-size:10px; text-align:center; text-decoration:none;">🧭 Maps</a>
+                                <a href="${wazeUrl}" target="_blank" class="pop-btn" style="margin:0; flex:1; padding:5px 4px; font-size:10px; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold;">🚗 Waze</a>
+                                <button type="button" onclick="iniciarModoMover('${markerId}')" class="pop-btn pb-orange" style="margin:0; flex:1; padding:5px 4px; font-size:10px;">📍 Mover</button>
+                                <button type="button" onclick="toggleMinimizarPopup('${markerId}')" class="pop-btn pb-teal" style="margin:0; flex:1; padding:5px 4px; font-size:10px;">➕ Ficha</button>
                             </div>
                         </div>
 
@@ -4420,7 +4562,7 @@
                                 </tr>
                                 <tr>
                                     <td class="specs-label">Visitas:</td>
-                                    <td style="font-size:11px; font-weight:bold; color:${(p.visitas || 0) > 0 ? '#0284c7' : '#64748b'};"><span id="visitas-val-${markerId}">👁️ ${p.visitas || 0} ${(p.visitas === 1) ? 'visita realizada' : 'visitas realizadas'}</span></td>
+                                    <td>${infoVisitasHtml}</td>
                                 </tr>
                                 ${p.comentarios ? `
                                 <tr>
@@ -4431,7 +4573,10 @@
                             </table>
                             
                             <div style="margin-top: 6px; border-top: 1px solid #eee; padding-top: 6px;">
-                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue">1. 🧭 Navegar (Google Maps)</a>
+                                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                                    <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="flex:1; margin:0; text-align:center; text-decoration:none;">🧭 Google Maps</a>
+                                    <a href="${wazeUrl}" target="_blank" class="pop-btn" style="flex:1; margin:0; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold; padding:7px 4px; display:inline-block;">🚗 Waze</a>
+                                </div>
                                 
                                 <div style="display:flex; gap:6px;">
                                     <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn ${esVisitada ? 'pb-teal' : 'pb-green'}" style="flex:1;">${txtBtnVisitada}</button>
@@ -4537,6 +4682,8 @@
             p.timestamp = p.timestamp || (p.fecha ? new Date(p.fecha).getTime() : Date.now());
             p.visitada = (localStorage.getItem('visitada_' + p.id) === '1') || !!p.visitada;
             p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
+            p.gestorInicial = p.gestorInicial || localStorage.getItem('gestor_inicial_' + p.id) || (p.gestor ? p.gestor.charAt(0).toUpperCase() : '');
+            p.gestor = p.gestor || localStorage.getItem('gestor_nombre_' + p.id) || '';
             p.comentarios = p.comentarios || "";
 
             var esVisitada = !!p.visitada;
@@ -4889,7 +5036,7 @@
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
                     fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
-                    visitas: item.visitas || 0, comentarios: item.comentarios || '',
+                    visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
                     lat: item.lat, lng: item.lng, foto: item.foto,
                     soat: item.soat, tecnomecanica: item.tecnomecanica
                 };
@@ -5058,7 +5205,7 @@
                     placa: p.placa, marca: p.marca || '-', linea: p.linea || '-', modelo: p.modelo || '-', color: p.color || '-',
                     telefonos: p.telefonos || '-', dir: p.dir, dirOriginal: p.dirOriginal || p.dir, dirAjustada: p.dirAjustada || null,
                     fecha: p.fecha || '', timestamp: p.timestamp || Date.now(), visitada: !!p.visitada,
-                    visitas: p.visitas || 0, comentarios: p.comentarios || '',
+                    visitas: p.visitas || 0, gestorInicial: p.gestorInicial || '', gestor: p.gestor || '', comentarios: p.comentarios || '',
                     lat: p.lat, lng: p.lng, foto: p.foto || null,
                     soat: p.soat || 'NO', tecnomecanica: p.tecnomecanica || 'NO'
                 };
