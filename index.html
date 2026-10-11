@@ -87,11 +87,16 @@
         /* BOTONES FLOTANTES INFERIORES */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
-            background: linear-gradient(145deg, #2c3e50, #1a252f); color: white; border: none; padding: 14px 22px;
-            border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.4), inset 0 2px 2px rgba(255,255,255,0.2);
-            transition: all 0.2s ease; text-transform: uppercase; display: flex; align-items: center; gap: 6px;
+            width: 58px; height: 58px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            color: #ffffff; border: 2.5px solid #38bdf8; padding: 0;
+            border-radius: 50%; font-size: 26px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 14px rgba(56,189,248,0.4);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease; outline: none; -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
         }
+        .floating-btn-add:active { transform: scale(0.92); }
         .floating-btn-add:active { transform: translateY(2px) scale(0.97); }
 
         /* PANELES FLOTANTES */
@@ -609,7 +614,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.6</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.7</span>
         </div>
         <div id="top-actions">
             <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
@@ -810,22 +815,25 @@
     </div>
 
     <!-- BOTÓN FLOTANTE CENTRAR EN MI GPS -->
-    <button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:118px; left:12px; z-index:999; background:white; color:#2980b9; border:2px solid #cbd5e1; border-radius:8px; width:34px; height:34px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 3px 8px rgba(0,0,0,0.25);" title="Centrar en Mi Ubicación GPS">🎯</button>
+    <button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:118px; left:12px; z-index:999; background:linear-gradient(145deg, #1e293b, #0f172a); color:#38bdf8; border:2px solid #38bdf8; border-radius:50%; width:38px; height:38px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.4); outline:none; -webkit-tap-highlight-color:transparent; overflow:hidden;" title="Centrar en Mi Ubicación GPS">🎯</button>
 
     <!-- BOTÓN AGREGAR Y MENÚ<!-- BOTÓN AGREGAR Y MENÚ DE 5 OPCIONES -->
-    <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
+    <button class="floating-btn-add" onclick="toggleMenuAdd()" title="Agregar nuevo vehículo">➕</button>
     <div id="menuOpciones" class="floating-menu">
         <div class="header-menu">
-            <b style="color: #2c3e50; font-size: 14px;">Opciones de Carga:</b>
+            <b style="color: #0f172a; font-size: 14px;">➕ Opciones de Carga:</b>
             <button onclick="cerrarMenuAdd()">✖</button>
         </div>
-                <button class="main-opt" style="background:linear-gradient(135deg, #10b981, #059669); color:white; font-weight:bold; margin-bottom:8px; border:1px solid #34d399;" onclick="corregirTodasLasUbicacionesAutomatico()">🎯 Auto-Corregir Todas las Ubicaciones</button>
-<button class="main-opt" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:white; font-weight:bold; margin-bottom:8px; border:1px solid #38bdf8;" onclick="abrirCentroRecuperacion()">🛡️ Recuperar Trabajo / Historial</button>
-        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto (WhatsApp)</button>
-        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual completo</button>
-        <button class="main-opt mo-maps" onclick="abrirSeccion('link-maps')">3. 🧭 Agregar por Link de Google Maps</button>
-        <button class="main-opt mo-foto" onclick="abrirSeccion('tabla-foto')">4. 📸 Subir Foto de Tabla (Auto)</button>
-        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">5. ⚡ Pegar Extracción IA (Gemini)</button>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="main-opt mo-1" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('whatsapp')">📋 1. Pegar Reporte / Texto (WhatsApp o IA)</button>
+            <button class="main-opt mo-foto" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('tabla-foto')">📸 2. Subir Foto de Tabla (Auto / OCR)</button>
+            <button class="main-opt mo-2" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('manual')">✍️ 3. Ingreso Manual de Vehículo</button>
+        </div>
+
+        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #cbd5e1; text-align:center;">
+            <span style="font-size:10.5px; color:#64748b; display:block; margin-bottom:5px;">🛡️ ¿Necesitas restaurar una copia de seguridad?</span>
+            <button type="button" onclick="abrirCentroRecuperacion()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; color:#0369a1; font-size:11px; font-weight:bold; padding:5px 12px; cursor:pointer;">Abrir Centro de Recuperación</button>
+        </div>
 
         <!-- SECCIÓN 1: WHATSAPP / MULTI-REPORTE -->
         <div id="seccion-whatsapp" class="sub-panel">
@@ -1474,14 +1482,15 @@
 
             var enAlerta = (placaMasCercanaObj && menorDistanciaMetros <= 500);
 
-            // Limpiar canvas
-            ctx.clearRect(0, 0, w, h);
+            // 1. Llenar el fondo con el color base del radar para eliminar esquinas blancas o negras
+            ctx.fillStyle = '#050811';
+            ctx.fillRect(0, 0, w, h);
 
-            // CÍRCULO TÁCTICO RADAR PRINCIPAL QUE OCUPA TODO EL TAMAÑO
+            // 2. CÍRCULO TÁCTICO RADAR PRINCIPAL QUE OCUPA TODO EL TAMAÑO
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-            ctx.clip(); // Recorta estrictamente al círculo: nada de bordes o esquinas negras sobrantes
+            ctx.clip();
 
             // Gradiente circular dentro del disco
             var rGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, cr);
@@ -3024,17 +3033,17 @@
                     formatoIA += "DIRECCIÓN 1: (Ingresa la dirección de la placa aquí)\n";
                 }
 
-                // Inyectar en el textarea de la Opción 5 (txtGemini)
-                if (document.getElementById('txtGemini')) document.getElementById('txtGemini').value = formatoIA;
+                // Inyectar en el textarea unificado de texto (txtWhatsapp)
+                if (document.getElementById('txtWhatsapp')) document.getElementById('txtWhatsapp').value = formatoIA;
 
                 if (dirsFinales.length > 0) {
-                    alert("✅ ¡Información extraída con éxito de la foto! Se transfirió a la Opción 5 (⚡ Pegar Extracción IA). Pulsa 'Mapear Ubicaciones'.");
+                    alert("✅ ¡Información extraída con éxito de la foto! Se transfirió a la Opción 1 (Pegar Reporte / Texto). Pulsa '🚀 Procesar y Agregar'.");
                 } else {
-                    alert("⚠️ Se detectó la placa " + placa + ", pero en la foto analizada no se detectó una dirección de calle o carrera válida (se detectó texto de documento/identificación). Por favor completa la dirección en el campo 'DIRECCIÓN 1' antes de mapear.");
+                    alert("⚠️ Se detectó la placa " + placa + ", pero en la foto analizada no se detectó una dirección de calle o carrera válida. Por favor completa la dirección en el campo 'DIRECCIÓN 1' antes de mapear.");
                 }
 
-                // Abrir automáticamente la Opción 5
-                abrirSeccion('gemini');
+                // Abrir automáticamente la sección de texto
+                abrirSeccion('whatsapp');
 
             } catch (err) {
                 console.error(err);
@@ -5176,68 +5185,7 @@
         }
 
         
-        // AUTO-CORRECCIÓN Y VERIFICACIÓN EN MASA DE TODAS LAS PLACAS DEL MAPA
-        async function corregirTodasLasUbicacionesAutomatico() {
-            if (puntosData.length === 0) {
-                alert("No hay vehículos en el mapa para corregir.");
-                return;
-            }
-
-            var loadingOverlay = document.getElementById('loading-overlay');
-            var loadingTexto = document.getElementById('loading-texto');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'flex';
-                if (loadingTexto) loadingTexto.innerText = "🎯 Verificando y corrigiendo ubicaciones...";
-            }
-
-            var corregidos = 0;
-            var llavesVistas = {};
-            var listaNueva = [];
-
-            for (var i = 0; i < puntosData.length; i++) {
-                var p = puntosData[i];
-                var placa = (p.placa || '').toUpperCase().trim();
-                var dir = p.dirOriginal || p.dir || '';
-                var kDir = placa + "_" + normalizarClaveAprendizaje(dir, '');
-
-                // Omitir direcciones duplicadas de la misma placa
-                if (llavesVistas[kDir]) {
-                    console.log("Omitiendo duplicado de", placa, dir);
-                    continue;
-                }
-                llavesVistas[kDir] = true;
-
-                // Si no fue ajustado manualmente por el usuario, re-geocodificar con el validador estricto
-                if (!p.dirAjustada && dir) {
-                    if (loadingTexto) loadingTexto.innerText = "🎯 Verificando " + placa + " (" + (i+1) + "/" + puntosData.length + ")...";
-                    try {
-                        var nuevasCoords = await obtenerCoordenadasExactasLimpias(dir);
-                        if (nuevasCoords) {
-                            p.lat = nuevasCoords.lat;
-                            p.lng = nuevasCoords.lng;
-                            corregidos++;
-                        }
-                    } catch(e) {}
-                }
-                listaNueva.push(p);
-            }
-
-            // Re-renderizar todos los marcadores
-            puntosData.forEach(function(p) {
-                if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
-            });
-            puntosData = [];
-            placasRegistradas = {};
-
-            listaNueva.forEach(function(p, idx) {
-                placasRegistradas[p.placa] = true;
-                agregarMarcadorAlMapa(p, idx + 1, false);
-            });
-
-            guardarPuntosStorage();
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
-            mostrarToastNotificacion("✅ " + corregidos + " ubicaciones verificadas y corregidas automáticamente.");
-        }
+        
 
 
         function subirPuntosLocalesAFirebase() {
