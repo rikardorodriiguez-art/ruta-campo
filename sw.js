@@ -1,6 +1,6 @@
 // Service Worker para UBICA-RICK PWA
 // Versión v15 - Network First con soporte para iconos y manifest PWA
-const CACHE_NAME = 'ubica-rick-v17';
+const CACHE_NAME = 'ubica-rick-v18';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

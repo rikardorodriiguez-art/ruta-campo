@@ -614,12 +614,13 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.9</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.0</span>
         </div>
         <div id="top-actions">
             <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
             <button id="btn-modo-seguro" class="btn-top-action" onclick="toggleModoOperadorSeguro()" style="background: linear-gradient(145deg, #16a34a, #15803d); border-color: #22c55e;" title="Encendido: Manipular/Subir/Borrar | Apagado: Modo Operador Seguro para moto">🟢 Edición</button>
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
+            <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Ingresar / Sincronizar cuenta Nube">☁️ Nube</button>
             <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
             <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
         </div>
@@ -1299,6 +1300,27 @@
             }, { passive: false });
         }
 
+        
+        // =========================================================================
+        // REGLA DEL RADAR: RE-ACTIVACIÓN EN PLACAS VISITADAS DESPUÉS DE 3 HORAS
+        // =========================================================================
+        function esElegibleParaRadar(p) {
+            if (!p || !p.lat || !p.lng) return false;
+
+            // Si la placa NO está marcada como visitada, siempre entra al radar
+            if (!p.visitada) return true;
+
+            // Si YA está visitada: se reactiva en el radar si han pasado 3 horas o más desde la visita
+            var ahora = Date.now();
+            var tsVisita = p.timestampVisita || parseInt(localStorage.getItem('visita_ts_' + p.id)) || (p.timestamp || 0);
+
+            // Si no tiene fecha de visita registrada, permitir seguimiento por seguridad
+            if (!tsVisita) return true;
+
+            var horasTranscurridas = (ahora - tsVisita) / (1000 * 60 * 60);
+            return horasTranscurridas >= 3.0; // 3 horas o más
+        }
+
         function actualizarPanelCercano() {
             actualizarBotonRadarUI();
             var panel = document.getElementById('panel-cercano');
@@ -1333,9 +1355,8 @@
                 return;
             }
 
-            var pendientes = puntosData.filter(function(p) {
-                return !p.visitada;
-            });
+            // Filtrar vehículos elegibles: pendientes O visitados hace más de 3 horas
+            var pendientes = puntosData.filter(esElegibleParaRadar);
 
             if (pendientes.length === 0) {
                 if (panel) {
@@ -1370,6 +1391,7 @@
 
                 var distTxt = menorDist < 1000 ? Math.round(menorDist) + " metros" : (menorDist / 1000).toFixed(1) + " km";
                 var detCarro = (masCercano.marca && masCercano.marca !== '-' && masCercano.marca !== 'VEHÍCULO') ? masCercano.marca : 'VEHÍCULO';
+                if (masCercano.visitada) detCarro += " (Re-visita >3h)";
                 var colorTxt = (masCercano.color && masCercano.color !== '-') ? masCercano.color : 'SIN COLOR';
 
                 // Actualizar Panel Superior
@@ -1551,7 +1573,9 @@
             // 1. Título superior
             ctx.fillStyle = enAlerta ? '#ff0055' : '#00f0ff';
             ctx.font = '900 10px monospace';
-            ctx.fillText(enAlerta ? '🚨 EN RANGO (<500M)' : '🛰️ RADAR UBICA-RICK', cx, 38);
+            var tituloPip = enAlerta ? '🚨 EN RANGO (<500M)' : '🛰️ RADAR UBICA-RICK';
+            if (placaMasCercanaObj && placaMasCercanaObj.visitada) tituloPip = '🔄 RE-VISITA (>3H)';
+            ctx.fillText(tituloPip, cx, 38);
 
             if (placaMasCercanaObj) {
                 var p = placaMasCercanaObj;
@@ -3623,6 +3647,10 @@
             localStorage.setItem('visitada_' + item.id, item.visitada ? '1' : '0');
 
             if (item.visitada) {
+                // Registrar hora exacta de la visita para control de reactivación tras 3 horas
+                item.timestampVisita = Date.now();
+                localStorage.setItem('visita_ts_' + item.id, item.timestampVisita);
+
                 // Solicitar nombre del gestor si no está guardado previamente
                 var nombreGuardado = localStorage.getItem('nombre_gestor_actual') || '';
                 var nombreIngresado = prompt("👤 ¿Quién realizó la visita? (Ingresa el nombre del gestor):", nombreGuardado);
@@ -3675,6 +3703,8 @@
                 var vecesTxt = (item.visitas === 1) ? "1 visita" : (item.visitas + " visitas");
                 mostrarToastNotificacion("✅ " + placa + " visitada por [" + item.gestorInicial + "] (" + vecesTxt + ")");
             } else {
+                delete item.timestampVisita;
+                localStorage.removeItem('visita_ts_' + item.id);
                 mostrarToastNotificacion("↩️ Dirección de " + placa + " marcada como pendiente.");
             }
         }
@@ -3735,6 +3765,7 @@
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
                     fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    timestampVisita: item.timestampVisita || null,
                     visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
                     lat: item.lat, lng: item.lng, foto: item.foto,
                     soat: item.soat, tecnomecanica: item.tecnomecanica
@@ -4800,6 +4831,7 @@
             p.timestamp = p.timestamp || (p.fecha ? new Date(p.fecha).getTime() : Date.now());
             p.visitada = (localStorage.getItem('visitada_' + p.id) === '1') || !!p.visitada;
             p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
+            p.timestampVisita = p.timestampVisita || parseInt(localStorage.getItem('visita_ts_' + p.id)) || (p.visitada ? (p.timestamp || (Date.now() - 4 * 3600 * 1000)) : null);
             p.gestorInicial = p.gestorInicial || localStorage.getItem('gestor_inicial_' + p.id) || (p.gestor ? p.gestor.charAt(0).toUpperCase() : '');
             p.gestor = p.gestor || localStorage.getItem('gestor_nombre_' + p.id) || '';
             p.comentarios = p.comentarios || "";
@@ -5155,6 +5187,7 @@
                     id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
                     telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
                     fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    timestampVisita: item.timestampVisita || null,
                     visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
                     lat: item.lat, lng: item.lng, foto: item.foto,
                     soat: item.soat, tecnomecanica: item.tecnomecanica
@@ -5705,7 +5738,7 @@
                 var candidatos = [];
                 puntosData.forEach(function(item) {
                     if (!item.lat || !item.lng) return;
-                    if (soloPendientes && item.visitada) return;
+                    if (soloPendientes && !esElegibleParaRadar(item)) return;
 
                     var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
                     if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
