@@ -1,10 +1,14 @@
 // Service Worker para UBICA-RICK PWA
-// Versión v14 - Network First con fallback a caché
-const CACHE_NAME = 'ubica-rick-v14';
+// Versión v15 - Network First con soporte para iconos y manifest PWA
+const CACHE_NAME = 'ubica-rick-v15';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './ruta_campo_raptor.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './favicon.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
@@ -39,7 +43,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Network-First para archivos HTML y scripts principales
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

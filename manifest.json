@@ -1,13 +1,13 @@
 {
-  "name": "UBICA-RICK",
+  "name": "UBICA-RICK - Sistema de Ruta y Rastreo",
   "short_name": "UBICA-RICK",
-  "description": "Sistema de Ruta de Campo, Radar Táctico y Rastreo de Vehículos",
+  "description": "Aplicación táctica de rastreo de vehículos, verificación de direcciones y navegación para trabajo de campo en Colombia",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0a1324",
-  "theme_color": "#0a1324",
+  "background_color": "#042143",
+  "theme_color": "#042143",
+  "orientation": "any",
   "icons": [
     {
       "src": "./icon-192.png",
