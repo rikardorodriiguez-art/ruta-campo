@@ -614,14 +614,14 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.7</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.8</span>
         </div>
         <div id="top-actions">
-            <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
             <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
+            <button id="btn-modo-seguro" class="btn-top-action" onclick="toggleModoOperadorSeguro()" style="background: linear-gradient(145deg, #16a34a, #15803d); border-color: #22c55e;" title="Encendido: Manipular/Subir/Borrar | Apagado: Modo Operador Seguro para moto">🟢 Edición</button>
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
-            <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()">☁️ Nube</button>
             <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
+            <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
         </div>
     </div>
 
@@ -773,6 +773,10 @@
         <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:8px;">
             <input type="checkbox" id="cfg-vibrar" checked> 📳 Vibración táctil en proximidad
         </label>
+        
+        <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1;">
+            <button type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Cuenta y Sincronización en la Nube</button>
+        </div>
 
         <div style="margin-top:15px; display:flex; gap:6px;">
             <button onclick="guardarConfig()" class="act-green" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Guardar</button>
@@ -914,7 +918,10 @@
             <b style="color: #2c3e50; font-size: 14px;">Filtrar y Opciones:</b>
             <button onclick="cerrarFiltros()">✖</button>
         </div>
-        <input type="text" id="inputBuscarPlaca" class="filter-search" placeholder="🔍 Buscar placa (Enter para ubicar)..." oninput="actualizarFiltros()" onkeydown="onKeyDownBuscarPlaca(event)">
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <input type="text" id="inputBuscarPlaca" class="filter-search" style="flex:1; margin:0; padding:7px 10px; font-size:12.5px;" placeholder="🔍 Escribe la placa a consultar..." oninput="actualizarFiltros()" onkeydown="onKeyDownBuscarPlaca(event)">
+            <button type="button" onclick="ejecutarConsultaPlaca()" class="pop-btn pb-blue" style="margin:0; padding:0 14px; font-size:12px; font-weight:900; white-space:nowrap; border-radius:6px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Consultar placa y acercar en el mapa">🔍 Consultar</button>
+        </div>
         <div style="margin: 8px 0 6px 0;">
             <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🏙️ Filtrar por Municipio:</label>
             <select id="filtroMunicipio" class="filter-search" style="padding:5px 8px; font-size:11.5px; font-weight:600; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;" onchange="actualizarFiltros()">
@@ -4015,26 +4022,79 @@
             });
         }
 
+        // =========================================================================
+        // CONTROL DE CONSULTA RÁPIDA DE PLACA CON ENFOQUE Y ACERCAMIENTO
+        // =========================================================================
+        function ejecutarConsultaPlaca() {
+            var inputEl = document.getElementById('inputBuscarPlaca');
+            var texto = (inputEl ? inputEl.value : '').toUpperCase().trim();
+            if (!texto) {
+                mostrarToastNotificacion("⚠️ Por favor escribe una placa antes de consultar.");
+                return;
+            }
+
+            var match = puntosData.find(function(p) {
+                return (p.placa || '').toUpperCase().includes(texto);
+            });
+
+            if (match && match.lat && match.lng) {
+                // 1. Cerrar inmediatamente el panel de filtros y quitar telón oscuro
+                cerrarFiltros();
+
+                // 2. Acercar la cámara del mapa a zoom 18 directamente sobre la placa
+                map.flyTo([match.lat, match.lng], 18, { duration: 1.2 });
+
+                // 3. Abrir la ficha técnica de la placa de forma automática
+                setTimeout(function() {
+                    if (match.marker) {
+                        if (!map.hasLayer(match.marker)) map.addLayer(match.marker);
+                        match.marker.openPopup();
+                    }
+                }, 700);
+
+                mostrarToastNotificacion("🎯 Ubicado en el mapa: " + match.placa);
+            } else {
+                mostrarToastNotificacion("🔍 No se encontró ningún vehículo con placa " + texto);
+            }
+        }
+
         function onKeyDownBuscarPlaca(event) {
             if (event.key === 'Enter') {
-                var texto = event.target.value.toUpperCase().trim();
-                if (!texto) return;
-                var match = puntosData.find(function(p) {
-                    return (p.placa || '').toUpperCase().includes(texto);
-                });
-                if (match && match.lat && match.lng) {
-                    map.flyTo([match.lat, match.lng], 17, { duration: 1.2 });
-                    if (match.marker) {
-                        setTimeout(function() {
-                            if (!map.hasLayer(match.marker)) map.addLayer(match.marker);
-                            match.marker.openPopup();
-                        }, 700);
-                    }
-                    cerrarFiltros();
-                    mostrarToastNotificacion("🎯 Ubicado: " + match.placa);
-                } else {
-                    mostrarToastNotificacion("🔍 No se encontró vehículo con placa " + texto);
-                }
+                event.preventDefault();
+                ejecutarConsultaPlaca();
+            }
+        }
+
+        // =========================================================================
+        // BOTÓN DE ENCENDIDO Y APAGADO: MODO EDICIÓN VS MODO OPERADOR SEGURO (MOTO)
+        // =========================================================================
+        var modoEdicionActivo = localStorage.getItem('ubica_rick_modo_edicion') !== '0';
+
+        function actualizarBotonModoSeguroUI() {
+            var btn = document.getElementById('btn-modo-seguro');
+            if (!btn) return;
+            if (modoEdicionActivo) {
+                btn.innerHTML = '🟢 Edición';
+                btn.style.background = 'linear-gradient(145deg, #16a34a, #15803d)';
+                btn.style.borderColor = '#22c55e';
+                btn.title = 'Modo Edición ACTIVADO: Puedes subir, editar y borrar puntos. Toca para apagar (Modo Operador Seguro).';
+            } else {
+                btn.innerHTML = '🔒 Operador';
+                btn.style.background = 'linear-gradient(145deg, #475569, #334155)';
+                btn.style.borderColor = '#94a3b8';
+                btn.title = 'Modo Operador Seguro (APAGADO): Edición y borrado bloqueados para no alterar el mapa en la moto. Toca para encender.';
+            }
+        }
+
+        function toggleModoOperadorSeguro() {
+            modoEdicionActivo = !modoEdicionActivo;
+            localStorage.setItem('ubica_rick_modo_edicion', modoEdicionActivo ? '1' : '0');
+            aplicarPermisosPorRol(modoEdicionActivo ? 'admin' : 'lector');
+
+            if (modoEdicionActivo) {
+                mostrarToastNotificacion("🟢 Modo Edición ENCENDIDO: Puedes agregar, editar y manipular puntos.", 3500);
+            } else {
+                mostrarToastNotificacion("🔒 Modo Operador Seguro APAGADO: Edición y borrado bloqueados para no tocar nada por error en la moto.", 4000);
             }
         }
 
@@ -4976,6 +5036,7 @@
                 btnAdd.style.display = (rol === 'lector') ? 'none' : 'flex';
             }
 
+            actualizarBotonModoSeguroUI();
             actualizarUIAuth(usuarioActual);
 
             // Refrescar fichas de los carros para reflejar permisos
@@ -5372,6 +5433,7 @@
             inicializarFirebase();
             cargarPuntosStorage();
             actualizarBotonRadarUI();
+            aplicarPermisosPorRol(modoEdicionActivo ? 'admin' : 'lector');
             setTimeout(actualizarPanelCercano, 1200);
         };
     
