@@ -614,7 +614,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.8</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.9</span>
         </div>
         <div id="top-actions">
             <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
@@ -774,7 +774,9 @@
             <input type="checkbox" id="cfg-vibrar" checked> 📳 Vibración táctil en proximidad
         </label>
         
-        <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1;">
+        <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
+            <button type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👥 Gestionar Operadores y Apagado</button>
+            <button type="button" onclick="cerrarConfig(); abrirModalCambiarUsuario();" class="pop-btn pb-teal" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👤 Cambiar de Operador en Sesión</button>
             <button type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Cuenta y Sincronización en la Nube</button>
         </div>
 
@@ -947,6 +949,7 @@
             <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Ruta hacia Destino (Placas a ≤500m)</button>
             <button onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
+            <button onclick="abrirModalGestionUsuarios()" class="pop-btn pb-purple" style="margin:0; font-size:11.5px; padding:7px 6px;">👥 Gestión de Usuarios</button>
             <button onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:11.5px; padding:7px 6px;">⚙️ Configuración</button>
         </div>
     </div>
@@ -5430,6 +5433,7 @@
         }
 
         window.onload = function() {
+            inicializarUsuariosSistema();
             inicializarFirebase();
             cargarPuntosStorage();
             actualizarBotonRadarUI();
@@ -5787,6 +5791,323 @@
             }
         }
 
+
+        // =========================================================================
+        // SISTEMA DE CONTROL DE USUARIOS, OPERADORES Y BOTÓN DE APAGADO DE ACCESO
+        // =========================================================================
+        var usuarioOperadorActual = null;
+
+        function inicializarUsuariosSistema() {
+            var raw = localStorage.getItem('usuarios_registrados_ubica_rick');
+            var lista = [];
+            if (raw) {
+                try { lista = JSON.parse(raw); } catch(e){}
+            }
+            if (!lista || lista.length === 0) {
+                lista = [
+                    { id: 'usr_admin', nombre: 'Administrador Principal', login: 'admin', pin: 'admin123', rol: 'admin', activo: true },
+                    { id: 'usr_sergio', nombre: 'Sergio', login: 'sergio', pin: '1234', rol: 'lector', activo: true }
+                ];
+                localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(lista));
+            }
+
+            var sesionGuardadaId = localStorage.getItem('usuario_sesion_activa_id');
+            if (sesionGuardadaId) {
+                var enc = lista.find(function(u){ return u.id === sesionGuardadaId; });
+                if (enc) usuarioOperadorActual = enc;
+            }
+            if (!usuarioOperadorActual && lista.length > 0) {
+                usuarioOperadorActual = lista[0];
+                localStorage.setItem('usuario_sesion_activa_id', usuarioOperadorActual.id);
+            }
+
+            verificarEstadoAccesoOperador();
+
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                fbDb.collection('usuarios_control').onSnapshot(function(snapshot) {
+                    if (!snapshot.empty) {
+                        var listaNube = [];
+                        snapshot.forEach(function(doc) {
+                            var data = doc.data();
+                            data.id = doc.id;
+                            listaNube.push(data);
+                        });
+                        if (listaNube.length > 0) {
+                            localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(listaNube));
+                            if (usuarioOperadorActual) {
+                                var actualizado = listaNube.find(function(u){ return u.id === usuarioOperadorActual.id; });
+                                if (actualizado) {
+                                    usuarioOperadorActual = actualizado;
+                                    verificarEstadoAccesoOperador();
+                                    renderizarListaUsuariosAdmin();
+                                }
+                            }
+                        }
+                    }
+                }, function(err){ console.warn("Firestore usuarios_control:", err); });
+            }
+        }
+
+        function obtenerUsuariosRegistrados() {
+            try {
+                var raw = localStorage.getItem('usuarios_registrados_ubica_rick');
+                return raw ? JSON.parse(raw) : [];
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function guardarUsuariosRegistrados(lista) {
+            localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(lista));
+            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+                lista.forEach(function(u) {
+                    fbDb.collection('usuarios_control').doc(u.id).set(u, { merge: true }).catch(function(){});
+                });
+            }
+        }
+
+        function verificarEstadoAccesoOperador() {
+            var pantallaBloqueo = document.getElementById('pantalla-bloqueo-operador');
+            var labelBloqueo = document.getElementById('bloqueo-nombre-operador');
+            var mapEl = document.getElementById('map');
+
+            if (!usuarioOperadorActual) return;
+
+            if (usuarioOperadorActual.rol === 'admin') {
+                if (pantallaBloqueo) pantallaBloqueo.style.display = 'none';
+                if (mapEl) mapEl.style.visibility = 'visible';
+                return;
+            }
+
+            if (usuarioOperadorActual.activo === false) {
+                if (pantallaBloqueo) {
+                    pantallaBloqueo.style.display = 'flex';
+                }
+                if (labelBloqueo) {
+                    labelBloqueo.innerText = usuarioOperadorActual.nombre + " (" + usuarioOperadorActual.login + ")";
+                }
+                if (mapEl) {
+                    mapEl.style.visibility = 'hidden';
+                }
+            } else {
+                if (pantallaBloqueo) pantallaBloqueo.style.display = 'none';
+                if (mapEl) mapEl.style.visibility = 'visible';
+            }
+        }
+
+        function abrirModalGestionUsuarios() {
+            cerrarFiltros();
+            cerrarConfig();
+
+            if (usuarioOperadorActual && usuarioOperadorActual.rol !== 'admin') {
+                var claveAdmin = prompt("🔒 Acceso protegido: Ingresa la contraseña de Administrador para gestionar usuarios:");
+                var usuarios = obtenerUsuariosRegistrados();
+                var adminUser = usuarios.find(function(u){ return u.rol === 'admin'; });
+                var claveCorrecta = (adminUser && adminUser.pin) ? adminUser.pin : 'admin123';
+                if (claveAdmin !== claveCorrecta) {
+                    alert("❌ Contraseña incorrecta. Solo el administrador puede crear, eliminar o apagar usuarios.");
+                    return;
+                }
+            }
+
+            var modal = document.getElementById('modal-usuarios');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'block';
+            if (backdrop) backdrop.style.display = 'block';
+            renderizarListaUsuariosAdmin();
+        }
+
+        function cerrarModalGestionUsuarios() {
+            var modal = document.getElementById('modal-usuarios');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'none';
+            if (backdrop && (!document.getElementById('modal-auth') || document.getElementById('modal-auth').style.display === 'none') &&
+                (!document.getElementById('modal-recuperacion') || document.getElementById('modal-recuperacion').style.display === 'none') &&
+                (!document.getElementById('modal-instalar-app') || document.getElementById('modal-instalar-app').style.display === 'none') &&
+                (!document.getElementById('modal-borrado-masivo') || document.getElementById('modal-borrado-masivo').style.display === 'none') &&
+                (!document.getElementById('modal-ruta-corredor') || document.getElementById('modal-ruta-corredor').style.display === 'none')) {
+                backdrop.style.display = 'none';
+            }
+        }
+
+        function renderizarListaUsuariosAdmin() {
+            var contenedor = document.getElementById('lista-usuarios-operadores');
+            if (!contenedor) return;
+            var lista = obtenerUsuariosRegistrados();
+            contenedor.innerHTML = '';
+
+            if (lista.length === 0) {
+                contenedor.innerHTML = '<div style="padding:10px; color:#64748b; font-size:12px; text-align:center;">No hay operadores registrados aún.</div>';
+                return;
+            }
+
+            lista.forEach(function(u) {
+                var card = document.createElement('div');
+                card.style.cssText = "background:#f1f5f9; border:1px solid #cbd5e1; border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
+                
+                var esAdmin = (u.rol === 'admin');
+                var estaActivo = (u.activo !== false);
+
+                var infoHtml = `
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <b style="font-size:13px; color:#0f172a;">${u.nombre}</b>
+                            <span style="font-size:9.5px; font-weight:bold; padding:2px 5px; border-radius:4px; background:${esAdmin ? '#dcfce7' : '#e0f2fe'}; color:${esAdmin ? '#15803d' : '#0369a1'};">${esAdmin ? '👑 Admin' : '👤 Operador'}</span>
+                        </div>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                            Usuario: <b>${u.login}</b> • PIN: <b>${u.pin || '****'}</b>
+                        </div>
+                    </div>
+                `;
+
+                var btnToggleAccesoHtml = `
+                    <button type="button" onclick="toggleAccesoUsuario('${u.id}')" class="pop-btn" style="margin:0; padding:6px 10px; font-size:11px; font-weight:bold; border-radius:6px; background:${estaActivo ? 'linear-gradient(145deg, #16a34a, #15803d)' : 'linear-gradient(145deg, #dc2626, #b91c1c)'}; color:white; white-space:nowrap;" title="Toca para encender o apagar el mapa para este operador">
+                        ${estaActivo ? '🟢 Encendido' : '🔴 Apagado'}
+                    </button>
+                `;
+
+                var btnBorrarHtml = (esAdmin && lista.filter(x => x.rol === 'admin').length <= 1) ? '' : `
+                    <button type="button" onclick="eliminarUsuario('${u.id}')" style="background:#fee2e2; border:1px solid #fca5a5; color:#b91c1c; border-radius:6px; padding:6px 8px; font-size:12px; cursor:pointer;" title="Eliminar operador">
+                        🗑️
+                    </button>
+                `;
+
+                card.innerHTML = infoHtml + '<div style="display:flex; align-items:center; gap:6px;">' + btnToggleAccesoHtml + btnBorrarHtml + '</div>';
+                contenedor.appendChild(card);
+            });
+        }
+
+        function guardarNuevoUsuario() {
+            var nombre = (document.getElementById('nuevoUserNombre').value || '').trim();
+            var login = (document.getElementById('nuevoUserLogin').value || '').trim().toLowerCase();
+            var pin = (document.getElementById('nuevoUserPin').value || '').trim();
+            var rol = document.getElementById('nuevoUserRol').value || 'lector';
+
+            if (!nombre || !login || !pin) {
+                alert("Por favor completa el Nombre, Usuario y PIN.");
+                return;
+            }
+
+            var lista = obtenerUsuariosRegistrados();
+            var yaExiste = lista.some(function(u){ return u.login === login; });
+            if (yaExiste) {
+                alert("Ya existe un usuario con el identificador '" + login + "'. Usa otro nombre de usuario.");
+                return;
+            }
+
+            var nuevo = {
+                id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                nombre: nombre,
+                login: login,
+                pin: pin,
+                rol: rol,
+                activo: true
+            };
+
+            lista.push(nuevo);
+            guardarUsuariosRegistrados(lista);
+
+            document.getElementById('nuevoUserNombre').value = '';
+            document.getElementById('nuevoUserLogin').value = '';
+            document.getElementById('nuevoUserPin').value = '';
+
+            renderizarListaUsuariosAdmin();
+            mostrarToastNotificacion("✅ Operador " + nombre + " creado exitosamente.");
+        }
+
+        function toggleAccesoUsuario(userId) {
+            var lista = obtenerUsuariosRegistrados();
+            var user = lista.find(function(u){ return u.id === userId; });
+            if (!user) return;
+
+            user.activo = (user.activo === false) ? true : false;
+            guardarUsuariosRegistrados(lista);
+            renderizarListaUsuariosAdmin();
+
+            if (usuarioOperadorActual && usuarioOperadorActual.id === userId) {
+                usuarioOperadorActual.activo = user.activo;
+                verificarEstadoAccesoOperador();
+            }
+
+            if (user.activo) {
+                mostrarToastNotificacion("🟢 Acceso al mapa ENCENDIDO para " + user.nombre);
+            } else {
+                mostrarToastNotificacion("🔴 Acceso al mapa APAGADO para " + user.nombre + " (Mapa bloqueado)");
+            }
+        }
+
+        function eliminarUsuario(userId) {
+            var lista = obtenerUsuariosRegistrados();
+            var user = lista.find(function(u){ return u.id === userId; });
+            if (!user) return;
+
+            if (!confirm("⚠️ ¿Estás seguro de que deseas eliminar al usuario " + user.nombre + " (" + user.login + ")?")) {
+                return;
+            }
+
+            lista = lista.filter(function(u){ return u.id !== userId; });
+            guardarUsuariosRegistrados(lista);
+
+            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+                fbDb.collection('usuarios_control').doc(userId).delete().catch(function(){});
+            }
+
+            renderizarListaUsuariosAdmin();
+            mostrarToastNotificacion("🗑️ Usuario " + user.nombre + " eliminado.");
+        }
+
+        function abrirModalCambiarUsuario() {
+            var modal = document.getElementById('modal-login-operador');
+            var sel = document.getElementById('selectUsuarioSesion');
+            var inPin = document.getElementById('inputPinSesion');
+            if (!modal || !sel) return;
+
+            var lista = obtenerUsuariosRegistrados();
+            sel.innerHTML = '';
+            lista.forEach(function(u) {
+                var opt = document.createElement('option');
+                opt.value = u.id;
+                opt.text = u.nombre + " (" + (u.rol === 'admin' ? '👑 Admin' : '👤 Operador') + ")";
+                if (usuarioOperadorActual && usuarioOperadorActual.id === u.id) opt.selected = true;
+                sel.appendChild(opt);
+            });
+
+            if (inPin) inPin.value = '';
+            modal.style.display = 'block';
+        }
+
+        function cerrarModalCambiarUsuario() {
+            var modal = document.getElementById('modal-login-operador');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function confirmarIngresoSesionOperador() {
+            var sel = document.getElementById('selectUsuarioSesion');
+            var inPin = document.getElementById('inputPinSesion');
+            var userId = sel ? sel.value : null;
+            var pinIngresado = (inPin ? inPin.value : '').trim();
+
+            var lista = obtenerUsuariosRegistrados();
+            var user = lista.find(function(u){ return u.id === userId; });
+            if (!user) return;
+
+            if (user.pin && user.pin !== pinIngresado) {
+                alert("❌ Clave o PIN incorrecto para " + user.nombre + ".");
+                return;
+            }
+
+            usuarioOperadorActual = user;
+            localStorage.setItem('usuario_sesion_activa_id', user.id);
+            localStorage.setItem('nombre_gestor_actual', user.nombre);
+
+            cerrarModalCambiarUsuario();
+            verificarEstadoAccesoOperador();
+
+            aplicarPermisosPorRol(user.rol === 'admin' ? 'admin' : 'lector');
+
+            mostrarToastNotificacion("🚀 Sesión iniciada como " + user.nombre + " (" + (user.rol === 'admin' ? '👑 Admin' : '👤 Operador') + ")");
+        }
+
 </script>
 
     <!-- MODAL DE RECUPERACIÓN DE TRABAJO Y COPIAS DE SEGURIDAD -->
@@ -5913,6 +6234,90 @@
             🧭 Trazar y Abrir en Google Maps
         </button>
         <button onclick="cerrarModalRutaCorredor()" class="pop-btn pb-teal" style="width:100%; padding:8px; font-size:11.5px; margin:0;">
+            Cancelar
+        </button>
+    </div>
+
+
+    <!-- MODAL DE GESTIÓN DE USUARIOS Y OPERADORES CON BOTÓN DE APAGADO -->
+    <div id="modal-usuarios" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:18px; box-shadow:0 14px 45px rgba(0,0,0,0.6); z-index:10000000;
+        width:94%; max-width:460px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">👥 Control de Operadores y Accesos</b>
+            <button onclick="cerrarModalGestionUsuarios()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <p style="font-size:11.5px; color:#475569; margin:0 0 12px 0; line-height:1.4;">
+            Crea o elimina operadores del equipo. Puedes <b>APAGAR</b> a cualquier operador individualmente con su botón de apagado para suspender su visualización del mapa de inmediato.
+        </p>
+
+        <!-- FORMULARIO CREAR USUARIO -->
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:10px 12px; border-radius:10px; margin-bottom:14px;">
+            <b style="font-size:12px; color:#1e293b; display:block; margin-bottom:6px;">➕ Registrar Nuevo Operador:</b>
+            <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <input type="text" id="nuevoUserNombre" placeholder="Nombre (ej. Sergio)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
+                <input type="text" id="nuevoUserLogin" placeholder="Usuario / ID (ej. sergio)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
+            </div>
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <input type="password" id="nuevoUserPin" placeholder="Clave / PIN (ej. 1234)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
+                <select id="nuevoUserRol" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px; font-weight:bold;">
+                    <option value="lector">Operador (Ruta)</option>
+                    <option value="admin">Administrador (Total)</option>
+                </select>
+            </div>
+            <button type="button" onclick="guardarNuevoUsuario()" class="pop-btn pb-green" style="width:100%; margin:0; padding:8px; font-size:12px; font-weight:bold;">
+                💾 Crear Usuario
+            </button>
+        </div>
+
+        <!-- LISTA DE OPERADORES REGISTRADOS -->
+        <div>
+            <b style="font-size:12px; color:#1e293b; display:block; margin-bottom:8px;">📋 Operadores Registrados:</b>
+            <div id="lista-usuarios-operadores" style="display:flex; flex-direction:column; gap:8px;">
+            </div>
+        </div>
+
+        <button type="button" onclick="cerrarModalGestionUsuarios()" class="pop-btn pb-teal" style="width:100%; margin-top:14px; padding:8px; font-size:12px; margin-bottom:0;">
+            Listo
+        </button>
+    </div>
+
+    <!-- PANTALLA DE BLOQUEO CUANDO EL OPERADOR ESTÁ APAGADO -->
+    <div id="pantalla-bloqueo-operador" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:999999999; background:radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); color:white; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:24px; box-sizing:border-box; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        <div style="font-size:55px; margin-bottom:12px; filter:drop-shadow(0 0 15px rgba(239,68,68,0.6));">🔒</div>
+        <h2 style="color:#ef4444; margin:0 0 8px 0; font-size:20px; font-weight:900; letter-spacing:0.5px;">ACCESO AL MAPA DESACTIVADO</h2>
+        <p style="color:#cbd5e1; font-size:13px; max-width:340px; line-height:1.5; margin:0 0 20px 0;">
+            El acceso de <b id="bloqueo-nombre-operador" style="color:#38bdf8;">este operador</b> ha sido <span style="color:#ef4444; font-weight:bold;">APAGADO</span> por el administrador.<br><br>
+            El mapa y las rutas permanecen bloqueadas hasta que el administrador reactive tu acceso.
+        </p>
+        <button type="button" onclick="abrirModalCambiarUsuario()" class="pop-btn pb-blue" style="width:auto; padding:10px 20px; font-size:12.5px; font-weight:bold; border-radius:8px;">
+            🔄 Cambiar de Usuario / Iniciar como Admin
+        </button>
+    </div>
+
+    <!-- MODAL CAMBIO RÁPIDO DE USUARIO / LOGIN DE OPERADOR -->
+    <div id="modal-login-operador" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:18px; box-shadow:0 14px 45px rgba(0,0,0,0.6); z-index:1000000000;
+        width:90%; max-width:350px; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <b style="color:#0f172a; font-size:14px;">👤 Iniciar como Operador</b>
+            <button onclick="cerrarModalCambiarUsuario()" style="background:#f1f5f9; border:none; border-radius:50%; width:26px; height:26px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+        <div style="margin-bottom:8px;">
+            <label style="font-size:11px; font-weight:bold; color:#334155;">Selecciona tu usuario:</label>
+            <select id="selectUsuarioSesion" class="filter-search" style="width:100%; box-sizing:border-box; margin-top:3px; padding:7px; font-size:12px; font-weight:bold;">
+            </select>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="font-size:11px; font-weight:bold; color:#334155;">PIN o Clave de Acceso:</label>
+            <input type="password" id="inputPinSesion" placeholder="Ingresa tu clave / PIN" class="filter-search" style="width:100%; box-sizing:border-box; margin-top:3px; padding:7px; font-size:12px;">
+        </div>
+        <button type="button" onclick="confirmarIngresoSesionOperador()" class="pop-btn pb-green" style="width:100%; padding:10px; font-size:12.5px; font-weight:bold; margin-bottom:6px;">
+            🚀 Entrar
+        </button>
+        <button type="button" onclick="cerrarModalCambiarUsuario()" class="pop-btn pb-teal" style="width:100%; padding:7px; font-size:11px; margin:0;">
             Cancelar
         </button>
     </div>
