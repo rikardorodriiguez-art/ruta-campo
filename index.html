@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.9</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.0</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -2114,7 +2114,7 @@
                 }
             }
 
-            // PASO 0: Si ya existe CUALQUIER vehículo en el mapa con esta misma dirección, usar sus coordenadas exactas
+            // PASO 0: Comprobar si ya existe algún vehículo en el mapa con esta misma dirección
             var claveNueva = normalizarClaveAprendizaje(dir, '');
             if (claveNueva && typeof puntosData !== 'undefined' && puntosData.length > 0) {
                 var puntoExistente = puntosData.find(function(pd) {
@@ -2123,8 +2123,8 @@
                     return claveExistente === claveNueva;
                 });
                 if (puntoExistente) {
-                    console.log("🎯 Coordenadas exactas heredadas de vehículo existente (" + puntoExistente.placa + "):", dir, "-> (" + puntoExistente.lat + ", " + puntoExistente.lng + ")");
-                    return { lat: puntoExistente.lat, lng: puntoExistente.lng, fuente: 'MISMA_DIRECCION_VEHICULO_EXISTENTE' };
+                    console.log("🎯 Coordenadas exactas heredadas de vehículo en el mapa (" + puntoExistente.placa + "):", dir, "-> (" + puntoExistente.lat + ", " + puntoExistente.lng + ")");
+                    return { lat: puntoExistente.lat, lng: puntoExistente.lng, fuente: 'MISMA_DIRECCION_MAPA' };
                 }
             }
 
@@ -2136,77 +2136,103 @@
             var munNombre = infoMun.nombre;
             var centroMunicipio = infoMun.coords;
 
-            // PASO 3: Consultar Memoria de Aprendizaje Inteligente (Human-Verified Geocoding)
+            // PASO 3: Consultar Memoria de Aprendizaje Verificada (Human-Verified Geocoding)
             var aprendida = consultarMemoriaAprendizaje(dir, munNombre);
             if (aprendida) {
                 console.log("🎯 Ubicación tomada de la Memoria de Aprendizaje Verificada:", dir, "-> (" + aprendida.lat + ", " + aprendida.lng + ")");
                 return { lat: aprendida.lat, lng: aprendida.lng, aprendido: true, fuente: 'MEMORIA_APRENDIZAJE' };
             }
 
-            // PASO 4: Cuadrícula Urbana Colombiana Precisa (Nomenclatura Calle x Carrera)
-            var coordsCuadricula = null;
-            if (infoNom) {
-                coordsCuadricula = calcularCoordenadasCuadriculaColombiana(infoNom, munNombre);
-            }
+            var dirLimpia = dir.replace(/\(.*\)/g, ' ')
+                               .replace(/\t/g, ' ')
+                               .replace(/\b(LC|LOCAL|CS|CASA|AP|APTO|IN|INT|INTERIOR|PISO|OF|OFICINA|TORRE|EDIFICIO)[\s\d\-A-Z]*/gi, '')
+                               .replace(/\s+/g, ' ')
+                               .trim();
 
-            // PASO 5: Intentar Geocodificador en línea de alta precisión
-            var dirParaBusqueda = dir.replace(/\(.*\)/g, ' ')
-                                     .replace(/\t/g, ' ')
-                                     .replace(/\b(LC|LOCAL|CS|CASA|AP|APTO|IN|INT|INTERIOR|PISO|OF|OFICINA|TORRE|EDIFICIO)[\s\d\-A-Z]*/gi, '')
-                                     .replace(/\s+/g, ' ')
-                                     .trim();
+            // PASO 4: VERIFICACIÓN CON MAPAS EN LÍNEA (GOOGLE MAPS API / ARCGIS / SCRAPER WEB)
 
-            var queryEstructurada = dirParaBusqueda + ", " + munNombre + ", Colombia";
-
-            // Intentar Google Maps Geocoding si hay clave configurada
+            // 4.1. Google Maps Geocoding Oficial (si hay clave configurada)
             if (configApp && configApp.googleApiKey) {
                 try {
-                    var urlG = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(queryEstructurada) + "&key=" + configApp.googleApiKey;
+                    var urlG = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(dirLimpia + ", " + munNombre + ", Colombia") + "&key=" + configApp.googleApiKey;
                     var respG = await fetch(urlG);
                     var dataG = await respG.json();
                     if (dataG.status === "OK" && dataG.results.length > 0) {
                         var loc = dataG.results[0].geometry.location;
                         var locType = dataG.results[0].geometry.location_type;
                         if (locType === 'ROOFTOP' || locType === 'RANGE_INTERPOLATED' || locType === 'GEOMETRIC_CENTER') {
-                            return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng), fuente: 'GOOGLE_MAPS' };
+                            console.log("🌐 Ubicación verificada con Google Maps API:", dir, "->", loc);
+                            return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng), fuente: 'GOOGLE_MAPS_OFICIAL' };
                         }
                     }
                 } catch(eG) {}
             }
 
-            // Intentar Photon OSM con descarte estricto de centroides genéricos
+            // 4.2. Esri ArcGIS World Geocoding (Acceso libre directo sin clave, alta resolución catastral en Colombia)
             try {
-                var biasLat = centroMunicipio.lat;
-                var biasLon = centroMunicipio.lng;
-                var urlPhoton = "https://photon.komoot.io/api/?q=" + encodeURIComponent(queryEstructurada) + "&lat=" + biasLat + "&lon=" + biasLon + "&lang=es&limit=1";
-                var controllerPh = new AbortController();
-                var toPh = setTimeout(function() { controllerPh.abort(); }, 3000);
-                var respPh = await fetch(urlPhoton, { signal: controllerPh.signal });
-                clearTimeout(toPh);
-                var dataPh = await respPh.json();
-
-                if (dataPh && dataPh.features && dataPh.features.length > 0) {
-                    var f = dataPh.features[0];
-                    var props = f.properties || {};
-                    var esCentroideGenerico = ['city', 'town', 'village', 'municipality', 'administrative', 'suburb'].includes(props.type) || props.osm_key === 'place';
-                    if (!esCentroideGenerico && (props.street || props.housenumber || props.name)) {
-                        var coordsPh = f.geometry.coordinates;
-                        var lngPh = parseFloat(coordsPh[0]);
-                        var latPh = parseFloat(coordsPh[1]);
-                        if (latPh >= 1.0 && latPh <= 13.0 && lngPh >= -82.0 && lngPh <= -66.0) {
-                            return { lat: latPh, lng: lngPh, fuente: 'PHOTON_EXACTO' };
+                var urlArc = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=" + encodeURIComponent(dirLimpia + ", " + munNombre + ", Colombia") + "&maxLocations=1&outFields=Match_addr,Addr_type";
+                var ctrlArc = new AbortController();
+                var toArc = setTimeout(function() { ctrlArc.abort(); }, 3500);
+                var respArc = await fetch(urlArc, { signal: ctrlArc.signal });
+                clearTimeout(toArc);
+                var dataArc = await respArc.json();
+                if (dataArc && dataArc.candidates && dataArc.candidates.length > 0) {
+                    var cand = dataArc.candidates[0];
+                    if (cand.score >= 70 && cand.attributes && cand.attributes.Addr_type !== 'Country' && cand.attributes.Addr_type !== 'State') {
+                        var latArc = parseFloat(cand.location.y);
+                        var lngArc = parseFloat(cand.location.x);
+                        if (latArc >= 1.0 && latArc <= 13.0 && lngArc >= -82.0 && lngArc <= -66.0) {
+                            console.log("🌐 Ubicación verificada con ArcGIS World Maps:", dir, "-> (" + latArc + ", " + lngArc + ")");
+                            return { lat: latArc, lng: lngArc, fuente: 'ARCGIS_MAPS' };
                         }
                     }
                 }
-            } catch(ePh) {}
+            } catch(eArc) {}
 
-            // PASO 6: Si Photon no arrojó punto específico pero hay cruce vial, usar la Cuadrícula Urbana
-            if (coordsCuadricula) {
-                console.log("📐 Ubicación calculada por Cuadrícula Urbana Calibrada:", dir, "-> (" + coordsCuadricula.lat + ", " + coordsCuadricula.lng + ")");
-                return coordsCuadricula;
+            // 4.3. Búsqueda directa en Google Maps vía Proxy CORS (Scraper de coordenadas exactas de Maps)
+            try {
+                var gmapsSearchUrl = "https://www.google.com/maps/search/" + encodeURIComponent(dirLimpia + ", " + munNombre + ", Colombia");
+                var proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(gmapsSearchUrl);
+                var ctrlProxy = new AbortController();
+                var toProxy = setTimeout(function() { ctrlProxy.abort(); }, 4000);
+                var respProxy = await fetch(proxyUrl, { signal: ctrlProxy.signal });
+                clearTimeout(toProxy);
+                var htmlMaps = await respProxy.text();
+                var coordsMaps = parsearLinkGoogleMaps(htmlMaps);
+                if (coordsMaps) {
+                    console.log("🌐 Ubicación extraída directamente de Google Maps Web:", dir, "->", coordsMaps);
+                    return { lat: coordsMaps.lat, lng: coordsMaps.lng, fuente: 'GOOGLE_MAPS_WEB' };
+                }
+            } catch(eProxy) {}
+
+            // 4.4. OpenStreetMap Nominatim
+            try {
+                var urlNom = "https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(dirLimpia + ", " + munNombre + ", Colombia") + "&limit=1";
+                var ctrlNom = new AbortController();
+                var toNom = setTimeout(function() { ctrlNom.abort(); }, 3000);
+                var respNom = await fetch(urlNom, { signal: ctrlNom.signal });
+                clearTimeout(toNom);
+                var dataNom = await respNom.json();
+                if (dataNom && dataNom.length > 0) {
+                    var itemNom = dataNom[0];
+                    var latN = parseFloat(itemNom.lat);
+                    var lngN = parseFloat(itemNom.lon);
+                    if (itemNom.class !== 'boundary' && itemNom.type !== 'administrative') {
+                        return { lat: latN, lng: lngN, fuente: 'OPENSTREETMAP' };
+                    }
+                }
+            } catch(eNom) {}
+
+            // PASO 5: Cuadrícula Urbana Calibrada de Alta Precisión (Respaldo offline idéntico a Google Maps)
+            if (infoNom) {
+                var coordsCuadricula = calcularCoordenadasCuadriculaColombiana(infoNom, munNombre);
+                if (coordsCuadricula) {
+                    console.log("📐 Ubicación calculada por Cuadrícula Urbana Calibrada:", dir, "-> (" + coordsCuadricula.lat + ", " + coordsCuadricula.lng + ")");
+                    return coordsCuadricula;
+                }
             }
 
-            // PASO 7: Si no hay cruce vial identificado, centroide del municipio
+            // PASO 6: Si no hay cruce vial identificado, centroide del municipio
             if (centroMunicipio) {
                 console.warn("⚠️ Dirección sin cruce vial identificado, asignando centroide de municipio:", munNombre);
                 return { lat: centroMunicipio.lat, lng: centroMunicipio.lng, fuente: 'CENTROIDE_MUNICIPIO' };
@@ -2627,6 +2653,16 @@
             var mQ = s.match(/[?&](?:q|ll|query|destination|daddr)=(-?\d+\.\d+),(-?\d+\.\d+)/);
             if (mQ) {
                 return { lat: parseFloat(mQ[1]), lng: parseFloat(mQ[2]) };
+            }
+
+            var mMeta = s.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/);
+            if (mMeta) {
+                return { lat: parseFloat(mMeta[1]), lng: parseFloat(mMeta[2]) };
+            }
+
+            var mCenter = s.match(/[?&]center=(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (mCenter) {
+                return { lat: parseFloat(mCenter[1]), lng: parseFloat(mCenter[2]) };
             }
 
             return null;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ubica-rick-v9';
+const CACHE_NAME = 'ubica-rick-v10';
 const STATIC_ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', function(event) {
@@ -27,6 +27,9 @@ self.addEventListener('fetch', function(event) {
   if (event.request.url.includes('firestore.googleapis.com') ||
       event.request.url.includes('identitytoolkit.googleapis.com') ||
       event.request.url.includes('google.com/maps') ||
+      event.request.url.includes('geocode.arcgis.com') ||
+      event.request.url.includes('allorigins.win') ||
+      event.request.url.includes('nominatim.openstreetmap.org') ||
       event.request.url.includes('tile.openstreetmap.org')) {
     return;
   }
