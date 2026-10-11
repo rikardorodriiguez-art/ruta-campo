@@ -605,7 +605,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.7</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v4.8</span>
         </div>
         <div id="top-actions">
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
@@ -2028,25 +2028,40 @@
                 lat = 3.4516 + ((cNum - 10) * 0.00085);
                 lng = -76.5320 - ((kNum - 40) * 0.00080);
             } else {
-                // Medellín y Valle de Aburrá Central
+                // Medellín y Valle de Aburrá Central (Sectorización de alta precisión)
                 if (esSur) {
                     // El Poblado (Calles 1 Sur a 20 Sur)
-                    lat = 6.2000 - (cNum * 0.00100);
-                    lng = -75.5725 - ((kNum - 43) * 0.00110);
+                    lat = 6.1985 - (cNum * 0.00100);
+                    lng = -75.5760 - ((kNum - 43) * 0.00100);
+                } else if (kNum >= 65) {
+                    // Sector Occidental: Belén, Laureles, San Javier, Floresta, Robledo
+                    if (cNum <= 20) {
+                        // Belén Rincón, Rodeo Alto, La Mota, Loma de Los Bernal (ej: CL 2B # 81A - 380)
+                        lat = 6.2185 + ((cNum - 10) * 0.00085);
+                        lng = -75.6025 - ((kNum - 80) * 0.00115);
+                    } else if (cNum <= 45) {
+                        // Laureles, Belén Central, Los Molinos, Estadio
+                        lat = 6.2375 + ((cNum - 33) * 0.00092);
+                        lng = -75.5995 - ((kNum - 76) * 0.00110);
+                    } else {
+                        // Floresta, Calasanz, Robledo, Ferrini
+                        lat = 6.2530 + ((cNum - 50) * 0.00095);
+                        lng = -75.6030 - ((kNum - 80) * 0.00110);
+                    }
                 } else if (cNum <= 30) {
-                    // Barrio Colombia / Industriales
-                    lat = 6.2010 + (cNum * 0.00102);
-                    lng = -75.5725 - ((kNum - 44) * 0.00120);
+                    // Industriales / Barrio Colombia / Ciudad del Río
+                    lat = 6.2277 + ((cNum - 26) * 0.00095);
+                    lng = -75.5734 - ((kNum - 45) * 0.00110);
                 } else {
-                    // Centro / Laureles / Belén / Robledo / Castilla (Parque Berrío: 6.2518, -75.5685)
+                    // Centro / Prado / San Antonio / Boston (Parque Berrío: 6.2518, -75.5685)
                     lat = 6.2518 + ((cNum - 50) * 0.00095);
-                    lng = -75.5685 - ((kNum - 50) * 0.00115);
+                    lng = -75.5685 - ((kNum - 50) * 0.00110);
                 }
             }
 
             // Desplazamiento métrico por número de puerta a lo largo de la cuadra
             if (puerta > 0) {
-                var offset = Math.min(puerta, 150) * 0.0000085;
+                var offset = Math.min(puerta, 350) * 0.0000075;
                 if (['CL', 'CLL', 'CALLE', 'DG', 'DIAGONAL'].includes(tipo)) {
                     lng -= offset;
                 } else {
@@ -2239,7 +2254,17 @@
                     if ((esDirEtq || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 6) {
                         if (!['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(k => up.includes(k))) {
                             var cleanDir = l.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '').trim();
-                            if (cleanDir && !direcciones.includes(cleanDir)) direcciones.push(cleanDir);
+                            if (cleanDir) {
+                                var kDirNueva = normalizarClaveAprendizaje(cleanDir, '');
+                                var yaExiste = direcciones.some(function(dExistente) {
+                                    return normalizarClaveAprendizaje(dExistente, '') === kDirNueva;
+                                });
+                                if (!yaExiste) {
+                                    direcciones.push(cleanDir);
+                                } else {
+                                    console.log("Dirección repetida omitida en texto:", cleanDir);
+                                }
+                            }
                         }
                     }
                 });
@@ -2399,6 +2424,18 @@
                     var dirsAsignadas = 0;
                     for (let dir of v.direcciones) {
                         if (dirsAsignadas >= 4) break; // LÍMITE ESTRICTO: MÁXIMO 4 DIRECCIONES POR PLACA
+                        
+                        // DEDUPLICACIÓN ESTRICTA: Si la misma placa ya tiene esta dirección en el mapa, omitir la repetida
+                        var kDirNueva = normalizarClaveAprendizaje(dir, '');
+                        var yaExisteEnMapa = puntosData.some(function(pd) {
+                            if (pd.placa.toUpperCase().trim() !== placaNorm) return false;
+                            return normalizarClaveAprendizaje(pd.dirOriginal || pd.dir, '') === kDirNueva;
+                        });
+                        if (yaExisteEnMapa) {
+                            console.log("Dirección idéntica ya existente para " + placaNorm + ", omitiendo duplicado:", dir);
+                            continue;
+                        }
+
                         if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando " + placaNorm + " (" + dir.slice(0, 22) + "...)...";
                         
                         var coords = null;
@@ -3605,20 +3642,34 @@
                 p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
                 p.comentarios = p.comentarios || '';
 
-                // Evitar duplicados físicos a menos de 70 metros para la misma placa
+                // DEDUPLICACIÓN ESTRICTA: Cuando haya dos direcciones iguales para la misma placa, dejar solo 1
+                var kDir = placa + "_" + normalizarClaveAprendizaje(p.dirOriginal || p.dir, '');
+                var indexExistente = listaLimpia.findIndex(function(itemExistente) {
+                    var kExistente = itemExistente.placa.toUpperCase().trim() + "_" + normalizarClaveAprendizaje(itemExistente.dirOriginal || itemExistente.dir, '');
+                    return kExistente === kDir;
+                });
+
+                if (indexExistente !== -1) {
+                    // Si ya existe la misma dirección, preferir la que tenga coordenadas ajustadas manualmente
+                    if (p.dirAjustada && !listaLimpia[indexExistente].dirAjustada) {
+                        listaLimpia[indexExistente] = p;
+                    }
+                    console.log("Dirección repetida omitida para " + placa + ":", p.dirOriginal);
+                    return;
+                }
+
+                // Evitar duplicados físicos a menos de 50 metros para la misma placa
                 var esDuplicadoFisico = listaLimpia.some(function(existente) {
                     if (existente.placa.toUpperCase().trim() !== placa) return false;
                     if (existente.lat && existente.lng && p.lat && p.lng) {
                         var dMetros = map.distance([existente.lat, existente.lng], [p.lat, p.lng]);
-                        return dMetros < 70;
+                        return dMetros < 50;
                     }
                     return false;
                 });
-                if (esDuplicadoFisico) return;
-
-                var kDir = placa + "_" + normalizarClaveDireccion(p.dirOriginal);
-                if (llavesVistasStorage[kDir]) return;
-                llavesVistasStorage[kDir] = true;
+                if (esDuplicadoFisico) {
+                    return;
+                }
 
                 conteoPorPlaca[placa]++;
                 listaLimpia.push(p);
