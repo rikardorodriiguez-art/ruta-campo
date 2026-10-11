@@ -609,7 +609,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.4</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v5.6</span>
         </div>
         <div id="top-actions">
             <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
@@ -928,21 +928,12 @@
         <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
-        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
-            <button id="btn-instalar-app" onclick="solicitarInstalacionApp()" class="pop-btn pb-purple" style="margin:0; font-size:12px;">📲 Instalar como Aplicación</button>
-            <button onclick="trazarRutaPendientes()" class="pop-btn pb-blue" style="margin:0;">🚗 Trazar Ruta Patrullaje</button>
-            <button onclick="abrirRutaGoogleMapsCompleta()" class="pop-btn pb-teal" style="margin:0;">🧭 Ruta en Google Maps</button>
-            <button onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0;">⚙️ Configuración</button>
-            <button onclick="toggleRadar(); cerrarFiltros();" class="pop-btn pb-green" style="margin:0;">🚨 Activar / Desactivar Radar</button>
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
+            <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Ruta hacia Destino (Placas a ≤500m)</button>
+            <button onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
+            <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
+            <button onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:11.5px; padding:7px 6px;">⚙️ Configuración</button>
         </div>
-
-        <div class="backup-section">
-            <button class="btn-export" onclick="exportarRespaldo()">📥 Respaldar</button>
-            <button class="btn-import" onclick="document.getElementById('fileInputBackup').click()">📤 Cargar</button>
-            <input type="file" id="fileInputBackup" style="display:none" accept=".json" onchange="importarRespaldo(event)">
-        </div>
-
-        <button onclick="borrarTodosPuntos()" class="pop-btn pb-red" style="margin-top:10px; width:100%; font-size:13px; font-weight:bold; padding:9px;">🗑️ Eliminar Todos los Puntos</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -2500,6 +2491,21 @@
 
                 for (let v of vehiculos) {
                     var placaNorm = v.placa.toUpperCase().trim();
+
+                    // Verificación en historial de placas eliminadas
+                    var infoElim = consultarPlacaEliminada(placaNorm);
+                    if (infoElim) {
+                        var deseaVolver = confirm("⚠️ ESTA PLACA YA FUE ELIMINADA ANTERIORMENTE:\n\n" +
+                            "Placa: " + placaNorm + "\n" +
+                            "Fecha y hora de eliminación: " + infoElim.fechaHora + "\n\n" +
+                            "¿Deseas volver a agregarla?");
+                        if (!deseaVolver) {
+                            mostrarToastNotificacion("🚫 Placa " + placaNorm + " omitida.");
+                            continue;
+                        }
+                        removerDeHistorialEliminadas(placaNorm);
+                    }
+
                     // Limpiar todas las ubicaciones viejas de esta placa para evitar duplicados
                     eliminarTodasDePlaca(placaNorm);
                     placasRegistradas[placaNorm] = true;
@@ -2595,6 +2601,20 @@
             
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
             if(!dir) { alert("Ingresa la dirección o coordenadas (lat, lng)."); return; }
+
+            // Verificación en historial de placas eliminadas
+            var infoElim = consultarPlacaEliminada(placa);
+            if (infoElim) {
+                var deseaVolver = confirm("⚠️ ESTA PLACA YA FUE ELIMINADA ANTERIORMENTE:\n\n" +
+                    "Placa: " + placa + "\n" +
+                    "Fecha y hora de eliminación: " + infoElim.fechaHora + "\n\n" +
+                    "¿Deseas volver a agregarla?");
+                if (!deseaVolver) {
+                    mostrarToastNotificacion("🚫 Placa " + placa + " omitida.");
+                    return;
+                }
+                removerDeHistorialEliminadas(placa);
+            }
 
             var loadingOverlay = document.getElementById('loading-overlay');
             var loadingTexto = document.getElementById('loading-texto');
@@ -2854,6 +2874,23 @@
                     var mPlaca = rawText.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
                     if (mPlaca) placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
                     else placa = "SIN_PLACA";
+                }
+
+                // Verificación si la placa detectada ya fue eliminada anteriormente
+                if (placa && placa !== "SIN_PLACA") {
+                    var infoElim = consultarPlacaEliminada(placa);
+                    if (infoElim) {
+                        var deseaVolver = confirm("⚠️ ESTA PLACA YA FUE ELIMINADA ANTERIORMENTE:\n\n" +
+                            "Placa: " + placa + "\n" +
+                            "Fecha y hora de eliminación: " + infoElim.fechaHora + "\n\n" +
+                            "¿Deseas volver a agregarla?");
+                        if (!deseaVolver) {
+                            mostrarToastNotificacion("🚫 Placa " + placa + " no fue agregada.");
+                            if (loadingOverlay) loadingOverlay.style.display = 'none';
+                            return;
+                        }
+                        removerDeHistorialEliminadas(placa);
+                    }
                 }
 
                 // Detectar teléfonos celulares (3XXXXXXXXX) y fijos de Medellín (4XXXXXX)
@@ -3631,17 +3668,21 @@
         function eliminarEstaDireccion(markerId) {
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex !== -1) {
+                var placa = puntosData[itemIndex].placa;
+                registrarPlacaEliminada(placa);
                 map.removeLayer(puntosData[itemIndex].marker);
                 puntosData.splice(itemIndex, 1);
                 guardarPuntosStorage();
                 eliminarPuntoFirestore(markerId);
                 actualizarPanelCercano();
+                mostrarToastNotificacion("🗑️ Dirección de " + placa + " eliminada.");
             }
         }
 
         function eliminarTodasDePlaca(placa) {
             if (!placa) return;
             var placaUpper = placa.toUpperCase().trim();
+            registrarPlacaEliminada(placaUpper);
             puntosData = puntosData.filter(function(item) {
                 if (item.placa && item.placa.toUpperCase().trim() === placaUpper) {
                     if (item.marker && map.hasLayer(item.marker)) {
@@ -5282,8 +5323,7 @@
             if (btnTop && !esStandalone) {
                 btnTop.style.display = 'inline-flex';
             }
-            var btnInstalar = document.getElementById('btn-instalar-app');
-            if (btnInstalar) btnInstalar.style.display = 'block';
+            
             mostrarToastNotificacion("📲 ¡UBICA-RICK lista para instalar como App!", 4000);
         });
 
@@ -5386,7 +5426,358 @@
             actualizarBotonRadarUI();
             setTimeout(actualizarPanelCercano, 1200);
         };
-    </script>
+    
+        // =========================================================================
+        // CONTROL DE HISTORIAL DE PLACAS ELIMINADAS (MEMORIA Y PREVENCIÓN)
+        // =========================================================================
+        function obtenerHistorialPlacasEliminadas() {
+            try {
+                var raw = localStorage.getItem('historial_placas_eliminadas_ubica_rick');
+                return raw ? JSON.parse(raw) : {};
+            } catch(e) {
+                return {};
+            }
+        }
+
+        function registrarPlacaEliminada(placa) {
+            if (!placa) return;
+            var pUpper = placa.toUpperCase().trim();
+            var hist = obtenerHistorialPlacasEliminadas();
+            var ahora = new Date();
+            var opciones = { 
+                year: 'numeric', month: 'short', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                hour12: true 
+            };
+            var fechaHoraStr = ahora.toLocaleDateString('es-CO', opciones);
+            hist[pUpper] = {
+                fechaHora: fechaHoraStr,
+                timestamp: ahora.getTime()
+            };
+            localStorage.setItem('historial_placas_eliminadas_ubica_rick', JSON.stringify(hist));
+            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+                fbDb.collection('historial_eliminadas').doc(pUpper).set(hist[pUpper]).catch(function(){});
+            }
+        }
+
+        function consultarPlacaEliminada(placa) {
+            if (!placa) return null;
+            var pUpper = placa.toUpperCase().trim();
+            var hist = obtenerHistorialPlacasEliminadas();
+            return hist[pUpper] || null;
+        }
+
+        function removerDeHistorialEliminadas(placa) {
+            if (!placa) return;
+            var pUpper = placa.toUpperCase().trim();
+            var hist = obtenerHistorialPlacasEliminadas();
+            if (hist[pUpper]) {
+                delete hist[pUpper];
+                localStorage.setItem('historial_placas_eliminadas_ubica_rick', JSON.stringify(hist));
+                if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+                    fbDb.collection('historial_eliminadas').doc(pUpper).delete().catch(function(){});
+                }
+            }
+        }
+
+        // =========================================================================
+        // BORRADO MASIVO DE PLACAS CON REPORTE DE COINCIDENCIAS
+        // =========================================================================
+        function abrirModalBorradoMasivo() {
+            cerrarFiltros();
+            var modal = document.getElementById('modal-borrado-masivo');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'block';
+            if (backdrop) backdrop.style.display = 'block';
+            var txt = document.getElementById('txtPlacasBorradoMasivo');
+            if (txt) { txt.value = ''; txt.focus(); }
+        }
+
+        function cerrarModalBorradoMasivo() {
+            var modal = document.getElementById('modal-borrado-masivo');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'none';
+            if (backdrop && (!document.getElementById('modal-auth') || document.getElementById('modal-auth').style.display === 'none') &&
+                (!document.getElementById('modal-recuperacion') || document.getElementById('modal-recuperacion').style.display === 'none') &&
+                (!document.getElementById('modal-instalar-app') || document.getElementById('modal-instalar-app').style.display === 'none') &&
+                (!document.getElementById('modal-ruta-corredor') || document.getElementById('modal-ruta-corredor').style.display === 'none')) {
+                backdrop.style.display = 'none';
+            }
+        }
+
+        function ejecutarBorradoMasivo() {
+            var raw = (document.getElementById('txtPlacasBorradoMasivo') ? document.getElementById('txtPlacasBorradoMasivo').value : '').trim();
+            if (!raw) {
+                alert("Por favor pega o escribe las placas que deseas eliminar.");
+                return;
+            }
+
+            var tokensBrutos = raw.toUpperCase().match(/[A-Z0-9]{5,7}/g) || [];
+            var placasUnicas = [];
+            tokensBrutos.forEach(function(t) {
+                var tLimpio = t.trim();
+                if (tLimpio && !placasUnicas.includes(tLimpio)) {
+                    placasUnicas.push(tLimpio);
+                }
+            });
+
+            if (placasUnicas.length === 0) {
+                alert("No se detectaron placas válidas en el texto ingresado.");
+                return;
+            }
+
+            var eliminadas = [];
+            var noEncontradas = [];
+
+            placasUnicas.forEach(function(placa) {
+                var existe = puntosData.some(function(pd) {
+                    return pd.placa && pd.placa.toUpperCase().trim() === placa;
+                });
+
+                if (existe) {
+                    registrarPlacaEliminada(placa);
+                    eliminarTodasDePlaca(placa);
+                    eliminadas.push(placa);
+                } else {
+                    noEncontradas.push(placa);
+                }
+            });
+
+            if (eliminadas.length === 0) {
+                alert("⚠️ NINGUNA COINCIDENCIA:\n\nNinguna de las placas ingresadas se encuentra actualmente en la aplicación.\n\nPlacas consultadas (" + placasUnicas.length + "):\n" + placasUnicas.join(', '));
+                return;
+            }
+
+            guardarPuntosStorage();
+            actualizarKPIs();
+            actualizarPanelCercano();
+            cerrarModalBorradoMasivo();
+
+            var mensaje = "🗑️ REPORTE DE BORRADO MASIVO:\n\n" +
+                          "✅ Se eliminaron (" + eliminadas.length + ") placas del mapa:\n" +
+                          eliminadas.join(', ') + "\n\n";
+
+            if (noEncontradas.length > 0) {
+                mensaje += "ℹ️ Omitidas por no estar en la app (" + noEncontradas.length + "):\n" +
+                           noEncontradas.join(', ');
+            }
+
+            alert(mensaje);
+            mostrarToastNotificacion("✅ " + eliminadas.length + " placas eliminadas con éxito.", 4000);
+        }
+
+        // =========================================================================
+        // RUTA INTELIGENTE HACIA DESTINO CON PLACAS EN EL CAMINO (≤ 500M)
+        // =========================================================================
+        var lineaRutaCorredor = null;
+
+        function distanciaPuntoASegmentoMetros(latP, lngP, latO, lngO, latD, lngD) {
+            var R = 6371000.0;
+            var latO_rad = (latO * Math.PI) / 180.0;
+            
+            var yD = ((latD - latO) * Math.PI / 180.0) * R;
+            var xD = ((lngD - lngO) * Math.PI / 180.0) * R * Math.cos(latO_rad);
+            
+            var yP = ((latP - latO) * Math.PI / 180.0) * R;
+            var xP = ((lngP - lngO) * Math.PI / 180.0) * R * Math.cos(latO_rad);
+            
+            var v_len2 = (xD * xD) + (yD * yD);
+            if (v_len2 === 0) {
+                return { dist: Math.sqrt(xP * xP + yP * yP), t: 0 };
+            }
+            
+            var t = (xP * xD + yP * yD) / v_len2;
+            var t_clamped = Math.max(0.0, Math.min(1.0, t));
+            
+            var cx = t_clamped * xD;
+            var cy = t_clamped * yD;
+            
+            var dx = xP - cx;
+            var dy = yP - cy;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            
+            return { dist: dist, t: t };
+        }
+
+        function abrirModalRutaCorredor() {
+            cerrarFiltros();
+            var modal = document.getElementById('modal-ruta-corredor');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'block';
+            if (backdrop) backdrop.style.display = 'block';
+
+            var inOrig = document.getElementById('rutaCorredorOrigen');
+            if (inOrig) {
+                if (userLat && userLng) {
+                    inOrig.placeholder = "Mi GPS Actual (" + userLat.toFixed(4) + ", " + userLng.toFixed(4) + ")";
+                    inOrig.value = "";
+                } else {
+                    inOrig.placeholder = "Mi ubicación (o escribe ej: Bello)";
+                }
+            }
+            var inDest = document.getElementById('rutaCorredorDestino');
+            if (inDest) { inDest.focus(); }
+        }
+
+        function cerrarModalRutaCorredor() {
+            var modal = document.getElementById('modal-ruta-corredor');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'none';
+            if (backdrop && (!document.getElementById('modal-auth') || document.getElementById('modal-auth').style.display === 'none') &&
+                (!document.getElementById('modal-recuperacion') || document.getElementById('modal-recuperacion').style.display === 'none') &&
+                (!document.getElementById('modal-instalar-app') || document.getElementById('modal-instalar-app').style.display === 'none') &&
+                (!document.getElementById('modal-borrado-masivo') || document.getElementById('modal-borrado-masivo').style.display === 'none')) {
+                backdrop.style.display = 'none';
+            }
+        }
+
+        async function calcularYAbrirRutaCorredor() {
+            var destTexto = (document.getElementById('rutaCorredorDestino') ? document.getElementById('rutaCorredorDestino').value : '').trim();
+            if (!destTexto) {
+                alert("Por favor escribe el destino final (ej: Envigado, Parque Envigado o una dirección).");
+                return;
+            }
+
+            var origTexto = (document.getElementById('rutaCorredorOrigen') ? document.getElementById('rutaCorredorOrigen').value : '').trim();
+            var radioMax = parseInt(document.getElementById('rutaCorredorRadio') ? document.getElementById('rutaCorredorRadio').value : 500) || 500;
+            var soloPendientes = document.getElementById('chkRutaSoloPendientes') ? document.getElementById('chkRutaSoloPendientes').checked : true;
+
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                if (loadingTexto) loadingTexto.innerText = "🧭 Calculando destino y ruta en corredor...";
+            }
+
+            try {
+                // 1. Resolver coordenadas de Destino
+                var coordsDest = null;
+                var munDestUpper = destTexto.toUpperCase().trim();
+                if (CENTROS_MUNICIPIOS[munDestUpper]) {
+                    coordsDest = CENTROS_MUNICIPIOS[munDestUpper];
+                } else {
+                    coordsDest = await obtenerCoordenadasExactasLimpias(destTexto);
+                }
+
+                if (!coordsDest || !coordsDest.lat || !coordsDest.lng) {
+                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                    alert("No fue posible geocodificar el destino '" + destTexto + "'. Intenta ingresar un municipio (ej: Envigado, Sabaneta) o una dirección más específica.");
+                    return;
+                }
+
+                // 2. Resolver coordenadas de Origen
+                var coordsOrig = null;
+                if (origTexto) {
+                    var munOrigUpper = origTexto.toUpperCase().trim();
+                    if (CENTROS_MUNICIPIOS[munOrigUpper]) {
+                        coordsOrig = CENTROS_MUNICIPIOS[munOrigUpper];
+                    } else {
+                        coordsOrig = await obtenerCoordenadasExactasLimpias(origTexto);
+                    }
+                } else if (userLat && userLng) {
+                    coordsOrig = { lat: userLat, lng: userLng };
+                } else if (puntosData.length > 0) {
+                    coordsOrig = { lat: puntosData[0].lat, lng: puntosData[0].lng };
+                } else {
+                    coordsOrig = CENTROS_MUNICIPIOS['BELLO'] || { lat: 6.3332, lng: -75.5583 };
+                }
+
+                var latO = coordsOrig.lat;
+                var lngO = coordsOrig.lng;
+                var latD = coordsDest.lat;
+                var lngD = coordsDest.lng;
+
+                // 3. Evaluar placas dentro del corredor (distancia <= radioMax)
+                var candidatos = [];
+                puntosData.forEach(function(item) {
+                    if (!item.lat || !item.lng) return;
+                    if (soloPendientes && item.visitada) return;
+
+                    var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
+                    if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
+                        candidatos.push({
+                            item: item,
+                            dist: res.dist,
+                            t: res.t
+                        });
+                    }
+                });
+
+                // 4. Ordenar candidatos según avance en el trayecto (t ascendente)
+                candidatos.sort(function(a, b) { return a.t - b.t; });
+
+                // Limitar a máximo 8 waypoints para Google Maps móvil
+                var seleccionados = candidatos.slice(0, 8);
+
+                // 5. Trazar en Leaflet
+                if (lineaRutaCorredor && map.hasLayer(lineaRutaCorredor)) {
+                    map.removeLayer(lineaRutaCorredor);
+                }
+
+                var puntosPolilinea = [[latO, lngO]];
+                seleccionados.forEach(function(c) {
+                    puntosPolilinea.push([c.item.lat, c.item.lng]);
+                });
+                puntosPolilinea.push([latD, lngD]);
+
+                lineaRutaCorredor = L.polyline(puntosPolilinea, {
+                    color: '#0284c7',
+                    weight: 5,
+                    opacity: 0.85,
+                    dashArray: '8, 8',
+                    lineJoin: 'round'
+                }).addTo(map);
+
+                map.fitBounds(lineaRutaCorredor.getBounds(), { padding: [50, 50] });
+
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                cerrarModalRutaCorredor();
+
+                // 6. Construir enlace a Google Maps
+                var urlGmaps = "";
+                if (seleccionados.length > 0) {
+                    var waypointsStr = seleccionados.map(function(c) {
+                        return c.item.lat + "," + c.item.lng;
+                    }).join('|');
+
+                    urlGmaps = "https://www.google.com/maps/dir/?api=1" +
+                               "&origin=" + encodeURIComponent(latO + "," + lngO) +
+                               "&destination=" + encodeURIComponent(latD + "," + lngD) +
+                               "&waypoints=" + encodeURIComponent(waypointsStr) +
+                               "&travelmode=driving";
+
+                    var placasTxt = seleccionados.map(function(c){ return c.item.placa; }).join(', ');
+                    mostrarToastNotificacion("🚗 " + seleccionados.length + " placas en tu camino (≤" + radioMax + "m): " + placasTxt, 5000);
+                } else {
+                    urlGmaps = "https://www.google.com/maps/dir/?api=1" +
+                               "&origin=" + encodeURIComponent(latO + "," + lngO) +
+                               "&destination=" + encodeURIComponent(latD + "," + lngD) +
+                               "&travelmode=driving";
+
+                    mostrarToastNotificacion("ℹ️ Ruta directa trazada hacia " + destTexto + " (no hay placas a ≤" + radioMax + "m).", 4000);
+                }
+
+                window.open(urlGmaps, '_blank');
+            } catch(err) {
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                console.error("Error ruta corredor:", err);
+                alert("Ocurrió un error calculando la ruta: " + err.message);
+            }
+        }
+
+        function encuadrarTodasLasPlacas() {
+            if (puntosData.length === 0) {
+                mostrarToastNotificacion("No hay puntos en el mapa para encuadrar.");
+                return;
+            }
+            var grupo = new L.featureGroup(puntosData.map(function(p){ return p.marker; }).filter(function(m){ return !!m; }));
+            if (grupo.getLayers().length > 0) {
+                map.fitBounds(grupo.getBounds(), { padding: [50, 50] });
+                mostrarToastNotificacion("🗺️ Mostrando todas las ubicaciones en pantalla.");
+            }
+        }
+
+</script>
 
     <!-- MODAL DE RECUPERACIÓN DE TRABAJO Y COPIAS DE SEGURIDAD -->
     <div id="modal-recuperacion" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
@@ -5441,6 +5832,79 @@
         </div>
 
         <button onclick="cerrarModalInstalar()" class="pop-btn pb-teal" style="width:100%; margin-top:12px; padding:8px; font-size:12px; margin-bottom:0;">Listo / Entendido</button>
+    </div>
+
+
+    <!-- MODAL DE BORRADO MASIVO DE PLACAS -->
+    <div id="modal-borrado-masivo" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:18px; box-shadow:0 14px 45px rgba(0,0,0,0.55); z-index:10000000;
+        width:92%; max-width:420px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <b style="color:#b91c1c; font-size:15px; display:flex; align-items:center; gap:6px;">🗑️ Borrado Masivo de Placas</b>
+            <button onclick="cerrarModalBorradoMasivo()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <p style="font-size:12px; color:#475569; margin:0 0 10px 0; line-height:1.4;">
+            Pega la lista de placas que deseas eliminar del mapa. Puedes separarlas por comas, espacios o saltos de línea.
+        </p>
+
+        <textarea id="txtPlacasBorradoMasivo" rows="5" class="filter-search" 
+            style="width:100%; box-sizing:border-box; height:120px; font-family:monospace; font-size:12px; padding:8px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:12px; resize:vertical;" 
+            placeholder="Ejemplo: KZR561, WCU089, LZL972, DXY049, LKM221, HYP234, NHP417, ELR610, JCO838..."></textarea>
+
+        <button onclick="ejecutarBorradoMasivo()" class="pop-btn pb-red" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px;">
+            ❌ Eliminar Placas Coincidentes
+        </button>
+        <button onclick="cerrarModalBorradoMasivo()" class="pop-btn pb-teal" style="width:100%; padding:8px; font-size:11.5px; margin:0;">
+            Cancelar
+        </button>
+    </div>
+
+    <!-- MODAL DE RUTA INTELIGENTE HACIA DESTINO CON PLACAS EN EL CAMINO -->
+    <div id="modal-ruta-corredor" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:18px; box-shadow:0 14px 45px rgba(0,0,0,0.55); z-index:10000000;
+        width:92%; max-width:420px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">🧭 Ruta con Placas en el Camino</b>
+            <button onclick="cerrarModalRutaCorredor()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <p style="font-size:11.5px; color:#475569; margin:0 0 12px 0; line-height:1.4;">
+            Ingresa tu destino (ej. Envigado). Si en tu trayectoria pasas a <b>≤ 500 metros</b> de alguna placa registrada, se incluirá automáticamente en la ruta de Google Maps.
+        </p>
+
+        <div style="margin-bottom:10px;">
+            <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">📍 Punto de Partida / Origen:</label>
+            <input type="text" id="rutaCorredorOrigen" class="filter-search" placeholder="Mi GPS actual (o escribe ej: Bello)" style="width:100%; box-sizing:border-box;">
+        </div>
+
+        <div style="margin-bottom:10px;">
+            <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">🏁 Punto de Llegada / Destino Final:</label>
+            <input type="text" id="rutaCorredorDestino" class="filter-search" placeholder="Ej: Envigado, Parque Envigado, Calle 38 Sur..." style="width:100%; box-sizing:border-box;">
+        </div>
+
+        <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+            <span style="font-size:11.5px; font-weight:600; color:#334155;">Radio máximo de desvío:</span>
+            <select id="rutaCorredorRadio" style="padding:4px 8px; font-size:11px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1;">
+                <option value="300">300 metros</option>
+                <option value="500" selected>500 metros</option>
+                <option value="800">800 metros</option>
+                <option value="1000">1.000 metros (1 km)</option>
+            </select>
+        </div>
+
+        <label class="filter-option" style="margin-bottom:12px;">
+            <input type="checkbox" id="chkRutaSoloPendientes" checked> ⏳ Solo placas pendientes (sin visitar)
+        </label>
+
+        <button onclick="calcularYAbrirRutaCorredor()" class="pop-btn pb-blue" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px;">
+            🧭 Trazar y Abrir en Google Maps
+        </button>
+        <button onclick="cerrarModalRutaCorredor()" class="pop-btn pb-teal" style="width:100%; padding:8px; font-size:11.5px; margin:0;">
+            Cancelar
+        </button>
     </div>
 
 </body>
