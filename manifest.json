@@ -1,5 +1,4 @@
 {
-  "id": "./index.html",
   "name": "UBICA-RICK",
   "short_name": "UBICA-RICK",
   "description": "Control de Ruta, Rastreo y Verificación de Vehículos",
@@ -8,7 +7,8 @@
   "display": "standalone",
   "background_color": "#042143",
   "theme_color": "#042143",
-  "orientation": "any",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "./icon-192.png",
