@@ -921,9 +921,41 @@
             <b style="color: #2c3e50; font-size: 14px;">Filtrar y Opciones:</b>
             <button onclick="cerrarFiltros()">✖</button>
         </div>
-        <div style="display:flex; gap:6px; margin-bottom:8px;">
-            <input type="text" id="inputBuscarPlaca" class="filter-search" style="flex:1; margin:0; padding:7px 10px; font-size:12.5px;" placeholder="🔍 Escribe la placa a consultar..." oninput="actualizarFiltros()" onkeydown="onKeyDownBuscarPlaca(event)">
-            <button type="button" onclick="ejecutarConsultaPlaca()" class="pop-btn pb-blue" style="margin:0; padding:0 14px; font-size:12px; font-weight:900; white-space:nowrap; border-radius:6px; display:flex; align-items:center; justify-content:center; gap:4px;" title="Consultar placa y acercar en el mapa">🔍 Consultar</button>
+        <!-- BARRA PRINCIPAL DE CONSULTA DESTACADA (CON VISTA EN TIEMPO REAL AL DIGITAR) -->
+        <div style="background:#eff6ff; border:1.5px solid #3b82f6; border-radius:10px; padding:10px 12px; margin-bottom:12px; box-shadow:0 3px 10px rgba(59,130,246,0.15);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <label style="font-size:12px; font-weight:800; color:#1e40af; display:flex; align-items:center; gap:4px;">
+                    🎯 Consultar Placa:
+                </label>
+                <span id="indicador-placas-filtro" style="font-size:10px; font-weight:bold; color:#2563eb; background:#dbeafe; padding:1px 6px; border-radius:10px;">
+                    Placas activas
+                </span>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <div style="position:relative; flex:1 1 auto; min-width:0;">
+                    <input type="text" id="inputBuscarPlaca" 
+                        style="width:100%; height:40px; box-sizing:border-box; margin:0; padding:0 30px 0 10px; font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:1.5px; color:#0f172a; border:2px solid #2563eb; border-radius:8px; background:#ffffff; outline:none; box-shadow:inset 0 1px 3px rgba(0,0,0,0.08);" 
+                        placeholder="EJ: ABC123" 
+                        autocomplete="off" 
+                        autocorrect="off" 
+                        autocapitalize="characters"
+                        oninput="alDigitarPlacaConsulta(this.value)" 
+                        onkeydown="onKeyDownBuscarPlaca(event)">
+                    <button type="button" id="btn-limpiar-busqueda" onclick="limpiarBusquedaPlaca()" 
+                        style="position:absolute; right:7px; top:50%; transform:translateY(-50%); background:#e2e8f0; border:none; border-radius:50%; width:20px; height:20px; font-size:11px; font-weight:bold; color:#475569; cursor:pointer; display:none; align-items:center; justify-content:center; padding:0;">
+                        ✖
+                    </button>
+                </div>
+                <button type="button" onclick="ejecutarConsultaPlaca()" 
+                    style="flex:0 0 auto !important; width:auto !important; max-width:none !important; height:40px; margin:0; padding:0 14px; font-size:13px; font-weight:900; white-space:nowrap; border-radius:8px; border:none; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:white; cursor:pointer; box-shadow:0 3px 8px rgba(37,99,235,0.4); display:flex; align-items:center; justify-content:center; gap:4px;" 
+                    title="Consultar placa y acercar en el mapa">
+                    🔍 Consultar
+                </button>
+            </div>
+            
+            <!-- TARJETA DINÁMICA DE COINCIDENCIAS EN TIEMPO REAL -->
+            <div id="resultado-busqueda-live" style="margin-top:8px; display:none;">
+            </div>
         </div>
         <div style="margin: 8px 0 6px 0;">
             <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🏙️ Filtrar por Municipio:</label>
@@ -3537,13 +3569,32 @@
                 cerrarFiltros();
             } else {
                 f.style.display = 'block';
-                document.getElementById('backdrop-modal').style.display = 'block';
+                // Fondo transparente para que el usuario pueda ver el mapa moviéndose en vivo mientras digita
+                var backdrop = document.getElementById('backdrop-modal');
+                if (backdrop) {
+                    backdrop.style.background = 'transparent';
+                    backdrop.style.display = 'block';
+                }
+                var inEl = document.getElementById('inputBuscarPlaca');
+                if (inEl) {
+                    setTimeout(function() { inEl.focus(); }, 120);
+                    if (inEl.value) alDigitarPlacaConsulta(inEl.value);
+                }
+                var badgeTotal = document.getElementById('indicador-placas-filtro');
+                if (badgeTotal) {
+                    badgeTotal.textContent = puntosData.length + " placas";
+                }
             }
         }
 
         function cerrarFiltros() {
-            document.getElementById('panelFiltros').style.display = 'none';
-            document.getElementById('backdrop-modal').style.display = 'none';
+            var f = document.getElementById('panelFiltros');
+            if (f) f.style.display = 'none';
+            var backdrop = document.getElementById('backdrop-modal');
+            if (backdrop) {
+                backdrop.style.background = 'rgba(0,0,0,0.55)';
+                backdrop.style.display = 'none';
+            }
         }
 
         function cerrarTodosLosModales() {
@@ -4090,6 +4141,139 @@
         // =========================================================================
         // CONTROL DE CONSULTA RÁPIDA DE PLACA CON ENFOQUE Y ACERCAMIENTO
         // =========================================================================
+        
+        // =========================================================================
+        // CONSULTA DE PLACAS EN TIEMPO REAL (MOVIMIENTO DEL MAPA MIENTRAS SE DIGITA)
+        // =========================================================================
+        function alDigitarPlacaConsulta(val) {
+            var rawText = (val || '').trim();
+            var texto = rawText.toUpperCase();
+            var btnLimpiar = document.getElementById('btn-limpiar-busqueda');
+            var liveBox = document.getElementById('resultado-busqueda-live');
+
+            if (btnLimpiar) {
+                btnLimpiar.style.display = rawText.length > 0 ? 'flex' : 'none';
+            }
+
+            // 1. Filtrar los marcadores en el mapa de forma interactiva
+            actualizarFiltros();
+
+            if (!texto) {
+                if (liveBox) {
+                    liveBox.innerHTML = '';
+                    liveBox.style.display = 'none';
+                }
+                return;
+            }
+
+            // 2. Buscar coincidencias en puntosData
+            var coincidencias = puntosData.filter(function(p) {
+                var pl = (p.placa || '').toUpperCase();
+                return pl.includes(texto);
+            });
+
+            // Ordenar: coincidencia exacta primero, luego empieza con, luego contiene
+            coincidencias.sort(function(a, b) {
+                var pla = (a.placa || '').toUpperCase();
+                var plb = (b.placa || '').toUpperCase();
+                if (pla === texto) return -1;
+                if (plb === texto) return 1;
+                if (pla.startsWith(texto) && !plb.startsWith(texto)) return -1;
+                if (!pla.startsWith(texto) && plb.startsWith(texto)) return 1;
+                return 0;
+            });
+
+            if (coincidencias.length > 0) {
+                var mejorMatch = coincidencias[0];
+
+                // Cuando estoy digitando me dirija a la placa en el mapa
+                if (mejorMatch.lat && mejorMatch.lng && map) {
+                    var targetZoom = Math.max(map.getZoom(), 17);
+                    map.flyTo([mejorMatch.lat, mejorMatch.lng], targetZoom, {
+                        animate: true,
+                        duration: 0.6
+                    });
+
+                    // Si ya digitó 2 o más caracteres, nos aseguramos de abrir o resaltar
+                    if (mejorMatch.marker) {
+                        if (!map.hasLayer(mejorMatch.marker)) map.addLayer(mejorMatch.marker);
+                        if (texto.length >= 3) {
+                            mejorMatch.marker.openPopup();
+                        }
+                    }
+                }
+
+                // Renderizar la tarjeta de información visible en el panel
+                if (liveBox) {
+                    liveBox.style.display = 'block';
+                    var html = `
+                        <div style="background:#ffffff; border:1.5px solid #60a5fa; border-radius:8px; padding:8px 10px; box-shadow:0 2px 8px rgba(37,99,235,0.12);">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <b style="font-size:14px; color:#1e40af; letter-spacing:0.8px;">📍 ${mejorMatch.placa}</b>
+                                <span style="font-size:9.5px; font-weight:bold; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;">
+                                    ${coincidencias.length === 1 ? 'Coincidencia única' : coincidencias.length + ' encontradas'}
+                                </span>
+                            </div>
+                            <div style="font-size:11px; font-weight:600; color:#334155; margin-top:2px;">
+                                🚗 ${mejorMatch.vehiculo || 'Vehículo'} • ${mejorMatch.color || ''} • ${mejorMatch.municipio || 'Medellín'}
+                            </div>
+                            <div style="font-size:10px; color:#64748b; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                📌 ${mejorMatch.direccionReal || mejorMatch.direccion || 'Sin dirección'}
+                            </div>
+                            <button type="button" onclick="seleccionarPlacaYAcercar('${mejorMatch.placa}')" 
+                                style="width:100%; margin-top:6px; padding:6px; background:#2563eb; color:white; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                🎯 Ver de cerca y abrir en el mapa
+                            </button>
+                    `;
+
+                    // Si hay varias coincidencias (ej: buscó 3 letras y hay varias)
+                    if (coincidencias.length > 1) {
+                        html += `
+                            <div style="margin-top:6px; border-top:1px dashed #cbd5e1; padding-top:4px;">
+                                <span style="font-size:9.5px; color:#64748b; font-weight:bold;">Otras coincidencias:</span>
+                                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:3px;">
+                        `;
+                        coincidencias.slice(1, 5).forEach(function(c) {
+                            html += `
+                                <button type="button" onclick="seleccionarPlacaYAcercar('${c.placa}')" 
+                                    style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:2px 6px; font-size:10px; font-weight:bold; color:#1e293b; cursor:pointer;">
+                                    🚗 ${c.placa}
+                                </button>
+                            `;
+                        });
+                        html += `</div></div>`;
+                    }
+
+                    html += `</div>`;
+                    liveBox.innerHTML = html;
+                }
+            } else {
+                if (liveBox) {
+                    liveBox.style.display = 'block';
+                    liveBox.innerHTML = `
+                        <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:8px; padding:6px 10px; font-size:11px; color:#be123c;">
+                            ⚪ No hay placas registradas que coincidan con <b>${texto}</b>.
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function limpiarBusquedaPlaca() {
+            var inEl = document.getElementById('inputBuscarPlaca');
+            if (inEl) {
+                inEl.value = '';
+                inEl.focus();
+            }
+            alDigitarPlacaConsulta('');
+        }
+
+        function seleccionarPlacaYAcercar(placa) {
+            var inEl = document.getElementById('inputBuscarPlaca');
+            if (inEl) inEl.value = placa;
+            ejecutarConsultaPlaca();
+        }
+
         function ejecutarConsultaPlaca() {
             var inputEl = document.getElementById('inputBuscarPlaca');
             var texto = (inputEl ? inputEl.value : '').toUpperCase().trim();
@@ -6147,7 +6331,12 @@
                     </button>
                 `;
 
-                card.innerHTML = infoHtml + btnApagadoHtml;
+                var btnEditarHtml = `
+                    <button type="button" onclick="abrirEditarUsuario('${u.id}')" style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0369a1; border-radius:6px; padding:6px 9px; font-size:11px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:3px;" title="Editar información del usuario">
+                        ✏️ Editar
+                    </button>
+                `;
+                card.innerHTML = infoHtml + '<div style="display:flex; align-items:center; gap:6px;">' + btnEditarHtml + btnApagadoHtml + '</div>';
                 contenedor.appendChild(card);
             });
 
@@ -6233,7 +6422,12 @@
                     </button>
                 `;
 
-                card.innerHTML = infoHtml + '<div style="display:flex; align-items:center; gap:6px;">' + btnToggleAccesoHtml + btnBorrarHtml + '</div>';
+                var btnEditarHtml = `
+                    <button type="button" onclick="abrirEditarUsuario('${u.id}')" style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0369a1; border-radius:6px; padding:6px 9px; font-size:11px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:3px;" title="Editar información del usuario">
+                        ✏️ Editar
+                    </button>
+                `;
+                card.innerHTML = infoHtml + '<div style="display:flex; align-items:center; gap:6px;">' + btnEditarHtml + btnToggleAccesoHtml + btnBorrarHtml + '</div>';
                 contenedor.appendChild(card);
             });
         }
@@ -6274,6 +6468,90 @@
 
             renderizarListaUsuariosAdmin();
             mostrarToastNotificacion("✅ Operador " + nombre + " creado exitosamente.");
+        }
+
+        
+        // =========================================================================
+        // GESTIÓN Y EDICIÓN DE INFORMACIÓN DE USUARIOS
+        // =========================================================================
+        function abrirEditarUsuario(userId) {
+            var lista = obtenerUsuariosRegistrados();
+            var u = lista.find(function(item) { return item.id === userId; });
+            if (!u) {
+                mostrarToastNotificacion("⚠️ Usuario no encontrado.");
+                return;
+            }
+
+            document.getElementById('editUserId').value = u.id;
+            document.getElementById('editUserNombre').value = u.nombre || '';
+            document.getElementById('editUserLogin').value = u.login || '';
+            document.getElementById('editUserPin').value = u.pin || '';
+            document.getElementById('editUserRol').value = u.rol || 'lector';
+            document.getElementById('editUserActivo').value = (u.activo === false) ? 'false' : 'true';
+
+            var modal = document.getElementById('modal-editar-usuario');
+            if (modal) modal.style.display = 'block';
+        }
+
+        function cerrarModalEditarUsuario() {
+            var modal = document.getElementById('modal-editar-usuario');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function guardarEdicionUsuario() {
+            var userId = document.getElementById('editUserId').value;
+            var nombre = (document.getElementById('editUserNombre').value || '').trim();
+            var login = (document.getElementById('editUserLogin').value || '').trim().toLowerCase();
+            var pin = (document.getElementById('editUserPin').value || '').trim();
+            var rol = document.getElementById('editUserRol').value || 'lector';
+            var activo = (document.getElementById('editUserActivo').value === 'true');
+
+            if (!nombre || !login || !pin) {
+                alert("Por favor completa el Nombre, Usuario y PIN.");
+                return;
+            }
+
+            var lista = obtenerUsuariosRegistrados();
+            var userIndex = lista.findIndex(function(item) { return item.id === userId; });
+            if (userIndex === -1) {
+                alert("El usuario no existe o fue eliminado.");
+                return;
+            }
+
+            // Verificar si el nuevo login ya está tomado por otro usuario
+            var loginDuplicado = lista.some(function(item) {
+                return item.id !== userId && (item.login || '').toLowerCase() === login;
+            });
+            if (loginDuplicado) {
+                alert("El nombre de usuario '" + login + "' ya está en uso por otro operador. Elige uno diferente.");
+                return;
+            }
+
+            // Actualizar campos
+            lista[userIndex].nombre = nombre;
+            lista[userIndex].login = login;
+            lista[userIndex].pin = pin;
+            lista[userIndex].rol = rol;
+            lista[userIndex].activo = activo;
+            lista[userIndex].fechaModificacion = new Date().toISOString();
+
+            guardarUsuariosRegistrados(lista);
+
+            // Si el usuario editado es la sesión activa actual en este navegador
+            if (usuarioOperadorActual && usuarioOperadorActual.id === userId) {
+                usuarioOperadorActual.nombre = nombre;
+                usuarioOperadorActual.login = login;
+                usuarioOperadorActual.pin = pin;
+                usuarioOperadorActual.rol = rol;
+                usuarioOperadorActual.activo = activo;
+                localStorage.setItem('usuario_operador_sesion_actual', JSON.stringify(usuarioOperadorActual));
+                verificarEstadoAccesoOperador();
+            }
+
+            cerrarModalEditarUsuario();
+            renderizarListaUsuariosAdmin();
+            renderizarConectadosEnVivo();
+            mostrarToastNotificacion("✅ Usuario " + nombre + " actualizado correctamente.");
         }
 
         function toggleAccesoUsuario(userId) {
@@ -6567,6 +6845,60 @@
         <button type="button" onclick="cerrarModalGestionUsuarios()" class="pop-btn pb-teal" style="width:100%; margin-top:14px; padding:8px; font-size:12px; margin-bottom:0;">
             Listo
         </button>
+    </div>
+
+    
+    <!-- MODAL PARA EDITAR INFORMACIÓN DE USUARIOS -->
+    <div id="modal-editar-usuario" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,0.65); z-index:10000002;
+        width:92%; max-width:420px; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">✏️ Editar Información de Usuario</b>
+            <button type="button" onclick="cerrarModalEditarUsuario()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <input type="hidden" id="editUserId">
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+            <div>
+                <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">👤 Nombre Completo / Alias:</label>
+                <input type="text" id="editUserNombre" class="filter-search" style="width:100%; box-sizing:border-box; margin:0; padding:8px 10px; font-size:13px; font-weight:600; border-radius:6px; border:1px solid #cbd5e1;">
+            </div>
+            <div>
+                <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🆔 Nombre de Usuario / Login:</label>
+                <input type="text" id="editUserLogin" class="filter-search" style="width:100%; box-sizing:border-box; margin:0; padding:8px 10px; font-size:13px; font-weight:600; border-radius:6px; border:1px solid #cbd5e1;">
+            </div>
+            <div>
+                <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🔑 Contraseña / PIN de Acceso:</label>
+                <input type="text" id="editUserPin" class="filter-search" style="width:100%; box-sizing:border-box; margin:0; padding:8px 10px; font-size:13px; font-weight:bold; letter-spacing:1px; border-radius:6px; border:1px solid #cbd5e1;">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <div style="flex:1;">
+                    <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🎭 Rol:</label>
+                    <select id="editUserRol" class="filter-search" style="width:100%; box-sizing:border-box; margin:0; padding:8px; font-size:12px; font-weight:600; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                        <option value="lector">👤 Operador (Ruta)</option>
+                        <option value="admin">👑 Administrador (Total)</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">⚡ Acceso:</label>
+                    <select id="editUserActivo" class="filter-search" style="width:100%; box-sizing:border-box; margin:0; padding:8px; font-size:12px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                        <option value="true">🟢 Encendido</option>
+                        <option value="false">🔴 Apagado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+            <button type="button" onclick="guardarEdicionUsuario()" class="pop-btn pb-green" style="flex:1; margin:0; padding:9px; font-size:12px; font-weight:bold; border-radius:8px;">
+                💾 Guardar Cambios
+            </button>
+            <button type="button" onclick="cerrarModalEditarUsuario()" class="pop-btn pb-gray" style="flex:1; margin:0; padding:9px; font-size:12px; font-weight:bold; border-radius:8px; background:#94a3b8;">
+                ❌ Cancelar
+            </button>
+        </div>
     </div>
 
     <!-- PANTALLA COMPLETA DE INGRESO Y BLOQUEO DE ACCESO (CUANDO NO SE TIENE ACCESO AL MAPA) -->
