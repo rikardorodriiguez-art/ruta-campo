@@ -5934,6 +5934,44 @@
         var tabRutaActiva = 'cercania';
         var objetivo1a1Actual = null;
 
+        // Función matemática fundamental para distancia entre coordenadas (alias seguro)
+        function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
+            return calcularDistancia(lat1, lon1, lat2, lon2);
+        }
+
+        // Función matemática para distancia perpendicular a un corredor / segmento vial
+        function distanciaPuntoASegmentoMetros(latP, lngP, latO, lngO, latD, lngD) {
+            var R = 6371000.0;
+            var latO_rad = (latO * Math.PI) / 180.0;
+            
+            var yD = ((latD - latO) * Math.PI / 180.0) * R;
+            var xD = ((lngD - lngO) * Math.PI / 180.0) * R * Math.cos(latO_rad);
+            
+            var yP = ((latP - latO) * Math.PI / 180.0) * R;
+            var xP = ((lngP - lngO) * Math.PI / 180.0) * R * Math.cos(latO_rad);
+            
+            var v_len2 = (xD * xD) + (yD * yD);
+            if (v_len2 === 0) {
+                var d0 = Math.sqrt(xP * xP + yP * yP);
+                return { dist: d0, t: 0 };
+            }
+            
+            var t = (xP * xD + yP * yD) / v_len2;
+            var projX, projY;
+            if (t < 0) {
+                projX = 0; projY = 0;
+            } else if (t > 1) {
+                projX = xD; projY = yD;
+            } else {
+                projX = t * xD; projY = t * yD;
+            }
+            
+            var dx = xP - projX;
+            var dy = yP - projY;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            return { dist: dist, t: t };
+        }
+
         function cambiarTabRuta(tab) {
             tabRutaActiva = tab;
             var tabs = ['cercania', 'destino', 'municipio', 'tactica', 'circular', 'siguiente'];
@@ -5973,9 +6011,8 @@
                 inBase.placeholder = "Mi GPS Actual (" + userLat.toFixed(4) + ", " + userLng.toFixed(4) + ")";
             }
 
-            if (tabRutaActiva === 'siguiente') {
-                actualizarObjetivo1a1();
-            }
+            // Calcular objetivo 1 a 1 de inmediato para que nunca salga vacío
+            actualizarObjetivo1a1();
         }
 
         function cerrarModalRutaCorredor() {
@@ -5990,14 +6027,13 @@
 
         // --- TRAZADO VIAL REAL USANDO MALLA VIAL DE CALLES (OSRM) ---
         async function obtenerGeometriaVialReal(coordsArray) {
-            // coordsArray: [{lat, lng}, ...]
             try {
                 if (!coordsArray || coordsArray.length < 2) return null;
                 var strCoords = coordsArray.map(function(c){ return c.lng + ',' + c.lat; }).join(';');
                 var url = 'https://router.project-osrm.org/route/v1/driving/' + strCoords + '?overview=full&geometries=geojson';
                 
                 var controller = new AbortController();
-                var timeoutId = setTimeout(function(){ controller.abort(); }, 4000);
+                var timeoutId = setTimeout(function(){ controller.abort(); }, 3500);
                 
                 var resp = await fetch(url, { signal: controller.signal });
                 clearTimeout(timeoutId);
@@ -6006,7 +6042,7 @@
                     var data = await resp.json();
                     if (data.routes && data.routes.length > 0 && data.routes[0].geometry) {
                         var geomCoords = data.routes[0].geometry.coordinates.map(function(pt) {
-                            return [pt[1], pt[0]]; // Leaflet usa [lat, lng]
+                            return [pt[1], pt[0]];
                         });
                         return {
                             puntos: geomCoords,
@@ -6016,9 +6052,8 @@
                     }
                 }
             } catch(e) {
-                console.warn("OSRM routing fallback a línea directa:", e);
+                console.warn("OSRM routing fallback:", e);
             }
-            // Fallback si no hay conexión externa a OSRM
             return {
                 puntos: coordsArray.map(function(c){ return [c.lat, c.lng]; }),
                 distanciaKm: null,
@@ -6032,13 +6067,11 @@
             }
             capaRutaActiva = L.layerGroup();
 
-            // 1. Dibujar línea vial
             obtenerGeometriaVialReal(coordsPaso).then(function(resRuta) {
                 var puntosLinea = resRuta ? resRuta.puntos : coordsPaso.map(c => [c.lat, c.lng]);
                 var distKm = (resRuta && resRuta.distanciaKm) ? resRuta.distanciaKm : "--";
                 var durMin = (resRuta && resRuta.duracionMin) ? resRuta.duracionMin : "--";
 
-                // Capa de brillo cian (tactical glow)
                 var lineaGlow = L.polyline(puntosLinea, {
                     color: '#00f0ff',
                     weight: 9,
@@ -6048,7 +6081,6 @@
                 });
                 capaRutaActiva.addLayer(lineaGlow);
 
-                // Capa principal azul vial
                 var lineaPrincipal = L.polyline(puntosLinea, {
                     color: '#0284c7',
                     weight: 5,
@@ -6058,7 +6090,6 @@
                 });
                 capaRutaActiva.addLayer(lineaPrincipal);
 
-                // 2. Marcadores numerados de paradas
                 paradasItems.forEach(function(item, idx) {
                     var numIcon = L.divIcon({
                         className: 'waypoint-marker-icon',
@@ -6073,12 +6104,10 @@
 
                 capaRutaActiva.addTo(map);
 
-                // Ajustar cámara del mapa
                 try {
                     map.fitBounds(lineaPrincipal.getBounds(), { padding: [50, 50] });
                 } catch(efit) {}
 
-                // 3. Activar HUD flotante de ruta en la pantalla
                 var hud = document.getElementById('hud-ruta-activa');
                 var hudTit = document.getElementById('hud-ruta-titulo');
                 var hudStats = document.getElementById('hud-ruta-stats');
@@ -6114,7 +6143,7 @@
             }
         }
 
-        // --- ALGORITMO ORDENAMIENTO CERCANÍA (NEAREST NEIGHBOR / TSP) ---
+        // --- ORDENAMIENTO POR CERCANÍA CONTINUA (NEAREST NEIGHBOR / TSP) ---
         function ordenarPuntosPorCercania(origen, listaPuntos, limite) {
             var pendientes = listaPuntos.slice();
             var rutaOrdenada = [];
@@ -6128,7 +6157,7 @@
 
                 for (var j = 0; j < pendientes.length; j++) {
                     var p = pendientes[j];
-                    var d = calcularDistanciaMetros(puntoActual.lat, puntoActual.lng, p.lat, p.lng);
+                    var d = calcularDistancia(puntoActual.lat, puntoActual.lng, p.lat, p.lng);
                     if (d < mejorDist) {
                         mejorDist = d;
                         mejorIdx = j;
@@ -6164,14 +6193,23 @@
             return url;
         }
 
+        function obtenerOrigenRutaBase() {
+            if (userLat && userLng) {
+                return { lat: userLat, lng: userLng };
+            }
+            if (puntosData.length > 0 && puntosData[0].lat && puntosData[0].lng) {
+                return { lat: puntosData[0].lat, lng: puntosData[0].lng };
+            }
+            return { lat: 6.2442, lng: -75.5812 };
+        }
+
         // =========================================================================
-        // 1. RUTA DE CERCANÍA (PATRULLAJE RÁPIDO DE 5 A 8 MÁS CERCANAS)
+        // 1. RUTA DE CERCANÍA (PATRULLAJE RÁPIDO DE 4 A 8 MÁS CERCANAS)
         // =========================================================================
         async function ejecutarRutaCercania() {
             var limite = parseInt(document.getElementById('rutaCercaniaCantidad').value) || 6;
             var soloPendientes = document.getElementById('chkRutaCercaniaPendientes').checked;
-
-            var origen = (userLat && userLng) ? { lat: userLat, lng: userLng } : (puntosData.length > 0 ? { lat: puntosData[0].lat, lng: puntosData[0].lng } : { lat: 6.2442, lng: -75.5812 });
+            var origen = obtenerOrigenRutaBase();
 
             var pool = puntosData.filter(function(p) {
                 if (!p.lat || !p.lng) return false;
@@ -6179,8 +6217,13 @@
                 return true;
             });
 
+            // Si todas están visitadas pero el usuario quiere patrullar, usar todo el mapa
             if (pool.length === 0) {
-                alert("No hay placas pendientes para enrutar.");
+                pool = puntosData.filter(p => p.lat && p.lng);
+            }
+
+            if (pool.length === 0) {
+                alert("No hay placas registradas en el mapa para enrutar.");
                 return;
             }
 
@@ -6192,9 +6235,7 @@
             trazarRutaVialEnMapa(coordsPaso, paradasOrdenadas, urlMaps, "🎯 Ronda de Cercanía (" + paradasOrdenadas.length + " placas)");
 
             mostrarToastNotificacion("🚀 Ronda trazada. Abriendo Google Maps...");
-            setTimeout(function() {
-                window.open(urlMaps, '_blank');
-            }, 500);
+            window.open(urlMaps, '_blank');
         }
 
         // =========================================================================
@@ -6241,12 +6282,8 @@
                     } else {
                         coordsOrig = await obtenerCoordenadasExactasLimpias(origTexto);
                     }
-                } else if (userLat && userLng) {
-                    coordsOrig = { lat: userLat, lng: userLng };
-                } else if (puntosData.length > 0) {
-                    coordsOrig = { lat: puntosData[0].lat, lng: puntosData[0].lng };
                 } else {
-                    coordsOrig = CENTROS_MUNICIPIOS['BELLO'] || { lat: 6.3332, lng: -75.5583 };
+                    coordsOrig = obtenerOrigenRutaBase();
                 }
 
                 var latO = coordsOrig.lat;
@@ -6265,10 +6302,20 @@
                     }
                 });
 
+                // Si no hay pendientes en el desvío, incluir cualquiera en el desvío
+                if (candidatos.length === 0) {
+                    puntosData.forEach(function(item) {
+                        if (!item.lat || !item.lng) return;
+                        var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
+                        if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
+                            candidatos.push({ item: item, dist: res.dist, t: res.t });
+                        }
+                    });
+                }
+
                 candidatos.sort(function(a, b) { return a.t - b.t; });
                 var paradas = candidatos.slice(0, 8).map(c => c.item);
 
-                // Destino final en Google Maps es coordsDest
                 var todasLasParadas = paradas.concat([{ lat: latD, lng: lngD, placa: 'DESTINO: ' + destTexto }]);
                 var coordsPaso = [coordsOrig].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng }))).concat([coordsDest]);
                 var urlMaps = construirUrlGoogleMapsMultiParadas(coordsOrig, todasLasParadas);
@@ -6276,12 +6323,10 @@
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
                 cerrarModalRutaCorredor();
 
-                trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🧭 Corredor vial hacia " + destTexto);
+                trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🧭 Corredor hacia " + destTexto);
 
-                mostrarToastNotificacion("🚀 Corredor trazado con " + paradas.length + " placas en el camino.");
-                setTimeout(function() {
-                    window.open(urlMaps, '_blank');
-                }, 500);
+                mostrarToastNotificacion("🚀 Corredor trazado con " + paradas.length + " placas.");
+                window.open(urlMaps, '_blank');
 
             } catch(eCorredor) {
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -6298,12 +6343,13 @@
 
             var pool = puntosData.filter(function(p) {
                 if (!p.lat || !p.lng) return false;
-                if (!esElegibleParaRadar(p)) return false;
-                return (p.municipio || '').toUpperCase().includes(mun);
+                var munPunto = (p.municipio || '').toUpperCase();
+                var dirPunto = (p.dir || p.dirOriginal || '').toUpperCase();
+                return munPunto.includes(mun) || dirPunto.includes(mun);
             });
 
             if (pool.length === 0) {
-                alert("No se encontraron placas pendientes en " + mun + ".");
+                alert("No se encontraron placas registradas en " + mun + ".");
                 return;
             }
 
@@ -6316,7 +6362,7 @@
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🏙️ Barrido en " + mun + " (" + paradas.length + " placas)");
 
             mostrarToastNotificacion("🚀 Barrido en " + mun + " iniciado.");
-            setTimeout(function() { window.open(urlMaps, '_blank'); }, 500);
+            window.open(urlMaps, '_blank');
         }
 
         // =========================================================================
@@ -6328,7 +6374,6 @@
 
             var pool = puntosData.filter(function(p) {
                 if (!p.lat || !p.lng) return false;
-                if (!esElegibleParaRadar(p)) return false;
 
                 var coincidePico = !!p.pico;
                 var coincideHoy = (p.fecha === hoyStr || (p.timestamp && (Date.now() - p.timestamp) < 86400000));
@@ -6339,11 +6384,16 @@
             });
 
             if (pool.length === 0) {
-                alert("No se encontraron placas con el criterio táctico seleccionado.");
+                alert("No se encontraron placas con el criterio táctico seleccionado. Mostrando placas pendientes generales.");
+                pool = puntosData.filter(p => p.lat && p.lng);
+            }
+
+            if (pool.length === 0) {
+                alert("No hay placas en el mapa.");
                 return;
             }
 
-            var origen = (userLat && userLng) ? { lat: userLat, lng: userLng } : { lat: pool[0].lat, lng: pool[0].lng };
+            var origen = obtenerOrigenRutaBase();
             var paradas = ordenarPuntosPorCercania(origen, pool, 8);
             var coordsPaso = [origen].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng })));
             var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradas);
@@ -6352,7 +6402,7 @@
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "⚠️ Ruta Táctica Prioritaria (" + paradas.length + " placas)");
 
             mostrarToastNotificacion("⚠️ Ruta táctica generada.");
-            setTimeout(function() { window.open(urlMaps, '_blank'); }, 500);
+            window.open(urlMaps, '_blank');
         }
 
         // =========================================================================
@@ -6370,23 +6420,18 @@
                 } else {
                     coordsBase = await obtenerCoordenadasExactasLimpias(baseTexto);
                 }
-            } else if (userLat && userLng) {
-                coordsBase = { lat: userLat, lng: userLng };
             } else {
-                coordsBase = { lat: 6.2442, lng: -75.5812 };
+                coordsBase = obtenerOrigenRutaBase();
             }
 
-            var pool = puntosData.filter(function(p) {
-                return p.lat && p.lng && esElegibleParaRadar(p);
-            });
+            var pool = puntosData.filter(p => p.lat && p.lng);
 
             if (pool.length === 0) {
-                alert("No hay placas pendientes para generar circuito.");
+                alert("No hay placas en el mapa para generar circuito.");
                 return;
             }
 
             var paradas = ordenarPuntosPorCercania(coordsBase, pool, limite);
-            // Circuito cerrado: La última parada es el retorno a coordsBase
             var paradasConRetorno = paradas.concat([{ lat: coordsBase.lat, lng: coordsBase.lng, placa: 'RETORNO A BASE' }]);
             var coordsPaso = [coordsBase].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng }))).concat([coordsBase]);
             var urlMaps = construirUrlGoogleMapsMultiParadas(coordsBase, paradasConRetorno);
@@ -6395,35 +6440,52 @@
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🔁 Circuito Circular con Retorno a Base");
 
             mostrarToastNotificacion("🔁 Circuito circular trazado.");
-            setTimeout(function() { window.open(urlMaps, '_blank'); }, 500);
+            window.open(urlMaps, '_blank');
         }
 
         // =========================================================================
         // 6. MODO SIGUIENTE OBJETIVO (1 A 1 PARA MOTO)
         // =========================================================================
         function actualizarObjetivo1a1() {
-            if (!userLat || !userLng) {
-                var elObjPlaca = document.getElementById('obj-placa-txt');
-                var elObjDet = document.getElementById('obj-detalle-txt');
-                var elObjDist = document.getElementById('obj-dist-txt');
-                if (elObjPlaca) elObjPlaca.innerText = "GPS no activo";
-                if (elObjDet) elObjDet.innerText = "Activa el radar o la ubicación para detectar el vehículo más cercano.";
-                return;
+            var latBase = (typeof userLat !== 'undefined' && userLat) ? userLat : null;
+            var lngBase = (typeof userLng !== 'undefined' && userLng) ? userLng : null;
+
+            if (!latBase || !lngBase) {
+                if (puntosData.length > 0 && puntosData[0].lat && puntosData[0].lng) {
+                    latBase = puntosData[0].lat;
+                    lngBase = puntosData[0].lng;
+                } else {
+                    latBase = 6.2442;
+                    lngBase = -75.5812;
+                }
             }
 
             var menorDist = Infinity;
             var objCercano = null;
 
+            // 1. Buscar entre no visitadas
             puntosData.forEach(function(item) {
                 if (!item.lat || !item.lng) return;
                 if (!esElegibleParaRadar(item)) return;
 
-                var d = calcularDistanciaMetros(userLat, userLng, item.lat, item.lng);
+                var d = calcularDistancia(latBase, lngBase, item.lat, item.lng);
                 if (d < menorDist) {
                     menorDist = d;
                     objCercano = item;
                 }
             });
+
+            // 2. Si todas fueron visitadas, tomar la más cercana de todo el mapa
+            if (!objCercano && puntosData.length > 0) {
+                puntosData.forEach(function(item) {
+                    if (!item.lat || !item.lng) return;
+                    var d = calcularDistancia(latBase, lngBase, item.lat, item.lng);
+                    if (d < menorDist) {
+                        menorDist = d;
+                        objCercano = item;
+                    }
+                });
+            }
 
             objetivo1a1Actual = objCercano;
 
@@ -6434,16 +6496,17 @@
             if (objCercano) {
                 if (elObjPlaca) elObjPlaca.innerText = objCercano.placa;
                 if (elObjDet) elObjDet.innerText = (objCercano.vehiculo || 'Vehículo') + " • " + (objCercano.municipio || 'Medellín');
-                if (elObjDist) elObjDist.innerText = "📍 A solo " + Math.round(menorDist) + " metros de tu moto";
+                var distTxt = (menorDist < 1000) ? (Math.round(menorDist) + " metros") : ((menorDist / 1000).toFixed(1) + " km");
+                if (elObjDist) elObjDist.innerText = "📍 A " + distTxt + " de tu ubicación";
             } else {
-                if (elObjPlaca) elObjPlaca.innerText = "Sin pendientes";
-                if (elObjDet) elObjDet.innerText = "No hay más vehículos pendientes en este momento.";
+                if (elObjPlaca) elObjPlaca.innerText = "Sin placas";
+                if (elObjDet) elObjDet.innerText = "No hay vehículos cargados en el mapa.";
                 if (elObjDist) elObjDist.innerText = "Todo al día ✅";
             }
         }
 
         function iniciarNavegacionWazeObjetivo() {
-            if (!objetivo1a1Actual) {
+            if (!objetivo1a1Actual || !objetivo1a1Actual.lat || !objetivo1a1Actual.lng) {
                 mostrarToastNotificacion("⚠️ No hay objetivo cercano detectado.");
                 return;
             }
@@ -6452,7 +6515,7 @@
         }
 
         function iniciarNavegacionMapsObjetivo() {
-            if (!objetivo1a1Actual) {
+            if (!objetivo1a1Actual || !objetivo1a1Actual.lat || !objetivo1a1Actual.lng) {
                 mostrarToastNotificacion("⚠️ No hay objetivo cercano detectado.");
                 return;
             }
@@ -6464,8 +6527,8 @@
             if (!objetivo1a1Actual) return;
             var pId = objetivo1a1Actual.id;
             marcarVisitada(pId);
-            mostrarToastNotificacion("✅ " + objetivo1a1Actual.placa + " marcada. Buscando siguiente...");
-            setTimeout(actualizarObjetivo1a1, 400);
+            mostrarToastNotificacion("✅ " + objetivo1a1Actual.placa + " marcada visitada. Buscando siguiente...");
+            setTimeout(actualizarObjetivo1a1, 300);
         }
 
         
@@ -7408,14 +7471,14 @@
             <button onclick="cerrarModalRutaCorredor()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
         </div>
 
-        <!-- PESTAÑAS DE TIPOS DE RUTAS -->
-        <div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px; -webkit-overflow-scrolling:touch;">
-            <button type="button" id="tab-btn-ruta-cercania" onclick="cambiarTabRuta('cercania')" class="pop-btn pb-blue" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🎯 Cercanía</button>
-            <button type="button" id="tab-btn-ruta-destino" onclick="cambiarTabRuta('destino')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🧭 Destino</button>
-            <button type="button" id="tab-btn-ruta-municipio" onclick="cambiarTabRuta('municipio')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🏙️ Municipio</button>
-            <button type="button" id="tab-btn-ruta-tactica" onclick="cambiarTabRuta('tactica')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">⚠️ Táctica</button>
-            <button type="button" id="tab-btn-ruta-circular" onclick="cambiarTabRuta('circular')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🔁 Circuito</button>
-            <button type="button" id="tab-btn-ruta-siguiente" onclick="cambiarTabRuta('siguiente')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🏎️ 1 a 1</button>
+        <!-- PESTAÑAS DE TIPOS DE RUTAS (CUADRÍCULA 3x2 100% VISIBLE) -->
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:12px;">
+            <button type="button" id="tab-btn-ruta-cercania" onclick="cambiarTabRuta('cercania')" class="pop-btn pb-blue" style="margin:0; padding:8px 4px; font-size:11.5px; font-weight:bold; border-radius:8px;">🎯 Cercanía</button>
+            <button type="button" id="tab-btn-ruta-destino" onclick="cambiarTabRuta('destino')" class="pop-btn pb-teal" style="margin:0; padding:8px 4px; font-size:11.5px; font-weight:bold; border-radius:8px;">🧭 Destino</button>
+            <button type="button" id="tab-btn-ruta-municipio" onclick="cambiarTabRuta('municipio')" class="pop-btn pb-teal" style="margin:0; padding:8px 4px; font-size:11.5px; font-weight:bold; border-radius:8px;">🏙️ Municipio</button>
+            <button type="button" id="tab-btn-ruta-tactica" onclick="cambiarTabRuta('tactica')" class="pop-btn pb-teal" style="margin:0; padding:8px 4px; font-size:11.5px; font-weight:bold; border-radius:8px;">⚠️ Táctica</button>
+            <button type="button" id="tab-btn-ruta-circular" onclick="cambiarTabRuta('circular')" class="pop-btn pb-teal" style="margin:0; padding:8px 4px; font-size:11.5px; font-weight:bold; border-radius:8px;">🔁 Circuito</button>
+            <button type="button" id="tab-btn-ruta-siguiente" onclick="cambiarTabRuta('siguiente')" class="pop-btn pb-teal" style="margin:0; padding:8px 4px; font-size:11.5px; font-weight:bold; border-radius:8px;">🏎️ 1 a 1</button>
         </div>
 
         <!-- TAB 1: RONDA DE CERCANÍA (TOP MÁS CERCANAS EN ORDEN ÓPTIMO) -->
