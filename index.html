@@ -599,6 +599,7 @@
     </style>
 </head>
 <body>
+    <div id="toast-notif"></div>
     <div id="map"></div>
     <div id="backdrop-modal" onclick="cerrarTodosLosModales()"></div>
 
@@ -614,7 +615,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.1</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.2</span>
         </div>
                 <div id="top-actions">
             <!-- NOMBRE DEL PERFIL ACTIVO EN LA PARTE SUPERIOR -->
@@ -622,22 +623,36 @@
                 <span id="badge-perfil-icono">👤</span>
                 <span id="badge-perfil-nombre">Operador</span>
             </div>
-            <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
-            <button id="btn-modo-seguro" class="btn-top-action" onclick="toggleModoOperadorSeguro()" style="background: linear-gradient(145deg, #16a34a, #15803d); border-color: #22c55e;" title="Encendido: Manipular/Subir/Borrar | Apagado: Modo Operador Seguro para moto">🟢 Edición</button>
+            <!-- DESPUÉS DE PERFIL: RADAR LUEGO EDICIÓN -->
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
+            <button id="btn-modo-seguro" class="btn-top-action" onclick="toggleModoOperadorSeguro()" style="background: linear-gradient(145deg, #16a34a, #15803d); border-color: #22c55e;" title="Encendido: Manipular/Subir/Borrar | Apagado: Modo Operador Seguro para moto">🟢 Edición</button>
+            <!-- ACCIONES ADICIONALES -->
+            <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
             <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Ingresar / Sincronizar cuenta Nube">☁️ Nube</button>
             <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
-            <!-- BOTONES DE LA SUITE TÁCTICA AVANZADA -->
             <button id="btn-top-sos" class="btn-top-action" onclick="activarBotonPanicoSOS()" style="background: linear-gradient(145deg, #dc2626, #991b1b); border-color: #ef4444; font-weight:900;" title="Alerta de Emergencia / SOS a la base">🚨 SOS</button>
-            <button id="btn-top-modo-noche" class="btn-top-action" onclick="toggleModoNocturnoAmoled()" style="background: linear-gradient(145deg, #1e293b, #0f172a); border-color: #475569;" title="Modo Nocturno / Batería Extrema AMOLED">🌙 Noche</button>
             <button id="btn-top-calor" class="btn-top-action" onclick="toggleMapaCalor()" style="background: linear-gradient(145deg, #ea580c, #c2410c); border-color: #fb923c;" title="Ver Mapa de Calor / Concentración de Placas">🔥 Calor</button>
-            <button id="btn-top-motos" class="btn-top-action" onclick="toggleCapaMotosEnVivo()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8; display:none;" title="Ver ubicación en vivo de los motorizados">🏍️ Motos</button>
-            <button id="btn-top-reporte" class="btn-top-action" onclick="abrirModalCierreTurno()" style="background: linear-gradient(145deg, #059669, #047857); border-color: #34d399;" title="Generar Informe Operativo / Cierre de Turno">📑 Reporte</button>
-            <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
         </div>
     </div>
 
-    <!-- PANEL SUPERIOR REMOVIDO: EL RADAR FUNCIONA CON LA CÁPSULA INFERIOR Y EL WIDGET CIRCULAR AFUERA -->
+        <!-- RADAR COMPACTO SUPERIOR EN EL MAPA -->
+    <div id="panel-cercano">
+        <div class="radar-top-row">
+            <div class="radar-placa">
+                <span>🚨</span>
+                <span id="cercano-placa">---</span>
+                <span id="cercano-dist" class="radar-dist">(-- m)</span>
+            </div>
+            <div id="cercano-info" class="radar-info">---</div>
+            <button class="btn-radar-close" onclick="cerrarRadar()" title="Minimizar panel superior">✖</button>
+        </div>
+        <div class="radar-buttons">
+            <button class="btn-radar-ir" onclick="irCercanoMaps()">🧭 Maps</button>
+            <button class="btn-radar-ok" onclick="visitarCercanoDesdeRadar()">✅ Visitada</button>
+            <button class="btn-radar-ir" onclick="centrarEnVehiculoCercano()" style="background:#334155;">🎯 Ver</button>
+            <button class="btn-radar-ir" onclick="iniciarPipRadar()" style="background:linear-gradient(135deg, #7c3aed, #6d28d9);">🪟 Flotar</button>
+        </div>
+    </div>
 
     <!-- BOTÓN / WIDGET FLOTANTE RADAR FUTURISTA -->
     <div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
@@ -798,7 +813,6 @@
             <button id="btn-config-sync-nube" type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
             <button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Salir</button>
         </div>
-
         <div style="margin-top:15px; display:flex; gap:6px;">
             <button onclick="guardarConfig()" class="act-green" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Guardar</button>
             <button onclick="cerrarConfig()" class="act-gray" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Cerrar</button>
@@ -840,7 +854,7 @@
     </div>
 
     <!-- BOTÓN FLOTANTE CENTRAR EN MI GPS -->
-    <button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:118px; left:12px; z-index:999; background:linear-gradient(145deg, #1e293b, #0f172a); color:#38bdf8; border:2px solid #38bdf8; border-radius:50%; width:38px; height:38px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.4); outline:none; -webkit-tap-highlight-color:transparent; overflow:hidden;" title="Centrar en Mi Ubicación GPS">🎯</button>
+    <button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:155px; left:12px; z-index:999; background:linear-gradient(145deg, #1e293b, #0f172a); color:#38bdf8; border:2px solid #38bdf8; border-radius:50%; width:38px; height:38px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.4); outline:none; -webkit-tap-highlight-color:transparent; overflow:hidden;" title="Centrar en Mi Ubicación GPS">🎯</button>
 
     <!-- BOTÓN AGREGAR Y MENÚ<!-- BOTÓN AGREGAR Y MENÚ DE 5 OPCIONES -->
     <button class="floating-btn-add" onclick="toggleMenuAdd()" title="Agregar nuevo vehículo">➕</button>
@@ -999,6 +1013,8 @@
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
+            <button id="btn-filtro-motos" onclick="toggleCapaMotosEnVivo()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Ver ubicación en vivo de los motorizados">🏍️ Motos en Vivo</button>
+            <button id="btn-filtro-reporte" onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
             <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:12px; padding:9px 6px;">🗺️ Ver Todas en Pantalla</button>
             <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:12px; padding:9px 6px;">⚙️ Configuración</button>
@@ -1053,6 +1069,7 @@
         });
 
         // Activar capa Google Maps por defecto (ultra rápida y sin bloqueos)
+        var tileLayerPredeterminado = capaGoogle;
         capaGoogle.addTo(map);
 
         // Selector de capas en la esquina inferior derecha
@@ -1145,6 +1162,7 @@
             }
 
             actualizarPanelCercano();
+            verificarGeocercaLlegada(userLat, userLng);
         }
 
         function centrarEnMiGPS() {
@@ -1186,6 +1204,7 @@
             userLat = e.latlng.lat;
             userLng = e.latlng.lng;
             actualizarPanelCercano();
+            verificarGeocercaLlegada(userLat, userLng);
         });
 
         function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -1216,6 +1235,11 @@
             } catch (e) {}
         }
 
+        function emitirAlertaSonoraProximidad() {
+            emitirAlertaSonora();
+            emitirVibracion();
+        }
+
         function emitirVibracion() {
             if (configApp.vibrarAlerta && navigator.vibrate) {
                 try { navigator.vibrate([150, 70, 150]); } catch(e){}
@@ -1243,28 +1267,7 @@
             }
         }
 
-        // CONTROL DE RADAR (ENCENDER Y APAGAR VISUAL Y FUNCIONAL)
-        var radarActivo = localStorage.getItem('raptor_radar_activo') !== '0';
 
-        function actualizarBotonRadarUI() {
-            var btn = document.getElementById('btn-radar-header') || document.getElementById('btn-toggle-radar');
-            if (!btn) return;
-            if (radarActivo) {
-                btn.innerHTML = '🚨 Radar';
-                btn.classList.add('activo');
-                btn.classList.add('btn-radar-active');
-                btn.style.background = 'linear-gradient(145deg, #27ae60, #2ecc71)';
-                btn.style.color = '#ffffff';
-                btn.style.boxShadow = '0 0 10px rgba(46, 204, 113, 0.7)';
-            } else {
-                btn.innerHTML = '⚪ Radar';
-                btn.classList.remove('activo');
-                btn.classList.remove('btn-radar-active');
-                btn.style.background = 'linear-gradient(145deg, #64748b, #475569)';
-                btn.style.color = '#e2e8f0';
-                btn.style.boxShadow = 'none';
-            }
-        }
 
         var menorDistanciaMetros = Infinity;
         var pipVideoEl = null;
@@ -1282,13 +1285,15 @@
             var hud = document.getElementById('radar-hud-flotante');
 
             if (radarActivo) {
+                radarOculto = false;
+                if (panel) panel.style.display = 'block';
                 if (hud) hud.style.display = 'block';
-                mostrarToastNotificacion("🚨 Radar ENCENDIDO: Al salir a WhatsApp se activará el radar circular flotante.");
+                mostrarToastNotificacion("🚨 Radar ENCENDIDO: Visible en mapa y botón flotante.");
                 actualizarPanelCercano();
                 iniciarArrastreHud();
-                // Preparar el video en silencio (sin abrirlo dentro del mapa)
                 prepararPipVideo(false);
             } else {
+                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 if (document.pictureInPictureElement) {
                     try { document.exitPictureInPicture(); } catch(e){}
@@ -1424,9 +1429,6 @@
             var ahora = Date.now();
             var mejorItem = null;
             var menorDist = Infinity;
-            if (userLat && userLng) {
-                verificarGeocercaLlegada(userLat, userLng);
-            }
 
             puntosData.forEach(function(p) {
                 if (!p.lat || !p.lng || p.visitada) return;
@@ -1490,7 +1492,7 @@
         // -------------------------------------------------------------------------
         function toggleCapaMotosEnVivo() {
             mostrandoMotosEnVivo = !mostrandoMotosEnVivo;
-            var btn = document.getElementById('btn-top-motos');
+            var btn = document.getElementById('btn-filtro-motos') || document.getElementById('btn-top-motos');
             if (mostrandoMotosEnVivo) {
                 if (btn) btn.style.background = "linear-gradient(145deg, #16a34a, #15803d)";
                 refrescarCapaMotosEnVivo();
@@ -2117,6 +2119,7 @@
                 var colorTxt = (masCercano.color && masCercano.color !== '-') ? masCercano.color : 'SIN COLOR';
 
                 // Actualizar Panel Superior
+                if (panel && !radarOculto) panel.style.display = 'block';
                 var cPlaca = document.getElementById('cercano-placa');
                 var cDist = document.getElementById('cercano-dist');
                 var cInfo = document.getElementById('cercano-info');
@@ -3558,6 +3561,7 @@
             document.getElementById('linkMapsCel').value = '';
             cerrarSecciones();
             actualizarPanelCercano();
+            verificarGeocercaLlegada(userLat, userLng);
         }
 
         // PREPROCESAMIENTO DE IMÁGENES PARA OCR Y REDUCCIÓN DE MEMORIA
@@ -3758,7 +3762,7 @@
                     }
                 });
 
-                direccionesDetectadas.sortdireccionesDetectadas.sort((a, b) => b.prioridad - a.prioridad);
+                direccionesDetectadas.sort((a, b) => b.prioridad - a.prioridad);
                 var dirsFinales = [];
                 var llavesVistas = {};
                 direccionesDetectadas.forEach(function(d) {
@@ -4082,8 +4086,7 @@
             map.closePopup();
 
             var pendientes = puntosData.filter(function(p) {
-                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-                return visitas === 0;
+                return !p.visitada;
             });
 
             if (pendientes.length === 0) {
@@ -4136,8 +4139,7 @@
             map.closePopup();
 
             var pendientes = puntosData.filter(function(p) {
-                var visitas = parseInt(localStorage.getItem('visitas_' + p.placa) || 0);
-                return visitas === 0;
+                return !p.visitada;
             });
 
             if (pendientes.length === 0) {
@@ -4293,6 +4295,16 @@
             if(slm) slm.style.display = 'none';
         }
 
+        function procesarModalRescate() {
+            var txt = (document.getElementById('asistente-texto') ? document.getElementById('asistente-texto').value : '').trim();
+            if (!txt) {
+                alert("Por favor ingresa o corrige las direcciones.");
+                return;
+            }
+            cerrarAsistente();
+            procesarTextoUniversal('asistente-texto');
+        }
+
         function cerrarAsistente() { 
             document.getElementById('modal-asistente').style.display = 'none'; 
             document.getElementById('backdrop-modal').style.display = 'none';
@@ -4386,9 +4398,11 @@
             });
         }
 
-        function marcarVisitada(placa, markerId) {
-            var item = puntosData.find(function(d) { return d.id === markerId; });
+        function marcarVisitada(arg1, arg2) {
+            var markerId = arg2 || arg1;
+            var item = puntosData.find(function(d) { return d.id === markerId || d.placa === arg1 || d.id === arg1; });
             if (!item) return;
+            var placa = item.placa;
 
             item.visitada = !item.visitada;
             localStorage.setItem('visitada_' + item.id, item.visitada ? '1' : '0');
@@ -4880,10 +4894,10 @@
                                 </span>
                             </div>
                             <div style="font-size:11px; font-weight:600; color:#334155; margin-top:2px;">
-                                🚗 ${mejorMatch.vehiculo || 'Vehículo'} • ${mejorMatch.color || ''} • ${mejorMatch.municipio || 'Medellín'}
+                                🚗 ${(mejorMatch.marca && mejorMatch.marca !== '-' ? mejorMatch.marca + (mejorMatch.linea && mejorMatch.linea !== '-' ? ' ' + mejorMatch.linea : '') : (mejorMatch.vehiculo || 'Vehículo'))} • ${(mejorMatch.color && mejorMatch.color !== '-' ? mejorMatch.color : '')} • ${(mejorMatch.municipio || 'Medellín')}
                             </div>
                             <div style="font-size:10px; color:#64748b; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                📌 ${mejorMatch.direccionReal || mejorMatch.direccion || 'Sin dirección'}
+                                📌 ${mejorMatch.dirOriginal || mejorMatch.dir || mejorMatch.direccionReal || mejorMatch.direccion || 'Sin dirección'}
                             </div>
                             <button type="button" onclick="seleccionarPlacaYAcercar('${mejorMatch.placa}')" 
                                 style="width:100%; margin-top:6px; padding:6px; background:#2563eb; color:white; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
@@ -5447,6 +5461,7 @@
             }
             mostrarToastNotificacion("✅ Datos guardados para " + placaEditada);
             actualizarPanelCercano();
+            verificarGeocercaLlegada(userLat, userLng);
         }
 
         // FORMATEADOR DE TELÉFONOS/CELULARES CON BOTONES DE LLAMADA Y WHATSAPP DIRECTO
@@ -5964,8 +5979,8 @@
                 btnModoSeguro.style.display = esAdmin ? 'inline-flex' : 'none';
             }
 
-            // 3. Botón Borrado Masivo (Solo Administrador)
-            var btnBorradoMasivo = document.getElementById('btn-carga-borrado-masivo') || document.getElementById('btn-filtro-borrado-masivo');
+            // 3. Botón Borrado Masivo en el panel de Filtros (Solo Administrador)
+            var btnBorradoMasivo = document.getElementById('btn-filtro-borrado-masivo');
             if (btnBorradoMasivo) {
                 btnBorradoMasivo.style.display = esAdmin ? 'block' : 'none';
             }
@@ -6011,7 +6026,7 @@
             if (btnCloud) {
                 btnCloud.style.display = esAdmin ? 'inline-flex' : 'none';
             }
-            var btnMotos = document.getElementById('btn-top-motos');
+            var btnMotos = document.getElementById('btn-filtro-motos') || document.getElementById('btn-top-motos');
             if (btnMotos) {
                 btnMotos.style.display = esAdmin ? 'inline-flex' : 'none';
             }
@@ -6143,6 +6158,7 @@
             localStorage.setItem('backup_seguridad_puntos_permanente', JSON.stringify(datosCache));
             actualizarKPIs();
             actualizarPanelCercano();
+            verificarGeocercaLlegada(userLat, userLng);
         }
 
         // FUNCIONES DE CONTROL DEL CENTRO DE RECUPERACIÓN
@@ -7583,10 +7599,29 @@
         // =========================================================================
         // CONTROL DE PRESENCIA EN TIEMPO REAL: QUIÉN ESTÁ CONECTADO
         // =========================================================================
-        function enviarLatidoPresencia() {
+        var ultimoEnvioPresenciaTs = 0;
+        var ultimaLatPresencia = null;
+        var ultimaLngPresencia = null;
+
+        function enviarLatidoPresencia(forzar) {
             if (!usuarioOperadorActual || usuarioOperadorActual.activo === false) return;
 
             var ahora = Date.now();
+            var movido = false;
+            if (userLat && userLng && ultimaLatPresencia && ultimaLngPresencia) {
+                if (calcularDistancia(userLat, userLng, ultimaLatPresencia, ultimaLngPresencia) > 30) {
+                    movido = true;
+                }
+            }
+            if (!forzar && !movido && (ahora - ultimoEnvioPresenciaTs < 25000)) {
+                return;
+            }
+            ultimoEnvioPresenciaTs = ahora;
+            if (userLat && userLng) {
+                ultimaLatPresencia = userLat;
+                ultimaLngPresencia = userLng;
+            }
+
             var opciones = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
             var horaStr = new Date().toLocaleTimeString('es-CO', opciones);
 
