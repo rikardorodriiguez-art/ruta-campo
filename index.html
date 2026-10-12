@@ -991,7 +991,7 @@
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
             <button onclick="forzarSincronizacionNubePuntos()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Descargar o sincronizar todas las placas del equipo">☁️ Sincronizar Placas con la Nube</button>
-            <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Ruta hacia Destino (Placas a ≤500m)</button>
+            <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
             <button id="btn-filtro-borrado-masivo" onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
             <button id="btn-filtro-gestion-usuarios" onclick="abrirModalGestionUsuarios()" class="pop-btn pb-purple" style="margin:0; font-size:11.5px; padding:7px 6px;">👥 Gestión de Usuarios</button>
@@ -5928,70 +5928,278 @@
         }
 
         // =========================================================================
-        // RUTA INTELIGENTE HACIA DESTINO CON PLACAS EN EL CAMINO (≤ 500M)
+        // MOTOR DE RUTAS INTELIGENTES, TRAZADO VIAL REAL (OSRM) Y GOOGLE MAPS
         // =========================================================================
-        var lineaRutaCorredor = null;
+        var capaRutaActiva = null;
+        var tabRutaActiva = 'cercania';
+        var objetivo1a1Actual = null;
 
-        function distanciaPuntoASegmentoMetros(latP, lngP, latO, lngO, latD, lngD) {
-            var R = 6371000.0;
-            var latO_rad = (latO * Math.PI) / 180.0;
-            
-            var yD = ((latD - latO) * Math.PI / 180.0) * R;
-            var xD = ((lngD - lngO) * Math.PI / 180.0) * R * Math.cos(latO_rad);
-            
-            var yP = ((latP - latO) * Math.PI / 180.0) * R;
-            var xP = ((lngP - lngO) * Math.PI / 180.0) * R * Math.cos(latO_rad);
-            
-            var v_len2 = (xD * xD) + (yD * yD);
-            if (v_len2 === 0) {
-                return { dist: Math.sqrt(xP * xP + yP * yP), t: 0 };
+        function cambiarTabRuta(tab) {
+            tabRutaActiva = tab;
+            var tabs = ['cercania', 'destino', 'municipio', 'tactica', 'circular', 'siguiente'];
+            tabs.forEach(function(t) {
+                var btn = document.getElementById('tab-btn-ruta-' + t);
+                var cont = document.getElementById('tab-contenido-ruta-' + t);
+                if (btn && cont) {
+                    if (t === tab) {
+                        btn.className = 'pop-btn pb-blue';
+                        cont.style.display = 'block';
+                    } else {
+                        btn.className = 'pop-btn pb-teal';
+                        cont.style.display = 'none';
+                    }
+                }
+            });
+
+            if (tab === 'siguiente') {
+                actualizarObjetivo1a1();
             }
-            
-            var t = (xP * xD + yP * yD) / v_len2;
-            var t_clamped = Math.max(0.0, Math.min(1.0, t));
-            
-            var cx = t_clamped * xD;
-            var cy = t_clamped * yD;
-            
-            var dx = xP - cx;
-            var dy = yP - cy;
-            var dist = Math.sqrt(dx * dx + dy * dy);
-            
-            return { dist: dist, t: t };
         }
 
         function abrirModalRutaCorredor() {
             cerrarFiltros();
+            cerrarConfig();
             var modal = document.getElementById('modal-ruta-corredor');
             var backdrop = document.getElementById('backdrop-modal');
             if (modal) modal.style.display = 'block';
             if (backdrop) backdrop.style.display = 'block';
 
             var inOrig = document.getElementById('rutaCorredorOrigen');
-            if (inOrig) {
-                if (userLat && userLng) {
-                    inOrig.placeholder = "Mi GPS Actual (" + userLat.toFixed(4) + ", " + userLng.toFixed(4) + ")";
-                    inOrig.value = "";
-                } else {
-                    inOrig.placeholder = "Mi ubicación (o escribe ej: Bello)";
-                }
+            if (inOrig && userLat && userLng) {
+                inOrig.placeholder = "Mi GPS Actual (" + userLat.toFixed(4) + ", " + userLng.toFixed(4) + ")";
             }
-            var inDest = document.getElementById('rutaCorredorDestino');
-            if (inDest) { inDest.focus(); }
+            var inBase = document.getElementById('rutaCircularBase');
+            if (inBase && userLat && userLng) {
+                inBase.placeholder = "Mi GPS Actual (" + userLat.toFixed(4) + ", " + userLng.toFixed(4) + ")";
+            }
+
+            if (tabRutaActiva === 'siguiente') {
+                actualizarObjetivo1a1();
+            }
         }
 
         function cerrarModalRutaCorredor() {
             var modal = document.getElementById('modal-ruta-corredor');
             var backdrop = document.getElementById('backdrop-modal');
             if (modal) modal.style.display = 'none';
-            if (backdrop && (!document.getElementById('modal-auth') || document.getElementById('modal-auth').style.display === 'none') &&
-                (!document.getElementById('modal-recuperacion') || document.getElementById('modal-recuperacion').style.display === 'none') &&
-                (!document.getElementById('modal-instalar-app') || document.getElementById('modal-instalar-app').style.display === 'none') &&
-                (!document.getElementById('modal-borrado-masivo') || document.getElementById('modal-borrado-masivo').style.display === 'none')) {
+            if (backdrop && (!document.getElementById('modal-usuarios') || document.getElementById('modal-usuarios').style.display === 'none') &&
+                (!document.getElementById('modal-config') || document.getElementById('modal-config').style.display === 'none')) {
                 backdrop.style.display = 'none';
             }
         }
 
+        // --- TRAZADO VIAL REAL USANDO MALLA VIAL DE CALLES (OSRM) ---
+        async function obtenerGeometriaVialReal(coordsArray) {
+            // coordsArray: [{lat, lng}, ...]
+            try {
+                if (!coordsArray || coordsArray.length < 2) return null;
+                var strCoords = coordsArray.map(function(c){ return c.lng + ',' + c.lat; }).join(';');
+                var url = 'https://router.project-osrm.org/route/v1/driving/' + strCoords + '?overview=full&geometries=geojson';
+                
+                var controller = new AbortController();
+                var timeoutId = setTimeout(function(){ controller.abort(); }, 4000);
+                
+                var resp = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (resp.ok) {
+                    var data = await resp.json();
+                    if (data.routes && data.routes.length > 0 && data.routes[0].geometry) {
+                        var geomCoords = data.routes[0].geometry.coordinates.map(function(pt) {
+                            return [pt[1], pt[0]]; // Leaflet usa [lat, lng]
+                        });
+                        return {
+                            puntos: geomCoords,
+                            distanciaKm: (data.routes[0].distance / 1000).toFixed(1),
+                            duracionMin: Math.round(data.routes[0].duration / 60)
+                        };
+                    }
+                }
+            } catch(e) {
+                console.warn("OSRM routing fallback a línea directa:", e);
+            }
+            // Fallback si no hay conexión externa a OSRM
+            return {
+                puntos: coordsArray.map(function(c){ return [c.lat, c.lng]; }),
+                distanciaKm: null,
+                duracionMin: null
+            };
+        }
+
+        function trazarRutaVialEnMapa(coordsPaso, paradasItems, urlGoogleMaps, tituloRuta) {
+            if (capaRutaActiva && map.hasLayer(capaRutaActiva)) {
+                map.removeLayer(capaRutaActiva);
+            }
+            capaRutaActiva = L.layerGroup();
+
+            // 1. Dibujar línea vial
+            obtenerGeometriaVialReal(coordsPaso).then(function(resRuta) {
+                var puntosLinea = resRuta ? resRuta.puntos : coordsPaso.map(c => [c.lat, c.lng]);
+                var distKm = (resRuta && resRuta.distanciaKm) ? resRuta.distanciaKm : "--";
+                var durMin = (resRuta && resRuta.duracionMin) ? resRuta.duracionMin : "--";
+
+                // Capa de brillo cian (tactical glow)
+                var lineaGlow = L.polyline(puntosLinea, {
+                    color: '#00f0ff',
+                    weight: 9,
+                    opacity: 0.35,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                });
+                capaRutaActiva.addLayer(lineaGlow);
+
+                // Capa principal azul vial
+                var lineaPrincipal = L.polyline(puntosLinea, {
+                    color: '#0284c7',
+                    weight: 5,
+                    opacity: 0.95,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                });
+                capaRutaActiva.addLayer(lineaPrincipal);
+
+                // 2. Marcadores numerados de paradas
+                paradasItems.forEach(function(item, idx) {
+                    var numIcon = L.divIcon({
+                        className: 'waypoint-marker-icon',
+                        html: `<div style="background:#0f172a; color:#00f0ff; border:2px solid #00f0ff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:11px; box-shadow:0 0 10px rgba(0,240,255,0.7);">${idx + 1}</div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+                    var markerWp = L.marker([item.lat, item.lng], { icon: numIcon, zIndexOffset: 1000 });
+                    markerWp.bindTooltip(`<b>Parada ${idx + 1}:</b> ${item.placa} (${item.vehiculo || ''})`, { direction: 'top', offset: [0, -10] });
+                    capaRutaActiva.addLayer(markerWp);
+                });
+
+                capaRutaActiva.addTo(map);
+
+                // Ajustar cámara del mapa
+                try {
+                    map.fitBounds(lineaPrincipal.getBounds(), { padding: [50, 50] });
+                } catch(efit) {}
+
+                // 3. Activar HUD flotante de ruta en la pantalla
+                var hud = document.getElementById('hud-ruta-activa');
+                var hudTit = document.getElementById('hud-ruta-titulo');
+                var hudStats = document.getElementById('hud-ruta-stats');
+                var hudBtnMaps = document.getElementById('hud-btn-abrir-maps');
+
+                if (hud) hud.style.display = 'block';
+                if (hudTit) hudTit.innerText = tituloRuta || "🛣️ Ruta Activa (Malla Vial)";
+                if (hudStats) {
+                    hudStats.innerHTML = `📍 <b>${paradasItems.length} paradas</b> • 📏 <b>${distKm} km</b> • ⏱️ <b>~${durMin} min</b>`;
+                }
+                if (hudBtnMaps && urlGoogleMaps) {
+                    hudBtnMaps.href = urlGoogleMaps;
+                }
+            });
+        }
+
+        function limpiarRutaActiva() {
+            if (capaRutaActiva && map.hasLayer(capaRutaActiva)) {
+                map.removeLayer(capaRutaActiva);
+            }
+            capaRutaActiva = null;
+            var hud = document.getElementById('hud-ruta-activa');
+            if (hud) hud.style.display = 'none';
+            mostrarToastNotificacion("🧹 Ruta limpiada del mapa.");
+        }
+
+        function centrarEnRutaActiva() {
+            if (capaRutaActiva) {
+                var capas = capaRutaActiva.getLayers();
+                if (capas.length > 0 && capas[0].getBounds) {
+                    map.fitBounds(capas[0].getBounds(), { padding: [50, 50] });
+                }
+            }
+        }
+
+        // --- ALGORITMO ORDENAMIENTO CERCANÍA (NEAREST NEIGHBOR / TSP) ---
+        function ordenarPuntosPorCercania(origen, listaPuntos, limite) {
+            var pendientes = listaPuntos.slice();
+            var rutaOrdenada = [];
+            var puntoActual = origen;
+
+            var maxParadas = Math.min(pendientes.length, limite || 8);
+
+            for (var i = 0; i < maxParadas; i++) {
+                var mejorDist = Infinity;
+                var mejorIdx = -1;
+
+                for (var j = 0; j < pendientes.length; j++) {
+                    var p = pendientes[j];
+                    var d = calcularDistanciaMetros(puntoActual.lat, puntoActual.lng, p.lat, p.lng);
+                    if (d < mejorDist) {
+                        mejorDist = d;
+                        mejorIdx = j;
+                    }
+                }
+
+                if (mejorIdx !== -1) {
+                    var seleccionado = pendientes.splice(mejorIdx, 1)[0];
+                    rutaOrdenada.push(seleccionado);
+                    puntoActual = { lat: seleccionado.lat, lng: seleccionado.lng };
+                }
+            }
+            return rutaOrdenada;
+        }
+
+        function construirUrlGoogleMapsMultiParadas(origen, paradas) {
+            if (!paradas || paradas.length === 0) return "#";
+            var latO = origen.lat.toFixed(6);
+            var lngO = origen.lng.toFixed(6);
+
+            var destinoFinal = paradas[paradas.length - 1];
+            var latD = destinoFinal.lat.toFixed(6);
+            var lngD = destinoFinal.lng.toFixed(6);
+
+            var waypoints = paradas.slice(0, paradas.length - 1).map(function(p) {
+                return p.lat.toFixed(6) + ',' + p.lng.toFixed(6);
+            }).join('|');
+
+            var url = "https://www.google.com/maps/dir/?api=1&origin=" + latO + "," + lngO +
+                      "&destination=" + latD + "," + lngD +
+                      (waypoints ? "&waypoints=" + encodeURIComponent(waypoints) : "") +
+                      "&travelmode=driving";
+            return url;
+        }
+
+        // =========================================================================
+        // 1. RUTA DE CERCANÍA (PATRULLAJE RÁPIDO DE 5 A 8 MÁS CERCANAS)
+        // =========================================================================
+        async function ejecutarRutaCercania() {
+            var limite = parseInt(document.getElementById('rutaCercaniaCantidad').value) || 6;
+            var soloPendientes = document.getElementById('chkRutaCercaniaPendientes').checked;
+
+            var origen = (userLat && userLng) ? { lat: userLat, lng: userLng } : (puntosData.length > 0 ? { lat: puntosData[0].lat, lng: puntosData[0].lng } : { lat: 6.2442, lng: -75.5812 });
+
+            var pool = puntosData.filter(function(p) {
+                if (!p.lat || !p.lng) return false;
+                if (soloPendientes && !esElegibleParaRadar(p)) return false;
+                return true;
+            });
+
+            if (pool.length === 0) {
+                alert("No hay placas pendientes para enrutar.");
+                return;
+            }
+
+            var paradasOrdenadas = ordenarPuntosPorCercania(origen, pool, limite);
+            var coordsPaso = [origen].concat(paradasOrdenadas.map(p => ({ lat: p.lat, lng: p.lng })));
+            var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradasOrdenadas);
+
+            cerrarModalRutaCorredor();
+            trazarRutaVialEnMapa(coordsPaso, paradasOrdenadas, urlMaps, "🎯 Ronda de Cercanía (" + paradasOrdenadas.length + " placas)");
+
+            mostrarToastNotificacion("🚀 Ronda trazada. Abriendo Google Maps...");
+            setTimeout(function() {
+                window.open(urlMaps, '_blank');
+            }, 500);
+        }
+
+        // =========================================================================
+        // 2. RUTA HACIA DESTINO (CORREDOR VIAL EN EL CAMINO CON DESVÍO)
+        // =========================================================================
         async function calcularYAbrirRutaCorredor() {
             var destTexto = (document.getElementById('rutaCorredorDestino') ? document.getElementById('rutaCorredorDestino').value : '').trim();
             if (!destTexto) {
@@ -6011,7 +6219,6 @@
             }
 
             try {
-                // 1. Resolver coordenadas de Destino
                 var coordsDest = null;
                 var munDestUpper = destTexto.toUpperCase().trim();
                 if (CENTROS_MUNICIPIOS[munDestUpper]) {
@@ -6026,7 +6233,6 @@
                     return;
                 }
 
-                // 2. Resolver coordenadas de Origen
                 var coordsOrig = null;
                 if (origTexto) {
                     var munOrigUpper = origTexto.toUpperCase().trim();
@@ -6048,7 +6254,6 @@
                 var latD = coordsDest.lat;
                 var lngD = coordsDest.lng;
 
-                // 3. Evaluar placas dentro del corredor (distancia <= radioMax)
                 var candidatos = [];
                 puntosData.forEach(function(item) {
                     if (!item.lat || !item.lng) return;
@@ -6056,76 +6261,214 @@
 
                     var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
                     if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
-                        candidatos.push({
-                            item: item,
-                            dist: res.dist,
-                            t: res.t
-                        });
+                        candidatos.push({ item: item, dist: res.dist, t: res.t });
                     }
                 });
 
-                // 4. Ordenar candidatos según avance en el trayecto (t ascendente)
                 candidatos.sort(function(a, b) { return a.t - b.t; });
+                var paradas = candidatos.slice(0, 8).map(c => c.item);
 
-                // Limitar a máximo 8 waypoints para Google Maps móvil
-                var seleccionados = candidatos.slice(0, 8);
-
-                // 5. Trazar en Leaflet
-                if (lineaRutaCorredor && map.hasLayer(lineaRutaCorredor)) {
-                    map.removeLayer(lineaRutaCorredor);
-                }
-
-                var puntosPolilinea = [[latO, lngO]];
-                seleccionados.forEach(function(c) {
-                    puntosPolilinea.push([c.item.lat, c.item.lng]);
-                });
-                puntosPolilinea.push([latD, lngD]);
-
-                lineaRutaCorredor = L.polyline(puntosPolilinea, {
-                    color: '#0284c7',
-                    weight: 5,
-                    opacity: 0.85,
-                    dashArray: '8, 8',
-                    lineJoin: 'round'
-                }).addTo(map);
-
-                map.fitBounds(lineaRutaCorredor.getBounds(), { padding: [50, 50] });
+                // Destino final en Google Maps es coordsDest
+                var todasLasParadas = paradas.concat([{ lat: latD, lng: lngD, placa: 'DESTINO: ' + destTexto }]);
+                var coordsPaso = [coordsOrig].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng }))).concat([coordsDest]);
+                var urlMaps = construirUrlGoogleMapsMultiParadas(coordsOrig, todasLasParadas);
 
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
                 cerrarModalRutaCorredor();
 
-                // 6. Construir enlace a Google Maps
-                var urlGmaps = "";
-                if (seleccionados.length > 0) {
-                    var waypointsStr = seleccionados.map(function(c) {
-                        return c.item.lat + "," + c.item.lng;
-                    }).join('|');
+                trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🧭 Corredor vial hacia " + destTexto);
 
-                    urlGmaps = "https://www.google.com/maps/dir/?api=1" +
-                               "&origin=" + encodeURIComponent(latO + "," + lngO) +
-                               "&destination=" + encodeURIComponent(latD + "," + lngD) +
-                               "&waypoints=" + encodeURIComponent(waypointsStr) +
-                               "&travelmode=driving";
+                mostrarToastNotificacion("🚀 Corredor trazado con " + paradas.length + " placas en el camino.");
+                setTimeout(function() {
+                    window.open(urlMaps, '_blank');
+                }, 500);
 
-                    var placasTxt = seleccionados.map(function(c){ return c.item.placa; }).join(', ');
-                    mostrarToastNotificacion("🚗 " + seleccionados.length + " placas en tu camino (≤" + radioMax + "m): " + placasTxt, 5000);
-                } else {
-                    urlGmaps = "https://www.google.com/maps/dir/?api=1" +
-                               "&origin=" + encodeURIComponent(latO + "," + lngO) +
-                               "&destination=" + encodeURIComponent(latD + "," + lngD) +
-                               "&travelmode=driving";
-
-                    mostrarToastNotificacion("ℹ️ Ruta directa trazada hacia " + destTexto + " (no hay placas a ≤" + radioMax + "m).", 4000);
-                }
-
-                window.open(urlGmaps, '_blank');
-            } catch(err) {
+            } catch(eCorredor) {
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
-                console.error("Error ruta corredor:", err);
-                alert("Ocurrió un error calculando la ruta: " + err.message);
+                alert("Error al calcular corredor: " + eCorredor.message);
             }
         }
 
+        // =========================================================================
+        // 3. RUTA DE BARRIDO POR MUNICIPIO O SECTOR
+        // =========================================================================
+        async function ejecutarRutaMunicipio() {
+            var mun = document.getElementById('rutaMunicipioSelect').value;
+            var limite = parseInt(document.getElementById('rutaMunicipioCantidad').value) || 8;
+
+            var pool = puntosData.filter(function(p) {
+                if (!p.lat || !p.lng) return false;
+                if (!esElegibleParaRadar(p)) return false;
+                return (p.municipio || '').toUpperCase().includes(mun);
+            });
+
+            if (pool.length === 0) {
+                alert("No se encontraron placas pendientes en " + mun + ".");
+                return;
+            }
+
+            var origen = (userLat && userLng) ? { lat: userLat, lng: userLng } : (CENTROS_MUNICIPIOS[mun] || { lat: pool[0].lat, lng: pool[0].lng });
+            var paradas = ordenarPuntosPorCercania(origen, pool, limite);
+            var coordsPaso = [origen].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng })));
+            var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradas);
+
+            cerrarModalRutaCorredor();
+            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🏙️ Barrido en " + mun + " (" + paradas.length + " placas)");
+
+            mostrarToastNotificacion("🚀 Barrido en " + mun + " iniciado.");
+            setTimeout(function() { window.open(urlMaps, '_blank'); }, 500);
+        }
+
+        // =========================================================================
+        // 4. RUTA TÁCTICA: PICO Y PLACA HOY / SUBIDAS HOY
+        // =========================================================================
+        async function ejecutarRutaTactica() {
+            var criterio = document.getElementById('rutaTacticaCriterio').value;
+            var hoyStr = new Date().toISOString().split('T')[0];
+
+            var pool = puntosData.filter(function(p) {
+                if (!p.lat || !p.lng) return false;
+                if (!esElegibleParaRadar(p)) return false;
+
+                var coincidePico = !!p.pico;
+                var coincideHoy = (p.fecha === hoyStr || (p.timestamp && (Date.now() - p.timestamp) < 86400000));
+
+                if (criterio === 'pico') return coincidePico;
+                if (criterio === 'hoy') return coincideHoy;
+                return coincidePico || coincideHoy;
+            });
+
+            if (pool.length === 0) {
+                alert("No se encontraron placas con el criterio táctico seleccionado.");
+                return;
+            }
+
+            var origen = (userLat && userLng) ? { lat: userLat, lng: userLng } : { lat: pool[0].lat, lng: pool[0].lng };
+            var paradas = ordenarPuntosPorCercania(origen, pool, 8);
+            var coordsPaso = [origen].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng })));
+            var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradas);
+
+            cerrarModalRutaCorredor();
+            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "⚠️ Ruta Táctica Prioritaria (" + paradas.length + " placas)");
+
+            mostrarToastNotificacion("⚠️ Ruta táctica generada.");
+            setTimeout(function() { window.open(urlMaps, '_blank'); }, 500);
+        }
+
+        // =========================================================================
+        // 5. RUTA CIRCULAR: CIRCUITO CON RETORNO A BASE / ORIGEN
+        // =========================================================================
+        async function ejecutarRutaCircular() {
+            var baseTexto = (document.getElementById('rutaCircularBase') ? document.getElementById('rutaCircularBase').value : '').trim();
+            var limite = parseInt(document.getElementById('rutaCircularCantidad').value) || 6;
+
+            var coordsBase = null;
+            if (baseTexto) {
+                var munBaseUpper = baseTexto.toUpperCase().trim();
+                if (CENTROS_MUNICIPIOS[munBaseUpper]) {
+                    coordsBase = CENTROS_MUNICIPIOS[munBaseUpper];
+                } else {
+                    coordsBase = await obtenerCoordenadasExactasLimpias(baseTexto);
+                }
+            } else if (userLat && userLng) {
+                coordsBase = { lat: userLat, lng: userLng };
+            } else {
+                coordsBase = { lat: 6.2442, lng: -75.5812 };
+            }
+
+            var pool = puntosData.filter(function(p) {
+                return p.lat && p.lng && esElegibleParaRadar(p);
+            });
+
+            if (pool.length === 0) {
+                alert("No hay placas pendientes para generar circuito.");
+                return;
+            }
+
+            var paradas = ordenarPuntosPorCercania(coordsBase, pool, limite);
+            // Circuito cerrado: La última parada es el retorno a coordsBase
+            var paradasConRetorno = paradas.concat([{ lat: coordsBase.lat, lng: coordsBase.lng, placa: 'RETORNO A BASE' }]);
+            var coordsPaso = [coordsBase].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng }))).concat([coordsBase]);
+            var urlMaps = construirUrlGoogleMapsMultiParadas(coordsBase, paradasConRetorno);
+
+            cerrarModalRutaCorredor();
+            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🔁 Circuito Circular con Retorno a Base");
+
+            mostrarToastNotificacion("🔁 Circuito circular trazado.");
+            setTimeout(function() { window.open(urlMaps, '_blank'); }, 500);
+        }
+
+        // =========================================================================
+        // 6. MODO SIGUIENTE OBJETIVO (1 A 1 PARA MOTO)
+        // =========================================================================
+        function actualizarObjetivo1a1() {
+            if (!userLat || !userLng) {
+                var elObjPlaca = document.getElementById('obj-placa-txt');
+                var elObjDet = document.getElementById('obj-detalle-txt');
+                var elObjDist = document.getElementById('obj-dist-txt');
+                if (elObjPlaca) elObjPlaca.innerText = "GPS no activo";
+                if (elObjDet) elObjDet.innerText = "Activa el radar o la ubicación para detectar el vehículo más cercano.";
+                return;
+            }
+
+            var menorDist = Infinity;
+            var objCercano = null;
+
+            puntosData.forEach(function(item) {
+                if (!item.lat || !item.lng) return;
+                if (!esElegibleParaRadar(item)) return;
+
+                var d = calcularDistanciaMetros(userLat, userLng, item.lat, item.lng);
+                if (d < menorDist) {
+                    menorDist = d;
+                    objCercano = item;
+                }
+            });
+
+            objetivo1a1Actual = objCercano;
+
+            var elObjPlaca = document.getElementById('obj-placa-txt');
+            var elObjDet = document.getElementById('obj-detalle-txt');
+            var elObjDist = document.getElementById('obj-dist-txt');
+
+            if (objCercano) {
+                if (elObjPlaca) elObjPlaca.innerText = objCercano.placa;
+                if (elObjDet) elObjDet.innerText = (objCercano.vehiculo || 'Vehículo') + " • " + (objCercano.municipio || 'Medellín');
+                if (elObjDist) elObjDist.innerText = "📍 A solo " + Math.round(menorDist) + " metros de tu moto";
+            } else {
+                if (elObjPlaca) elObjPlaca.innerText = "Sin pendientes";
+                if (elObjDet) elObjDet.innerText = "No hay más vehículos pendientes en este momento.";
+                if (elObjDist) elObjDist.innerText = "Todo al día ✅";
+            }
+        }
+
+        function iniciarNavegacionWazeObjetivo() {
+            if (!objetivo1a1Actual) {
+                mostrarToastNotificacion("⚠️ No hay objetivo cercano detectado.");
+                return;
+            }
+            var url = "https://waze.com/ul?ll=" + objetivo1a1Actual.lat + "," + objetivo1a1Actual.lng + "&navigate=yes";
+            window.open(url, '_blank');
+        }
+
+        function iniciarNavegacionMapsObjetivo() {
+            if (!objetivo1a1Actual) {
+                mostrarToastNotificacion("⚠️ No hay objetivo cercano detectado.");
+                return;
+            }
+            var url = "https://www.google.com/maps/dir/?api=1&destination=" + objetivo1a1Actual.lat + "," + objetivo1a1Actual.lng + "&travelmode=driving";
+            window.open(url, '_blank');
+        }
+
+        function marcarObjetivoActualVisitado() {
+            if (!objetivo1a1Actual) return;
+            var pId = objetivo1a1Actual.id;
+            marcarVisitada(pId);
+            mostrarToastNotificacion("✅ " + objetivo1a1Actual.placa + " marcada. Buscando siguiente...");
+            setTimeout(actualizarObjetivo1a1, 400);
+        }
+
+        
         function encuadrarTodasLasPlacas() {
             if (puntosData.length === 0) {
                 mostrarToastNotificacion("No hay puntos en el mapa para encuadrar.");
@@ -7057,50 +7400,194 @@
 
     <!-- MODAL DE RUTA INTELIGENTE HACIA DESTINO CON PLACAS EN EL CAMINO -->
     <div id="modal-ruta-corredor" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
-        background:white; border-radius:18px; box-shadow:0 14px 45px rgba(0,0,0,0.55); z-index:10000000;
-        width:92%; max-width:420px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        background:white; border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,0.65); z-index:10000000;
+        width:94%; max-width:460px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
         
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
-            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">🧭 Ruta con Placas en el Camino</b>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">🧭 Centro de Rutas y Patrullaje Inteligente</b>
             <button onclick="cerrarModalRutaCorredor()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
         </div>
 
-        <p style="font-size:11.5px; color:#475569; margin:0 0 12px 0; line-height:1.4;">
-            Ingresa tu destino (ej. Envigado). Si en tu trayectoria pasas a <b>≤ 500 metros</b> de alguna placa registrada, se incluirá automáticamente en la ruta de Google Maps.
-        </p>
-
-        <div style="margin-bottom:10px;">
-            <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">📍 Punto de Partida / Origen:</label>
-            <input type="text" id="rutaCorredorOrigen" class="filter-search" placeholder="Mi GPS actual (o escribe ej: Bello)" style="width:100%; box-sizing:border-box;">
+        <!-- PESTAÑAS DE TIPOS DE RUTAS -->
+        <div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:6px; margin-bottom:10px; -webkit-overflow-scrolling:touch;">
+            <button type="button" id="tab-btn-ruta-cercania" onclick="cambiarTabRuta('cercania')" class="pop-btn pb-blue" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🎯 Cercanía</button>
+            <button type="button" id="tab-btn-ruta-destino" onclick="cambiarTabRuta('destino')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🧭 Destino</button>
+            <button type="button" id="tab-btn-ruta-municipio" onclick="cambiarTabRuta('municipio')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🏙️ Municipio</button>
+            <button type="button" id="tab-btn-ruta-tactica" onclick="cambiarTabRuta('tactica')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">⚠️ Táctica</button>
+            <button type="button" id="tab-btn-ruta-circular" onclick="cambiarTabRuta('circular')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🔁 Circuito</button>
+            <button type="button" id="tab-btn-ruta-siguiente" onclick="cambiarTabRuta('siguiente')" class="pop-btn pb-teal" style="margin:0; flex:1; min-width:85px; padding:6px 4px; font-size:11px; font-weight:bold; border-radius:6px; white-space:nowrap;">🏎️ 1 a 1</button>
         </div>
 
-        <div style="margin-bottom:10px;">
-            <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">🏁 Punto de Llegada / Destino Final:</label>
-            <input type="text" id="rutaCorredorDestino" class="filter-search" placeholder="Ej: Envigado, Parque Envigado, Calle 38 Sur..." style="width:100%; box-sizing:border-box;">
+        <!-- TAB 1: RONDA DE CERCANÍA (TOP MÁS CERCANAS EN ORDEN ÓPTIMO) -->
+        <div id="tab-contenido-ruta-cercania" style="display:block;">
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#1e40af; line-height:1.4;">
+                ⚡ <b>Ronda Rápida de Patrullaje:</b> Conecta las placas pendientes más cercanas a tu moto en orden eficiente para visitarlas una tras otra sin zig-zagueos.
+            </div>
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de vehículos:</span>
+                <select id="rutaCercaniaCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="4">4 placas más cercanas</option>
+                    <option value="6" selected>6 placas más cercanas</option>
+                    <option value="8">8 placas más cercanas</option>
+                </select>
+            </div>
+            <label class="filter-option" style="margin-bottom:12px;">
+                <input type="checkbox" id="chkRutaCercaniaPendientes" checked> ⏳ Solo placas pendientes (sin visitar)
+            </label>
+            <button type="button" onclick="ejecutarRutaCercania()" class="pop-btn pb-blue" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #2563eb, #1d4ed8);">
+                🚀 Generar Ruta Vial y Abrir en Google Maps
+            </button>
         </div>
 
-        <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
-            <span style="font-size:11.5px; font-weight:600; color:#334155;">Radio máximo de desvío:</span>
-            <select id="rutaCorredorRadio" style="padding:4px 8px; font-size:11px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1;">
-                <option value="300">300 metros</option>
-                <option value="500" selected>500 metros</option>
-                <option value="800">800 metros</option>
-                <option value="1000">1.000 metros (1 km)</option>
-            </select>
+        <!-- TAB 2: RUTA HACIA DESTINO (CORREDOR VIAL EN EL CAMINO) -->
+        <div id="tab-contenido-ruta-destino" style="display:none;">
+            <p style="font-size:11.5px; color:#475569; margin:0 0 10px 0; line-height:1.4;">
+                Ingresa tu destino (ej. Envigado). Si en tu trayecto pasas cerca de alguna placa registrada, se incluirá en el camino.
+            </p>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">📍 Punto de Partida / Origen:</label>
+                <input type="text" id="rutaCorredorOrigen" class="filter-search" placeholder="Mi GPS actual (o escribe ej: Bello)" style="width:100%; box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">🏁 Destino Final:</label>
+                <input type="text" id="rutaCorredorDestino" class="filter-search" placeholder="Ej: Envigado, Parque Envigado, Calle 38 Sur..." style="width:100%; box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <span style="font-size:11.5px; font-weight:600; color:#334155;">Radio máximo de desvío:</span>
+                <select id="rutaCorredorRadio" style="padding:4px 8px; font-size:11px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="300">300 metros</option>
+                    <option value="500" selected>500 metros</option>
+                    <option value="800">800 metros</option>
+                    <option value="1000">1.000 metros (1 km)</option>
+                </select>
+            </div>
+            <label class="filter-option" style="margin-bottom:12px;">
+                <input type="checkbox" id="chkRutaSoloPendientes" checked> ⏳ Solo placas pendientes (sin visitar)
+            </label>
+            <button type="button" onclick="calcularYAbrirRutaCorredor()" class="pop-btn pb-blue" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #0284c7, #0369a1);">
+                🧭 Trazar Corredor y Abrir en Google Maps
+            </button>
         </div>
 
-        <label class="filter-option" style="margin-bottom:12px;">
-            <input type="checkbox" id="chkRutaSoloPendientes" checked> ⏳ Solo placas pendientes (sin visitar)
-        </label>
+        <!-- TAB 3: BARRIDO POR MUNICIPIO O SECTOR -->
+        <div id="tab-contenido-ruta-municipio" style="display:none;">
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#166534; line-height:1.4;">
+                🏙️ <b>Barrido de Zona:</b> Filtra los vehículos de un municipio y crea el circuito de inspección vial continuo.
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">Elige el Municipio a patrullar:</label>
+                <select id="rutaMunicipioSelect" class="filter-search" style="padding:7px 10px; font-size:12px; font-weight:bold; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;">
+                    <option value="MEDELLIN">Medellín</option>
+                    <option value="BELLO">Bello</option>
+                    <option value="ITAGUI">Itagüí</option>
+                    <option value="ENVIGADO">Envigado</option>
+                    <option value="SABANETA">Sabaneta</option>
+                    <option value="LA ESTRELLA">La Estrella</option>
+                    <option value="COPACABANA">Copacabana</option>
+                    <option value="CALDAS">Caldas</option>
+                    <option value="RIONEGRO">Rionegro</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <span style="font-size:11.5px; font-weight:bold; color:#334155;">Límite de paradas:</span>
+                <select id="rutaMunicipioCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="5">5 paradas</option>
+                    <option value="8" selected>8 paradas</option>
+                </select>
+            </div>
+            <button type="button" onclick="ejecutarRutaMunicipio()" class="pop-btn pb-green" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #16a34a, #15803d);">
+                🏙️ Iniciar Barrido en Google Maps
+            </button>
+        </div>
 
-        <button onclick="calcularYAbrirRutaCorredor()" class="pop-btn pb-blue" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px;">
-            🧭 Trazar y Abrir en Google Maps
-        </button>
-        <button onclick="cerrarModalRutaCorredor()" class="pop-btn pb-teal" style="width:100%; padding:8px; font-size:11.5px; margin:0;">
-            Cancelar
+        <!-- TAB 4: RUTA TÁCTICA PICO Y PLACA / SUBIDAS HOY -->
+        <div id="tab-contenido-ruta-tactica" style="display:none;">
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#991b1b; line-height:1.4;">
+                ⚠️ <b>Alta Probabilidad:</b> Enruta vehículos que tienen restricción de Pico y Placa hoy o fueron subidos hoy (mayor probabilidad de encontrarlos estacionados).
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">Criterio de Prioridad:</label>
+                <select id="rutaTacticaCriterio" style="padding:7px 10px; font-size:12px; font-weight:bold; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="pico" selected>⚠️ Solo con Pico y Placa Hoy</option>
+                    <option value="hoy">📅 Solo Subidas Hoy</option>
+                    <option value="ambos">🔥 Ambos Criterios (Prioridad Máxima)</option>
+                </select>
+            </div>
+            <button type="button" onclick="ejecutarRutaTactica()" class="pop-btn pb-red" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #dc2626, #b91c1c);">
+                ⚠️ Generar Ruta Táctica en Google Maps
+            </button>
+        </div>
+
+        <!-- TAB 5: CIRCUITO CIRCULAR (RETORNO A BASE) -->
+        <div id="tab-contenido-ruta-circular" style="display:none;">
+            <div style="background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#6b21a8; line-height:1.4;">
+                🔁 <b>Circuito Cerrado:</b> Sales de tu base u oficina, visitas las placas y la ruta te regresa al mismo punto de partida sin repetir avenidas.
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">🏠 Punto de Base / Salida y Regreso:</label>
+                <input type="text" id="rutaCircularBase" class="filter-search" placeholder="Mi GPS actual (o escribe ej: Bello Centro)" style="width:100%; box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de paradas:</span>
+                <select id="rutaCircularCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="4">4 placas + Regreso</option>
+                    <option value="6" selected>6 placas + Regreso</option>
+                </select>
+            </div>
+            <button type="button" onclick="ejecutarRutaCircular()" class="pop-btn pb-purple" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #7c3aed, #5b21b6);">
+                🔁 Generar Circuito Circular en Google Maps
+            </button>
+        </div>
+
+        <!-- TAB 6: MODO SIGUIENTE OBJETIVO (1 A 1 PARA MOTO) -->
+        <div id="tab-contenido-ruta-siguiente" style="display:none;">
+            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#c2410c; line-height:1.4;">
+                🏎️ <b>Modo 1 a 1 para Moto:</b> No te compliques con 8 paradas juntas. La app te guía al objetivo más cercano en <b>Waze</b> o <b>Google Maps</b>. Al marcarlo como visitado, salta automáticamente al siguiente.
+            </div>
+            <div id="caja-info-objetivo-cercano" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:12px; margin-bottom:14px; text-align:center;">
+                <div style="font-size:11px; color:#64748b; font-weight:bold;">OBJETIVO INMEDIATO:</div>
+                <div id="obj-placa-txt" style="font-size:22px; font-weight:900; color:#0f172a; letter-spacing:1px; margin:4px 0;">---</div>
+                <div id="obj-detalle-txt" style="font-size:11.5px; color:#475569;">Calculando objetivo más cercano...</div>
+                <div id="obj-dist-txt" style="font-size:13px; font-weight:bold; color:#2563eb; margin-top:4px;">--</div>
+            </div>
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <button type="button" onclick="iniciarNavegacionWazeObjetivo()" class="pop-btn pb-teal" style="margin:0; flex:1; padding:10px; font-size:12px; font-weight:bold; background:#0284c7;">
+                    🏎️ Ir en Waze
+                </button>
+                <button type="button" onclick="iniciarNavegacionMapsObjetivo()" class="pop-btn pb-blue" style="margin:0; flex:1; padding:10px; font-size:12px; font-weight:bold;">
+                    🗺️ Ir en Maps
+                </button>
+            </div>
+            <button type="button" onclick="marcarObjetivoActualVisitado()" class="pop-btn pb-green" style="width:100%; padding:10px; font-size:12.5px; font-weight:bold; margin:0 0 6px 0;">
+                ✅ Marcar Visitado y Saltar al Siguiente
+            </button>
+        </div>
+
+        <button onclick="cerrarModalRutaCorredor()" class="pop-btn pb-gray" style="width:100%; padding:8px; font-size:11.5px; margin:4px 0 0 0; background:#94a3b8;">
+            Cerrar Ventana
         </button>
     </div>
 
+    <!-- HUD FLOTANTE DE RUTA ACTIVA EN EL MAPA -->
+    <div id="hud-ruta-activa" style="display:none; position:fixed; top:55px; left:50%; transform:translateX(-50%); z-index:999999;
+        background:rgba(15, 23, 42, 0.95); border:1.5px solid #00f0ff; border-radius:14px; padding:8px 14px; box-shadow:0 8px 30px rgba(0,0,0,0.6);
+        color:white; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width:92vw; width:340px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <b id="hud-ruta-titulo" style="font-size:12px; color:#38bdf8;">🛣️ Ruta Activa (Vial Real)</b>
+            <button onclick="limpiarRutaActiva()" style="background:#ef4444; border:none; color:white; border-radius:4px; font-size:10px; font-weight:bold; padding:2px 6px; cursor:pointer;" title="Limpiar ruta trazada">✖ Quitar</button>
+        </div>
+        <div id="hud-ruta-stats" style="font-size:11px; color:#e2e8f0; margin-bottom:8px;">
+            0 paradas • 0.0 km
+        </div>
+        <div style="display:flex; gap:6px;">
+            <a id="hud-btn-abrir-maps" href="#" target="_blank" style="flex:1; text-align:center; padding:7px; background:#2563eb; color:white; text-decoration:none; font-size:11px; font-weight:bold; border-radius:6px;">
+                🧭 Google Maps
+            </a>
+            <button onclick="centrarEnRutaActiva()" style="flex:1; padding:7px; background:#0f766e; color:white; border:none; font-size:11px; font-weight:bold; border-radius:6px; cursor:pointer;">
+                🗺️ Centrar Ruta
+            </button>
+        </div>
+    </div>
 
     <!-- MODAL DE GESTIÓN DE USUARIOS Y OPERADORES CON BOTÓN DE APAGADO -->
     <div id="modal-usuarios" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
