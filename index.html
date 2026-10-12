@@ -3300,7 +3300,8 @@
                         soat: soat,
                         tecnomecanica: tecno,
                         telefonos: telefonos.length > 0 ? telefonos.slice(0, 2).join(', ') : '-',
-                        direcciones: direcciones.length > 0 ? direcciones.slice(0, 4) : ['Medellin, Antioquia']
+                        direcciones: direcciones.length > 0 ? direcciones.slice(0, 4) : ['Medellin, Antioquia'],
+                        comentarios: buscarVal(['NOTAS', 'TITULAR', 'OBSERVACIONES', 'COMENTARIOS']) || ''
                     };
                 }
             });
@@ -3412,7 +3413,7 @@
                             timestamp: Date.now(),
                             visitada: false,
                             visitas: 0,
-                            comentarios: '',
+                            comentarios: v.comentarios || '',
                             foto: null
                         };
                         agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
@@ -3938,21 +3939,48 @@
                 }
 
                 if (loadingTexto) loadingTexto.innerText = "🔍 Leyendo texto, placa y direcciones...";
-                var worker = await Tesseract.createWorker('spa');
+                var worker = null;
+                try {
+                    worker = await Tesseract.createWorker('spa');
+                } catch(eSpa) {
+                    console.warn("Fallo cargando spa, intentando eng:", eSpa);
+                    worker = await Tesseract.createWorker('eng');
+                }
+                try {
+                    await worker.setParameters({
+                        tessedit_pageseg_mode: '6' // Lectura horizontal estructurada fila por fila
+                    });
+                } catch(eParam) {}
                 var ret = await worker.recognize(imgParaOcr);
                 await worker.terminate();
 
                 var rawText = ret.data.text || "";
                 var lineas = rawText.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
-                // Detectar placa si no se escribió manualmente (ej: FQX434, LRW993)
+                // Extraer nombre del cliente y cédula si proviene de consulta de centrales de riesgo
+                var titularOcr = "";
+                var mNom = rawText.match(/NOMBRES\s*APELLIDOS[\s\S]*?[:\-]\s*([A-Z\s]{4,35})/i) ||
+                           rawText.match(/(?:RAZ[OÓ]N\s*SOCIAL|CLIENTE)[\s\S]*?[:\-]\s*([A-Z\s]{4,35})/i);
+                var mCed = rawText.match(/(?:NO\.?\s*IDENTIFICACI[OÓ]N|C[EÉ]DULA)[\s\S]*?[:\-]\s*(\d{6,12})/i);
+                if (mNom || mCed) {
+                    var nTxt = mNom ? mNom[1].replace(/[\r\n]+/g, ' ').trim() : "";
+                    var cTxt = mCed ? mCed[1].trim() : "";
+                    if (nTxt && cTxt) titularOcr = nTxt + " (C.C. " + cTxt + ")";
+                    else if (nTxt) titularOcr = nTxt;
+                    else if (cTxt) titularOcr = "C.C. " + cTxt;
+                }
+
+                // Detectar placa si no se escribió manualmente (ej: FQX434, LRW993, UDS22G)
                 if (!placa) {
                     var mPlaca = rawText.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
                     if (mPlaca) {
                         placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
                     } else {
-                        // Si la foto no tiene la placa y el usuario no la escribió, solicitarla amistosamente
-                        var pIngresada = prompt("🚗 No se detectó la placa en la imagen.\nPor favor ingresa la placa del vehículo (ej: NGS697):", "");
+                        // En reportes de personas (DataCrédito/CIFIN) no viene placa en la foto: solicitarla
+                        var promptMsg = titularOcr 
+                            ? ("👤 Titular detectado: " + titularOcr + "\n🚗 Escribe la placa del vehículo asignada a este titular (ej: UDS22G):")
+                            : ("🚗 No se detectó la placa en la imagen.\nPor favor ingresa la placa del vehículo (ej: UDS22G):");
+                        var pIngresada = prompt(promptMsg, "");
                         if (pIngresada && pIngresada.trim() !== "") {
                             placa = pIngresada.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
                             if (inputPlacaEl) inputPlacaEl.value = placa;
@@ -4019,44 +4047,55 @@
                     }
 
                     // REGLAS PRECISAS DE EXTRACCIÓN DE TABLAS VEHICULARES:
-                    // 1. Omitir número de fila inicial (1, 2, 3...) y tipo (RES, LAB, RES-LAB).
-                    // 2. En la segunda fecha (ÚLTIMO REPORTE): tomar ÚNICAMENTE del AÑO 26 EN ADELANTE (>= 2026).
-                    // 3. En la columna P. ACTIVO / ESTADO: debe decir 'SI' (descartar inmediatamente si dice 'NO').
-                    // 4. Extraer dirección completa con ciudad (ej: KR 48 # 58 - 57, BELLO).
-                    // 5. Máximo 4 direcciones por placa.
+                    // 1. Normalizar OCR de tipos de vía (ej: 1V -> TV, IV -> TV, C1 -> CL, %* -> #).
+                    // 2. Analizar fechas (con 2 slashes, 1 slash o separadores alternativos).
+                    // 3. Aceptar ÚNICAMENTE si el año es >= 2026. Descartar si el año es 15..25 (< 2026).
+                    // 4. Descartar de inmediato si dice 'NO'.
+                    // 5. Extraer dirección completa con ciudad (ej: TV 18 # 7 D - 127 AP 301, ZIPAQUIRA).
 
-                    var fechas = up.match(/\b\d{1,2}\/\d{1,2}\/(\d{2,4})\b/g) || [];
-                    if (fechas.length >= 2) {
+                    // Normalizaciones de OCR
+                    up = up.replace(/\b(?:1V|IV|TY)\b/g, 'TV')
+                           .replace(/\b1V(\d+)\b/g, 'TV $1')
+                           .replace(/\bIV(\d+)\b/g, 'TV $1')
+                           .replace(/\bC1(\d+)\b/g, 'CL $1')
+                           .replace(/[%*]+/g, ' # ');
+
+                    // Extracción flexible de fechas (ej: 31/05/26, 31/05/2026, 31/0819 con 1 barra)
+                    var pDates1 = /\b(\d{1,2})\s*[\/\-\.\–]\s*(\d{1,2})\s*[\/\-\.\–]\s*(\d{2,4})\b/g;
+                    var pDates2 = /\b(\d{1,2})\s*[\/\-\.\–]\s*(\d{2})(\d{2,4})\b/g;
+
+                    var mFechas1 = [...up.matchAll(pDates1)] || [];
+                    var mFechas2 = (mFechas1.length === 0) ? ([...up.matchAll(pDates2)] || []) : [];
+                    var todasFechas = (mFechas1.length > 0) ? mFechas1 : mFechas2;
+
+                    if (todasFechas.length >= 2) {
                         // Segunda fecha: Último Reporte
-                        var ultFechaStr = fechas[1];
-                        var ultAnoMatch = ultFechaStr.match(/\d{1,2}\/\d{1,2}\/(\d{2,4})/);
-                        if (ultAnoMatch) {
-                            var yStr = ultAnoMatch[1];
-                            var ano = (yStr.length === 2) ? parseInt('20' + yStr) : parseInt(yStr);
-                            if (ano < 2026) {
-                                console.log("Omitida dirección por año < 2026 (" + ano + "):", lTrim);
-                                return; // Descartar por año anterior al 2026
-                            }
+                        var yStr = todasFechas[1][3];
+                        var ano = (yStr.length === 2) ? parseInt('20' + yStr) : parseInt(yStr);
+                        if (ano < 2026) {
+                            console.log("Omitida dirección por año < 2026 (" + ano + "):", lTrim);
+                            return; // Descartar por año anterior al 2026
                         }
 
-                        // Verificar que en P. ACTIVO (después de las fechas) diga SI y no diga NO
-                        var posSegundaFecha = up.indexOf(ultFechaStr);
-                        var textoDespues = (posSegundaFecha !== -1) ? up.substring(posSegundaFecha + ultFechaStr.length) : up;
-                        var tieneNo = /\bNO\b/.test(textoDespues);
-                        var tieneSi = /\b(?:SI|S1)\b/.test(textoDespues);
+                        // Verificar que en P. ACTIVO diga SI y no diga NO
+                        var posSegunda = todasFechas[1].index + todasFechas[1][0].length;
+                        var textoDesp = up.substring(posSegunda);
+                        var tieneNo = /\bNO\b/.test(textoDesp);
+                        var tieneSi = /\b(?:SI|S1|SL)\b/.test(textoDesp);
                         if (tieneNo && !tieneSi) {
                             console.log("Omitida dirección por estado NO:", lTrim);
-                            return; // Descartar porque dice NO
+                            return;
                         }
-                        if (!tieneSi && !tieneNo) {
-                            // Si no se encontró en el segmento posterior, revisar en toda la fila
-                            if (/\bNO\b/.test(up) && !/\b(?:SI|S1)\b/.test(up)) return;
-                        }
-                    } else if (fechas.length === 1) {
-                        var soloAnoM = fechas[0].match(/\d{1,2}\/\d{1,2}\/(\d{2,4})/);
-                        if (soloAnoM) {
-                            var anoSolo = (soloAnoM[1].length === 2) ? parseInt('20' + soloAnoM[1]) : parseInt(soloAnoM[1]);
-                            if (anoSolo < 2026) return;
+                    } else if (todasFechas.length === 1) {
+                        var ySolo = todasFechas[0][3];
+                        var anoS = (ySolo.length === 2) ? parseInt('20' + ySolo) : parseInt(ySolo);
+                        if (anoS < 2026) return;
+                        if (/\bNO\b/.test(up) && !/\b(?:SI|S1|SL)\b/.test(up)) return;
+                    } else {
+                        // Si no hay fechas detectadas pero contiene números de año vencido tipo /19, /20, /22, /25 o dice NO
+                        if (/[\/\-\s](1[5-9]|2[0-5])\b/.test(up) || /\bNO\b/.test(up)) {
+                            console.log("Omitida por año vencido o NO en texto sin fecha formal:", lTrim);
+                            return;
                         }
                     }
 
@@ -4067,33 +4106,43 @@
                         return;
                     }
 
-                    // Nomenclatura urbana colombiana: Debe tener vía principal y número
-                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|CIRC|AUTOPISTA|KM|KILOMETRO)\s*(?:SUR|NORTE|ESTE|OESTE)?\s*(\d+|[A-Z]\b)/i;
+                    // Vías colombianas (incluyendo KM rural y TV normalizada)
+                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|CIRC|AUTOPISTA|KM|KILOMETRO)\b/i;
                     var tieneVia = patronVia.test(up);
-                    var tieneNum = up.includes('#') || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up);
+                    var tieneNum = up.includes('#') || /\bKM\s*\d+\b/i.test(up) || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up) || /\bLOTE\s*\d+\b/i.test(up);
                     var esEtiquetaDir = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(lTrim);
-                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ANTIOQUIA)/i.test(up);
+                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ZIPAQUIRA|CUNDINAMARCA|NEMOCON|CHIA|SOACHA|FACATATIVA|MOSQUERA|MADRID|FUNZA|ANTIOQUIA)/i.test(up);
 
-                    if ((esEtiquetaDir || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 6) {
+                    if ((esEtiquetaDir || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 5) {
                         var noEsRuido = !['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(k => up.includes(k));
                         if (noEsRuido) {
                             // Limpiar fila de tabla:
-                            // 1. Quitar número inicial de fila y etiqueta RES/LAB/RES-LAB
-                            var dirLimpia = lTrim.replace(/^\s*\d+\s*(?:RES-LAB|RES|LAB|COM|DIR|DOM)?\s*/i, '')
-                                                 .replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '');
-                            // 2. Quitar desde la primera fecha en adelante
-                            dirLimpia = dirLimpia.replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b.*$/i, '');
-                            // 3. Quitar departamento entre paréntesis (ej: ( ANTIOQUIA ), ( CALDAS ))
+                            // 1. Quitar número inicial de fila y etiqueta RES/LAB/RES-LAB/RO
+                            var dirLimpia = up.replace(/^\s*\d+\s*(?:RES-LAB|RES|LAB|COM|DIR|DOM|RO)?\s*/i, '')
+                                              .replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '');
+
+                            // 2. Cortar ANTES de la primera fecha (evita que números tipo 31/0819 entren a la dirección)
+                            if (todasFechas.length > 0) {
+                                var idxCorte = todasFechas[0].index;
+                                if (idxCorte > 0) dirLimpia = dirLimpia.substring(0, idxCorte).trim();
+                            } else {
+                                var mCorte = dirLimpia.match(/\b\d{1,2}[\/\-\.]\d{2,4}\b/);
+                                if (mCorte && mCorte.index > 0) dirLimpia = dirLimpia.substring(0, mCorte.index).trim();
+                            }
+
+                            // 3. Quitar departamento entre paréntesis (ej: ( CUNDINAMARCA ), ( ANTIOQUIA ))
                             dirLimpia = dirLimpia.replace(/\(\s*[A-Z\s]+\s*\)/gi, '');
-                            // 4. Limpiar ruidos finales
-                            dirLimpia = dirLimpia.replace(/\b050\d+\b.*$/i, '')
-                                                 .replace(/\s+\d+\s+(?:SI|NO)\s+.*$/i, '')
-                                                 .replace(/\b(SI|S1|NO)\b/gi, '')
+
+                            // 4. Limpiar ruidos residuales de OCR (ej: oo po mi, números sueltos finales, etc.)
+                            dirLimpia = dirLimpia.replace(/\b(?:OO|PO|MI|SI|S1|SL|NO)\b/gi, '')
+                                                 .replace(/\b050\d+\b.*$/i, '')
+                                                 .replace(/\b111\d+\b.*$/i, '')
+                                                 .replace(/\b250\d+\b.*$/i, '')
                                                  .replace(/\s+/g, ' ')
                                                  .trim();
 
                             // Formatear ciudad con coma si termina con municipio conocido
-                            var mMunMatch = dirLimpia.match(/\s+(MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO)$/i);
+                            var mMunMatch = dirLimpia.match(/\s+(MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ZIPAQUIRA|NEMOCON|CHIA|SOACHA)$/i);
                             if (mMunMatch && !dirLimpia.includes(',')) {
                                 var idxMun = mMunMatch.index;
                                 dirLimpia = dirLimpia.substring(0, idxMun) + ', ' + dirLimpia.substring(idxMun).trim();
@@ -4139,7 +4188,8 @@
                                 "MODELO: " + modeloOcr + "\n" +
                                 "COLOR: " + colorOcr + "\n" +
                                 "SOAT: SI | TECNO: SI\n" +
-                                "CELULARES: " + telsTexto + "\n";
+                                "CELULARES: " + telsTexto + "\n" +
+                                (titularOcr ? ("NOTAS: Titular: " + titularOcr + "\n") : "");
 
                 if (dirsFinales.length > 0) {
                     dirsFinales.forEach(function(d, idx) {
