@@ -3824,6 +3824,7 @@
         var haloMoverPunto = null;
 
         function iniciarModoMover(markerId) {
+            if (rolUsuarioActual !== 'admin') { mostrarToastNotificacion("🔒 Modo Operador: Mover puntos está bloqueado."); return; }
             var item = puntosData.find(function(d) { return d.id === markerId; });
             if (!item) return;
 
@@ -3902,6 +3903,7 @@
         }
 
         function iniciarRecalcular(markerId) {
+            if (rolUsuarioActual !== 'admin') { mostrarToastNotificacion("🔒 Modo Operador: Recalcular está bloqueado."); return; }
             iniciarModoMover(markerId);
         }
 
@@ -4373,6 +4375,7 @@
         }
 
         function subirFotoVehiculo(placa, markerId, event) {
+            if (rolUsuarioActual !== 'admin') { mostrarToastNotificacion("🔒 Modo Operador: Subir foto bloqueado."); return; }
             var file = event.target.files[0];
             if (!file) return;
 
@@ -4476,6 +4479,7 @@
         }
 
         function eliminarEstaDireccion(markerId) {
+            if (rolUsuarioActual !== 'admin') { mostrarToastNotificacion("🔒 Modo Operador: Eliminar puntos está bloqueado."); return; }
             var itemIndex = puntosData.findIndex(function(d) { return d.id === markerId; });
             if (itemIndex !== -1) {
                 var placa = puntosData[itemIndex].placa;
@@ -4490,6 +4494,7 @@
         }
 
         function eliminarTodasDePlaca(placa) {
+            if (rolUsuarioActual !== 'admin') { mostrarToastNotificacion("🔒 Modo Operador: Eliminar vehículos está bloqueado."); return; }
             if (!placa) return;
             var placaUpper = placa.toUpperCase().trim();
             registrarPlacaEliminada(placaUpper);
@@ -5383,6 +5388,7 @@
         }
 
         function toggleEditMode(markerId) {
+            if (rolUsuarioActual !== 'admin') { mostrarToastNotificacion("🔒 Modo Operador: Edición bloqueada."); return; }
             var viewDiv = document.getElementById('view-mode-' + markerId);
             var editDiv = document.getElementById('edit-mode-' + markerId);
             if (viewDiv.style.display === 'none') {
@@ -5963,80 +5969,94 @@
         }
 
         function aplicarPermisosPorRol(rol) {
-            rolUsuarioActual = rol;
-            localStorage.setItem('ubica_rick_rol', rol);
-            var esAdmin = (rol === 'admin');
+            var esAdminReal = (usuarioOperadorActual && usuarioOperadorActual.rol === 'admin');
+            var adminEditando = esAdminReal && (modoEdicionActivo !== false);
 
-            // 1. Botón flotante para agregar placas (Solo Administrador)
+            rolUsuarioActual = adminEditando ? 'admin' : 'lector';
+            localStorage.setItem('ubica_rick_rol', rolUsuarioActual);
+
+            // 1. Botón flotante para agregar placas (Solo si es Admin y está en modo edición)
             var btnAdd = document.querySelector('.floating-btn-add');
             if (btnAdd) {
-                btnAdd.style.display = esAdmin ? 'flex' : 'none';
+                btnAdd.style.display = adminEditando ? 'flex' : 'none';
             }
 
-            // 2. Botón de Modo Edición / Modo Moto en barra superior (Solo Administrador)
+            // 2. Botón de Modo Edición / Operador en barra superior (Solo visible para Admin)
             var btnModoSeguro = document.getElementById('btn-modo-seguro');
             if (btnModoSeguro) {
-                btnModoSeguro.style.display = esAdmin ? 'inline-flex' : 'none';
+                btnModoSeguro.style.display = esAdminReal ? 'inline-flex' : 'none';
+                if (adminEditando) {
+                    btnModoSeguro.innerHTML = '🟢 Edición';
+                    btnModoSeguro.style.background = 'linear-gradient(145deg, #16a34a, #15803d)';
+                    btnModoSeguro.style.borderColor = '#22c55e';
+                    btnModoSeguro.title = 'Modo Edición ACTIVADO. Toca para pasar a Modo Operador.';
+                } else {
+                    btnModoSeguro.innerHTML = '🔒 Operador';
+                    btnModoSeguro.style.background = 'linear-gradient(145deg, #475569, #334155)';
+                    btnModoSeguro.style.borderColor = '#94a3b8';
+                    btnModoSeguro.title = 'Modo Operador Seguro activo. Toca para activar Modo Edición.';
+                }
             }
 
-            // 3. Botón Borrado Masivo en el panel de Filtros (Solo Administrador)
-            var btnBorradoMasivo = document.getElementById('btn-filtro-borrado-masivo');
+            // 3. Botón Borrado Masivo en Opciones de Carga
+            var btnBorradoMasivo = document.getElementById('btn-carga-borrado-masivo') || document.getElementById('btn-filtro-borrado-masivo');
             if (btnBorradoMasivo) {
-                btnBorradoMasivo.style.display = esAdmin ? 'block' : 'none';
+                btnBorradoMasivo.style.display = adminEditando ? 'block' : 'none';
             }
 
-            // 4. Botón Gestión de Usuarios en el panel de Filtros (Solo Administrador)
-            var btnGestionUsuarios = document.getElementById('btn-filtro-gestion-usuarios');
+            // 4. Botón Gestión de Usuarios en Configuración
+            var btnGestionUsuarios = document.getElementById('btn-config-gestion-usuarios');
             if (btnGestionUsuarios) {
-                btnGestionUsuarios.style.display = esAdmin ? 'block' : 'none';
+                btnGestionUsuarios.style.display = esAdminReal ? 'block' : 'none';
             }
 
-            // 5. Opciones en el modal de Configuración (Solo Administrador)
-            var cfgApiKey = document.getElementById('cfg-seccion-apikey');
-            if (cfgApiKey) cfgApiKey.style.display = esAdmin ? 'block' : 'none';
+            // 5. Botón Motos en Vivo en menú de filtros (Solo visible para Admin)
+            var btnMotos = document.getElementById('btn-filtro-motos') || document.getElementById('btn-top-motos');
+            if (btnMotos) {
+                btnMotos.style.display = esAdminReal ? 'block' : 'none';
+            }
 
-            var cfgBtnUsuarios = document.getElementById('btn-config-gestion-usuarios');
-            if (cfgBtnUsuarios) cfgBtnUsuarios.style.display = esAdmin ? 'block' : 'none';
+            // 6. Botón Sincronización Nube en barra superior (Solo Admin)
+            var btnCloud = document.getElementById('btn-user-cloud');
+            if (btnCloud) {
+                btnCloud.style.display = esAdminReal ? 'inline-flex' : 'none';
+            }
+
+            // 7. Opciones en el modal de Configuración (Solo Admin)
+            var cfgApiKey = document.getElementById('cfg-seccion-apikey');
+            if (cfgApiKey) cfgApiKey.style.display = esAdminReal ? 'block' : 'none';
 
             var cfgBtnSync = document.getElementById('btn-config-sync-nube');
-            if (cfgBtnSync) cfgBtnSync.style.display = esAdmin ? 'block' : 'none';
+            if (cfgBtnSync) cfgBtnSync.style.display = esAdminReal ? 'block' : 'none';
 
-            // 6. Actualizar información del usuario en Configuración
+            // 8. Info de operador en Configuración
             var cfgInfoUser = document.getElementById('cfg-info-operador');
             if (cfgInfoUser) {
                 var nom = (usuarioOperadorActual ? usuarioOperadorActual.nombre : 'Operador');
-                cfgInfoUser.innerHTML = `👤 Conectado como: <b>${nom}</b> <span style="font-size:10px; font-weight:bold; background:${esAdmin ? '#dcfce7' : '#e0f2fe'}; color:${esAdmin ? '#15803d' : '#0369a1'}; padding:1px 6px; border-radius:4px;">${esAdmin ? '👑 Admin' : '👤 Operador'}</span>`;
+                cfgInfoUser.innerHTML = `👤 Conectado como: <b>${nom}</b> <span style="font-size:10px; font-weight:bold; background:${adminEditando ? '#dcfce7' : '#e0f2fe'}; color:${adminEditando ? '#15803d' : '#0369a1'}; padding:1px 6px; border-radius:4px;">${adminEditando ? '👑 Admin' : '👤 Operador'}</span>`;
             }
 
-            // 7. Actualizar badge de perfil en la barra superior
+            // 9. Badge de perfil en la barra superior
             var badgePerfil = document.getElementById('badge-perfil-activo');
             var badgeIcono = document.getElementById('badge-perfil-icono');
             var badgeNombre = document.getElementById('badge-perfil-nombre');
-            var btnCloud = document.getElementById('btn-user-cloud');
 
             if (badgePerfil && badgeNombre && badgeIcono) {
-                var nomActivo = (usuarioOperadorActual ? usuarioOperadorActual.nombre : (esAdmin ? 'Admin' : 'Operador'));
+                var nomActivo = (usuarioOperadorActual ? usuarioOperadorActual.nombre : (adminEditando ? 'Admin' : 'Operador'));
                 badgeNombre.textContent = nomActivo;
-                badgeIcono.textContent = esAdmin ? '👑' : '👤';
-                badgePerfil.style.borderColor = esAdmin ? '#22c55e' : '#38bdf8';
-                badgePerfil.style.background = esAdmin ? 'linear-gradient(135deg, #064e3b, #0f172a)' : 'linear-gradient(135deg, #0c4a6e, #0f172a)';
+                badgeIcono.textContent = adminEditando ? '👑' : '👤';
+                badgePerfil.style.borderColor = adminEditando ? '#22c55e' : '#38bdf8';
+                badgePerfil.style.background = adminEditando ? 'linear-gradient(135deg, #064e3b, #0f172a)' : 'linear-gradient(135deg, #0c4a6e, #0f172a)';
             }
 
-            // Ocultar botón Nube para operadores
-            if (btnCloud) {
-                btnCloud.style.display = esAdmin ? 'inline-flex' : 'none';
-            }
-            var btnMotos = document.getElementById('btn-filtro-motos') || document.getElementById('btn-top-motos');
-            if (btnMotos) {
-                btnMotos.style.display = esAdmin ? 'inline-flex' : 'none';
-            }
-
-            actualizarBotonModoSeguroUI();
             actualizarUIAuth(usuarioActual);
 
-            // Refrescar fichas de los carros para reflejar permisos (editar/mover solo admin)
+            // 10. Refrescar TODOS los marcadores en el mapa: deshabilitar arrastre y ocultar botones de edición
             puntosData.forEach(function(p) {
                 if (p.marker) {
+                    if (p.marker.dragging) {
+                        p.marker.dragging.disable();
+                    }
                     p.marker.setPopupContent(generarContenidoPopup(p, p.id));
                 }
             });
