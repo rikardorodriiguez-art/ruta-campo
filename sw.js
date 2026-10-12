@@ -1,27 +1,32 @@
 // Service Worker para UBICA-RICK PWA
-// Versión v15 - Network First con soporte para iconos y manifest PWA
-const CACHE_NAME = 'ubica-rick-v21';
+const CACHE_NAME = 'ubica-rick-v22';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './ruta_campo_raptor.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './favicon.png',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+  './favicon.png'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
-        console.warn('Advertencia precaching SW:', err);
-      });
+      // Usar Promise.allSettled para que si algún archivo secundario no existe aún, NO rompa la instalación
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((url) => {
+          return fetch(url).then((res) => {
+            if (res && res.status === 200) {
+              return cache.put(url, res);
+            }
+          }).catch((err) => {
+            console.warn('Precache opcional omitido:', url);
+          });
+        })
+      );
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -30,18 +35,18 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('Limpiando caché antigua:', key);
+            console.log('Limpiando cache antigua:', key);
             return caches.delete(key);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (!event.request.url.startsWith('http')) return;
 
   event.respondWith(
     fetch(event.request)

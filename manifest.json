@@ -1,7 +1,8 @@
 {
-  "name": "UBICA-RICK - Sistema de Ruta y Rastreo",
+  "id": "./index.html",
+  "name": "UBICA-RICK",
   "short_name": "UBICA-RICK",
-  "description": "Aplicación táctica de rastreo de vehículos, verificación de direcciones y navegación para trabajo de campo en Colombia",
+  "description": "Control de Ruta, Rastreo y Verificación de Vehículos",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -13,13 +14,31 @@
       "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
