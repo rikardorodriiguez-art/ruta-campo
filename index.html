@@ -614,6 +614,8 @@
             <span class="kpi-item">✅ <span id="kpi-vis" class="text-vis">0</span></span>
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
+            <span class="kpi-sep">|</span>
+            <span class="kpi-item" title="Vehículos con Foto Adjunta">📸 <span id="kpi-foto" style="color:#f59e0b;">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
             <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.2</span>
         </div>
@@ -884,10 +886,11 @@
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
 
-        <!-- SECCIÓN 2: INGRESO MANUAL -->
+        <!-- SECCIÓN 2: INGRESO MANUAL CON HASTA 4 DIRECCIONES -->
         <div id="seccion-manual" class="sub-panel">
-            <b style="font-size: 11px; color:#8e44ad;">Ingreso Directo / Coordenadas:</b>
-            <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
+            <b style="font-size: 11.5px; color:#8e44ad;">✍️ Ingreso Manual de Vehículo:</b>
+            <div id="manAvisoExistente" style="display:none; background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:6px 8px; font-size:11px; color:#92400e; margin:6px 0; line-height:1.35;"></div>
+            <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)" oninput="autoCompletarVehiculoManual(this.value)">
             <input type="text" id="manMarca" placeholder="Marca (ej: SUZUKI, RENAULT)">
             <input type="text" id="manLinea" placeholder="Línea (ej: SWIFT, LOGAN)">
             <div style="display:flex; gap:5px;">
@@ -899,10 +902,20 @@
                 <input type="text" id="manTecno" placeholder="Tecno (SI/NO)" style="flex:1;">
             </div>
             <input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
-            <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
+
+            <div style="margin-top:6px; border-top:1px dashed #cbd5e1; padding-top:6px;">
+                <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">📍 Direcciones del Vehículo (Hasta 4):</label>
+                <input type="text" id="manDir" placeholder="Dirección 1 (Principal o Coordenadas)">
+                <input type="text" id="manDir2" placeholder="Dirección 2 (Opcional)">
+                <input type="text" id="manDir3" placeholder="Dirección 3 (Opcional)">
+                <input type="text" id="manDir4" placeholder="Dirección 4 (Opcional)">
+            </div>
             
-            <div style="margin-bottom:8px; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+            <div style="margin-bottom:8px; margin-top:6px; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
                 <label style="font-size:11px; font-weight:bold; color:#2c3e50; display:block; margin-bottom:4px;">📸 Adjuntar Foto del Vehículo (Cámara / Galería):</label>
+                <div id="manFotoInfoExistente" style="display:none; font-size:10.5px; color:#15803d; font-weight:bold; margin-bottom:4px;">
+                    ✅ Foto previa copiada automáticamente del vehículo.
+                </div>
                 <input type="file" id="manFoto" accept="image/*" style="font-size:11px; width:100%;">
             </div>
 
@@ -1009,6 +1022,7 @@
         </div>
         <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Con Pico y Placa</label>
         <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
+        <label class="filter-option"><input type="checkbox" id="chkFoto" checked onchange="actualizarFiltros()"> 📸 Con Foto (Prioritarias)</label>
         <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
@@ -2565,26 +2579,36 @@
             var objP = (typeof p === 'object') ? p : { placa: p };
             var info = obtenerColorPorAntiguedad(objP, esVisitada);
 
-            var estiloBorde = esVisitada ? '2px solid #86efac' : '3px solid ' + info.borde;
-            var estiloBg = esVisitada ? '#f0fdf4' : info.bg;
-            var colorTxt = esVisitada ? '#166534' : '#0f172a';
+            var tieneFoto = !!(objP.foto);
+
+            var estiloBorde = esVisitada ? '2px solid #86efac' : (tieneFoto ? '3px solid #f59e0b' : '3px solid ' + info.borde);
+            var estiloBg = esVisitada ? '#f0fdf4' : (tieneFoto ? '#fffbeb' : info.bg);
+            var colorTxt = esVisitada ? '#166534' : (tieneFoto ? '#78350f' : '#0f172a');
+            var sombraExtra = tieneFoto 
+                ? 'box-shadow: 0 4px 16px rgba(245, 158, 11, 0.75), 0 0 10px rgba(245, 158, 11, 0.55);' 
+                : 'box-shadow: 0 4px 12px rgba(0,0,0,0.35);';
 
             // Gestión de evidencias: primera letra del visitador (ej. [S]) y conteo de visitas
             var inicial = (objP.gestorInicial || (objP.gestor ? objP.gestor.charAt(0) : '')) ? (objP.gestorInicial || objP.gestor.charAt(0)).toUpperCase() : '✔';
             var numVisitas = objP.visitas || 1;
             var etiquetaVisitas = numVisitas > 1 ? '<span style="font-size:9.5px; color:#15803d; font-weight:900; margin-left:3px;">(' + numVisitas + 'v)</span>' : '';
 
+            var badgeFoto = tieneFoto 
+                ? '<span style="background:linear-gradient(135deg, #f59e0b, #d97706); color:white; font-size:9px; padding:1px 4px; border-radius:10px; margin-left:4px; font-weight:900; box-shadow:0 0 8px rgba(245,158,11,0.85); display:inline-flex; align-items:center; vertical-align:middle;" title="Vehículo con Foto Adjunta">📸</span>' 
+                : '';
+
             var dotHtml = esVisitada 
                 ? '<span style="color:#ffffff; background:#16a34a; font-weight:900; font-size:10px; width:16px; height:16px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-right:4px; text-transform:uppercase; box-shadow:0 0 5px rgba(22,163,74,0.6); flex-shrink:0;" title="Visitado por [' + inicial + '] (' + numVisitas + ' ' + (numVisitas === 1 ? 'vez' : 'veces') + ')">' + inicial + '</span>'
-                : '<span style="width:8px; height:8px; background:' + info.color + '; border-radius:50%; margin-right:5px; flex-shrink:0; box-shadow:0 0 6px ' + info.color + ';"></span>';
+                : '<span style="width:8px; height:8px; background:' + (tieneFoto ? '#f59e0b' : info.color) + '; border-radius:50%; margin-right:5px; flex-shrink:0; box-shadow:0 0 6px ' + (tieneFoto ? '#f59e0b' : info.color) + ';"></span>';
 
             return '<div style="position: relative; display: inline-flex; justify-content: center; align-items: center; cursor: pointer;">' +
-                   '<div style="background: ' + estiloBg + '; border: ' + estiloBorde + '; padding: 3px 9px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); font-family: Arial, sans-serif; font-weight: 900; font-size: 11.5px; color: ' + colorTxt + '; white-space: nowrap; min-width: 80px; box-sizing: border-box;">' +
+                   '<div style="background: ' + estiloBg + '; border: ' + estiloBorde + '; padding: 3px 9px; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; ' + sombraExtra + ' font-family: Arial, sans-serif; font-weight: 900; font-size: 11.5px; color: ' + colorTxt + '; white-space: nowrap; min-width: 80px; box-sizing: border-box;">' +
                    dotHtml +
                    '<span style="letter-spacing: 0.5px; line-height: 1;">' + placa + '</span>' +
+                   badgeFoto +
                    (esVisitada ? etiquetaVisitas : '') +
                    '</div>' +
-                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid ' + (esVisitada ? '#86efac' : info.borde) + ';"></div>' +
+                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid ' + (esVisitada ? '#86efac' : (tieneFoto ? '#f59e0b' : info.borde)) + ';"></div>' +
                    '<div style="position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #ffffff;"></div>' +
                    '</div>';
         }
@@ -3380,9 +3404,54 @@
         }
 
         // PROCESAR MANUAL
+        function autoCompletarVehiculoManual(val) {
+            var pl = (val || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+            var avisoEl = document.getElementById('manAvisoExistente');
+            var fotoInfoEl = document.getElementById('manFotoInfoExistente');
+
+            if (pl.length < 5) {
+                if (avisoEl) avisoEl.style.display = 'none';
+                if (fotoInfoEl) fotoInfoEl.style.display = 'none';
+                return;
+            }
+
+            var existente = puntosData.find(function(p) {
+                return p.placa && p.placa.toUpperCase().trim() === pl;
+            });
+
+            if (existente) {
+                if (avisoEl) {
+                    avisoEl.style.display = 'block';
+                    avisoEl.innerHTML = `ℹ️ <b>Placa ${pl} ya activa en el sistema:</b> Se copiarán sus datos ${existente.foto ? 'y foto 📸' : ''} automáticamente. Ingresa la(s) nueva(s) dirección(es) para agregar otro punto.`;
+                }
+                if (existente.foto && fotoInfoEl) {
+                    fotoInfoEl.style.display = 'block';
+                }
+
+                // Autollenar datos si están vacíos
+                var inMarca = document.getElementById('manMarca');
+                var inLinea = document.getElementById('manLinea');
+                var inModelo = document.getElementById('manModelo');
+                var inColor = document.getElementById('manColor');
+                var inTel = document.getElementById('manTel');
+                var inSoat = document.getElementById('manSoat');
+                var inTecno = document.getElementById('manTecno');
+
+                if (inMarca && (!inMarca.value || inMarca.value === '-')) inMarca.value = existente.marca !== '-' ? existente.marca : '';
+                if (inLinea && (!inLinea.value || inLinea.value === '-')) inLinea.value = existente.linea !== '-' ? existente.linea : '';
+                if (inModelo && (!inModelo.value || inModelo.value === '-')) inModelo.value = existente.modelo !== '-' ? existente.modelo : '';
+                if (inColor && (!inColor.value || inColor.value === '-')) inColor.value = existente.color !== '-' ? existente.color : '';
+                if (inTel && (!inTel.value || inTel.value === '-')) inTel.value = existente.telefonos !== '-' ? existente.telefonos : '';
+                if (inSoat && existente.soat) inSoat.value = existente.soat;
+                if (inTecno && existente.tecnomecanica) inTecno.value = existente.tecnomecanica;
+            } else {
+                if (avisoEl) avisoEl.style.display = 'none';
+                if (fotoInfoEl) fotoInfoEl.style.display = 'none';
+            }
+        }
+
         async function procesarManual() {
             var inputPlacaEl = document.getElementById('manPlaca');
-            var inputDirEl = document.getElementById('manDir');
             var placa = (inputPlacaEl ? inputPlacaEl.value : "").toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
             var marca = (document.getElementById('manMarca') ? document.getElementById('manMarca').value.trim() : "") || "-";
             var linea = (document.getElementById('manLinea') ? document.getElementById('manLinea').value.trim() : "") || "-";
@@ -3391,60 +3460,59 @@
             var msoat = (document.getElementById('manSoat') ? document.getElementById('manSoat').value.trim().toUpperCase() : "") || "SI";
             var mtecno = (document.getElementById('manTecno') ? document.getElementById('manTecno').value.trim().toUpperCase() : "") || "SI";
             var mtel = (document.getElementById('manTel') ? document.getElementById('manTel').value.trim() : "") || "-";
-            var dir = (inputDirEl ? inputDirEl.value : "").trim();
-            
-            if(!placa) { alert("Por favor ingresa la Placa."); return; }
-            if(!dir) { alert("Ingresa la dirección o coordenadas (lat, lng)."); return; }
 
-            // Comprobar si la placa ya se encuentra activa en el sistema
-            var yaActivaManual = puntosData.some(function(pd) {
+            var d1 = (document.getElementById('manDir') ? document.getElementById('manDir').value : "").trim();
+            var d2 = (document.getElementById('manDir2') ? document.getElementById('manDir2').value : "").trim();
+            var d3 = (document.getElementById('manDir3') ? document.getElementById('manDir3').value : "").trim();
+            var d4 = (document.getElementById('manDir4') ? document.getElementById('manDir4').value : "").trim();
+
+            var listaDirecciones = [d1, d2, d3, d4].filter(function(d){ return d && d.length > 0; });
+
+            if(!placa) { alert("Por favor ingresa la Placa."); return; }
+            if(listaDirecciones.length === 0) { alert("Ingresa al menos una dirección o coordenadas (lat, lng)."); return; }
+
+            // Buscar si la placa ya existe en el sistema para heredar datos y foto
+            var vehiculoExistente = puntosData.find(function(pd) {
                 return pd.placa && pd.placa.toUpperCase().trim() === placa;
             });
-            if (yaActivaManual) {
-                alert("⚠️ La placa " + placa + " ya está activa en el sistema.");
-                mostrarToastNotificacion("⚠️ La placa " + placa + " ya está activa en el sistema.");
-                return;
+
+            if (vehiculoExistente) {
+                if (!marca || marca === '-') marca = vehiculoExistente.marca || '-';
+                if (!linea || linea === '-') linea = vehiculoExistente.linea || '-';
+                if (!modelo || modelo === '-') modelo = vehiculoExistente.modelo || '-';
+                if (!color || color === '-') color = vehiculoExistente.color || '-';
+                if (!msoat || msoat === 'SI') msoat = vehiculoExistente.soat || 'SI';
+                if (!mtecno || mtecno === 'SI') mtecno = vehiculoExistente.tecnomecanica || 'SI';
+                if (!mtel || mtel === '-') mtel = vehiculoExistente.telefonos || '-';
             }
 
-            // Verificación en historial de placas eliminadas
-            var infoElim = consultarPlacaEliminada(placa);
-            if (infoElim) {
-                var deseaVolver = confirm("⚠️ ESTA PLACA YA FUE ELIMINADA ANTERIORMENTE:\n\n" +
-                    "Placa: " + placa + "\n" +
-                    "Fecha y hora de eliminación: " + infoElim.fechaHora + "\n\n" +
-                    "¿Deseas volver a agregarla?");
-                if (!deseaVolver) {
-                    mostrarToastNotificacion("🚫 Placa " + placa + " omitida.");
-                    return;
+            // Verificación en historial de eliminadas solo si es nueva
+            if (!vehiculoExistente) {
+                var infoElim = consultarPlacaEliminada(placa);
+                if (infoElim) {
+                    var deseaVolver = confirm("⚠️ ESTA PLACA YA FUE ELIMINADA ANTERIORMENTE:\n\n" +
+                        "Placa: " + placa + "\n" +
+                        "Fecha y hora de eliminación: " + infoElim.fechaHora + "\n\n" +
+                        "¿Deseas volver a agregarla?");
+                    if (!deseaVolver) {
+                        mostrarToastNotificacion("🚫 Placa " + placa + " omitida.");
+                        return;
+                    }
+                    removerDeHistorialEliminadas(placa);
                 }
-                removerDeHistorialEliminadas(placa);
             }
 
             var loadingOverlay = document.getElementById('loading-overlay');
             var loadingTexto = document.getElementById('loading-texto');
             if (loadingOverlay) {
                 loadingOverlay.style.display = 'flex';
-                if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando punto...";
+                if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando dirección(es)...";
             }
 
             try {
-                // Placa nueva a registrar
                 placasRegistradas[placa] = true;
-                
-                var coords = null;
-                // Detección directa si ya son coordenadas (ej: 6.23699, -75.56078)
-                var mCoord = dir.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
-                if (mCoord) {
-                    var latD = parseFloat(mCoord[1]);
-                    var lngD = parseFloat(mCoord[2]);
-                    if (latD >= -5 && latD <= 13 && lngD >= -82 && lngD <= -66) {
-                        coords = { lat: latD, lng: lngD };
-                    }
-                }
-                if (!coords) {
-                    coords = await obtenerCoordenadasExactasLimpias(dir);
-                }
 
+                // Manejo de foto: nueva o heredada del vehículo existente
                 var fotoAdjunta = null;
                 var inputFoto = document.getElementById('manFoto');
                 if (inputFoto && inputFoto.files && inputFoto.files[0]) {
@@ -3454,33 +3522,109 @@
                             resolve(b64);
                         });
                     });
+                } else if (vehiculoExistente && vehiculoExistente.foto) {
+                    fotoAdjunta = vehiculoExistente.foto;
                 }
 
-                var nuevoPunto = {
-                    placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel, 
-                    soat: msoat, tecnomecanica: mtecno,
-                    lat: coords.lat, lng: coords.lng, dir: dir, dirOriginal: dir, dirAjustada: null,
-                    fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(), visitada: false, visitas: 0,
-                    comentarios: "",
-                    foto: fotoAdjunta
-                };
+                var agregadasNuevas = 0;
+                var repetidasOmitidas = 0;
+                var ultimaCoords = null;
 
-                agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
-                map.setView([coords.lat, coords.lng], 16);
-                
-                // Limpiar campos del formulario
+                for (var idxDir = 0; idxDir < listaDirecciones.length; idxDir++) {
+                    var d = listaDirecciones[idxDir];
+                    var kDirNueva = normalizarClaveAprendizaje(d, '');
+
+                    // Comprobar si esta dirección específica ya existe para esta placa
+                    var yaExisteDir = puntosData.some(function(pd) {
+                        if (pd.placa.toUpperCase().trim() !== placa) return false;
+                        return normalizarClaveAprendizaje(pd.dirOriginal || pd.dir, '') === kDirNueva;
+                    });
+
+                    if (yaExisteDir) {
+                        repetidasOmitidas++;
+                        continue;
+                    }
+
+                    if (loadingTexto) loadingTexto.innerText = "🎯 Geocodificando (" + d.slice(0, 22) + "...)...";
+
+                    var coords = null;
+                    var mCoord = d.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                    if (mCoord) {
+                        var latD = parseFloat(mCoord[1]);
+                        var lngD = parseFloat(mCoord[2]);
+                        if (latD >= -5 && latD <= 13 && lngD >= -82 && lngD <= -66) {
+                            coords = { lat: latD, lng: lngD };
+                        }
+                    }
+                    if (!coords) {
+                        coords = await obtenerCoordenadasExactasLimpias(d);
+                    }
+
+                    // Comprobar si ya existe un punto para esta placa a menos de 70 metros
+                    var yaCerca = puntosData.some(function(pd) {
+                        if (pd.placa.toUpperCase().trim() !== placa) return false;
+                        return map.distance([pd.lat, pd.lng], [coords.lat, coords.lng]) < 70;
+                    });
+                    if (yaCerca) {
+                        repetidasOmitidas++;
+                        continue;
+                    }
+
+                    var munDetectManual = detectarMunicipioEnTexto(d, parsearNomenclaturaColombiana(d));
+                    var nuevoPunto = {
+                        placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel,
+                        soat: msoat, tecnomecanica: mtecno,
+                        lat: coords.lat, lng: coords.lng, dir: d, dirOriginal: d, dirAjustada: null,
+                        municipio: munDetectManual ? munDetectManual.nombre : 'MEDELLIN',
+                        fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(), visitada: false, visitas: 0,
+                        comentarios: "",
+                        foto: fotoAdjunta
+                    };
+
+                    agregarMarcadorAlMapa(nuevoPunto, puntosData.length + 1, true);
+                    agregadasNuevas++;
+                    ultimaCoords = coords;
+                }
+
+                guardarPuntosStorage();
+                actualizarKPIs();
+                actualizarPanelCercano();
+
+                if (ultimaCoords) {
+                    map.setView([ultimaCoords.lat, ultimaCoords.lng], 16);
+                }
+
+                // Limpiar formulario
                 if (inputPlacaEl) inputPlacaEl.value = '';
-                if (inputDirEl) inputDirEl.value = '';
                 if (document.getElementById('manMarca')) document.getElementById('manMarca').value = '';
                 if (document.getElementById('manLinea')) document.getElementById('manLinea').value = '';
                 if (document.getElementById('manModelo')) document.getElementById('manModelo').value = '';
                 if (document.getElementById('manColor')) document.getElementById('manColor').value = '';
                 if (document.getElementById('manTel')) document.getElementById('manTel').value = '';
+                if (document.getElementById('manDir')) document.getElementById('manDir').value = '';
+                if (document.getElementById('manDir2')) document.getElementById('manDir2').value = '';
+                if (document.getElementById('manDir3')) document.getElementById('manDir3').value = '';
+                if (document.getElementById('manDir4')) document.getElementById('manDir4').value = '';
                 if (inputFoto) inputFoto.value = '';
+                var avisoEl = document.getElementById('manAvisoExistente');
+                if (avisoEl) avisoEl.style.display = 'none';
+                var fotoInfoEl = document.getElementById('manFotoInfoExistente');
+                if (fotoInfoEl) fotoInfoEl.style.display = 'none';
 
                 cerrarSecciones();
-                mostrarToastNotificacion("✅ Vehículo " + placa + " agregado exitosamente.");
-                actualizarPanelCercano();
+
+                if (vehiculoExistente) {
+                    if (agregadasNuevas > 0) {
+                        alert("✅ Placa " + placa + ": Se agregaron " + agregadasNuevas + " nueva(s) dirección(es) conservando los datos y foto 📸 del vehículo." + (repetidasOmitidas > 0 ? " (" + repetidasOmitidas + " ya registrada(s) omitida(s))." : ""));
+                        mostrarToastNotificacion("✅ " + agregadasNuevas + " nueva(s) dirección(es) para " + placa);
+                    } else {
+                        alert("⚠️ La placa " + placa + " ya tiene registrada(s) esa(s) misma(s) dirección(es) en el sistema.");
+                    }
+                } else {
+                    if (agregadasNuevas > 0) {
+                        mostrarToastNotificacion("✅ Vehículo " + placa + " agregado con " + agregadasNuevas + " ubicación(es).");
+                    }
+                }
             } catch(errManual) {
                 console.error("Error en procesarManual:", errManual);
                 alert("⚠️ Error al registrar el vehículo: " + (errManual.message || errManual));
@@ -4806,21 +4950,25 @@
             var pend = total - vis;
             var hoy = 0;
             var pico = 0;
+            var conFoto = 0;
 
             puntosData.forEach(function(p) {
                 if (p.esHoy) hoy++;
                 if (p.pico) pico++;
+                if (p.foto) conFoto++;
             });
 
             var elTotal = document.getElementById('kpi-total');
             var elPend = document.getElementById('kpi-pend') || document.getElementById('kpi-hoy');
             var elVis = document.getElementById('kpi-vis') || document.getElementById('kpi-visitadas');
             var elPico = document.getElementById('kpi-pico');
+            var elFoto = document.getElementById('kpi-foto');
 
             if (elTotal) elTotal.innerText = total;
             if (elPend) elPend.innerText = pend;
             if (elVis) elVis.innerText = vis;
             if (elPico) elPico.innerText = pico;
+            if (elFoto) elFoto.innerText = conFoto;
         }
 
         function actualizarFiltros() {
@@ -4828,6 +4976,7 @@
             var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
             var verPico = document.getElementById('chkPico').checked;
             var verHoy = document.getElementById('chkHoy').checked;
+            var verFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : true;
             var verTodas = document.getElementById('chkTodas').checked;
             var ocultarVisitadas = document.getElementById('chkSoloPendientes').checked;
 
@@ -4864,7 +5013,8 @@
                 } else {
                     if (verPico && item.pico) pasaFiltroEstado = true;
                     if (verHoy && item.esHoy) pasaFiltroEstado = true;
-                    if (!verPico && !verHoy) pasaFiltroEstado = false;
+                    if (verFoto && item.foto) pasaFiltroEstado = true;
+                    if (!verPico && !verHoy && !verFoto) pasaFiltroEstado = false;
                 }
 
                 if (coincideBusqueda && pasaFiltroEstado) {
@@ -7194,10 +7344,13 @@
 
                 var coincidePico = !!p.pico;
                 var coincideHoy = (p.fecha === hoyStr || (p.timestamp && (Date.now() - p.timestamp) < 86400000));
+                var coincideFoto = !!p.foto;
 
+                if (criterio === 'foto') return coincideFoto;
                 if (criterio === 'pico') return coincidePico;
                 if (criterio === 'hoy') return coincideHoy;
-                return coincidePico || coincideHoy;
+                if (criterio === 'prioritarias') return coincideFoto || coincidePico || coincideHoy;
+                return coincideFoto || coincidePico || coincideHoy;
             });
 
             if (pool.length === 0) {
@@ -8408,9 +8561,10 @@
             <div style="margin-bottom:12px;">
                 <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">Criterio de Prioridad:</label>
                 <select id="rutaTacticaCriterio" style="padding:7px 10px; font-size:12px; font-weight:bold; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:white;">
-                    <option value="pico" selected>⚠️ Solo con Pico y Placa Hoy</option>
+                    <option value="foto" selected>📸 Con Foto del Vehículo (Prioridad Alta)</option>
+                    <option value="pico">⚠️ Con Pico y Placa Hoy</option>
                     <option value="hoy">📅 Solo Subidas Hoy</option>
-                    <option value="ambos">🔥 Ambos Criterios (Prioridad Máxima)</option>
+                    <option value="prioritarias">🔥 Todas Prioritarias (Foto + Pico y Placa + Hoy)</option>
                 </select>
             </div>
             <button type="button" onclick="ejecutarRutaTactica()" class="pop-btn pb-red" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #dc2626, #b91c1c);">
