@@ -627,6 +627,12 @@
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
             <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Ingresar / Sincronizar cuenta Nube">☁️ Nube</button>
             <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
+            <!-- BOTONES DE LA SUITE TÁCTICA AVANZADA -->
+            <button id="btn-top-sos" class="btn-top-action" onclick="activarBotonPanicoSOS()" style="background: linear-gradient(145deg, #dc2626, #991b1b); border-color: #ef4444; font-weight:900;" title="Alerta de Emergencia / SOS a la base">🚨 SOS</button>
+            <button id="btn-top-modo-noche" class="btn-top-action" onclick="toggleModoNocturnoAmoled()" style="background: linear-gradient(145deg, #1e293b, #0f172a); border-color: #475569;" title="Modo Nocturno / Batería Extrema AMOLED">🌙 Noche</button>
+            <button id="btn-top-calor" class="btn-top-action" onclick="toggleMapaCalor()" style="background: linear-gradient(145deg, #ea580c, #c2410c); border-color: #fb923c;" title="Ver Mapa de Calor / Concentración de Placas">🔥 Calor</button>
+            <button id="btn-top-motos" class="btn-top-action" onclick="toggleCapaMotosEnVivo()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8; display:none;" title="Ver ubicación en vivo de los motorizados">🏍️ Motos</button>
+            <button id="btn-top-reporte" class="btn-top-action" onclick="abrirModalCierreTurno()" style="background: linear-gradient(145deg, #059669, #047857); border-color: #34d399;" title="Generar Informe Operativo / Cierre de Turno">📑 Reporte</button>
             <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
         </div>
     </div>
@@ -991,6 +997,8 @@
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
             <button onclick="forzarSincronizacionNubePuntos()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Descargar o sincronizar todas las placas del equipo">☁️ Sincronizar Placas con la Nube</button>
+            <button onclick="abrirModalImportarExcel()" class="pop-btn pb-purple" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #10b981, #059669);" title="Cargar lote de placas desde archivo Excel o CSV">📥 Importar Placas desde Excel (.xlsx)</button>
+            <button onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
             <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
             <button id="btn-filtro-borrado-masivo" onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
@@ -1000,6 +1008,10 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- SHEETJS PARA IMPORTAR EXCEL (.XLSX, .XLS, .CSV) Y GENERAR REPORTES -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- LEAFLET.HEAT PARA MAPA DE CALOR DE DENSIDAD DE PLACAS -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
     <!-- FIREBASE COMPAT SDK (SINCRONIZACIÓN NUBE Y USUARIOS) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -1388,6 +1400,649 @@
 
             var horasTranscurridas = (ahora - tsVisita) / (1000 * 60 * 60);
             return horasTranscurridas >= 3.0; // 3 horas o más
+        }
+
+        
+        // =========================================================================
+        // SUITE TÁCTICA AVANZADA: GEOCERCA, MOTOS EN VIVO, SOS, EXCEL, HEATMAP Y AMOLED
+        // =========================================================================
+        var placaEnGeocercaActual = null;
+        var geocercasPospuestas = {};
+        var capaMotosEnVivo = null;
+        var mostrandoMotosEnVivo = false;
+        var alertaSosActivaObj = null;
+        var filasExcelParsed = [];
+        var capaHeatmap = null;
+        var mostrandoHeatmap = false;
+        var modoNocturnoActivo = false;
+        var capaTilesNocturna = null;
+
+        // -------------------------------------------------------------------------
+        // 1. AUTO-DETECCIÓN DE LLEGADA POR GEOCERCA (≤ 35 METROS)
+        // -------------------------------------------------------------------------
+        function verificarGeocercaLlegada(latActual, lngActual) {
+            if (!latActual || !lngActual || puntosData.length === 0) return;
+
+            var ahora = Date.now();
+            var mejorItem = null;
+            var menorDist = Infinity;
+            if (userLat && userLng) {
+                verificarGeocercaLlegada(userLat, userLng);
+            }
+
+            puntosData.forEach(function(p) {
+                if (!p.lat || !p.lng || p.visitada) return;
+                // Si fue pospuesta recientemente (menos de 8 minutos), omitir
+                if (geocercasPospuestas[p.id] && (ahora - geocercasPospuestas[p.id]) < 480000) return;
+
+                var d = calcularDistancia(latActual, lngActual, p.lat, p.lng);
+                if (d <= 35.0 && d < menorDist) {
+                    menorDist = d;
+                    mejorItem = p;
+                }
+            });
+
+            var banner = document.getElementById('banner-llegada-geocerca');
+            if (mejorItem) {
+                if (placaEnGeocercaActual && placaEnGeocercaActual.id === mejorItem.id) return;
+                placaEnGeocercaActual = mejorItem;
+
+                var elPlaca = document.getElementById('geocerca-placa-txt');
+                var elVeh = document.getElementById('geocerca-vehiculo-txt');
+                if (elPlaca) elPlaca.innerText = mejorItem.placa;
+                if (elVeh) elVeh.innerText = (mejorItem.vehiculo || mejorItem.marca || 'Vehículo') + " • " + (mejorItem.dirOriginal || mejorItem.dir || 'Medellín');
+                if (banner) banner.style.display = 'block';
+
+                // Vibración táctica de llegada (patrón de confirmación)
+                try {
+                    if (navigator.vibrate) navigator.vibrate([250, 100, 250, 100, 450]);
+                } catch(evib) {}
+                emitirAlertaSonoraProximidad();
+            } else {
+                if (menorDist > 60 && banner && banner.style.display === 'block') {
+                    banner.style.display = 'none';
+                    placaEnGeocercaActual = null;
+                }
+            }
+        }
+
+        function confirmarVisitaGeocerca() {
+            if (!placaEnGeocercaActual) return;
+            var pId = placaEnGeocercaActual.id;
+            var pPlaca = placaEnGeocercaActual.placa;
+            marcarVisitada(pId);
+            var banner = document.getElementById('banner-llegada-geocerca');
+            if (banner) banner.style.display = 'none';
+            placaEnGeocercaActual = null;
+            mostrarToastNotificacion("✅ ¡Visita registrada para " + pPlaca + "!");
+        }
+
+        function posponerAlertaGeocerca() {
+            if (placaEnGeocercaActual) {
+                geocercasPospuestas[placaEnGeocercaActual.id] = Date.now();
+            }
+            var banner = document.getElementById('banner-llegada-geocerca');
+            if (banner) banner.style.display = 'none';
+            placaEnGeocercaActual = null;
+            mostrarToastNotificacion("⏳ Alerta de objetivo pospuesta.");
+        }
+
+        // -------------------------------------------------------------------------
+        // 2. RASTREO EN VIVO DE MOTOS PARA EL ADMINISTRADOR
+        // -------------------------------------------------------------------------
+        function toggleCapaMotosEnVivo() {
+            mostrandoMotosEnVivo = !mostrandoMotosEnVivo;
+            var btn = document.getElementById('btn-top-motos');
+            if (mostrandoMotosEnVivo) {
+                if (btn) btn.style.background = "linear-gradient(145deg, #16a34a, #15803d)";
+                refrescarCapaMotosEnVivo();
+                mostrarToastNotificacion("🏍️ Capa de motorizados en vivo activada.");
+            } else {
+                if (btn) btn.style.background = "linear-gradient(145deg, #0284c7, #0369a1)";
+                if (capaMotosEnVivo && map.hasLayer(capaMotosEnVivo)) {
+                    map.removeLayer(capaMotosEnVivo);
+                }
+                mostrarToastNotificacion("🏍️ Capa de motorizados oculta.");
+            }
+        }
+
+        function refrescarCapaMotosEnVivo() {
+            if (!mostrandoMotosEnVivo) return;
+            if (!capaMotosEnVivo) capaMotosEnVivo = L.layerGroup();
+            capaMotosEnVivo.clearLayers();
+
+            var ahora = Date.now();
+            var listaUsuarios = obtenerUsuariosRegistrados();
+
+            listaUsuarios.forEach(function(u) {
+                // No dibujar al mismo usuario si es el admin
+                if (usuarioOperadorActual && u.id === usuarioOperadorActual.id) return;
+
+                var pres = presenciaOperadoresCache[u.id];
+                if (!pres || !pres.lat || !pres.lng) return;
+
+                var ts = pres.ultimoLatido || 0;
+                var estaEnLinea = (ahora - ts) < 240000; // últimos 4 min
+                if (!estaEnLinea) return;
+
+                var motoHtml = `
+                    <div style="background:#0f172a; color:#38bdf8; border:2px solid #38bdf8; border-radius:20px; padding:3px 8px; font-size:11px; font-weight:900; box-shadow:0 0 14px rgba(56,189,248,0.7); display:flex; align-items:center; gap:4px; white-space:nowrap;">
+                        <span style="font-size:14px;">🏍️</span> <span>${u.nombre}</span>
+                    </div>
+                `;
+
+                var customIcon = L.divIcon({
+                    className: 'moto-marker-live',
+                    html: motoHtml,
+                    iconSize: [85, 26],
+                    iconAnchor: [42, 13]
+                });
+
+                var markerMoto = L.marker([pres.lat, pres.lng], { icon: customIcon });
+                markerMoto.bindPopup(`
+                    <div style="font-family:sans-serif; font-size:12px; min-width:180px;">
+                        <div style="font-weight:900; font-size:13px; color:#0f172a; margin-bottom:4px;">🏍️ Operador: ${u.nombre}</div>
+                        <div style="color:#64748b; font-size:11px;">🆔 Usuario: <b>${u.login}</b></div>
+                        <div style="color:#2563eb; font-size:11px; margin-top:2px;">📍 Coords: (${pres.lat.toFixed(4)}, ${pres.lng.toFixed(4)})</div>
+                        <div style="color:#15803d; font-size:10.5px; font-weight:bold; margin-top:4px;">⏱️ Reporte: ${pres.horaStr || 'En vivo'}</div>
+                        <button onclick="map.setView([${pres.lat}, ${pres.lng}], 17)" class="pop-btn pb-blue" style="margin-top:6px; padding:5px; width:100%; font-size:11px;">🔍 Acercar a la Moto</button>
+                    </div>
+                `);
+                capaMotosEnVivo.addLayer(markerMoto);
+            });
+
+            if (!map.hasLayer(capaMotosEnVivo)) {
+                capaMotosEnVivo.addTo(map);
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 3. BOTÓN DE PÁNICO Y ALERTA DE EMERGENCIA SOS
+        // -------------------------------------------------------------------------
+        function activarBotonPanicoSOS() {
+            var conf = confirm("🚨 ¿Deseas emitir una ALERTA DE EMERGENCIA SOS con tu ubicación en vivo a la central y a tus compañeros de equipo?");
+            if (!conf) return;
+
+            var opNombre = (usuarioOperadorActual ? usuarioOperadorActual.nombre : "Operador");
+            var opLogin = (usuarioOperadorActual ? usuarioOperadorActual.login : "operador");
+            var latEnvio = userLat || 6.2442;
+            var lngEnvio = userLng || -75.5812;
+            var horaStr = new Date().toLocaleTimeString('es-CO');
+
+            var sosData = {
+                id: 'sos_' + Date.now(),
+                operador: opNombre,
+                login: opLogin,
+                lat: latEnvio,
+                lng: lngEnvio,
+                hora: horaStr,
+                timestamp: Date.now(),
+                resuelta: false
+            };
+
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                fbDb.collection('alertas_sos').doc(sosData.id).set(sosData).then(function() {
+                    mostrarToastNotificacion("🚨 ALERTA SOS ENVIADA A LA BASE.");
+                }).catch(function(err) {
+                    mostrarToastNotificacion("⚠️ Error enviando SOS a la nube: " + err.message);
+                });
+            } else {
+                mostrarToastNotificacion("🚨 SOS registrado localmente.");
+            }
+        }
+
+        function escucharAlertasSosFirestore() {
+            if (typeof fbDb === 'undefined' || !fbDb) return;
+            fbDb.collection('alertas_sos').where('resuelta', '==', false).onSnapshot(function(snapshot) {
+                var activa = null;
+                snapshot.forEach(function(doc) {
+                    var d = doc.data();
+                    d.id = doc.id;
+                    if (!activa || d.timestamp > activa.timestamp) activa = d;
+                });
+
+                var banner = document.getElementById('banner-alerta-sos-recibida');
+                if (activa) {
+                    alertaSosActivaObj = activa;
+                    var elTxt = document.getElementById('sos-info-txt');
+                    var elCoord = document.getElementById('sos-coord-txt');
+                    var btnMaps = document.getElementById('sos-btn-maps');
+
+                    if (elTxt) elTxt.innerHTML = `⚠️ Operador <b>${activa.operador}</b> (@${activa.login}) solicita apoyo inmediato.`;
+                    if (elCoord) elCoord.innerHTML = `📍 GPS: (${activa.lat.toFixed(4)}, ${activa.lng.toFixed(4)}) • ⏱️ Hora: ${activa.hora}`;
+                    if (btnMaps) btnMaps.href = `https://www.google.com/maps/dir/?api=1&destination=${activa.lat},${activa.lng}&travelmode=driving`;
+                    if (banner) banner.style.display = 'block';
+
+                    try {
+                        if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
+                    } catch(e) {}
+                    emitirAlertaSonoraProximidad();
+                } else {
+                    if (banner) banner.style.display = 'none';
+                    alertaSosActivaObj = null;
+                }
+            }, function(err){ console.warn("Firestore alertas_sos:", err); });
+        }
+
+        function verSosEnMapa() {
+            if (!alertaSosActivaObj) return;
+            map.flyTo([alertaSosActivaObj.lat, alertaSosActivaObj.lng], 18, { animate: true });
+        }
+
+        function resolverAlertaSos() {
+            if (!alertaSosActivaObj) return;
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                fbDb.collection('alertas_sos').doc(alertaSosActivaObj.id).update({ resuelta: true }).then(function() {
+                    mostrarToastNotificacion("✔️ Alerta SOS marcada como atendida.");
+                });
+            }
+            var banner = document.getElementById('banner-alerta-sos-recibida');
+            if (banner) banner.style.display = 'none';
+            alertaSosActivaObj = null;
+        }
+
+        // -------------------------------------------------------------------------
+        // 4. IMPORTADOR MASIVO DESDE EXCEL (.XLSX, .XLS, .CSV)
+        // -------------------------------------------------------------------------
+        function abrirModalImportarExcel() {
+            cerrarFiltros();
+            cerrarConfig();
+            var modal = document.getElementById('modal-importar-excel');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'block';
+            if (backdrop) backdrop.style.display = 'block';
+
+            filasExcelParsed = [];
+            var prev = document.getElementById('resultado-preview-excel');
+            var btn = document.getElementById('btn-confirmar-importacion-excel');
+            var prog = document.getElementById('progreso-importacion-excel');
+            if (prev) { prev.style.display = 'none'; prev.innerHTML = ''; }
+            if (btn) btn.style.display = 'none';
+            if (prog) prog.style.display = 'none';
+        }
+
+        function cerrarModalImportarExcel() {
+            var modal = document.getElementById('modal-importar-excel');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'none';
+            if (backdrop) backdrop.style.display = 'none';
+        }
+
+        function procesarArchivoExcelSeleccionado(file) {
+            if (!file) return;
+            if (typeof XLSX === 'undefined') {
+                alert("La librería de Excel aún se está cargando. Intenta de nuevo en 2 segundos.");
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var data = new Uint8Array(e.target.result);
+                    var workbook = XLSX.read(data, { type: 'array' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (!rawRows || rawRows.length < 2) {
+                        alert("El archivo está vacío o no contiene filas de datos.");
+                        return;
+                    }
+
+                    // Identificar encabezados de columnas de forma inteligente
+                    var headers = rawRows[0].map(h => (h || '').toString().trim().toUpperCase());
+                    var idxPlaca = headers.findIndex(h => h.includes('PLACA') || h.includes('PATENTE') || h.includes('DOMINIO'));
+                    var idxDir = headers.findIndex(h => h.includes('DIR') || h.includes('DOMICILIO') || h.includes('UBICACION') || h.includes('DIRECCION'));
+                    var idxMun = headers.findIndex(h => h.includes('MUN') || h.includes('CIUDAD'));
+                    var idxMarca = headers.findIndex(h => h.includes('MARCA') || h.includes('VEHICULO') || h.includes('DESCRIPCION'));
+                    var idxLinea = headers.findIndex(h => h.includes('LINEA') || h.includes('MODELO'));
+                    var idxColor = headers.findIndex(h => h.includes('COLOR'));
+                    var idxTel = headers.findIndex(h => h.includes('TEL') || h.includes('CEL') || h.includes('CONTACTO'));
+
+                    if (idxPlaca === -1) {
+                        alert("No se encontró la columna de 'PLACA' en el archivo Excel.");
+                        return;
+                    }
+
+                    filasExcelParsed = [];
+                    for (var r = 1; r < rawRows.length; r++) {
+                        var row = rawRows[r];
+                        if (!row || !row[idxPlaca]) continue;
+
+                        var valPlaca = row[idxPlaca].toString().toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+                        if (valPlaca.length < 5) continue;
+
+                        var valDir = (idxDir !== -1 && row[idxDir]) ? row[idxDir].toString().trim() : '';
+                        var valMun = (idxMun !== -1 && row[idxMun]) ? row[idxMun].toString().trim() : 'MEDELLIN';
+                        var valMarca = (idxMarca !== -1 && row[idxMarca]) ? row[idxMarca].toString().trim() : 'VEHÍCULO';
+                        var valLinea = (idxLinea !== -1 && row[idxLinea]) ? row[idxLinea].toString().trim() : '-';
+                        var valColor = (idxColor !== -1 && row[idxColor]) ? row[idxColor].toString().trim() : '-';
+                        var valTel = (idxTel !== -1 && row[idxTel]) ? row[idxTel].toString().trim() : '-';
+
+                        filasExcelParsed.push({
+                            placa: valPlaca,
+                            dir: valDir,
+                            municipio: valMun,
+                            marca: valMarca,
+                            linea: valLinea,
+                            color: valColor,
+                            telefonos: valTel
+                        });
+                    }
+
+                    var prev = document.getElementById('resultado-preview-excel');
+                    var btn = document.getElementById('btn-confirmar-importacion-excel');
+                    if (prev) {
+                        prev.style.display = 'block';
+                        prev.innerHTML = `
+                            <b style="color:#15803d; font-size:12.5px;">📊 Archivo leído con éxito:</b>
+                            <div style="margin-top:4px; color:#334155;">
+                                Se encontraron <b>${filasExcelParsed.length} vehículos válidos</b> listos para geocodificar en el mapa.
+                            </div>
+                            <div style="font-size:10.5px; color:#64748b; margin-top:4px;">
+                                Primeros registros: ${filasExcelParsed.slice(0, 4).map(f => f.placa).join(', ')}...
+                            </div>
+                        `;
+                    }
+                    if (btn) btn.style.display = 'block';
+
+                } catch(e) {
+                    alert("Error al leer el archivo Excel: " + e.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function ejecutarImportacionMasivaExcel() {
+            if (!filasExcelParsed || filasExcelParsed.length === 0) return;
+
+            var prog = document.getElementById('progreso-importacion-excel');
+            var progTxt = document.getElementById('excel-progreso-txt');
+            var progPct = document.getElementById('excel-progreso-pct');
+            var progBar = document.getElementById('excel-progreso-barra');
+            var btn = document.getElementById('btn-confirmar-importacion-excel');
+
+            if (prog) prog.style.display = 'block';
+            if (btn) btn.disabled = true;
+
+            var agregados = 0;
+            var total = filasExcelParsed.length;
+
+            for (var i = 0; i < total; i++) {
+                var f = filasExcelParsed[i];
+                var pct = Math.round(((i + 1) / total) * 100);
+                if (progTxt) progTxt.innerText = `Geocodificando placa ${f.placa} (${i + 1}/${total})...`;
+                if (progPct) progPct.innerText = pct + "%";
+                if (progBar) progBar.style.width = pct + "%";
+
+                var coords = null;
+                if (f.dir) {
+                    try {
+                        coords = await obtenerCoordenadasExactasLimpias(f.dir + ", " + f.municipio);
+                    } catch(e){}
+                }
+
+                if (!coords || !coords.lat) {
+                    var mUpper = (f.municipio || '').toUpperCase();
+                    coords = CENTROS_MUNICIPIOS[mUpper] || { lat: 6.2442 + (Math.random() - 0.5) * 0.04, lng: -75.5812 + (Math.random() - 0.5) * 0.04 };
+                }
+
+                var nuevoPunto = {
+                    id: 'p_xl_' + Date.now() + '_' + i,
+                    placa: f.placa,
+                    marca: f.marca,
+                    linea: f.linea,
+                    modelo: '-',
+                    color: f.color,
+                    telefonos: f.telefonos,
+                    dir: f.dir || (f.municipio + " - Pendiente confirmar"),
+                    dirOriginal: f.dir,
+                    dirAjustada: null,
+                    municipio: f.municipio,
+                    fecha: new Date().toISOString().split('T')[0],
+                    timestamp: Date.now(),
+                    visitada: false,
+                    visitas: 0,
+                    lat: coords.lat,
+                    lng: coords.lng,
+                    foto: null
+                };
+
+                // Añadir al mapa
+                var m = L.marker([nuevoPunto.lat, nuevoPunto.lng], { icon: crearIconoPunto(nuevoPunto) });
+                m.bindPopup(generarContenidoPopup(nuevoPunto, nuevoPunto.id));
+                nuevoPunto.marker = m;
+                map.addLayer(m);
+
+                puntosData.push(nuevoPunto);
+                placasRegistradas[nuevoPunto.placa] = nuevoPunto.id;
+                agregados++;
+            }
+
+            guardarPuntosStorage();
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                subirPuntosLocalesAFirebase(false);
+            }
+
+            actualizarKpisEnPantalla();
+            actualizarPanelCercano();
+            cerrarModalImportarExcel();
+            mostrarToastNotificacion("✅ " + agregados + " placas importadas y geocodificadas con éxito.");
+        }
+
+        // -------------------------------------------------------------------------
+        // 5. MAPA DE CALOR (HEATMAP DE DENSIDAD DE PLACAS)
+        // -------------------------------------------------------------------------
+        function toggleMapaCalor() {
+            mostrandoHeatmap = !mostrandoHeatmap;
+            var btn = document.getElementById('btn-top-calor');
+
+            if (mostrandoHeatmap) {
+                if (btn) btn.style.background = "linear-gradient(145deg, #16a34a, #15803d)";
+
+                if (typeof L.heatLayer === 'function') {
+                    var heatPoints = puntosData.filter(p => p.lat && p.lng).map(function(p) {
+                        return [p.lat, p.lng, 0.8];
+                    });
+                    if (capaHeatmap && map.hasLayer(capaHeatmap)) map.removeLayer(capaHeatmap);
+                    capaHeatmap = L.heatLayer(heatPoints, {
+                        radius: 28,
+                        blur: 18,
+                        maxZoom: 16,
+                        gradient: { 0.2: '#0284c7', 0.4: '#00f0ff', 0.6: '#22c55e', 0.8: '#f59e0b', 1.0: '#ef4444' }
+                    }).addTo(map);
+                } else {
+                    // Fallback visual de círculos de densidad
+                    if (capaHeatmap && map.hasLayer(capaHeatmap)) map.removeLayer(capaHeatmap);
+                    capaHeatmap = L.layerGroup();
+                    puntosData.forEach(function(p) {
+                        if (!p.lat || !p.lng) return;
+                        var c = L.circle([p.lat, p.lng], {
+                            radius: 350,
+                            fillColor: '#ef4444',
+                            fillOpacity: 0.25,
+                            color: '#ea580c',
+                            weight: 1
+                        });
+                        capaHeatmap.addLayer(c);
+                    });
+                    capaHeatmap.addTo(map);
+                }
+                mostrarToastNotificacion("🔥 Capa de concentración (Heatmap) activada.");
+            } else {
+                if (btn) btn.style.background = "linear-gradient(145deg, #ea580c, #c2410c)";
+                if (capaHeatmap && map.hasLayer(capaHeatmap)) {
+                    map.removeLayer(capaHeatmap);
+                }
+                mostrarToastNotificacion("🔥 Capa de concentración oculta.");
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 6. MODO NOCTURNO / BATERÍA EXTREMA AMOLED
+        // -------------------------------------------------------------------------
+        function toggleModoNocturnoAmoled() {
+            modoNocturnoActivo = !modoNocturnoActivo;
+            var btn = document.getElementById('btn-top-modo-noche');
+
+            if (modoNocturnoActivo) {
+                if (btn) {
+                    btn.innerText = "☀️ Día";
+                    btn.style.background = "linear-gradient(145deg, #eab308, #ca8a04)";
+                }
+
+                // Cambiar mapa a CartoDB DarkMatter (Fondo negro AMOLED)
+                if (tileLayerPredeterminado && map.hasLayer(tileLayerPredeterminado)) {
+                    map.removeLayer(tileLayerPredeterminado);
+                }
+                if (!capaTilesNocturna) {
+                    capaTilesNocturna = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        maxZoom: 19,
+                        subdomains: 'abcd',
+                        attribution: '&copy; CartoDB DarkMatter'
+                    });
+                }
+                capaTilesNocturna.addTo(map);
+
+                document.body.style.background = "#000000";
+                mostrarToastNotificacion("🌙 Modo Nocturno AMOLED activo (Ahorro de batería en moto).");
+            } else {
+                if (btn) {
+                    btn.innerText = "🌙 Noche";
+                    btn.style.background = "linear-gradient(145deg, #1e293b, #0f172a)";
+                }
+
+                if (capaTilesNocturna && map.hasLayer(capaTilesNocturna)) {
+                    map.removeLayer(capaTilesNocturna);
+                }
+                if (tileLayerPredeterminado) {
+                    tileLayerPredeterminado.addTo(map);
+                }
+                document.body.style.background = "";
+                mostrarToastNotificacion("☀️ Modo Día activo.");
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 7. CIERRE DE TURNO Y REPORTE OPERATIVO (PDF / EXCEL / WHATSAPP)
+        // -------------------------------------------------------------------------
+        function abrirModalCierreTurno() {
+            cerrarFiltros();
+            cerrarConfig();
+            var modal = document.getElementById('modal-cierre-turno');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'block';
+            if (backdrop) backdrop.style.display = 'block';
+
+            var total = puntosData.length;
+            var visitadas = puntosData.filter(p => !!p.visitada).length;
+            var pct = total > 0 ? Math.round((visitadas / total) * 100) : 0;
+
+            var elTot = document.getElementById('rep-total-placas');
+            var elVis = document.getElementById('rep-visitadas-placas');
+            var elPct = document.getElementById('rep-efectividad-pct');
+            if (elTot) elTot.innerText = total;
+            if (elVis) elVis.innerText = visitadas;
+            if (elPct) elPct.innerText = pct + "%";
+
+            // Desglose por operador
+            var conteoPorOp = {};
+            puntosData.filter(p => !!p.visitada).forEach(function(p) {
+                var g = p.gestor || 'Sin asignar';
+                conteoPorOp[g] = (conteoPorOp[g] || 0) + 1;
+            });
+
+            var elDesglose = document.getElementById('rep-desglose-operadores');
+            if (elDesglose) {
+                var claves = Object.keys(conteoPorOp);
+                if (claves.length > 0) {
+                    elDesglose.innerHTML = claves.map(k => `👤 <b>${k}:</b> ${conteoPorOp[k]} visitas`).join(' • ');
+                } else {
+                    elDesglose.innerHTML = "Ninguna placa ha sido marcada como visitada en este turno aún.";
+                }
+            }
+
+            // Listado de visitadas
+            var elLista = document.getElementById('rep-lista-visitadas-tabla');
+            if (elLista) {
+                var itemsVis = puntosData.filter(p => !!p.visitada);
+                if (itemsVis.length > 0) {
+                    elLista.innerHTML = itemsVis.map((p, idx) => `
+                        <div style="padding:4px 2px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+                            <span><b>${idx + 1}. ${p.placa}</b> (${p.vehiculo || p.marca || 'Vehículo'})</span>
+                            <span style="color:#15803d; font-weight:bold; font-size:10px;">✅ [${p.gestor || 'Operador'}]</span>
+                        </div>
+                    `).join('');
+                } else {
+                    elLista.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:8px;">No hay placas visitadas registradas hoy.</div>';
+                }
+            }
+        }
+
+        function cerrarModalCierreTurno() {
+            var modal = document.getElementById('modal-cierre-turno');
+            var backdrop = document.getElementById('backdrop-modal');
+            if (modal) modal.style.display = 'none';
+            if (backdrop) backdrop.style.display = 'none';
+        }
+
+        function exportarInformeExcel() {
+            if (typeof XLSX === 'undefined') {
+                alert("Librería Excel no cargada aún.");
+                return;
+            }
+
+            var filasReporte = puntosData.map(function(p, i) {
+                return {
+                    "N°": i + 1,
+                    "PLACA": p.placa,
+                    "ESTADO": p.visitada ? "VISITADA" : "PENDIENTE",
+                    "FECHA_VISITA": p.visitada ? (p.fecha || new Date().toLocaleDateString()) : "-",
+                    "OPERADOR": p.gestor || "-",
+                    "VEHÍCULO": (p.marca || '') + " " + (p.linea || ''),
+                    "COLOR": p.color || "-",
+                    "DIRECCIÓN": p.dirOriginal || p.dir || "-",
+                    "MUNICIPIO": p.municipio || "MEDELLIN",
+                    "LATITUD": p.lat,
+                    "LONGITUD": p.lng
+                };
+            });
+
+            var ws = XLSX.utils.json_to_sheet(filasReporte);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Cierre_Turno");
+
+            var hoy = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, "Reporte_Operativo_UbicaRick_" + hoy + ".xlsx");
+            mostrarToastNotificacion("📥 Informe Excel descargado.");
+        }
+
+        function copiarReporteWhatsApp() {
+            var total = puntosData.length;
+            var visitadas = puntosData.filter(p => !!p.visitada);
+            var pendientes = total - visitadas.length;
+            var pct = total > 0 ? Math.round((visitadas.length / total) * 100) : 0;
+            var fecha = new Date().toLocaleDateString('es-CO');
+
+            var txt = `📋 *CIERRE DE TURNO UBICA-RICK (${fecha})*\n\n` +
+                      `📌 *Total de Placas:* ${total}\n` +
+                      `✅ *Visitadas:* ${visitadas.length} (${pct}%)\n` +
+                      `⏳ *Pendientes:* ${pendientes}\n\n` +
+                      `*Detalle de Placas Visitadas:*\n` +
+                      visitadas.map(p => `• ${p.placa} (${p.vehiculo || p.marca || 'Vehículo'}) - Resp: ${p.gestor || 'Operador'}`).join('\n') +
+                      `\n\n_Generado automáticamente desde UBICA-RICK._`;
+
+            try {
+                navigator.clipboard.writeText(txt).then(function() {
+                    mostrarToastNotificacion("📋 Resumen copiado. Pégalo en WhatsApp.");
+                });
+            } catch(e) {
+                alert("Copia el siguiente texto:\n\n" + txt);
+            }
+        }
+
+        function imprimirInformePDF() {
+            window.print();
         }
 
         function actualizarPanelCercano() {
@@ -5157,6 +5812,7 @@
 
                 // INICIAR INMEDIATAMENTE LA SINCRONIZACIÓN EN LA NUBE PARA TODOS
                 iniciarSincronizacionFirestore();
+                escucharAlertasSosFirestore();
 
                 fbAuth.onAuthStateChanged(function(user) {
                     usuarioActual = user;
@@ -5284,10 +5940,12 @@
                     });
                 }
                 iniciarSincronizacionFirestore();
+                escucharAlertasSosFirestore();
             }).catch(function(err) {
                 console.warn("Error leyendo rol:", err);
                 aplicarPermisosPorRol('lector');
                 iniciarSincronizacionFirestore();
+                escucharAlertasSosFirestore();
             });
         }
 
@@ -5354,6 +6012,10 @@
             // Ocultar botón Nube para operadores
             if (btnCloud) {
                 btnCloud.style.display = esAdmin ? 'inline-flex' : 'none';
+            }
+            var btnMotos = document.getElementById('btn-top-motos');
+            if (btnMotos) {
+                btnMotos.style.display = esAdmin ? 'inline-flex' : 'none';
             }
 
             actualizarBotonModoSeguroUI();
@@ -6739,6 +7401,7 @@
             // Asegurar descarga en vivo de placas para el operador o administrador
             if (typeof iniciarSincronizacionFirestore === 'function') {
                 iniciarSincronizacionFirestore();
+                escucharAlertasSosFirestore();
             }
             if (usuarioOperadorActual && usuarioOperadorActual.rol === 'admin' && puntosData.length > 0) {
                 subirPuntosLocalesAFirebase(false);
@@ -7723,6 +8386,144 @@
 
     
     
+    
+    <!-- BANNER FLOTANTE DE LLEGADA POR GEOCERCA (≤ 35M) -->
+    <div id="banner-llegada-geocerca" style="display:none; position:fixed; bottom:85px; left:50%; transform:translateX(-50%); z-index:9999999;
+        background:rgba(15, 23, 42, 0.98); border:2.5px solid #22c55e; border-radius:18px; padding:14px 18px; box-shadow:0 14px 40px rgba(0,0,0,0.75), 0 0 25px rgba(34,197,94,0.45);
+        color:white; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; width:92%; max-width:380px; box-sizing:border-box; text-align:center;">
+        <div style="font-size:12px; font-weight:900; color:#86efac; margin-bottom:4px; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <span style="font-size:16px;">📍</span> <span>¡LLEGASTE AL OBJETIVO!</span>
+        </div>
+        <div id="geocerca-placa-txt" style="font-size:24px; font-weight:900; letter-spacing:1.5px; color:#ffffff; margin:3px 0;">ABC-123</div>
+        <div id="geocerca-vehiculo-txt" style="font-size:11.5px; color:#cbd5e1; margin-bottom:10px;">Chevrolet Spark GT • Medellín</div>
+        <div style="display:flex; gap:8px;">
+            <button type="button" onclick="confirmarVisitaGeocerca()" class="pop-btn pb-green" style="margin:0; flex:2; padding:10px; font-size:12.5px; font-weight:bold; background:linear-gradient(135deg, #16a34a, #15803d); border-radius:8px;">
+                ✅ Confirmar Visita
+            </button>
+            <button type="button" onclick="posponerAlertaGeocerca()" class="pop-btn pb-gray" style="margin:0; flex:1; padding:10px; font-size:12px; font-weight:bold; background:#475569; border-radius:8px;">
+                ⏳ Posponer
+            </button>
+        </div>
+    </div>
+
+    <!-- BANNER DE ALERTA DE EMERGENCIA SOS RECIBIDA (ADMINISTRADOR) -->
+    <div id="banner-alerta-sos-recibida" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:99999999;
+        background:#7f1d1d; border:3px solid #ef4444; border-radius:18px; padding:16px 20px; box-shadow:0 18px 50px rgba(0,0,0,0.85), 0 0 30px rgba(239,68,68,0.7);
+        color:white; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; width:94%; max-width:440px; box-sizing:border-box; text-align:center;">
+        <div style="font-size:15px; font-weight:900; color:#fca5a5; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span style="font-size:20px;">🚨</span> ¡ALERTA DE EMERGENCIA SOS EN VIVO!
+        </div>
+        <div id="sos-info-txt" style="font-size:13px; font-weight:bold; color:#ffffff; margin:8px 0; line-height:1.4;">
+            El operador <b>Rick</b> solicita apoyo inmediato.
+        </div>
+        <div id="sos-coord-txt" style="font-size:11px; color:#fecaca; margin-bottom:12px;">
+            GPS: (6.2442, -75.5812) • Hora: 10:45 AM
+        </div>
+        <div style="display:flex; gap:6px;">
+            <button type="button" onclick="verSosEnMapa()" class="pop-btn pb-blue" style="margin:0; flex:1; padding:9px; font-size:11.5px; font-weight:bold; border-radius:8px;">
+                🗺️ Ver en Mapa
+            </button>
+            <a id="sos-btn-maps" href="#" target="_blank" class="pop-btn pb-teal" style="margin:0; flex:1; padding:9px; font-size:11.5px; font-weight:bold; text-decoration:none; text-align:center; border-radius:8px; background:#0284c7;">
+                🧭 Navegar Allá
+            </a>
+            <button type="button" onclick="resolverAlertaSos()" class="pop-btn pb-green" style="margin:0; flex:1; padding:9px; font-size:11.5px; font-weight:bold; border-radius:8px; background:#16a34a;">
+                ✔️ Atendida
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL DE IMPORTACIÓN MASIVA DESDE EXCEL (.XLSX / .CSV) -->
+    <div id="modal-importar-excel" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,0.65); z-index:10000005;
+        width:94%; max-width:460px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">📥 Importar Placas desde Excel (.xlsx / .csv)</b>
+            <button type="button" onclick="cerrarModalImportarExcel()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#166534; line-height:1.4;">
+            Sube un archivo de Excel o CSV con tus placas. El sistema detecta automáticamente columnas como: <b>Placa, Dirección, Municipio, Marca, Modelo, Color, Teléfono</b>.
+        </div>
+
+        <div id="dropzone-excel" onclick="document.getElementById('input-archivo-excel').click()" style="border:2px dashed #3b82f6; border-radius:12px; padding:24px 16px; text-align:center; background:#f8fafc; cursor:pointer; margin-bottom:12px; transition:background 0.2s;">
+            <div style="font-size:36px; margin-bottom:6px;">📊</div>
+            <b style="color:#1e40af; font-size:13px; display:block;">Toca aquí para seleccionar tu archivo Excel</b>
+            <span style="font-size:11px; color:#64748b;">Compatible con .xlsx, .xls y .csv</span>
+            <input type="file" id="input-archivo-excel" accept=".xlsx, .xls, .csv" style="display:none;" onchange="procesarArchivoExcelSeleccionado(this.files[0])">
+        </div>
+
+        <div id="progreso-importacion-excel" style="display:none; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:11.5px; font-weight:bold; color:#0f172a; margin-bottom:4px;">
+                <span id="excel-progreso-txt">Geocodificando direcciones...</span>
+                <span id="excel-progreso-pct">0%</span>
+            </div>
+            <div style="width:100%; height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                <div id="excel-progreso-barra" style="width:0%; height:100%; background:#2563eb; transition:width 0.2s;"></div>
+            </div>
+        </div>
+
+        <div id="resultado-preview-excel" style="display:none; background:#f1f5f9; border-radius:10px; padding:10px; font-size:11.5px; margin-bottom:12px;">
+        </div>
+
+        <button type="button" id="btn-confirmar-importacion-excel" onclick="ejecutarImportacionMasivaExcel()" class="pop-btn pb-green" style="width:100%; padding:11px; font-size:13px; font-weight:bold; display:none; background:linear-gradient(135deg, #16a34a, #15803d); border-radius:8px;">
+            🚀 Importar y Geocodificar en el Mapa
+        </button>
+    </div>
+
+    <!-- MODAL DE CIERRE DE TURNO Y REPORTE OPERATIVO (PDF / EXCEL / WHATSAPP) -->
+    <div id="modal-cierre-turno" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+        background:white; border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,0.65); z-index:10000005;
+        width:94%; max-width:480px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">📑 Reporte de Cierre de Turno / Gestión</b>
+            <button type="button" onclick="cerrarModalCierreTurno()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <!-- TARJETAS DE INDICADORES DEL DÍA -->
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:14px;">
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:8px 6px; text-align:center;">
+                <span style="font-size:10px; font-weight:bold; color:#64748b;">TOTAL PLACAS</span>
+                <div id="rep-total-placas" style="font-size:18px; font-weight:900; color:#0f172a;">0</div>
+            </div>
+            <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:8px 6px; text-align:center;">
+                <span style="font-size:10px; font-weight:bold; color:#15803d;">VISITADAS</span>
+                <div id="rep-visitadas-placas" style="font-size:18px; font-weight:900; color:#16a34a;">0</div>
+            </div>
+            <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:10px; padding:8px 6px; text-align:center;">
+                <span style="font-size:10px; font-weight:bold; color:#1e40af;">EFECTIVIDAD</span>
+                <div id="rep-efectividad-pct" style="font-size:18px; font-weight:900; color:#2563eb;">0%</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <b style="font-size:12px; color:#334155; display:block; margin-bottom:4px;">📊 Desglose por Operador:</b>
+            <div id="rep-desglose-operadores" style="background:#f1f5f9; border-radius:8px; padding:8px 10px; font-size:11.5px; color:#475569;">
+                Calculando gestión del equipo...
+            </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+            <b style="font-size:12px; color:#334155; display:block; margin-bottom:4px;">📋 Listado de Placas Visitadas Hoy:</b>
+            <div id="rep-lista-visitadas-tabla" style="max-height:140px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:6px; font-size:11px; background:#ffffff;">
+            </div>
+        </div>
+
+        <!-- ACCIONES DE EXPORTACIÓN -->
+        <div style="display:flex; flex-direction:column; gap:7px;">
+            <button type="button" onclick="exportarInformeExcel()" class="pop-btn pb-green" style="margin:0; padding:10px; font-size:12.5px; font-weight:bold; background:linear-gradient(135deg, #16a34a, #15803d); border-radius:8px;">
+                📥 Descargar Informe en Excel (.xlsx)
+            </button>
+            <button type="button" onclick="copiarReporteWhatsApp()" class="pop-btn pb-teal" style="margin:0; padding:9px; font-size:12px; font-weight:bold; background:#0284c7; border-radius:8px;">
+                📋 Copiar Resumen para WhatsApp
+            </button>
+            <button type="button" onclick="imprimirInformePDF()" class="pop-btn pb-blue" style="margin:0; padding:9px; font-size:12px; font-weight:bold; background:#475569; border-radius:8px;">
+                🖨️ Imprimir / Guardar como PDF
+            </button>
+        </div>
+    </div>
+
     <!-- MODAL DETALLE DE PERFIL ACTIVO -->
     <div id="modal-perfil-usuario" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
         background:white; border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,0.65); z-index:10000003;
