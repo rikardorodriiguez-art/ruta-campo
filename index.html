@@ -3800,22 +3800,99 @@
                     var img = new Image();
                     img.onload = function() {
                         try {
-                            var canvas = document.createElement('canvas');
-                            var ctx = canvas.getContext('2d');
-                            var maxDim = 2400;
-                            var w = img.width;
-                            var h = img.height;
-                            if (w > maxDim || h > maxDim) {
-                                if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
-                                else { w = Math.round(w * maxDim / h); h = maxDim; }
-                            } else if (w < 1200 && h < 1200) {
-                                w = Math.round(w * 1.5);
-                                h = Math.round(h * 1.5);
+                            var origW = img.width;
+                            var origH = img.height;
+
+                            // 1. Análisis en canvas temporal para recortar franjas negras (letterboxing de celular/WhatsApp)
+                            var tempCanvas = document.createElement('canvas');
+                            tempCanvas.width = origW;
+                            tempCanvas.height = origH;
+                            var tempCtx = tempCanvas.getContext('2d');
+                            tempCtx.drawImage(img, 0, 0);
+
+                            var cropX = 0, cropY = 0, cropW = origW, cropH = origH;
+
+                            try {
+                                var imgData = tempCtx.getImageData(0, 0, origW, origH);
+                                var pixels = imgData.data;
+
+                                // Detección de filas negras arriba y abajo
+                                var rowIsDark = new Uint8Array(origH);
+                                for (var y = 0; y < origH; y++) {
+                                    var darkCount = 0;
+                                    var step = 4;
+                                    var sampleCount = 0;
+                                    for (var x = 0; x < origW; x += step) {
+                                        var idx = (y * origW + x) * 4;
+                                        var r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+                                        if (r < 38 && g < 38 && b < 38) {
+                                            darkCount++;
+                                        }
+                                        sampleCount++;
+                                    }
+                                    if (darkCount / sampleCount > 0.88) {
+                                        rowIsDark[y] = 1;
+                                    }
+                                }
+
+                                var firstY = 0;
+                                while (firstY < origH && rowIsDark[firstY]) firstY++;
+                                var lastY = origH - 1;
+                                while (lastY > firstY && rowIsDark[lastY]) lastY--;
+
+                                // Si hay franjas negras de más del 8% de la pantalla, recortar automáticamente
+                                if (firstY > origH * 0.05 || lastY < origH * 0.95) {
+                                    var padY = Math.round(origH * 0.01);
+                                    cropY = Math.max(0, firstY - padY);
+                                    cropH = Math.min(origH - cropY, (lastY - firstY) + padY * 2);
+                                }
+                            } catch(eScan) {
+                                console.warn("Aviso escaneo márgenes:", eScan);
                             }
-                            canvas.width = w;
-                            canvas.height = h;
-                            ctx.drawImage(img, 0, 0, w, h);
-                            resolve(canvas.toDataURL('image/jpeg', 0.85));
+
+                            // 2. Escalado inteligente para OCR: las tablas necesitan al menos 1800 - 2400px de ancho
+                            var targetW = cropW;
+                            var targetH = cropH;
+                            var minWidth = 1800;
+
+                            if (targetW < minWidth) {
+                                var factor = minWidth / targetW;
+                                targetW = Math.round(targetW * factor);
+                                targetH = Math.round(targetH * factor);
+                            } else if (targetW > 2800) {
+                                var factor = 2800 / targetW;
+                                targetW = Math.round(targetW * factor);
+                                targetH = Math.round(targetH * factor);
+                            }
+
+                            var finalCanvas = document.createElement('canvas');
+                            finalCanvas.width = targetW;
+                            finalCanvas.height = targetH;
+                            var finalCtx = finalCanvas.getContext('2d');
+                            finalCtx.imageSmoothingEnabled = true;
+                            finalCtx.imageSmoothingQuality = 'high';
+
+                            // Dibujar la zona de la tabla recortada y ampliada
+                            finalCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
+
+                            // 3. Ajuste de contraste para máxima legibilidad de fuentes
+                            try {
+                                var finalData = finalCtx.getImageData(0, 0, targetW, targetH);
+                                var d = finalData.data;
+                                var contrast = 1.30;
+                                var intercept = 128 * (1 - contrast);
+                                for (var i = 0; i < d.length; i += 4) {
+                                    var gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+                                    var cVal = gray * contrast + intercept;
+                                    cVal = cVal < 0 ? 0 : (cVal > 255 ? 255 : cVal);
+                                    d[i] = cVal;
+                                    d[i + 1] = cVal;
+                                    d[i + 2] = cVal;
+                                }
+                                finalCtx.putImageData(finalData, 0, 0);
+                            } catch(eFilter) {}
+
+                            resolve(finalCanvas.toDataURL('image/jpeg', 0.92));
                         } catch(e) {
                             resolve(event.target.result);
                         }
@@ -3871,8 +3948,18 @@
                 // Detectar placa si no se escribió manualmente (ej: FQX434, LRW993)
                 if (!placa) {
                     var mPlaca = rawText.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
-                    if (mPlaca) placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
-                    else placa = "SIN_PLACA";
+                    if (mPlaca) {
+                        placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
+                    } else {
+                        // Si la foto no tiene la placa y el usuario no la escribió, solicitarla amistosamente
+                        var pIngresada = prompt("🚗 No se detectó la placa en la imagen.\nPor favor ingresa la placa del vehículo (ej: NGS697):", "");
+                        if (pIngresada && pIngresada.trim() !== "") {
+                            placa = pIngresada.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+                            if (inputPlacaEl) inputPlacaEl.value = placa;
+                        } else {
+                            placa = "SIN_PLACA";
+                        }
+                    }
                 }
 
                 // Comprobar si la placa ya se encuentra activa en el sistema
@@ -4082,7 +4169,7 @@
                           "Se transfirió a la Opción 1. Pulsa '🚀 Procesar y Agregar' para mapear.");
                     mostrarToastNotificacion("📸 " + placa + ": " + dirsFinales.length + " direcciones y celulares extraídos.");
                 } else {
-                    alert("⚠️ Se detectó la placa " + placa + ", pero ninguna dirección cumplió con fecha ≥ 2026 y estado SI. Verifica la foto o ingresa manualmente.");
+                    alert("⚠️ Placa: " + placa + "\nNo se detectaron direcciones válidas con fecha ≥ 2026 y estado SI.\n\nCONSEJO PARA FOTOS DE WHATSAPP O CELULAR:\n1. Recorta la foto antes de subirla para que la tabla ocupe toda la pantalla (sin franjas negras grandes arriba o abajo).\n2. Asegúrate de que las letras se vean nítidas y escribe la placa en el campo.\n\nPuedes ingresar los datos manualmente en la Opción 3.");
                 }
 
                 // Abrir automáticamente la sección de texto
