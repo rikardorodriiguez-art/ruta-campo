@@ -4593,6 +4593,11 @@
                     }
                 });
                 guardarPuntosStorage();
+                if (typeof fbDb !== 'undefined' && fbDb) {
+                    puntosData.filter(function(p){ return p.placa === placa; }).forEach(function(p) {
+                        sincronizarPuntoFirestore(p);
+                    });
+                }
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
                 mostrarToastNotificacion("📸 ¡Foto del vehículo " + placa + " guardada con éxito!");
             });
@@ -4649,13 +4654,14 @@
             }
 
             guardarPuntosStorage();
-            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
-                fbDb.collection('puntos_ubica_rick').doc(markerId).update({
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                fbDb.collection('puntos_ubica_rick').doc(item.id).update({
                     visitada: item.visitada,
+                    timestampVisita: item.timestampVisita || null,
                     visitas: item.visitas || 0,
                     gestorInicial: item.gestorInicial || '',
                     gestor: item.gestor || ''
-                }).catch(function(){});
+                }).catch(function(err){ console.warn("Error actualizando visita en Firestore:", err); });
             }
             actualizarKPIs();
             actualizarPanelCercano();
@@ -4708,8 +4714,8 @@
             guardarPuntosStorage();
             actualizarPanelCercano();
 
-            // Borrar también en Firestore para que no reaparezcan al sincronizar
-            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual) {
+            // Borrar también en Firestore para que se elimine en tiempo real en todos los celulares
+            if (typeof fbDb !== 'undefined' && fbDb) {
                 fbDb.collection('puntos_ubica_rick').where('placa', '==', placaUpper).get().then(function(snapshot) {
                     if (!snapshot.empty) {
                         var batch = fbDb.batch();
@@ -4738,9 +4744,9 @@
             localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosASeguardar));
             actualizarKPIs();
 
-            // Si está conectado como admin, sincronizar los puntos con la nube
-            if (typeof fbDb !== 'undefined' && fbDb && usuarioActual && rolUsuarioActual === 'admin') {
-                subirPuntosLocalesAFirebase();
+            // Sincronización automática inmediata a la nube para que TODOS los usuarios vean los cambios en vivo
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                subirPuntosLocalesAFirebase(false);
             }
         }
 
@@ -5668,6 +5674,11 @@
             if (nuevaDir && puntosData[itemIndex]) {
                 guardarAprendizajeDireccion(nuevaDir, puntosData[itemIndex].lat, puntosData[itemIndex].lng);
             }
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                puntosData.filter(function(p){ return p.placa === placaEditada; }).forEach(function(p) {
+                    sincronizarPuntoFirestore(p);
+                });
+            }
             mostrarToastNotificacion("✅ Datos guardados para " + placaEditada);
             actualizarPanelCercano();
             verificarGeocercaLlegada(userLat, userLng);
@@ -6298,33 +6309,9 @@
         }
 
         function actualizarPuntosDesdeNube(puntosNube) {
-            if (!puntosNube || puntosNube.length === 0) return;
+            if (!puntosNube) return;
 
-            // FUSIÓN INTELIGENTE NO DESTRUCTIVA:
-            // Combinar puntos de la nube con puntos locales para nunca borrar trabajo local
-            var mapaPorId = {};
-            var puntosCombinados = [];
-
-            puntosNube.forEach(function(pn) {
-                mapaPorId[pn.id] = pn;
-                puntosCombinados.push(pn);
-            });
-
-            // Conservar puntos locales que el usuario haya agregado
-            puntosData.forEach(function(plocal) {
-                if (!mapaPorId[plocal.id]) {
-                    var yaExistePlaca = puntosCombinados.some(function(pc) {
-                        return pc.placa && plocal.placa && pc.placa.toUpperCase().trim() === plocal.placa.toUpperCase().trim();
-                    });
-                    if (!yaExistePlaca) {
-                        puntosCombinados.push(plocal);
-                        if (fbDb && usuarioActual && rolUsuarioActual === 'admin') {
-                            sincronizarPuntoFirestore(plocal);
-                        }
-                    }
-                }
-            });
-
+            // Limpiar todos los marcadores existentes para reflejar exactamente el estado de la nube
             puntosData.forEach(function(p) {
                 if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
             });
@@ -6335,7 +6322,7 @@
             var conteoPorPlaca = {};
             var llavesVistasNube = {};
 
-            puntosCombinados.forEach(function(p) {
+            puntosNube.forEach(function(p) {
                 if (!p.placa) return;
                 var placa = p.placa.toUpperCase().trim();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
@@ -6476,17 +6463,35 @@
             puntosData.forEach(function(p) {
                 var docRef = fbDb.collection('puntos_ubica_rick').doc(p.id);
                 var data = {
-                    placa: p.placa, marca: p.marca || '-', linea: p.linea || '-', modelo: p.modelo || '-', color: p.color || '-',
-                    telefonos: p.telefonos || '-', dir: p.dir, dirOriginal: p.dirOriginal || p.dir, dirAjustada: p.dirAjustada || null,
-                    fecha: p.fecha || '', timestamp: p.timestamp || Date.now(), visitada: !!p.visitada,
-                    visitas: p.visitas || 0, gestorInicial: p.gestorInicial || '', gestor: p.gestor || '', comentarios: p.comentarios || '',
-                    lat: p.lat, lng: p.lng, foto: p.foto || null,
-                    soat: p.soat || 'NO', tecnomecanica: p.tecnomecanica || 'NO'
+                    id: p.id,
+                    placa: p.placa,
+                    marca: p.marca || '-',
+                    linea: p.linea || '-',
+                    modelo: p.modelo || '-',
+                    color: p.color || '-',
+                    telefonos: p.telefonos || '-',
+                    dir: p.dir,
+                    dirOriginal: p.dirOriginal || p.dir,
+                    dirAjustada: p.dirAjustada || null,
+                    municipio: p.municipio || 'MEDELLIN',
+                    fecha: p.fecha || '',
+                    timestamp: p.timestamp || Date.now(),
+                    visitada: !!p.visitada,
+                    timestampVisita: p.timestampVisita || null,
+                    visitas: p.visitas || 0,
+                    gestorInicial: p.gestorInicial || '',
+                    gestor: p.gestor || '',
+                    comentarios: p.comentarios || '',
+                    lat: p.lat,
+                    lng: p.lng,
+                    foto: p.foto || null,
+                    soat: p.soat || 'NO',
+                    tecnomecanica: p.tecnomecanica || 'NO'
                 };
                 batch.set(docRef, data, { merge: true });
             });
             batch.commit().then(function() {
-                console.log("☁️ " + puntosData.length + " vehículos respaldados en la nube.");
+                console.log("☁️ " + puntosData.length + " vehículos respaldados en la nube en vivo.");
                 if (mostrarToast) mostrarToastNotificacion("☁️ " + puntosData.length + " vehículos sincronizados con la nube.");
             }).catch(function(e) {
                 console.warn("Batch upload error:", e);
@@ -6498,17 +6503,34 @@
         }
 
         function sincronizarPuntoFirestore(item) {
-            if (fbDb) {
-                var data = {
-                    placa: item.placa, marca: item.marca || '-', linea: item.linea || '-', modelo: item.modelo || '-', color: item.color || '-',
-                    telefonos: item.telefonos || '-', dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
-                    fecha: item.fecha || '', timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
-                    visitas: item.visitas || 0, comentarios: item.comentarios || '',
-                    lat: item.lat, lng: item.lng, foto: item.foto || null,
-                    soat: item.soat || 'NO', tecnomecanica: item.tecnomecanica || 'NO'
-                };
-                fbDb.collection('puntos_ubica_rick').doc(item.id).set(data, { merge: true }).catch(function(e){ console.warn(e); });
-            }
+            if (!fbDb || !item || !item.id) return;
+            var data = {
+                id: item.id,
+                placa: item.placa,
+                marca: item.marca || '-',
+                linea: item.linea || '-',
+                modelo: item.modelo || '-',
+                color: item.color || '-',
+                telefonos: item.telefonos || '-',
+                dir: item.dir,
+                dirOriginal: item.dirOriginal || item.dir,
+                dirAjustada: item.dirAjustada || null,
+                municipio: item.municipio || 'MEDELLIN',
+                fecha: item.fecha || '',
+                timestamp: item.timestamp || Date.now(),
+                visitada: !!item.visitada,
+                timestampVisita: item.timestampVisita || null,
+                visitas: item.visitas || 0,
+                gestorInicial: item.gestorInicial || '',
+                gestor: item.gestor || '',
+                comentarios: item.comentarios || '',
+                lat: item.lat,
+                lng: item.lng,
+                foto: item.foto || null,
+                soat: item.soat || 'NO',
+                tecnomecanica: item.tecnomecanica || 'NO'
+            };
+            fbDb.collection('puntos_ubica_rick').doc(item.id).set(data, { merge: true }).catch(function(e){ console.warn("Error sincronizando punto:", e); });
         }
 
         function eliminarPuntoFirestore(markerId) {
