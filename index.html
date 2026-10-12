@@ -6170,6 +6170,58 @@
             enviarLatidoPresencia();
         }
 
+        // Funciones auxiliares de coincidencia flexible para evitar errores de tipeo en celular
+        function coincideUsuarioLogin(u, busqueda) {
+            if (!u || !busqueda) return false;
+            var b = busqueda.trim().toLowerCase();
+            var uLogin = (u.login || '').trim().toLowerCase();
+            var uNombre = (u.nombre || '').trim().toLowerCase();
+            var uId = (u.id || '').trim().toLowerCase();
+
+            // 1. Coincidencia exacta con login o nombre
+            if (uLogin === b || uNombre === b || uId === b) return true;
+
+            // 2. Coincidencia por alias / prefijo antes de @ (ej. 'paola' vs 'paola@ubica.com')
+            var uLoginPrefijo = uLogin.split('@')[0];
+            var bPrefijo = b.split('@')[0];
+            if (uLoginPrefijo === b || uLoginPrefijo === bPrefijo || uNombre === bPrefijo) return true;
+
+            // 3. Coincidencia si se ingresó o no con dominio
+            if (uLogin === (b + '@ubica.com') || (uLogin + '@ubica.com') === b) return true;
+
+            return false;
+        }
+
+        function coincidePinLogin(pinGuardado, pinIngresado) {
+            if (!pinGuardado && !pinIngresado) return true;
+            var pG = (pinGuardado || '').toString().trim();
+            var pI = (pinIngresado || '').toString().trim();
+
+            // 1. Coincidencia exacta (ej. 'Pao0288@')
+            if (pG === pI) return true;
+
+            // 2. Coincidencia sin distinción de mayúsculas/minúsculas (ej. 'pao0288@')
+            if (pG.toLowerCase() === pI.toLowerCase()) return true;
+
+            // 3. Coincidencia eliminando espacios invisibles que suelen agregar teclados móviles
+            if (pG.replace(/\s+/g, '') === pI.replace(/\s+/g, '')) return true;
+
+            return false;
+        }
+
+        function toggleVerPinLogin() {
+            var pinInput = document.getElementById('loginAccesoPin');
+            var btnEye = document.getElementById('btn-ver-pin-login');
+            if (!pinInput) return;
+            if (pinInput.type === 'password') {
+                pinInput.type = 'text';
+                if (btnEye) btnEye.textContent = '🙈';
+            } else {
+                pinInput.type = 'password';
+                if (btnEye) btnEye.textContent = '👁️';
+            }
+        }
+
         function ejecutarIngresoLoginAcceso() {
             var inUser = (document.getElementById('loginAccesoUsuario') ? document.getElementById('loginAccesoUsuario').value : '').trim().toLowerCase();
             var inPin = (document.getElementById('loginAccesoPin') ? document.getElementById('loginAccesoPin').value : '').trim();
@@ -6178,26 +6230,66 @@
             if (!inUser || !inPin) {
                 if (alertaBox) {
                     alertaBox.style.display = 'block';
-                    alertaBox.innerText = "⚠️ Por favor ingresa tu usuario y contraseña/PIN.";
+                    alertaBox.innerHTML = "⚠️ Por favor ingresa tu <b>Usuario</b> y <b>Contraseña/PIN</b>.";
                 }
                 return;
             }
 
             var lista = obtenerUsuariosRegistrados();
-            var enc = lista.find(function(u){ return u.login === inUser; });
+            var enc = lista.find(function(u){ return coincideUsuarioLogin(u, inUser); });
+
+            // Si no se encuentra en el almacenamiento local, intentar sincronizar en tiempo real desde Firestore
+            if (!enc && typeof fbDb !== 'undefined' && fbDb) {
+                if (alertaBox) {
+                    alertaBox.style.display = 'block';
+                    alertaBox.innerHTML = "⏳ Verificando credenciales con el servidor en la nube...";
+                }
+                fbDb.collection('usuarios_control').get().then(function(snapshot) {
+                    var listaNube = [];
+                    snapshot.forEach(function(doc) {
+                        var d = doc.data();
+                        d.id = doc.id;
+                        listaNube.push(d);
+                    });
+                    if (listaNube.length > 0) {
+                        localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(listaNube));
+                        var encNube = listaNube.find(function(u){ return coincideUsuarioLogin(u, inUser); });
+                        if (encNube) {
+                            procesarLoginUsuarioEncontrado(encNube, inPin);
+                            return;
+                        }
+                    }
+                    if (alertaBox) {
+                        alertaBox.style.display = 'block';
+                        alertaBox.innerHTML = "❌ Usuario no encontrado. Puedes ingresar como <b>paola</b> o con tu correo completo <b>paola@ubica.com</b>.";
+                    }
+                }).catch(function(err) {
+                    if (alertaBox) {
+                        alertaBox.style.display = 'block';
+                        alertaBox.innerHTML = "❌ Usuario no encontrado. Verifica tu nombre de usuario.";
+                    }
+                });
+                return;
+            }
 
             if (!enc) {
                 if (alertaBox) {
                     alertaBox.style.display = 'block';
-                    alertaBox.innerText = "❌ Usuario no encontrado. Verifica tu nombre de usuario.";
+                    alertaBox.innerHTML = "❌ Usuario no encontrado. Puedes ingresar como <b>paola</b> o con tu correo completo <b>paola@ubica.com</b>.";
                 }
                 return;
             }
 
-            if (enc.pin && enc.pin !== inPin) {
+            procesarLoginUsuarioEncontrado(enc, inPin);
+        }
+
+        function procesarLoginUsuarioEncontrado(enc, inPin) {
+            var alertaBox = document.getElementById('alerta-bloqueo-login');
+
+            if (!coincidePinLogin(enc.pin, inPin)) {
                 if (alertaBox) {
                     alertaBox.style.display = 'block';
-                    alertaBox.innerText = "❌ Contraseña o PIN incorrecto.";
+                    alertaBox.innerHTML = "❌ Contraseña o PIN incorrecto. Puedes presionar el icono del ojo 👁️ para verificar lo que escribiste.";
                 }
                 return;
             }
@@ -6217,6 +6309,7 @@
 
             if (document.getElementById('loginAccesoUsuario')) document.getElementById('loginAccesoUsuario').value = '';
             if (document.getElementById('loginAccesoPin')) document.getElementById('loginAccesoPin').value = '';
+            if (alertaBox) alertaBox.style.display = 'none';
 
             verificarEstadoAccesoOperador();
             mostrarToastNotificacion("🚀 Bienvenido " + enc.nombre + " (" + (enc.rol === 'admin' ? '👑 Admin' : '👤 Operador') + ")");
@@ -6923,7 +7016,10 @@
 
             <div style="text-align:left; margin-bottom:16px;">
                 <label style="font-size:11px; font-weight:bold; color:#cbd5e1; display:block; margin-bottom:4px;">🔑 Contraseña o PIN:</label>
-                <input type="password" id="loginAccesoPin" placeholder="••••••••" class="filter-search" style="width:100%; box-sizing:border-box; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:white; font-size:13px;" onkeydown="if(event.key==='Enter') ejecutarIngresoLoginAcceso();">
+                <div style="position:relative; width:100%;">
+                    <input type="password" id="loginAccesoPin" placeholder="••••••••" class="filter-search" style="width:100%; box-sizing:border-box; padding:9px 38px 9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:white; font-size:13px;" onkeydown="if(event.key==='Enter') ejecutarIngresoLoginAcceso();">
+                    <button type="button" id="btn-ver-pin-login" onclick="toggleVerPinLogin()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer; padding:2px;" title="Ver/Ocultar contraseña">👁️</button>
+                </div>
             </div>
 
             <button type="button" onclick="ejecutarIngresoLoginAcceso()" class="pop-btn pb-blue" style="width:100%; margin:0 0 10px 0; padding:11px; font-size:13px; font-weight:bold; border-radius:8px; box-shadow:0 4px 15px rgba(2,132,199,0.4);">
