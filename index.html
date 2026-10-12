@@ -990,6 +990,7 @@
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
+            <button onclick="forzarSincronizacionNubePuntos()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Descargar o sincronizar todas las placas del equipo">☁️ Sincronizar Placas con la Nube</button>
             <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Ruta hacia Destino (Placas a ≤500m)</button>
             <button id="btn-filtro-borrado-masivo" onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
@@ -5154,13 +5155,14 @@
                 fbAuth = firebase.auth();
                 fbDb = firebase.firestore();
 
+                // INICIAR INMEDIATAMENTE LA SINCRONIZACIÓN EN LA NUBE PARA TODOS
+                iniciarSincronizacionFirestore();
+
                 fbAuth.onAuthStateChanged(function(user) {
                     usuarioActual = user;
                     actualizarUIAuth(user);
                     if (user) {
                         determinarRolYSincronizar(user);
-                    } else {
-                        aplicarPermisosPorRol('invitado');
                     }
                 });
             } catch(e) {
@@ -5568,9 +5570,8 @@
         
 
 
-        function subirPuntosLocalesAFirebase() {
-            if (!fbDb || !usuarioActual || rolUsuarioActual !== 'admin') return;
-            if (puntosData.length === 0) return;
+        function subirPuntosLocalesAFirebase(mostrarToast) {
+            if (!fbDb || puntosData.length === 0) return;
 
             var batch = fbDb.batch();
             puntosData.forEach(function(p) {
@@ -5586,18 +5587,19 @@
                 batch.set(docRef, data, { merge: true });
             });
             batch.commit().then(function() {
-                mostrarToastNotificacion("☁️ " + puntosData.length + " vehículos respaldados en la nube.");
+                console.log("☁️ " + puntosData.length + " vehículos respaldados en la nube.");
+                if (mostrarToast) mostrarToastNotificacion("☁️ " + puntosData.length + " vehículos sincronizados con la nube.");
             }).catch(function(e) {
                 console.warn("Batch upload error:", e);
             });
         }
 
         function sincronizarTodoManualAFirebase() {
-            subirPuntosLocalesAFirebase();
+            subirPuntosLocalesAFirebase(true);
         }
 
         function sincronizarPuntoFirestore(item) {
-            if (fbDb && usuarioActual && rolUsuarioActual === 'admin') {
+            if (fbDb) {
                 var data = {
                     placa: item.placa, marca: item.marca || '-', linea: item.linea || '-', modelo: item.modelo || '-', color: item.color || '-',
                     telefonos: item.telefonos || '-', dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
@@ -5611,8 +5613,36 @@
         }
 
         function eliminarPuntoFirestore(markerId) {
-            if (fbDb && usuarioActual && rolUsuarioActual === 'admin') {
+            if (fbDb) {
                 fbDb.collection('puntos_ubica_rick').doc(markerId).delete().catch(function(e){ console.warn(e); });
+            }
+        }
+
+        function forzarSincronizacionNubePuntos() {
+            mostrarToastNotificacion("⏳ Sincronizando mapa con la nube...");
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                // Si es admin y tiene placas locales, primero respaldarlas en la nube
+                if (usuarioOperadorActual && usuarioOperadorActual.rol === 'admin' && puntosData.length > 0) {
+                    subirPuntosLocalesAFirebase(false);
+                }
+                fbDb.collection('puntos_ubica_rick').get().then(function(snapshot) {
+                    var puntosNube = [];
+                    snapshot.forEach(function(doc) {
+                        var d = doc.data();
+                        d.id = doc.id;
+                        puntosNube.push(d);
+                    });
+                    if (puntosNube.length > 0) {
+                        actualizarPuntosDesdeNube(puntosNube);
+                        mostrarToastNotificacion("✅ " + puntosNube.length + " placas cargadas en tu mapa.");
+                    } else {
+                        mostrarToastNotificacion("ℹ️ Base de datos en la nube consultada.");
+                    }
+                }).catch(function(err) {
+                    mostrarToastNotificacion("⚠️ Error al sincronizar: " + err.message);
+                });
+            } else {
+                mostrarToastNotificacion("⚠️ Sin conexión con la base de datos.");
             }
         }
 
@@ -6300,6 +6330,13 @@
 
             aplicarPermisosPorRol(usuarioOperadorActual.rol === 'admin' ? 'admin' : 'lector');
             enviarLatidoPresencia();
+            // Asegurar descarga en vivo de placas para el operador o administrador
+            if (typeof iniciarSincronizacionFirestore === 'function') {
+                iniciarSincronizacionFirestore();
+            }
+            if (usuarioOperadorActual && usuarioOperadorActual.rol === 'admin' && puntosData.length > 0) {
+                subirPuntosLocalesAFirebase(false);
+            }
         }
 
         // Funciones auxiliares de coincidencia flexible para evitar errores de tipeo en celular
