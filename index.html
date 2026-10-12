@@ -6093,6 +6093,64 @@
         var presenciaOperadoresCache = {};
         var tabUsuariosActiva = 'conectados';
 
+                // =========================================================================
+        // ALMACENAMIENTO Y CONSULTA DE USUARIOS REGISTRADOS
+        // =========================================================================
+        function obtenerUsuariosRegistrados() {
+            var raw = localStorage.getItem('usuarios_registrados_ubica_rick');
+            var lista = [];
+            if (raw) {
+                try { lista = JSON.parse(raw); } catch(e){}
+            }
+
+            var usuariosBase = [
+                { id: 'usr_pcrick', nombre: 'Pcrick', login: 'pcrick', pin: 'Pao0288@', rol: 'admin', activo: true },
+                { id: 'usr_admin_master', nombre: 'Rikardo Rodríguez', login: 'rikardorodriiguez@gmail.com', pin: 'Pao0288@', rol: 'admin', activo: true },
+                { id: 'usr_admin_alt', nombre: 'Administrador', login: 'admin', pin: 'admin123', rol: 'admin', activo: true },
+                { id: 'usr_rick', nombre: 'rick', login: 'rick@ubica.com', pin: 'Pao0288@', rol: 'lector', activo: true },
+                { id: 'usr_paola', nombre: 'paola', login: 'paola@ubica.com', pin: 'Pao0288@', rol: 'lector', activo: true },
+                { id: 'usr_sergio', nombre: 'Sergio', login: 'sergio', pin: '1234', rol: 'lector', activo: true }
+            ];
+
+            if (!lista || lista.length === 0) {
+                lista = usuariosBase;
+                try { localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(lista)); } catch(e){}
+            } else {
+                usuariosBase.forEach(function(baseUser) {
+                    var encIdx = lista.findIndex(function(u) {
+                        var lg = (u.login || '').toLowerCase().trim();
+                        var nm = (u.nombre || '').toLowerCase().trim();
+                        return lg === baseUser.login.toLowerCase().trim() || nm === baseUser.nombre.toLowerCase().trim();
+                    });
+                    if (encIdx === -1) {
+                        lista.push(baseUser);
+                    } else {
+                        // Sincronizar pin y rol si era admin
+                        if (!lista[encIdx].pin || baseUser.login === 'pcrick' || baseUser.login === 'rikardorodriiguez@gmail.com') {
+                            lista[encIdx].pin = baseUser.pin;
+                            lista[encIdx].rol = baseUser.rol;
+                            lista[encIdx].activo = true;
+                        }
+                    }
+                });
+                try { localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(lista)); } catch(e){}
+            }
+            return lista;
+        }
+
+        function guardarUsuariosRegistrados(lista) {
+            try {
+                localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(lista));
+            } catch(e){}
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                lista.forEach(function(u) {
+                    try {
+                        fbDb.collection('usuarios_control').doc(u.id).set(u, { merge: true }).catch(function(){});
+                    } catch(e){}
+                });
+            }
+        }
+
         function inicializarUsuariosSistema() {
             var raw = localStorage.getItem('usuarios_registrados_ubica_rick');
             var lista = [];
@@ -6288,34 +6346,26 @@
 
             var lista = obtenerUsuariosRegistrados();
 
-            // 1. ACCESO MAESTRO DE ADMINISTRADOR GARANTIZADO
-            // Si coincide con el correo de admin o alias admin y la contraseña Pao0288@ o admin123
+            // 1. ACCESO MAESTRO DE ADMINISTRADOR (Pcrick, rikardo, rikardorodriiguez@gmail.com, admin con Pao0288@ o admin123)
             var esAdminDirecto = (
-                (inUser === 'rikardorodriiguez@gmail.com' || inUser === 'rikardorodriiguez' || inUser === 'admin' || inUser === 'rickardo' || inUser === 'ricardo') &&
+                (inUser === 'pcrick' || inUser === 'rikardorodriiguez@gmail.com' || inUser === 'rikardorodriiguez' || inUser === 'admin' || inUser === 'rick') &&
                 (coincidePinLogin('Pao0288@', inPin) || coincidePinLogin('admin123', inPin))
             );
 
             if (esAdminDirecto) {
                 var adminUserObj = {
-                    id: 'usr_admin_master',
-                    nombre: 'Rikardo Rodríguez',
-                    login: 'rikardorodriiguez@gmail.com',
+                    id: 'usr_pcrick',
+                    nombre: 'Pcrick',
+                    login: inUser,
                     pin: inPin,
                     rol: 'admin',
                     activo: true
                 };
-                var idxAdm = lista.findIndex(function(u){ return u.login === 'rikardorodriiguez@gmail.com' || u.id === 'usr_admin_master' || u.rol === 'admin'; });
-                if (idxAdm !== -1) {
-                    lista[idxAdm] = adminUserObj;
-                } else {
-                    lista.unshift(adminUserObj);
-                }
-                guardarUsuariosRegistrados(lista);
                 procesarLoginUsuarioEncontrado(adminUserObj, inPin);
                 return;
             }
 
-            // 2. BUSCAR EN LISTA LOCAL DE USUARIOS (rick, paola, sergio, etc.)
+            // 2. BUSCAR EN LISTA LOCAL DE USUARIOS
             var enc = lista.find(function(u){ return coincideUsuarioLogin(u, inUser); });
 
             // 3. SI NO ESTÁ LOCAL, BUSCAR EN FIRESTORE EN TIEMPO REAL
@@ -6332,7 +6382,7 @@
                         listaNube.push(d);
                     });
                     if (listaNube.length > 0) {
-                        localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(listaNube));
+                        guardarUsuariosRegistrados(listaNube);
                         var encNube = listaNube.find(function(u){ return coincideUsuarioLogin(u, inUser); });
                         if (encNube) {
                             procesarLoginUsuarioEncontrado(encNube, inPin);

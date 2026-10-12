@@ -1,5 +1,5 @@
 // Service Worker para UBICA-RICK PWA
-const CACHE_NAME = 'ubica-rick-v23';
+const CACHE_NAME = 'ubica-rick-v24';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
