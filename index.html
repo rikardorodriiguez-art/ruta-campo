@@ -764,9 +764,15 @@
             <b style="color: #2c3e50; font-size: 14px;">⚙️ Configuración del Sistema</b>
             <button onclick="cerrarConfig()">✖</button>
         </div>
-        <label style="display:block; font-size:11px; font-weight:bold; margin-top:6px;">Clave Google Maps Geocoding (Opcional):</label>
-        <input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
-        <span style="font-size:10px; color:#7f8c8d; display:block; margin-top:3px;">Si se deja vacía, se usan automáticamente Photon + OpenStreetMap (Gratuitos).</span>
+        <div id="cfg-info-operador" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; font-size:11.5px; color:#334155; margin:6px 0;">
+            👤 Conectado como: <b>Usuario</b>
+        </div>
+
+        <div id="cfg-seccion-apikey">
+            <label style="display:block; font-size:11px; font-weight:bold; margin-top:6px;">Clave Google Maps Geocoding (Opcional):</label>
+            <input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
+            <span style="font-size:10px; color:#7f8c8d; display:block; margin-top:3px;">Si se deja vacía, se usan automáticamente Photon + OpenStreetMap (Gratuitos).</span>
+        </div>
 
         <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:12px;">
             <input type="checkbox" id="cfg-sonido" checked> 🔊 Alerta sonora de proximidad (&lt; 200m)
@@ -776,9 +782,9 @@
         </label>
         
         <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
-            <button type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👥 Control de Operadores (Quién está conectado)</button>
-            <button type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
-            <button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Bloquear Mapa</button>
+            <button id="btn-config-gestion-usuarios" type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👥 Control de Operadores (Quién está conectado)</button>
+            <button id="btn-config-sync-nube" type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
+            <button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Salir</button>
         </div>
 
         <div style="margin-top:15px; display:flex; gap:6px;">
@@ -980,10 +986,10 @@
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
             <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Ruta hacia Destino (Placas a ≤500m)</button>
-            <button onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
+            <button id="btn-filtro-borrado-masivo" onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
-            <button onclick="abrirModalGestionUsuarios()" class="pop-btn pb-purple" style="margin:0; font-size:11.5px; padding:7px 6px;">👥 Gestión de Usuarios</button>
-            <button onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:11.5px; padding:7px 6px;">⚙️ Configuración</button>
+            <button id="btn-filtro-gestion-usuarios" onclick="abrirModalGestionUsuarios()" class="pop-btn pb-purple" style="margin:0; font-size:11.5px; padding:7px 6px;">👥 Gestión de Usuarios</button>
+            <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:11.5px; padding:7px 6px;">⚙️ Configuración</button>
         </div>
     </div>
 
@@ -4338,7 +4344,8 @@
         function toggleModoOperadorSeguro() {
             modoEdicionActivo = !modoEdicionActivo;
             localStorage.setItem('ubica_rick_modo_edicion', modoEdicionActivo ? '1' : '0');
-            aplicarPermisosPorRol(modoEdicionActivo ? 'admin' : 'lector');
+            var rolReal = (usuarioOperadorActual && usuarioOperadorActual.rol === 'admin') ? 'admin' : 'lector';
+            aplicarPermisosPorRol(rolReal);
 
             if (modoEdicionActivo) {
                 mostrarToastNotificacion("🟢 Modo Edición ENCENDIDO: Puedes agregar, editar y manipular puntos.", 3500);
@@ -5280,16 +5287,53 @@
         function aplicarPermisosPorRol(rol) {
             rolUsuarioActual = rol;
             localStorage.setItem('ubica_rick_rol', rol);
+            var esAdmin = (rol === 'admin');
 
+            // 1. Botón flotante para agregar placas (Solo Administrador)
             var btnAdd = document.querySelector('.floating-btn-add');
             if (btnAdd) {
-                btnAdd.style.display = (rol === 'lector') ? 'none' : 'flex';
+                btnAdd.style.display = esAdmin ? 'flex' : 'none';
+            }
+
+            // 2. Botón de Modo Edición / Modo Moto en barra superior (Solo Administrador)
+            var btnModoSeguro = document.getElementById('btn-modo-seguro');
+            if (btnModoSeguro) {
+                btnModoSeguro.style.display = esAdmin ? 'inline-flex' : 'none';
+            }
+
+            // 3. Botón Borrado Masivo en el panel de Filtros (Solo Administrador)
+            var btnBorradoMasivo = document.getElementById('btn-filtro-borrado-masivo');
+            if (btnBorradoMasivo) {
+                btnBorradoMasivo.style.display = esAdmin ? 'block' : 'none';
+            }
+
+            // 4. Botón Gestión de Usuarios en el panel de Filtros (Solo Administrador)
+            var btnGestionUsuarios = document.getElementById('btn-filtro-gestion-usuarios');
+            if (btnGestionUsuarios) {
+                btnGestionUsuarios.style.display = esAdmin ? 'block' : 'none';
+            }
+
+            // 5. Opciones en el modal de Configuración (Solo Administrador)
+            var cfgApiKey = document.getElementById('cfg-seccion-apikey');
+            if (cfgApiKey) cfgApiKey.style.display = esAdmin ? 'block' : 'none';
+
+            var cfgBtnUsuarios = document.getElementById('btn-config-gestion-usuarios');
+            if (cfgBtnUsuarios) cfgBtnUsuarios.style.display = esAdmin ? 'block' : 'none';
+
+            var cfgBtnSync = document.getElementById('btn-config-sync-nube');
+            if (cfgBtnSync) cfgBtnSync.style.display = esAdmin ? 'block' : 'none';
+
+            // 6. Actualizar información del usuario en Configuración
+            var cfgInfoUser = document.getElementById('cfg-info-operador');
+            if (cfgInfoUser) {
+                var nom = (usuarioOperadorActual ? usuarioOperadorActual.nombre : 'Operador');
+                cfgInfoUser.innerHTML = `👤 Conectado como: <b>${nom}</b> <span style="font-size:10px; font-weight:bold; background:${esAdmin ? '#dcfce7' : '#e0f2fe'}; color:${esAdmin ? '#15803d' : '#0369a1'}; padding:1px 6px; border-radius:4px;">${esAdmin ? '👑 Admin' : '👤 Operador'}</span>`;
             }
 
             actualizarBotonModoSeguroUI();
             actualizarUIAuth(usuarioActual);
 
-            // Refrescar fichas de los carros para reflejar permisos
+            // Refrescar fichas de los carros para reflejar permisos (editar/mover solo admin)
             puntosData.forEach(function(p) {
                 if (p.marker) {
                     p.marker.setPopupContent(generarContenidoPopup(p, p.id));
@@ -5685,7 +5729,8 @@
             inicializarFirebase();
             cargarPuntosStorage();
             actualizarBotonRadarUI();
-            aplicarPermisosPorRol(modoEdicionActivo ? 'admin' : 'lector');
+            var rolReal = (usuarioOperadorActual && usuarioOperadorActual.rol === 'admin') ? 'admin' : 'lector';
+            aplicarPermisosPorRol(rolReal);
             setTimeout(actualizarPanelCercano, 1200);
         };
     
