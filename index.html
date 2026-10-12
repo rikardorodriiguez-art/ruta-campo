@@ -599,7 +599,7 @@
     </style>
 </head>
 <body>
-    <div id="map" style="display:none; visibility:hidden; width:100%; height:100%; position:absolute; top:0; left:0; z-index:1;"></div>
+    <div id="map"></div>
     <div id="backdrop-modal" onclick="cerrarTodosLosModales()"></div>
 
     <!-- BARRA SUPERIOR FIJA RESPONSIVE -->
@@ -6094,18 +6094,16 @@
         var tabUsuariosActiva = 'conectados';
 
         function inicializarUsuariosSistema() {
-            // Requerimiento: Al abrir el enlace en cualquier dispositivo, SIEMPRE pedir usuario y contraseña
-            usuarioOperadorActual = null;
-            localStorage.removeItem('usuario_sesion_activa_id');
-
             var raw = localStorage.getItem('usuarios_registrados_ubica_rick');
             var lista = [];
             if (raw) {
                 try { lista = JSON.parse(raw); } catch(e){}
             }
 
+            // Lista base garantizada con el administrador real y los operadores
             var usuariosBase = [
-                { id: 'usr_admin', nombre: 'Administrador Principal', login: 'admin', pin: 'admin123', rol: 'admin', activo: true },
+                { id: 'usr_admin_master', nombre: 'Rikardo Rodríguez', login: 'rikardorodriiguez@gmail.com', pin: 'Pao0288@', rol: 'admin', activo: true },
+                { id: 'usr_admin_alt', nombre: 'Administrador', login: 'admin', pin: 'admin123', rol: 'admin', activo: true },
                 { id: 'usr_rick', nombre: 'rick', login: 'rick@ubica.com', pin: 'Pao0288@', rol: 'lector', activo: true },
                 { id: 'usr_paola', nombre: 'paola', login: 'paola@ubica.com', pin: 'Pao0288@', rol: 'lector', activo: true },
                 { id: 'usr_sergio', nombre: 'Sergio', login: 'sergio', pin: '1234', rol: 'lector', activo: true }
@@ -6115,7 +6113,7 @@
                 lista = usuariosBase;
                 localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(lista));
             } else {
-                // Garantizar que rick y paola estén presentes y activos
+                // Asegurar que el admin rikardorodriiguez@gmail.com, rick y paola estén presentes
                 usuariosBase.forEach(function(baseUser) {
                     var encIdx = lista.findIndex(function(u) {
                         var lg = (u.login || '').toLowerCase().trim();
@@ -6128,12 +6126,22 @@
                         lista[encIdx].login = baseUser.login;
                         lista[encIdx].pin = baseUser.pin;
                         lista[encIdx].activo = true;
+                        if (baseUser.rol === 'admin') lista[encIdx].rol = 'admin';
                     }
                 });
                 localStorage.setItem('usuarios_registrados_ubica_rick', JSON.stringify(lista));
             }
 
-            // Sincronizar también en Firestore para que otros dispositivos lo tengan
+            // Recordar sesión si ya estaba iniciada en este dispositivo para NO sacarlo del mapa al recargar
+            var sesionGuardadaId = localStorage.getItem('usuario_sesion_activa_id');
+            if (sesionGuardadaId) {
+                var encSesion = lista.find(function(u){ return u.id === sesionGuardadaId || u.login === sesionGuardadaId; });
+                if (encSesion && encSesion.activo !== false) {
+                    usuarioOperadorActual = encSesion;
+                }
+            }
+
+            // Sincronizar en Firestore
             if (typeof fbDb !== 'undefined' && fbDb) {
                 lista.forEach(function(u) {
                     try {
@@ -6156,7 +6164,7 @@
                 }, function(err){ console.warn("Firestore usuarios_control:", err); });
             }
 
-            // Bloquear el mapa y mostrar inmediatamente la pantalla de ingreso
+            // Verificar si debe mostrar pantalla de login o dar paso al mapa
             verificarEstadoAccesoOperador();
         }
 
@@ -6220,16 +6228,17 @@
             var uNombre = (u.nombre || '').trim().toLowerCase();
             var uId = (u.id || '').trim().toLowerCase();
 
-            // 1. Coincidencia exacta con login o nombre
+            // 1. Coincidencia exacta con login o nombre o id
             if (uLogin === b || uNombre === b || uId === b) return true;
 
-            // 2. Coincidencia por alias / prefijo antes de @ (ej. 'paola' vs 'paola@ubica.com')
+            // 2. Coincidencia por alias / prefijo antes de @ (ej. 'rikardorodriiguez', 'paola', 'rick')
             var uLoginPrefijo = uLogin.split('@')[0];
             var bPrefijo = b.split('@')[0];
             if (uLoginPrefijo === b || uLoginPrefijo === bPrefijo || uNombre === bPrefijo) return true;
 
             // 3. Coincidencia si se ingresó o no con dominio
             if (uLogin === (b + '@ubica.com') || (uLogin + '@ubica.com') === b) return true;
+            if (uLogin === (b + '@gmail.com') || (uLogin + '@gmail.com') === b) return true;
 
             return false;
         }
@@ -6278,13 +6287,42 @@
             }
 
             var lista = obtenerUsuariosRegistrados();
+
+            // 1. ACCESO MAESTRO DE ADMINISTRADOR GARANTIZADO
+            // Si coincide con el correo de admin o alias admin y la contraseña Pao0288@ o admin123
+            var esAdminDirecto = (
+                (inUser === 'rikardorodriiguez@gmail.com' || inUser === 'rikardorodriiguez' || inUser === 'admin' || inUser === 'rickardo' || inUser === 'ricardo') &&
+                (coincidePinLogin('Pao0288@', inPin) || coincidePinLogin('admin123', inPin))
+            );
+
+            if (esAdminDirecto) {
+                var adminUserObj = {
+                    id: 'usr_admin_master',
+                    nombre: 'Rikardo Rodríguez',
+                    login: 'rikardorodriiguez@gmail.com',
+                    pin: inPin,
+                    rol: 'admin',
+                    activo: true
+                };
+                var idxAdm = lista.findIndex(function(u){ return u.login === 'rikardorodriiguez@gmail.com' || u.id === 'usr_admin_master' || u.rol === 'admin'; });
+                if (idxAdm !== -1) {
+                    lista[idxAdm] = adminUserObj;
+                } else {
+                    lista.unshift(adminUserObj);
+                }
+                guardarUsuariosRegistrados(lista);
+                procesarLoginUsuarioEncontrado(adminUserObj, inPin);
+                return;
+            }
+
+            // 2. BUSCAR EN LISTA LOCAL DE USUARIOS (rick, paola, sergio, etc.)
             var enc = lista.find(function(u){ return coincideUsuarioLogin(u, inUser); });
 
-            // Si no se encuentra en el almacenamiento local, intentar sincronizar en tiempo real desde Firestore
+            // 3. SI NO ESTÁ LOCAL, BUSCAR EN FIRESTORE EN TIEMPO REAL
             if (!enc && typeof fbDb !== 'undefined' && fbDb) {
                 if (alertaBox) {
                     alertaBox.style.display = 'block';
-                    alertaBox.innerHTML = "⏳ Verificando credenciales con el servidor en la nube...";
+                    alertaBox.innerHTML = "⏳ Verificando credenciales en la nube...";
                 }
                 fbDb.collection('usuarios_control').get().then(function(snapshot) {
                     var listaNube = [];
@@ -6303,7 +6341,7 @@
                     }
                     if (alertaBox) {
                         alertaBox.style.display = 'block';
-                        alertaBox.innerHTML = "❌ Usuario no encontrado. Puedes ingresar como <b>paola</b> o con tu correo completo <b>paola@ubica.com</b>.";
+                        alertaBox.innerHTML = "❌ Usuario no encontrado. Verifica si tu usuario es <b>" + inUser + "</b>.";
                     }
                 }).catch(function(err) {
                     if (alertaBox) {
@@ -6317,7 +6355,7 @@
             if (!enc) {
                 if (alertaBox) {
                     alertaBox.style.display = 'block';
-                    alertaBox.innerHTML = "❌ Usuario no encontrado. Puedes ingresar como <b>paola</b> o con tu correo completo <b>paola@ubica.com</b>.";
+                    alertaBox.innerHTML = "❌ Usuario no encontrado. Verifica el nombre o correo ingresado.";
                 }
                 return;
             }
@@ -6344,7 +6382,7 @@
                 return;
             }
 
-            // Inicio de sesión exitoso
+            // Inicio de sesión exitoso: guardar en localStorage para mantener sesión activa
             usuarioOperadorActual = enc;
             localStorage.setItem('usuario_sesion_activa_id', enc.id);
             localStorage.setItem('nombre_gestor_actual', enc.nombre);
@@ -7043,7 +7081,7 @@
         
         <div style="background:rgba(15, 23, 42, 0.96); border:1.5px solid #00f0ff; border-radius:24px; padding:26px 22px; width:100%; max-width:360px; box-shadow:0 18px 50px rgba(0,0,0,0.8), 0 0 25px rgba(0,240,255,0.25); text-align:center; box-sizing:border-box;">
             <div style="margin-bottom:10px;">
-                <img src="./favicon.png" alt="Logo UBICA-RICK" style="width:68px; height:68px; border-radius:18px; border:2px solid #00f0ff; box-shadow:0 0 15px rgba(0,240,255,0.4); display:inline-block;">
+                <img src="data:image/png;base64,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" alt="Logo UBICA-RICK" style="width:68px; height:68px; border-radius:18px; border:2px solid #00f0ff; box-shadow:0 0 15px rgba(0,240,255,0.4); display:inline-block;">
             </div>
             <h2 style="margin:0 0 2px 0; color:#ffffff; font-size:22px; font-weight:900; letter-spacing:1px;">UBICA-RICK</h2>
             <div style="color:#38bdf8; font-size:11px; font-weight:bold; letter-spacing:0.5px; margin-bottom:14px; text-transform:uppercase;">Control de Ruta y Rastreo</div>
