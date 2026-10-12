@@ -614,7 +614,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.2</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.1</span>
         </div>
                 <div id="top-actions">
             <!-- NOMBRE DEL PERFIL ACTIVO EN LA PARTE SUPERIOR -->
@@ -793,7 +793,8 @@
         </label>
         
         <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
-            <button id="btn-config-gestion-usuarios" type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👥 Control de Operadores (Quién está conectado)</button>
+            <button id="btn-config-cierre-turno" type="button" onclick="cerrarConfig(); abrirModalCierreTurno();" class="pop-btn pb-green" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
+            <button id="btn-config-gestion-usuarios" type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold;">👥 Gestión de Usuarios</button>
             <button id="btn-config-sync-nube" type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
             <button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Salir</button>
         </div>
@@ -852,6 +853,8 @@
             <button class="main-opt mo-1" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('whatsapp')">📋 1. Pegar Reporte / Texto (WhatsApp o IA)</button>
             <button class="main-opt mo-foto" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('tabla-foto')">📸 2. Subir Foto de Tabla (Auto / OCR)</button>
             <button class="main-opt mo-2" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('manual')">✍️ 3. Ingreso Manual de Vehículo</button>
+            <button class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:10px 12px; background:linear-gradient(135deg, #0284c7, #0369a1); border-radius:8px;" onclick="forzarSincronizacionNubePuntos(); cerrarMenuAdd();" title="Descargar o sincronizar todas las placas del equipo">☁️ Sincronizar Placas con la Nube</button>
+            <button id="btn-carga-borrado-masivo" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:10px 12px; border-radius:8px;" onclick="abrirModalBorradoMasivo(); cerrarMenuAdd();">🗑️ Borrado Masivo de Placas</button>
         </div>
 
         <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #cbd5e1; text-align:center;">
@@ -996,14 +999,9 @@
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
-            <button onclick="forzarSincronizacionNubePuntos()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Descargar o sincronizar todas las placas del equipo">☁️ Sincronizar Placas con la Nube</button>
-            <button onclick="abrirModalImportarExcel()" class="pop-btn pb-purple" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #10b981, #059669);" title="Cargar lote de placas desde archivo Excel o CSV">📥 Importar Placas desde Excel (.xlsx)</button>
-            <button onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
-            <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
-            <button id="btn-filtro-borrado-masivo" onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
-            <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
-            <button id="btn-filtro-gestion-usuarios" onclick="abrirModalGestionUsuarios()" class="pop-btn pb-purple" style="margin:0; font-size:11.5px; padding:7px 6px;">👥 Gestión de Usuarios</button>
-            <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:11.5px; padding:7px 6px;">⚙️ Configuración</button>
+            <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
+            <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:12px; padding:9px 6px;">🗺️ Ver Todas en Pantalla</button>
+            <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:12px; padding:9px 6px;">⚙️ Configuración</button>
         </div>
     </div>
 
@@ -5966,8 +5964,8 @@
                 btnModoSeguro.style.display = esAdmin ? 'inline-flex' : 'none';
             }
 
-            // 3. Botón Borrado Masivo en el panel de Filtros (Solo Administrador)
-            var btnBorradoMasivo = document.getElementById('btn-filtro-borrado-masivo');
+            // 3. Botón Borrado Masivo (Solo Administrador)
+            var btnBorradoMasivo = document.getElementById('btn-carga-borrado-masivo') || document.getElementById('btn-filtro-borrado-masivo');
             if (btnBorradoMasivo) {
                 btnBorradoMasivo.style.display = esAdmin ? 'block' : 'none';
             }
