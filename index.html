@@ -41,7 +41,7 @@
 
         /* BARRA SUPERIOR RESPONSIVE NO COLISIONANTE */
         #top-bar-container {
-            position: fixed; top: 6px; left: 4px; right: 4px; z-index: 100000000 !important;
+            position: fixed; top: 6px; left: 4px; right: 4px; z-index: 9999;
             display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center;
             pointer-events: none; gap: 4px;
             overflow-x: auto;
@@ -65,16 +65,15 @@
         .text-pico { color: #fcc419; }
 
         #top-actions {
-            pointer-events: auto !important;
+            pointer-events: auto;
             display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0;
         }
 
         .btn-top-action {
             background: linear-gradient(145deg, #1e293b, #0f172a); color: white; border: none;
-            padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer !important;
+            padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.18);
             display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;
-            pointer-events: auto !important; touch-action: manipulation;
         }
         .btn-top-action:active { transform: translateY(2px); }
         .btn-radar-active { background: linear-gradient(145deg, #00b894, #00ff87) !important; color: #1a252f !important; border-color: #00ff87 !important; }
@@ -615,34 +614,250 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.3</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.1</span>
         </div>
                 <div id="top-actions">
-            <!-- PERFIL ACTIVO -->
+            <!-- NOMBRE DEL PERFIL ACTIVO EN LA PARTE SUPERIOR -->
             <div id="badge-perfil-activo" onclick="abrirModalPerfilUsuario()" style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:16px; background:linear-gradient(135deg, #0c4a6e, #0f172a); border:1.5px solid #38bdf8; color:white; font-size:11px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.35); white-space:nowrap; flex-shrink:0;" title="Toca para ver tu perfil o cerrar sesión">
                 <span id="badge-perfil-icono">👤</span>
                 <span id="badge-perfil-nombre">Operador</span>
             </div>
-            <!-- PANTALLA SIEMPRE ENCENDIDA -->
             <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
-            <!-- RADAR HUD FLOTANTE -->
+            <button id="btn-modo-seguro" class="btn-top-action" onclick="toggleModoOperadorSeguro()" style="background: linear-gradient(145deg, #16a34a, #15803d); border-color: #22c55e;" title="Encendido: Manipular/Subir/Borrar | Apagado: Modo Operador Seguro para moto">🟢 Edición</button>
             <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
-            <!-- BOTÓN MAESTRO DE MENÚ Y HERRAMIENTAS ORGANIZADAS -->
-            <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8; font-weight:bold;" title="Abrir Menú de Capas, Rutas y Sistema">🛠️ Menú</button></div>
+            <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Ingresar / Sincronizar cuenta Nube">☁️ Nube</button>
+            <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
+            <!-- BOTONES DE LA SUITE TÁCTICA AVANZADA -->
+            <button id="btn-top-sos" class="btn-top-action" onclick="activarBotonPanicoSOS()" style="background: linear-gradient(145deg, #dc2626, #991b1b); border-color: #ef4444; font-weight:900;" title="Alerta de Emergencia / SOS a la base">🚨 SOS</button>
+            <button id="btn-top-modo-noche" class="btn-top-action" onclick="toggleModoNocturnoAmoled()" style="background: linear-gradient(145deg, #1e293b, #0f172a); border-color: #475569;" title="Modo Nocturno / Batería Extrema AMOLED">🌙 Noche</button>
+            <button id="btn-top-calor" class="btn-top-action" onclick="toggleMapaCalor()" style="background: linear-gradient(145deg, #ea580c, #c2410c); border-color: #fb923c;" title="Ver Mapa de Calor / Concentración de Placas">🔥 Calor</button>
+            <button id="btn-top-motos" class="btn-top-action" onclick="toggleCapaMotosEnVivo()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8; display:none;" title="Ver ubicación en vivo de los motorizados">🏍️ Motos</button>
+            <button id="btn-top-reporte" class="btn-top-action" onclick="abrirModalCierreTurno()" style="background: linear-gradient(145deg, #059669, #047857); border-color: #34d399;" title="Generar Informe Operativo / Cierre de Turno">📑 Reporte</button>
+            <button id="btn-top-instalar" class="btn-top-action" onclick="solicitarInstalacionApp()" style="background: linear-gradient(145deg, #7c3aed, #5b21b6); border-color: #a78bfa;" title="Descargar como App directamente en el navegador">📲 App</button>
+        </div>
     </div>
 
-    <!-- BOTÓN AGREGAR Y MENÚ DE 5 OPCIONES -->
-    <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
+    <!-- PANEL SUPERIOR REMOVIDO: EL RADAR FUNCIONA CON LA CÁPSULA INFERIOR Y EL WIDGET CIRCULAR AFUERA -->
+
+    <!-- BOTÓN / WIDGET FLOTANTE RADAR FUTURISTA -->
+    <div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
+        <!-- MODO CÁPSULA COMPACTA (BOTÓN FLOTANTE) -->
+        <div id="hud-capsula-view" class="hud-capsula" onclick="toggleExpandirHud(event)" title="Toca para expandir el Radar">
+            <div class="hud-radar-disc">
+                <div class="hud-radar-sweep"></div>
+                <div class="hud-radar-dot"></div>
+            </div>
+            <div class="hud-capsula-datos">
+                <div class="hud-capsula-placa-row">
+                    <span id="hud-cap-placa" class="hud-tag-placa">---</span>
+                    <span id="hud-cap-dist" class="hud-tag-dist">-- m</span>
+                </div>
+                <div id="hud-cap-vehiculo" class="hud-capsula-vehiculo">
+                    <b id="hud-cap-carro-txt">CARRO</b> • <span id="hud-cap-color-txt" class="hud-capsula-color">COLOR</span>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
+                <button type="button" onclick="event.stopPropagation(); iniciarPipRadar();" class="hud-btn-mini" style="background:linear-gradient(135deg, #7c3aed, #6d28d9); border-color:#a78bfa;" title="Flotar sobre WhatsApp y otras apps">🪟</button>
+                <button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Google Maps">🧭</button>
+                <button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3);" title="Expandir Radar HUD">➕</button>
+            </div>
+        </div>
+
+        <!-- MODO PANEL TÁCTICO EXPANDIDO -->
+        <div id="hud-panel-view" class="hud-panel-expandido" style="display:none;">
+            <div class="hud-header-futurista">
+                <div class="hud-title-futurista">
+                    <span class="hud-radar-dot" style="position:static; display:inline-block;"></span>
+                    <span>RADAR TÁCTICO UBICA-RICK</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span id="hud-status-badge" class="hud-status-badge">TRACKING</span>
+                    <button type="button" onclick="toggleExpandirHud(event)" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;" title="Minimizar a botón">➖</button>
+                    <button type="button" onclick="toggleRadar()" style="background:none; border:none; color:#f43f5e; font-size:16px; cursor:pointer;" title="Apagar radar">✖</button>
+                </div>
+            </div>
+
+            <div class="hud-placa-box">
+                <div>
+                    <div style="font-size:9px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">OBJETIVO MÁS CERCANO</div>
+                    <div id="hud-exp-placa" class="hud-placa-grande">---</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:9px; color:#94a3b8; font-weight:bold;">DISTANCIA</div>
+                    <div id="hud-exp-dist" class="hud-dist-grande">-- m</div>
+                </div>
+            </div>
+
+            <div class="hud-specs-grid">
+                <div class="hud-spec-card">
+                    <span class="hud-spec-label">🚗 Vehículo</span>
+                    <span id="hud-exp-carro" class="hud-spec-val">---</span>
+                </div>
+                <div class="hud-spec-card">
+                    <span class="hud-spec-label">🎨 Color</span>
+                    <span id="hud-exp-color" class="hud-spec-val" style="color:#38bdf8;">---</span>
+                </div>
+            </div>
+
+            <div style="background:rgba(0,0,0,0.4); padding:5px 8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.06);">
+                <span class="hud-spec-label">📍 Dirección</span>
+                <span id="hud-exp-dir" style="font-size:10.5px; color:#e2e8f0; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">---</span>
+            </div>
+
+            <div class="hud-actions-row">
+                <button type="button" onclick="irCercanoMaps()" class="hud-btn-action hud-btn-maps" title="Abrir ruta en Google Maps">🧭 Maps</button>
+                <button type="button" onclick="visitarCercanoDesdeRadar()" class="hud-btn-action hud-btn-visitar" title="Marcar como visitada">✅ Visitada</button>
+                <button type="button" onclick="centrarEnVehiculoCercano()" class="hud-btn-action" style="background:#334155; border:1px solid #64748b;" title="Ver en el mapa">🎯 Ver</button>
+                <button type="button" onclick="iniciarPipRadar()" class="hud-btn-action hud-btn-pip" title="Flotar sobre Google Maps / Celular">🪟 Flotar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- OVERLAYS & MODALES -->
+    
+    <!-- MODAL DE AUTENTICACIÓN / NUBE EN VIVO -->
+    <div id="modal-auth" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#0f172a; border:1.5px solid #00f0ff; border-radius:16px; padding:18px 20px; width:330px; max-width:92vw; z-index:99999999; color:white; box-shadow:0 12px 40px rgba(0,0,0,0.85); font-family:-apple-system, BlinkMacSystemFont, sans-serif;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(0,240,255,0.25); padding-bottom:8px;">
+            <div style="font-size:13px; font-weight:900; color:#00f0ff; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
+                <span>🛰️ UBICA-RICK CLOUD</span>
+            </div>
+            <button onclick="cerrarModalAuth()" style="background:none; border:none; color:#f43f5e; font-size:16px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <div id="auth-seccion-login">
+            <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:10px;">Inicia sesión con tu cuenta para sincronizar el mapa en vivo entre tu PC y celulares:</span>
+            
+            <label style="font-size:10.5px; color:#cbd5e1; font-weight:bold;">Correo Electrónico:</label>
+            <input type="email" id="auth-email" placeholder="ejemplo@correo.com" style="width:100%; box-sizing:border-box; padding:8px 10px; margin-top:3px; margin-bottom:10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:white; font-size:12px;">
+
+            <label style="font-size:10.5px; color:#cbd5e1; font-weight:bold;">Contraseña:</label>
+            <input type="password" id="auth-pass" placeholder="••••••••" style="width:100%; box-sizing:border-box; padding:8px 10px; margin-top:3px; margin-bottom:12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:white; font-size:12px;">
+
+            <button type="button" onclick="ejecutarLoginFirebase()" class="pop-btn pb-blue" style="margin:0 0 8px 0; padding:10px; font-size:12px;">🚀 Iniciar Sesión</button>
+            <button type="button" onclick="cerrarModalAuth()" style="background:none; border:1px solid #475569; color:#94a3b8; width:100%; padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">Continuar sin cuenta (Modo Local)</button>
+        </div>
+
+        <div id="auth-seccion-perfil" style="display:none;">
+            <div style="background:rgba(255,255,255,0.06); padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.1);">
+                <div style="font-size:10.5px; color:#94a3b8;">Usuario conectado:</div>
+                <div id="auth-user-email" style="font-size:13px; font-weight:bold; color:#f8fafc; margin-top:2px;"></div>
+                <div id="auth-user-badge" style="font-size:11px; margin-top:4px; font-weight:bold;"></div>
+            </div>
+
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:12px; line-height:1.4;">
+                <span id="auth-rol-explicacion"></span>
+            </div>
+
+            <button type="button" onclick="sincronizarTodoManualAFirebase()" id="btn-sync-manual" class="pop-btn pb-green" style="margin:0 0 6px 0; padding:8px; font-size:11.5px;">☁️ Subir Puntos Locales a la Nube</button>
+            <button type="button" onclick="ejecutarLogoutFirebase()" class="pop-btn pb-red" style="margin:0; padding:8px; font-size:11.5px;">🚪 Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div style="font-size: 32px;">⏳</div>
+        <span id="loading-texto">Procesando...</span>
+    </div>
+
+    <div id="modal-asistente">
+        <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 6px;">✏️ Revisión Manual de Direcciones:</b>
+        <span style="font-size: 11px; color:#555; display:block; margin-bottom:8px;">Corrige o selecciona las líneas de dirección:</span>
+        <textarea id="asistente-texto" style="width:100%; height:120px; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:6px; resize:none;"></textarea>
+        <div style="display:flex; gap:6px; margin-top:12px;">
+            <button onclick="procesarModalRescate()" class="act-green" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">✅ Mapear</button>
+            <button onclick="cerrarAsistente()" class="act-gray" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIGURACIÓN -->
+    <div id="modal-config">
+        <div class="header-menu">
+            <b style="color: #2c3e50; font-size: 14px;">⚙️ Configuración del Sistema</b>
+            <button onclick="cerrarConfig()">✖</button>
+        </div>
+        <div id="cfg-info-operador" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; font-size:11.5px; color:#334155; margin:6px 0;">
+            👤 Conectado como: <b>Usuario</b>
+        </div>
+
+        <div id="cfg-seccion-apikey">
+            <label style="display:block; font-size:11px; font-weight:bold; margin-top:6px;">Clave Google Maps Geocoding (Opcional):</label>
+            <input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
+            <span style="font-size:10px; color:#7f8c8d; display:block; margin-top:3px;">Si se deja vacía, se usan automáticamente Photon + OpenStreetMap (Gratuitos).</span>
+        </div>
+
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:12px;">
+            <input type="checkbox" id="cfg-sonido" checked> 🔊 Alerta sonora de proximidad (&lt; 200m)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:8px;">
+            <input type="checkbox" id="cfg-vibrar" checked> 📳 Vibración táctil en proximidad
+        </label>
+        
+        <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
+            <button id="btn-config-gestion-usuarios" type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👥 Control de Operadores (Quién está conectado)</button>
+            <button id="btn-config-sync-nube" type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
+            <button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Salir</button>
+        </div>
+
+        <div style="margin-top:15px; display:flex; gap:6px;">
+            <button onclick="guardarConfig()" class="act-green" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Guardar</button>
+            <button onclick="cerrarConfig()" class="act-gray" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- PANEL INFERIOR PARA REUBICAR / MOVER PUNTO (NO SE TAPA NI SE CORTA) -->
+    <div id="panel-reubicar-punto">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <b style="color:#2c3e50; font-size:13.5px;">📍 Moviendo: <span id="reubicar-placa-label" style="color:#2980b9; font-weight:900;"></span></b>
+            <button onclick="cancelarReubicacionPunto()" style="border:none; background:none; font-size:18px; font-weight:bold; cursor:pointer; color:#7f8c8d; padding:2px 8px;">✖</button>
+        </div>
+        
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Dirección Real Registrada:</div>
+                <a id="btn-reubicar-maps-link" href="#" target="_blank" style="font-size:10.5px; font-weight:bold; color:#0284c7; text-decoration:none; display:flex; align-items:center; gap:3px;">🧭 Abrir en Google Maps ↗</a>
+            </div>
+            <div id="reubicar-dir-real-label" style="font-size:12px; font-weight:700; color:#0f172a; line-height:1.4; word-break:break-word; margin-top:2px;">-</div>
+        </div>
+
+        <div style="font-size:11px; color:#0369a1; margin-bottom:8px; line-height:1.4; background:#e0f2fe; padding:6px 10px; border-radius:6px; border-left:3px solid #0284c7;">
+            💡 <b>Cómo colocar el carro:</b><br>
+            • <b>Toca en el mapa</b> exactamente en la calle donde quieres ponerlo.<br>
+            • O arrastra el marcador con el dedo.<br>
+            • O pega abajo coordenadas / enlace y pulsa Recalcular:
+        </div>
+
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <input type="text" id="reubicar-input-texto" placeholder="Coordenadas (lat, lng), dirección o link de Maps..." style="flex:1; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:12px;">
+            <button id="btn-reubicar-recalcular" onclick="buscarNuevaUbicacionManual()" class="pop-btn pb-blue" style="margin:0; width:auto; padding:0 12px; font-size:11.5px; white-space:nowrap;">🔄 Recalcular</button>
+        </div>
+
+        <div style="display:flex; gap:6px;">
+            <button onclick="fijarPuntoEnMiUbicacion()" class="pop-btn pb-teal" style="margin:0; flex:1; padding:9px 4px; font-size:11.5px; font-weight:bold;">📍 En Mi GPS</button>
+            <button onclick="confirmarReubicacionPunto()" class="pop-btn pb-green" style="margin:0; flex:1.2; padding:9px 4px; font-size:11.5px; font-weight:bold;">✅ Confirmar</button>
+            <button onclick="cancelarReubicacionPunto()" class="pop-btn pb-red" style="margin:0; flex:0.7; padding:9px 4px; font-size:11.5px;">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- BOTÓN FLOTANTE CENTRAR EN MI GPS -->
+    <button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:118px; left:12px; z-index:999; background:linear-gradient(145deg, #1e293b, #0f172a); color:#38bdf8; border:2px solid #38bdf8; border-radius:50%; width:38px; height:38px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.4); outline:none; -webkit-tap-highlight-color:transparent; overflow:hidden;" title="Centrar en Mi Ubicación GPS">🎯</button>
+
+    <!-- BOTÓN AGREGAR Y MENÚ<!-- BOTÓN AGREGAR Y MENÚ DE 5 OPCIONES -->
+    <button class="floating-btn-add" onclick="toggleMenuAdd()" title="Agregar nuevo vehículo">➕</button>
     <div id="menuOpciones" class="floating-menu">
         <div class="header-menu">
-            <b style="color: #2c3e50; font-size: 14px;">Opciones de Carga:</b>
+            <b style="color: #0f172a; font-size: 14px;">➕ Opciones de Carga:</b>
             <button onclick="cerrarMenuAdd()">✖</button>
         </div>
-        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto (WhatsApp)</button>
-        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual completo</button>
-        <button class="main-opt mo-maps" onclick="abrirSeccion('link-maps')">3. 🧭 Agregar por Link de Google Maps</button>
-        <button class="main-opt mo-foto" onclick="abrirSeccion('tabla-foto')">4. 📸 Subir Foto de Tabla (Auto)</button>
-        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">5. ⚡ Pegar Extracción IA (Gemini)</button>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="main-opt mo-1" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('whatsapp')">📋 1. Pegar Reporte / Texto (WhatsApp o IA)</button>
+            <button class="main-opt mo-foto" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('tabla-foto')">📸 2. Subir Foto de Tabla (Auto / OCR)</button>
+            <button class="main-opt mo-2" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('manual')">✍️ 3. Ingreso Manual de Vehículo</button>
+        </div>
+
+        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #cbd5e1; text-align:center;">
+            <span style="font-size:10.5px; color:#64748b; display:block; margin-bottom:5px;">🛡️ ¿Necesitas restaurar una copia de seguridad?</span>
+            <button type="button" onclick="abrirCentroRecuperacion()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; color:#0369a1; font-size:11px; font-weight:bold; padding:5px 12px; cursor:pointer;">Abrir Centro de Recuperación</button>
+        </div>
 
         <!-- SECCIÓN 1: WHATSAPP / MULTI-REPORTE -->
         <div id="seccion-whatsapp" class="sub-panel">
@@ -669,6 +884,11 @@
             <input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
             <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
             
+            <div style="margin-bottom:8px; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                <label style="font-size:11px; font-weight:bold; color:#2c3e50; display:block; margin-bottom:4px;">📸 Adjuntar Foto del Vehículo (Cámara / Galería):</label>
+                <input type="file" id="manFoto" accept="image/*" style="font-size:11px; width:100%;">
+            </div>
+
             <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
@@ -712,19 +932,14 @@
         </div>
     </div>
 
-    
     <!-- PANEL FLOTANTE DE FILTROS Y OPCIONES -->
-    <div id="panelFiltros" class="floating-filter-panel" style="display:none; position:fixed; top:58px; left:12px; z-index:10000000;
-        background:white; border-radius:16px; box-shadow:0 14px 45px rgba(0,0,0,0.4);
-        width:92%; max-width:360px; max-height:86vh; overflow-y:auto; padding:14px 16px; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; box-sizing:border-box;">
-        
-        <div class="header-menu" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
-            <b style="color: #0f172a; font-size: 14px; display:flex; align-items:center; gap:6px;">🛠️ Menú y Herramientas</b>
-            <button onclick="cerrarFiltros()" style="background:#f1f5f9; border:none; border-radius:50%; width:26px; height:26px; font-weight:bold; cursor:pointer;">✖</button>
+    <div id="panelFiltros" class="floating-filter-panel">
+        <div class="header-menu">
+            <b style="color: #2c3e50; font-size: 14px;">Filtrar y Opciones:</b>
+            <button onclick="cerrarFiltros()">✖</button>
         </div>
-
         <!-- BARRA PRINCIPAL DE CONSULTA DESTACADA (CON VISTA EN TIEMPO REAL AL DIGITAR) -->
-        <div style="background:#eff6ff; border:1.5px solid #3b82f6; border-radius:10px; padding:10px 12px; margin-bottom:10px; box-shadow:0 3px 10px rgba(59,130,246,0.15);">
+        <div style="background:#eff6ff; border:1.5px solid #3b82f6; border-radius:10px; padding:10px 12px; margin-bottom:12px; box-shadow:0 3px 10px rgba(59,130,246,0.15);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                 <label style="font-size:12px; font-weight:800; color:#1e40af; display:flex; align-items:center; gap:4px;">
                     🎯 Consultar Placa:
@@ -736,9 +951,11 @@
             <div style="display:flex; gap:6px; align-items:center;">
                 <div style="position:relative; flex:1 1 auto; min-width:0;">
                     <input type="text" id="inputBuscarPlaca" 
-                        style="width:100%; height:38px; box-sizing:border-box; margin:0; padding:0 30px 0 10px; font-size:15px; font-weight:900; text-transform:uppercase; letter-spacing:1.5px; color:#0f172a; border:2px solid #2563eb; border-radius:8px; background:#ffffff; outline:none;" 
+                        style="width:100%; height:40px; box-sizing:border-box; margin:0; padding:0 30px 0 10px; font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:1.5px; color:#0f172a; border:2px solid #2563eb; border-radius:8px; background:#ffffff; outline:none; box-shadow:inset 0 1px 3px rgba(0,0,0,0.08);" 
                         placeholder="EJ: ABC123" 
                         autocomplete="off" 
+                        autocorrect="off" 
+                        autocapitalize="characters"
                         oninput="alDigitarPlacaConsulta(this.value)" 
                         onkeydown="onKeyDownBuscarPlaca(event)">
                     <button type="button" id="btn-limpiar-busqueda" onclick="limpiarBusquedaPlaca()" 
@@ -747,80 +964,19 @@
                     </button>
                 </div>
                 <button type="button" onclick="ejecutarConsultaPlaca()" 
-                    style="flex:0 0 auto !important; height:38px; margin:0; padding:0 12px; font-size:12px; font-weight:900; white-space:nowrap; border-radius:8px; border:none; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:white; cursor:pointer;" 
+                    style="flex:0 0 auto !important; width:auto !important; max-width:none !important; height:40px; margin:0; padding:0 14px; font-size:13px; font-weight:900; white-space:nowrap; border-radius:8px; border:none; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:white; cursor:pointer; box-shadow:0 3px 8px rgba(37,99,235,0.4); display:flex; align-items:center; justify-content:center; gap:4px;" 
                     title="Consultar placa y acercar en el mapa">
-                    🔍 Buscar
+                    🔍 Consultar
                 </button>
             </div>
             
+            <!-- TARJETA DINÁMICA DE COINCIDENCIAS EN TIEMPO REAL -->
             <div id="resultado-busqueda-live" style="margin-top:8px; display:none;">
             </div>
         </div>
-
-        <!-- SECCIÓN 1: 🗺️ CAPAS DEL MAPA -->
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:10px;">
-            <span style="font-size:11.5px; font-weight:900; color:#1e293b; display:block; margin-bottom:6px;">🗺️ Capas del Mapa:</span>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <button id="btn-menu-noche" type="button" onclick="toggleModoNocturnoAmoled()" class="pop-btn" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; background:linear-gradient(135deg, #1e293b, #0f172a); color:white; border-radius:6px; text-align:left;">
-                    🌙 Modo Noche (AMOLED Batería)
-                </button>
-                <button id="btn-menu-calor" type="button" onclick="toggleMapaCalor()" class="pop-btn" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; background:linear-gradient(135deg, #ea580c, #c2410c); color:white; border-radius:6px; text-align:left;">
-                    🔥 Mapa de Calor (Concentración)
-                </button>
-                <button id="btn-menu-motos" type="button" onclick="toggleCapaMotosEnVivo()" class="pop-btn" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; background:linear-gradient(135deg, #0284c7, #0369a1); color:white; border-radius:6px; text-align:left;">
-                    🏍️ Motos en Vivo (Tracking Equipo)
-                </button>
-            </div>
-        </div>
-
-        <!-- SECCIÓN 2: 🧭 RUTAS Y GESTIÓN -->
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:10px;">
-            <span style="font-size:11.5px; font-weight:900; color:#1e293b; display:block; margin-bottom:6px;">🧭 Rutas y Gestión:</span>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <button type="button" onclick="cerrarFiltros(); abrirModalRutaCorredor();" class="pop-btn pb-teal" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px;">
-                    🧭 Centro de Rutas (Cercanía, Corredor, 1 a 1)
-                </button>
-                <button type="button" onclick="cerrarFiltros(); abrirModalCierreTurno();" class="pop-btn pb-green" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px; background:linear-gradient(135deg, #059669, #047857);">
-                    📑 Cierre de Turno / Reporte Diario
-                </button>
-                <button id="btn-filtro-importar-excel" type="button" onclick="cerrarFiltros(); abrirModalImportarExcel();" class="pop-btn" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px; background:linear-gradient(135deg, #10b981, #059669); color:white;">
-                    📥 Importar Placas desde Excel (.xlsx)
-                </button>
-                <button type="button" onclick="forzarSincronizacionNubePuntos()" class="pop-btn pb-blue" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px; background:linear-gradient(135deg, #0284c7, #0369a1);">
-                    ☁️ Sincronizar Placas con la Nube
-                </button>
-                <button id="btn-filtro-borrado-masivo" type="button" onclick="cerrarFiltros(); abrirModalBorradoMasivo();" class="pop-btn pb-red" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px;">
-                    🗑️ Borrado Masivo de Placas
-                </button>
-                <button type="button" onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; padding:8px 10px; font-size:11.5px; text-align:left; border-radius:6px;">
-                    🗺️ Ver Todas en Pantalla
-                </button>
-            </div>
-        </div>
-
-        <!-- SECCIÓN 3: ⚙️ SISTEMA -->
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:10px;">
-            <span style="font-size:11.5px; font-weight:900; color:#1e293b; display:block; margin-bottom:6px;">⚙️ Sistema:</span>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <button id="btn-modo-seguro" type="button" onclick="toggleModoOperadorSeguro()" class="pop-btn" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px; background:linear-gradient(145deg, #16a34a, #15803d); color:white;">
-                    🟢 Modo Edición / 🔴 Modo Moto
-                </button>
-                <button id="btn-menu-instalar-app" type="button" onclick="solicitarInstalacionApp()" class="pop-btn" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px; background:linear-gradient(145deg, #7c3aed, #5b21b6); color:white;">
-                    📱 Instalar App en el Celular
-                </button>
-                <button id="btn-filtro-gestion-usuarios" type="button" onclick="cerrarFiltros(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px;">
-                    👥 Control de Usuarios y Operadores
-                </button>
-                <button id="btn-filtro-configuracion" type="button" onclick="cerrarFiltros(); abrirConfig();" class="pop-btn pb-orange" style="margin:0; padding:8px 10px; font-size:11.5px; font-weight:bold; text-align:left; border-radius:6px;">
-                    ⚙️ Configuración del Sistema
-                </button>
-            </div>
-        </div>
-
-        <!-- FILTROS POR MUNICIPIO Y ESTADO -->
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px;">
+        <div style="margin: 8px 0 6px 0;">
             <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🏙️ Filtrar por Municipio:</label>
-            <select id="filtroMunicipio" class="filter-search" style="padding:5px 8px; font-size:11.5px; font-weight:600; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff; margin-bottom:8px;" onchange="actualizarFiltros()">
+            <select id="filtroMunicipio" class="filter-search" style="padding:5px 8px; font-size:11.5px; font-weight:600; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;" onchange="actualizarFiltros()">
                 <option value="TODOS">Todos los Municipios</option>
                 <option value="MEDELLIN">Medellín</option>
                 <option value="BELLO">Bello</option>
@@ -833,12 +989,21 @@
                 <option value="RIONEGRO">Rionegro</option>
                 <option value="OTRO">Otros / Nacional</option>
             </select>
-            <div style="display:flex; flex-direction:column; gap:4px; font-size:11.5px;">
-                <label class="filter-option" style="margin:0;"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Con Pico y Placa</label>
-                <label class="filter-option" style="margin:0;"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
-                <label class="filter-option" style="margin:0;"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
-                <label class="filter-option" style="margin:0;"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
-            </div>
+        </div>
+        <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Con Pico y Placa</label>
+        <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
+        <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
+        <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
+        
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
+            <button onclick="forzarSincronizacionNubePuntos()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Descargar o sincronizar todas las placas del equipo">☁️ Sincronizar Placas con la Nube</button>
+            <button onclick="abrirModalImportarExcel()" class="pop-btn pb-purple" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #10b981, #059669);" title="Cargar lote de placas desde archivo Excel o CSV">📥 Importar Placas desde Excel (.xlsx)</button>
+            <button onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
+            <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
+            <button id="btn-filtro-borrado-masivo" onclick="abrirModalBorradoMasivo()" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:8px 6px;">🗑️ Borrado Masivo de Placas</button>
+            <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:11.5px; padding:7px 6px;">🗺️ Ver Todas en Pantalla</button>
+            <button id="btn-filtro-gestion-usuarios" onclick="abrirModalGestionUsuarios()" class="pop-btn pb-purple" style="margin:0; font-size:11.5px; padding:7px 6px;">👥 Gestión de Usuarios</button>
+            <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:11.5px; padding:7px 6px;">⚙️ Configuración</button>
         </div>
     </div>
 
@@ -1325,145 +1490,75 @@
         // -------------------------------------------------------------------------
         // 2. RASTREO EN VIVO DE MOTOS PARA EL ADMINISTRADOR
         // -------------------------------------------------------------------------
-        // -------------------------------------------------------------------------
-        // 2. RASTREO EN VIVO DE MOTOS PARA EL ADMINISTRADOR (CORREGIDO)
-        // -------------------------------------------------------------------------
         function toggleCapaMotosEnVivo() {
             mostrandoMotosEnVivo = !mostrandoMotosEnVivo;
-            var btnMenu = document.getElementById('btn-menu-motos');
-
+            var btn = document.getElementById('btn-top-motos');
             if (mostrandoMotosEnVivo) {
-                if (!capaMotosEnVivo) capaMotosEnVivo = L.layerGroup();
-                if (!map.hasLayer(capaMotosEnVivo)) {
-                    capaMotosEnVivo.addTo(map);
-                }
-                var totalMotos = refrescarCapaMotosEnVivo();
-
-                if (btnMenu) {
-                    btnMenu.innerHTML = '🏍️ Motos en Vivo: 🟢 ACTIVO';
-                    btnMenu.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
-                }
-                if (totalMotos > 0) {
-                    mostrarToastNotificacion("🏍️ Capa de motos en vivo activada: " + totalMotos + " moto(s) detectadas.");
-                } else {
-                    mostrarToastNotificacion("🏍️ Capa de motos activada. Se mostrarán tus compañeros y tu moto en cuanto reporten GPS.");
-                }
+                if (btn) btn.style.background = "linear-gradient(145deg, #16a34a, #15803d)";
+                refrescarCapaMotosEnVivo();
+                mostrarToastNotificacion("🏍️ Capa de motorizados en vivo activada.");
             } else {
+                if (btn) btn.style.background = "linear-gradient(145deg, #0284c7, #0369a1)";
                 if (capaMotosEnVivo && map.hasLayer(capaMotosEnVivo)) {
                     map.removeLayer(capaMotosEnVivo);
-                }
-                if (btnMenu) {
-                    btnMenu.innerHTML = '🏍️ Motos en Vivo (Tracking)';
-                    btnMenu.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
                 }
                 mostrarToastNotificacion("🏍️ Capa de motorizados oculta.");
             }
         }
 
         function refrescarCapaMotosEnVivo() {
+            if (!mostrandoMotosEnVivo) return;
             if (!capaMotosEnVivo) capaMotosEnVivo = L.layerGroup();
             capaMotosEnVivo.clearLayers();
 
             var ahora = Date.now();
             var listaUsuarios = obtenerUsuariosRegistrados();
-            var motosDibujadas = 0;
 
             listaUsuarios.forEach(function(u) {
-                var esPropio = (usuarioOperadorActual && u.id === usuarioOperadorActual.id);
+                // No dibujar al mismo usuario si es el admin
+                if (usuarioOperadorActual && u.id === usuarioOperadorActual.id) return;
+
                 var pres = presenciaOperadoresCache[u.id];
-
-                // Si es el usuario actual en moto y tiene GPS activo, asegurar que se muestre de inmediato
-                if (esPropio && (!pres || !pres.lat) && typeof miUbicacionCoords !== 'undefined' && miUbicacionCoords) {
-                    pres = { lat: miUbicacionCoords[0], lng: miUbicacionCoords[1], ultimoLatido: ahora, horaStr: 'En vivo (Tu GPS)' };
-                }
-
                 if (!pres || !pres.lat || !pres.lng) return;
 
                 var ts = pres.ultimoLatido || 0;
-                var estaEnLinea = (ahora - ts) < 300000; // Últimos 5 min
-                if (!estaEnLinea && !esPropio) return;
+                var estaEnLinea = (ahora - ts) < 240000; // últimos 4 min
+                if (!estaEnLinea) return;
 
-                var colorBorde = esPropio ? '#10b981' : '#38bdf8';
-                var colorSombra = esPropio ? 'rgba(16,185,129,0.85)' : 'rgba(56,189,248,0.85)';
-                var etiqueta = esPropio ? '🏍️ Mi Moto (' + u.nombre + ')' : '🏍️ ' + u.nombre;
-
-                var motoHtml = '<div style="background:#0f172a; color:' + colorBorde + '; border:2px solid ' + colorBorde + '; border-radius:20px; padding:3px 9px; font-size:11.5px; font-weight:900; box-shadow:0 0 14px ' + colorSombra + '; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; cursor:pointer;">' +
-                    '<span>' + etiqueta + '</span>' +
-                '</div>';
+                var motoHtml = `
+                    <div style="background:#0f172a; color:#38bdf8; border:2px solid #38bdf8; border-radius:20px; padding:3px 8px; font-size:11px; font-weight:900; box-shadow:0 0 14px rgba(56,189,248,0.7); display:flex; align-items:center; gap:4px; white-space:nowrap;">
+                        <span style="font-size:14px;">🏍️</span> <span>${u.nombre}</span>
+                    </div>
+                `;
 
                 var customIcon = L.divIcon({
                     className: 'moto-marker-live',
                     html: motoHtml,
-                    iconSize: [110, 28],
-                    iconAnchor: [55, 14]
+                    iconSize: [85, 26],
+                    iconAnchor: [42, 13]
                 });
 
                 var markerMoto = L.marker([pres.lat, pres.lng], { icon: customIcon });
-                markerMoto.bindPopup(
-                    '<div style="font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size:12px; min-width:190px;">' +
-                        '<div style="font-weight:900; font-size:13.5px; color:#0f172a; margin-bottom:4px;">🏍️ Motorizado: ' + u.nombre + (esPropio ? ' <b>(TÚ)</b>' : '') + '</div>' +
-                        '<div style="color:#64748b; font-size:11px;">🆔 Usuario: <b>@' + u.login + '</b> (' + u.rol.toUpperCase() + ')</div>' +
-                        '<div style="color:#2563eb; font-size:11px; margin-top:2px;">📍 GPS: (' + pres.lat.toFixed(4) + ', ' + pres.lng.toFixed(4) + ')</div>' +
-                        '<div style="color:#15803d; font-size:11px; font-weight:bold; margin-top:4px;">⏱️ Reporte: ' + (pres.horaStr || 'En vivo') + '</div>' +
-                        '<div style="margin-top:8px; display:flex; gap:4px;">' +
-                            '<button type="button" onclick="map.setView([' + pres.lat + ', ' + pres.lng + '], 18)" class="pop-btn pb-blue" style="margin:0; flex:1; padding:6px; font-size:11px;">🔍 Acercar</button>' +
-                            (!esPropio ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' + pres.lat + ',' + pres.lng + '&travelmode=driving" target="_blank" class="pop-btn pb-teal" style="margin:0; flex:1; padding:6px; font-size:11px; text-decoration:none; text-align:center;">🧭 Waze/Maps</a>' : '') +
-                        '</div>' +
-                    '</div>'
-                );
+                markerMoto.bindPopup(`
+                    <div style="font-family:sans-serif; font-size:12px; min-width:180px;">
+                        <div style="font-weight:900; font-size:13px; color:#0f172a; margin-bottom:4px;">🏍️ Operador: ${u.nombre}</div>
+                        <div style="color:#64748b; font-size:11px;">🆔 Usuario: <b>${u.login}</b></div>
+                        <div style="color:#2563eb; font-size:11px; margin-top:2px;">📍 Coords: (${pres.lat.toFixed(4)}, ${pres.lng.toFixed(4)})</div>
+                        <div style="color:#15803d; font-size:10.5px; font-weight:bold; margin-top:4px;">⏱️ Reporte: ${pres.horaStr || 'En vivo'}</div>
+                        <button onclick="map.setView([${pres.lat}, ${pres.lng}], 17)" class="pop-btn pb-blue" style="margin-top:6px; padding:5px; width:100%; font-size:11px;">🔍 Acercar a la Moto</button>
+                    </div>
+                `);
                 capaMotosEnVivo.addLayer(markerMoto);
-                motosDibujadas++;
             });
 
-            if (mostrandoMotosEnVivo && !map.hasLayer(capaMotosEnVivo)) {
+            if (!map.hasLayer(capaMotosEnVivo)) {
                 capaMotosEnVivo.addTo(map);
             }
-            return motosDibujadas;
         }
 
         // -------------------------------------------------------------------------
-        // 6. MODO NOCTURNO / BATERÍA EXTREMA AMOLED (CORREGIDO)
+        // 3. BOTÓN DE PÁNICO Y ALERTA DE EMERGENCIA SOS
         // -------------------------------------------------------------------------
-        var capaTilesNocturna = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20,
-            subdomains: 'abcd',
-            attribution: '© CARTO DarkMatter | UBICA-RICK'
-        });
-
-        function toggleModoNocturnoAmoled() {
-            modoNocturnoActivo = !modoNocturnoActivo;
-            var btnMenu = document.getElementById('btn-menu-noche');
-
-            if (modoNocturnoActivo) {
-                // Remover capas diurnas activas
-                if (typeof capaGoogle !== 'undefined' && map.hasLayer(capaGoogle)) map.removeLayer(capaGoogle);
-                if (typeof capaCarto !== 'undefined' && map.hasLayer(capaCarto)) map.removeLayer(capaCarto);
-                if (typeof capaSatelite !== 'undefined' && map.hasLayer(capaSatelite)) map.removeLayer(capaSatelite);
-                if (typeof capaEsri !== 'undefined' && map.hasLayer(capaEsri)) map.removeLayer(capaEsri);
-
-                capaTilesNocturna.addTo(map);
-                document.body.style.backgroundColor = '#000000';
-
-                if (btnMenu) {
-                    btnMenu.innerHTML = '☀️ Modo Día (Normal)';
-                    btnMenu.style.background = 'linear-gradient(135deg, #eab308, #ca8a04)';
-                }
-                mostrarToastNotificacion("🌙 Modo Nocturno AMOLED activado (Ahorro de batería en moto).");
-            } else {
-                if (map.hasLayer(capaTilesNocturna)) map.removeLayer(capaTilesNocturna);
-                if (typeof capaGoogle !== 'undefined') capaGoogle.addTo(map);
-
-                document.body.style.backgroundColor = '';
-
-                if (btnMenu) {
-                    btnMenu.innerHTML = '🌙 Modo Noche (AMOLED Batería)';
-                    btnMenu.style.background = 'linear-gradient(135deg, #1e293b, #0f172a)';
-                }
-                mostrarToastNotificacion("☀️ Modo Día activado.");
-            }
-        }
-
-        
         function activarBotonPanicoSOS() {
             var conf = confirm("🚨 ¿Deseas emitir una ALERTA DE EMERGENCIA SOS con tu ubicación en vivo a la central y a tus compañeros de equipo?");
             if (!conf) return;
@@ -1785,6 +1880,51 @@
 
         // -------------------------------------------------------------------------
         // 6. MODO NOCTURNO / BATERÍA EXTREMA AMOLED
+        // -------------------------------------------------------------------------
+        function toggleModoNocturnoAmoled() {
+            modoNocturnoActivo = !modoNocturnoActivo;
+            var btn = document.getElementById('btn-top-modo-noche');
+
+            if (modoNocturnoActivo) {
+                if (btn) {
+                    btn.innerText = "☀️ Día";
+                    btn.style.background = "linear-gradient(145deg, #eab308, #ca8a04)";
+                }
+
+                // Cambiar mapa a CartoDB DarkMatter (Fondo negro AMOLED)
+                if (tileLayerPredeterminado && map.hasLayer(tileLayerPredeterminado)) {
+                    map.removeLayer(tileLayerPredeterminado);
+                }
+                if (!capaTilesNocturna) {
+                    capaTilesNocturna = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        maxZoom: 19,
+                        subdomains: 'abcd',
+                        attribution: '&copy; CartoDB DarkMatter'
+                    });
+                }
+                capaTilesNocturna.addTo(map);
+
+                document.body.style.background = "#000000";
+                mostrarToastNotificacion("🌙 Modo Nocturno AMOLED activo (Ahorro de batería en moto).");
+            } else {
+                if (btn) {
+                    btn.innerText = "🌙 Noche";
+                    btn.style.background = "linear-gradient(145deg, #1e293b, #0f172a)";
+                }
+
+                if (capaTilesNocturna && map.hasLayer(capaTilesNocturna)) {
+                    map.removeLayer(capaTilesNocturna);
+                }
+                if (tileLayerPredeterminado) {
+                    tileLayerPredeterminado.addTo(map);
+                }
+                document.body.style.background = "";
+                mostrarToastNotificacion("☀️ Modo Día activo.");
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 7. CIERRE DE TURNO Y REPORTE OPERATIVO (PDF / EXCEL / WHATSAPP)
         // -------------------------------------------------------------------------
         function abrirModalCierreTurno() {
             cerrarFiltros();
@@ -4083,10 +4223,8 @@
         }
 
         function cerrarMenuAdd() {
-            var elMenu = document.getElementById('menuOpciones');
-            if (elMenu) elMenu.style.display = 'none';
-            var elBackdrop = document.getElementById('backdrop-modal');
-            if (elBackdrop) elBackdrop.style.display = 'none';
+            document.getElementById('menuOpciones').style.display = 'none';
+            document.getElementById('backdrop-modal').style.display = 'none';
             cerrarSecciones();
         }
 
@@ -4127,28 +4265,11 @@
         }
 
         function cerrarTodosLosModales() {
-            var elMenu = document.getElementById('menuOpciones');
-            if (elMenu) elMenu.style.display = 'none';
-            var elFiltros = document.getElementById('panelFiltros');
-            if (elFiltros) elFiltros.style.display = 'none';
-            var elConfig = document.getElementById('modal-config');
-            if (elConfig) elConfig.style.display = 'none';
-            var elAsistente = document.getElementById('modal-asistente');
-            if (elAsistente) elAsistente.style.display = 'none';
-            var elPerfil = document.getElementById('modal-perfil-usuario');
-            if (elPerfil) elPerfil.style.display = 'none';
-            var elRuta = document.getElementById('modal-ruta-corredor');
-            if (elRuta) elRuta.style.display = 'none';
-            var elCierre = document.getElementById('modal-cierre-turno');
-            if (elCierre) elCierre.style.display = 'none';
-            var elExcel = document.getElementById('modal-importar-excel');
-            if (elExcel) elExcel.style.display = 'none';
-            var elBorrado = document.getElementById('modal-borrado-masivo');
-            if (elBorrado) elBorrado.style.display = 'none';
-            var elUsuarios = document.getElementById('modal-usuarios');
-            if (elUsuarios) elUsuarios.style.display = 'none';
-            var elBackdrop = document.getElementById('backdrop-modal');
-            if (elBackdrop) elBackdrop.style.display = 'none';
+            document.getElementById('menuOpciones').style.display = 'none';
+            document.getElementById('panelFiltros').style.display = 'none';
+            document.getElementById('modal-config').style.display = 'none';
+            document.getElementById('modal-asistente').style.display = 'none';
+            document.getElementById('backdrop-modal').style.display = 'none';
             cerrarSecciones();
         }
 
@@ -4418,25 +4539,11 @@
                 lat: 6.1550, lng: -75.6420, foto: null
             },
             {
-                id: 'gcv_2', placa: 'GCV922', marca: 'SUZUKI', linea: 'SWIFT DZIRE TAM', modelo: '2020', color: 'GRIS METALICO',
-                soat: 'SI', tecnomecanica: 'SI', telefonos: '-', dir: 'KR 62 A # 74 SUR - 143 CS 102, LA ESTRELLA ( ANTIOQUIA )',
-                dirOriginal: 'KR 62 A # 74 SUR - 143 CS 102, LA ESTRELLA ( ANTIOQUIA )', dirAjustada: null,
-                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 6 * 3600 * 1000, visitada: false,
-                lat: 6.1583, lng: -75.6444, foto: null
-            },
-            {
                 id: 'lrw_1', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
                 soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 45 # 26 - 162 TO 9 AP 24-72, MEDELLIN ( ANTIOQUIA ) [Prioridad 5]',
                 dirOriginal: 'KR 45 # 26 - 162 TO 9 AP 24-72, MEDELLIN ( ANTIOQUIA ) [Prioridad 5]', dirAjustada: null,
                 fecha: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 4 * 86400000, visitada: false,
                 lat: 6.2280, lng: -75.5710, foto: null
-            },
-            {
-                id: 'lrw_2', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
-                soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 58 CC # 81 F - 95 AP 301 URBANO, MEDELLIN ( ANTIOQUIA ) [Prioridad 12]',
-                dirOriginal: 'KR 58 CC # 81 F - 95 AP 301 URBANO, MEDELLIN ( ANTIOQUIA ) [Prioridad 12]', dirAjustada: null,
-                fecha: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 4 * 86400000, visitada: false,
-                lat: 6.2750, lng: -75.5760, foto: null
             },
             {
                 id: 'ttn_1', placa: 'TTN168', marca: 'CHEVROLET', linea: 'ONIX', modelo: '2022', color: 'BLANCO',
@@ -4451,34 +4558,6 @@
                 dirOriginal: 'CR 43 A # 1 SUR - 150, MEDELLIN ( ANTIOQUIA )', dirAjustada: null,
                 fecha: new Date(Date.now() - 40 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 40 * 86400000, visitada: false,
                 lat: 6.2080, lng: -75.5720, foto: null
-            },
-            {
-                id: 'fqx_1', placa: 'FQX434', marca: 'TOYOTA', linea: 'HILUX', modelo: '2022', color: 'PLATEADO',
-                soat: 'SI', tecnomecanica: 'SI', telefonos: '3147890123', dir: 'CL 50 # 42 - 15, ITAGUI ( ANTIOQUIA )',
-                dirOriginal: 'CL 50 # 42 - 15, ITAGUI ( ANTIOQUIA )', dirAjustada: null,
-                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 2 * 3600 * 1000, visitada: false,
-                lat: 6.1725, lng: -75.6080, foto: null
-            },
-            {
-                id: 'elr_1', placa: 'ELR610', marca: 'KIA', linea: 'PICANTO', modelo: '2021', color: 'AZUL',
-                soat: 'SI', tecnomecanica: 'SI', telefonos: '3206549870', dir: 'DG 55 # 34 - 10, BELLO ( ANTIOQUIA )',
-                dirOriginal: 'DG 55 # 34 - 10, BELLO ( ANTIOQUIA )', dirAjustada: null,
-                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 1 * 3600 * 1000, visitada: false,
-                lat: 6.3350, lng: -75.5560, foto: null
-            },
-            {
-                id: 'eos_1', placa: 'EOS403', marca: 'CHEVROLET', linea: 'TRACKER', modelo: '2023', color: 'NEGRO',
-                soat: 'SI', tecnomecanica: 'SI', telefonos: '3119876543', dir: 'CL 38 SUR # 43 A - 25, ENVIGADO ( ANTIOQUIA )',
-                dirOriginal: 'CL 38 SUR # 43 A - 25, ENVIGADO ( ANTIOQUIA )', dirAjustada: null,
-                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 8 * 3600 * 1000, visitada: false,
-                lat: 6.1690, lng: -75.5860, foto: null
-            },
-            {
-                id: 'isj_1', placa: 'ISJ226', marca: 'YAMAHA', linea: 'NMAX', modelo: '2024', color: 'MATE',
-                soat: 'SI', tecnomecanica: 'SI', telefonos: '3023456789', dir: 'CR 45 # 71 SUR - 30, SABANETA ( ANTIOQUIA )',
-                dirOriginal: 'CR 45 # 71 SUR - 30, SABANETA ( ANTIOQUIA )', dirAjustada: null,
-                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 3 * 3600 * 1000, visitada: false,
-                lat: 6.1510, lng: -75.6150, foto: null
             }
         ];
 
@@ -4531,6 +4610,7 @@
             var lista = null;
 
             if (candidatos.length > 0) {
+                // Preferir listas que tengan placas diferentes a las 4 iniciales de prueba
                 var placasDefault = ['GCV922', 'LRW993', 'TTN168', 'EQW167'];
                 candidatos.sort(function(a, b) {
                     var aTieneReales = a.lista.some(function(item) { return !placasDefault.includes((item.placa || '').toUpperCase().trim()); });
@@ -4549,18 +4629,13 @@
 
             var listaLimpia = [];
             var conteoPorPlaca = {};
+            var llavesVistasStorage = {};
 
             lista.forEach(function(p) {
-                if (!p || !p.placa) return;
+                if (!p.placa) return;
                 var placa = p.placa.toUpperCase().trim();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
                 if (conteoPorPlaca[placa] >= 4) return;
-
-                var latNum = parseFloat(p.lat);
-                var lngNum = parseFloat(p.lng);
-                if (isNaN(latNum) || isNaN(lngNum)) return;
-                p.lat = latNum;
-                p.lng = lngNum;
 
                 p.dirOriginal = p.dirOriginal || p.dir;
                 p.dir = p.dirOriginal;
@@ -4569,6 +4644,7 @@
                 p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
                 p.comentarios = p.comentarios || '';
 
+                // DEDUPLICACIÓN ESTRICTA: Cuando haya dos direcciones iguales para la misma placa, dejar solo 1
                 var kDir = placa + "_" + normalizarClaveAprendizaje(p.dirOriginal || p.dir, '');
                 var indexExistente = listaLimpia.findIndex(function(itemExistente) {
                     var kExistente = itemExistente.placa.toUpperCase().trim() + "_" + normalizarClaveAprendizaje(itemExistente.dirOriginal || itemExistente.dir, '');
@@ -4576,12 +4652,15 @@
                 });
 
                 if (indexExistente !== -1) {
+                    // Si ya existe la misma dirección, preferir la que tenga coordenadas ajustadas manualmente
                     if (p.dirAjustada && !listaLimpia[indexExistente].dirAjustada) {
                         listaLimpia[indexExistente] = p;
                     }
+                    console.log("Dirección repetida omitida para " + placa + ":", p.dirOriginal);
                     return;
                 }
 
+                // Evitar duplicados físicos a menos de 50 metros para la misma placa
                 var esDuplicadoFisico = listaLimpia.some(function(existente) {
                     if (existente.placa.toUpperCase().trim() !== placa) return false;
                     if (existente.lat && existente.lng && p.lat && p.lng) {
@@ -4590,24 +4669,19 @@
                     }
                     return false;
                 });
-                if (esDuplicadoFisico) return;
+                if (esDuplicadoFisico) {
+                    return;
+                }
 
                 conteoPorPlaca[placa]++;
                 listaLimpia.push(p);
             });
 
-            if (listaLimpia.length > 0) {
-                var jsonLimpio = JSON.stringify(listaLimpia);
-                localStorage.setItem('puntos_raptor_guardados', jsonLimpio);
-                localStorage.setItem('puntos_ubica_rick_guardados', jsonLimpio);
-                localStorage.setItem('backup_seguridad_puntos_permanente', jsonLimpio);
-            }
-
-            puntosData.forEach(function(p) {
-                if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
-            });
-            puntosData = [];
-            placasRegistradas = {};
+            // Respaldo de seguridad en múltiples claves para inmunidad contra borrado
+            var jsonLimpio = JSON.stringify(listaLimpia);
+            localStorage.setItem('puntos_raptor_guardados', jsonLimpio);
+            localStorage.setItem('puntos_ubica_rick_guardados', jsonLimpio);
+            localStorage.setItem('backup_seguridad_puntos_permanente', jsonLimpio);
 
             listaLimpia.forEach(function(p, index) {
                 placasRegistradas[p.placa] = true;
@@ -5632,15 +5706,6 @@
         }
 
         function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
-            if (!p || !p.placa) return;
-            var latNum = parseFloat(p.lat);
-            var lngNum = parseFloat(p.lng);
-            if (isNaN(latNum) || isNaN(lngNum)) {
-                console.warn("Punto omitido por coordenadas inválidas:", p);
-                return;
-            }
-            p.lat = latNum;
-            p.lng = lngNum;
             p.id = p.id || 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
             p.pico = tienePicoYPlaca(p.placa);
             p.esHoy = (p.fecha === hoyStr);
@@ -5748,21 +5813,6 @@
                 // INICIAR INMEDIATAMENTE LA SINCRONIZACIÓN EN LA NUBE PARA TODOS
                 iniciarSincronizacionFirestore();
                 escucharAlertasSosFirestore();
-
-                // Escuchar presencia en vivo de todos los motorizados
-                fbDb.collection('presencia_operadores').onSnapshot(function(snapshot) {
-                    snapshot.forEach(function(doc) {
-                        var d = doc.data();
-                        d.id = doc.id;
-                        presenciaOperadoresCache[doc.id] = d;
-                    });
-                    if (mostrandoMotosEnVivo) {
-                        refrescarCapaMotosEnVivo();
-                    }
-                    if (tabUsuariosActiva === 'conectados') {
-                        renderizarConectadosEnVivo();
-                    }
-                }, function(err){ console.warn("presencia_operadores listener:", err); });
 
                 fbAuth.onAuthStateChanged(function(user) {
                     usuarioActual = user;
@@ -5891,41 +5941,11 @@
                 }
                 iniciarSincronizacionFirestore();
                 escucharAlertasSosFirestore();
-
-                // Escuchar presencia en vivo de todos los motorizados
-                fbDb.collection('presencia_operadores').onSnapshot(function(snapshot) {
-                    snapshot.forEach(function(doc) {
-                        var d = doc.data();
-                        d.id = doc.id;
-                        presenciaOperadoresCache[doc.id] = d;
-                    });
-                    if (mostrandoMotosEnVivo) {
-                        refrescarCapaMotosEnVivo();
-                    }
-                    if (tabUsuariosActiva === 'conectados') {
-                        renderizarConectadosEnVivo();
-                    }
-                }, function(err){ console.warn("presencia_operadores listener:", err); });
             }).catch(function(err) {
                 console.warn("Error leyendo rol:", err);
                 aplicarPermisosPorRol('lector');
                 iniciarSincronizacionFirestore();
                 escucharAlertasSosFirestore();
-
-                // Escuchar presencia en vivo de todos los motorizados
-                fbDb.collection('presencia_operadores').onSnapshot(function(snapshot) {
-                    snapshot.forEach(function(doc) {
-                        var d = doc.data();
-                        d.id = doc.id;
-                        presenciaOperadoresCache[doc.id] = d;
-                    });
-                    if (mostrandoMotosEnVivo) {
-                        refrescarCapaMotosEnVivo();
-                    }
-                    if (tabUsuariosActiva === 'conectados') {
-                        renderizarConectadosEnVivo();
-                    }
-                }, function(err){ console.warn("presencia_operadores listener:", err); });
             });
         }
 
@@ -5934,10 +5954,10 @@
             localStorage.setItem('ubica_rick_rol', rol);
             var esAdmin = (rol === 'admin');
 
-            // 1. Botón flotante para agregar placas (Siempre visible para facilitar captura en campo)
+            // 1. Botón flotante para agregar placas (Solo Administrador)
             var btnAdd = document.querySelector('.floating-btn-add');
             if (btnAdd) {
-                btnAdd.style.display = 'flex';
+                btnAdd.style.display = esAdmin ? 'flex' : 'none';
             }
 
             // 2. Botón de Modo Edición / Modo Moto en barra superior (Solo Administrador)
@@ -6042,24 +6062,21 @@
         }
 
         function actualizarPuntosDesdeNube(puntosNube) {
-            if (!puntosNube || !Array.isArray(puntosNube) || puntosNube.length === 0) {
-                console.log("Nube sin puntos o vacía. Se conservan todos los puntos locales.");
-                return;
-            }
+            if (!puntosNube || puntosNube.length === 0) return;
 
+            // FUSIÓN INTELIGENTE NO DESTRUCTIVA:
+            // Combinar puntos de la nube con puntos locales para nunca borrar trabajo local
             var mapaPorId = {};
             var puntosCombinados = [];
 
             puntosNube.forEach(function(pn) {
-                if (pn && pn.id && pn.placa) {
-                    mapaPorId[pn.id] = pn;
-                    puntosCombinados.push(pn);
-                }
+                mapaPorId[pn.id] = pn;
+                puntosCombinados.push(pn);
             });
 
             // Conservar puntos locales que el usuario haya agregado
             puntosData.forEach(function(plocal) {
-                if (plocal && plocal.id && !mapaPorId[plocal.id]) {
+                if (!mapaPorId[plocal.id]) {
                     var yaExistePlaca = puntosCombinados.some(function(pc) {
                         return pc.placa && plocal.placa && pc.placa.toUpperCase().trim() === plocal.placa.toUpperCase().trim();
                     });
@@ -6072,8 +6089,6 @@
                 }
             });
 
-            if (puntosCombinados.length === 0) return;
-
             puntosData.forEach(function(p) {
                 if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
             });
@@ -6085,16 +6100,11 @@
             var llavesVistasNube = {};
 
             puntosCombinados.forEach(function(p) {
-                if (!p || !p.placa) return;
+                if (!p.placa) return;
                 var placa = p.placa.toUpperCase().trim();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
-                if (conteoPorPlaca[placa] >= 4) return;
 
-                var latNum = parseFloat(p.lat);
-                var lngNum = parseFloat(p.lng);
-                if (isNaN(latNum) || isNaN(lngNum)) return;
-                p.lat = latNum;
-                p.lng = lngNum;
+                if (conteoPorPlaca[placa] >= 4) return;
 
                 var esDuplicadoFisico = listaLimpiaNube.some(function(existente) {
                     if (existente.placa.toUpperCase().trim() !== placa) return false;
@@ -6119,22 +6129,20 @@
                 agregarMarcadorAlMapa(p, idx, false);
             });
 
-            if (puntosData.length > 0) {
-                var datosCache = puntosData.map(function(item) {
-                    return {
-                        id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
-                        telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
-                        fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
-                        timestampVisita: item.timestampVisita || null,
-                        visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
-                        lat: item.lat, lng: item.lng, foto: item.foto,
-                        soat: item.soat, tecnomecanica: item.tecnomecanica
-                    };
-                });
-                localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosCache));
-                localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosCache));
-                localStorage.setItem('backup_seguridad_puntos_permanente', JSON.stringify(datosCache));
-            }
+            var datosCache = puntosData.map(function(item) {
+                return {
+                    id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
+                    telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
+                    fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                    timestampVisita: item.timestampVisita || null,
+                    visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
+                    lat: item.lat, lng: item.lng, foto: item.foto,
+                    soat: item.soat, tecnomecanica: item.tecnomecanica
+                };
+            });
+            localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosCache));
+            localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosCache));
+            localStorage.setItem('backup_seguridad_puntos_permanente', JSON.stringify(datosCache));
             actualizarKPIs();
             actualizarPanelCercano();
         }
@@ -7274,7 +7282,6 @@
 
             // Lista base garantizada con el administrador real y los operadores
             var usuariosBase = [
-                { id: 'usr_pcrick', nombre: 'Pcrick', login: 'pcrick', pin: 'Pao0288@', rol: 'admin', activo: true },
                 { id: 'usr_admin_master', nombre: 'Rikardo Rodríguez', login: 'rikardorodriiguez@gmail.com', pin: 'Pao0288@', rol: 'admin', activo: true },
                 { id: 'usr_admin_alt', nombre: 'Administrador', login: 'admin', pin: 'admin123', rol: 'admin', activo: true },
                 { id: 'usr_rick', nombre: 'rick', login: 'rick@ubica.com', pin: 'Pao0288@', rol: 'lector', activo: true },
@@ -7355,7 +7362,7 @@
                 if (alertaBox) alertaBox.style.display = 'none';
                 if (mapEl) { mapEl.style.visibility = 'hidden'; mapEl.style.display = 'none'; }
                 if (topBar) topBar.style.display = 'none';
-                // btnAdd handled by permissions
+                if (btnAdd) btnAdd.style.display = 'none';
                 if (radarHud) radarHud.style.display = 'none';
                 return;
             }
@@ -7369,7 +7376,7 @@
                 }
                 if (mapEl) { mapEl.style.visibility = 'hidden'; mapEl.style.display = 'none'; }
                 if (topBar) topBar.style.display = 'none';
-                // btnAdd handled by permissions
+                if (btnAdd) btnAdd.style.display = 'none';
                 if (radarHud) radarHud.style.display = 'none';
                 return;
             }
@@ -7395,21 +7402,6 @@
             if (typeof iniciarSincronizacionFirestore === 'function') {
                 iniciarSincronizacionFirestore();
                 escucharAlertasSosFirestore();
-
-                // Escuchar presencia en vivo de todos los motorizados
-                fbDb.collection('presencia_operadores').onSnapshot(function(snapshot) {
-                    snapshot.forEach(function(doc) {
-                        var d = doc.data();
-                        d.id = doc.id;
-                        presenciaOperadoresCache[doc.id] = d;
-                    });
-                    if (mostrandoMotosEnVivo) {
-                        refrescarCapaMotosEnVivo();
-                    }
-                    if (tabUsuariosActiva === 'conectados') {
-                        renderizarConectadosEnVivo();
-                    }
-                }, function(err){ console.warn("presencia_operadores listener:", err); });
             }
             if (usuarioOperadorActual && usuarioOperadorActual.rol === 'admin' && puntosData.length > 0) {
                 subirPuntosLocalesAFirebase(false);
