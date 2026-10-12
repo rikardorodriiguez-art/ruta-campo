@@ -614,7 +614,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.0</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.1</span>
         </div>
         <div id="top-actions">
             <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
@@ -776,9 +776,9 @@
         </label>
         
         <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
-            <button type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👥 Gestionar Operadores y Apagado</button>
-            <button type="button" onclick="cerrarConfig(); abrirModalCambiarUsuario();" class="pop-btn pb-teal" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👤 Cambiar de Operador en Sesión</button>
-            <button type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Cuenta y Sincronización en la Nube</button>
+            <button type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:7px;">👥 Control de Operadores (Quién está conectado)</button>
+            <button type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
+            <button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Bloquear Mapa</button>
         </div>
 
         <div style="margin-top:15px; display:flex; gap:6px;">
@@ -1014,29 +1014,54 @@
         var userMarker = null;
         var userAccuracyCircle = null;
         var userWatchId = null;
+        var timerGpsActivo = null;
+        var ultimoTimestampGps = Date.now();
 
+        // =========================================================================
+        // MOTOR GPS EN TIEMPO REAL CONTINUO (SIN CONGELAMIENTO EN MOTO / PIP)
+        // =========================================================================
         function iniciarSeguimientoGPSReal() {
             if (!navigator.geolocation) {
                 console.warn("Geolocalización no soportada en este navegador.");
                 return;
             }
 
-            navigator.geolocation.getCurrentPosition(function(pos) {
-                actualizarPosicionGPS(pos);
-                if (pos.coords.latitude && pos.coords.longitude) {
-                    map.setView([pos.coords.latitude, pos.coords.longitude], 15);
-                    mostrarToastNotificacion("📍 GPS conectado: Tu posición está marcada en azul.");
-                }
-            }, function(err) {
-                console.warn("GPS inicial no disponible:", err.message);
-            }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 });
+            reiniciarWatchPositionGPS();
 
-            if (userWatchId) navigator.geolocation.clearWatch(userWatchId);
+            // Loop activo de alta frecuencia: consulta forzada cada 1200ms con maximumAge: 0
+            // Evita que el GPS se quede pegado cuando el móvil va en marcha o en segundo plano
+            if (timerGpsActivo) clearInterval(timerGpsActivo);
+            timerGpsActivo = setInterval(function() {
+                forzarLecturaGPSHardware();
+            }, 1200);
+        }
+
+        function reiniciarWatchPositionGPS() {
+            if (userWatchId) {
+                try { navigator.geolocation.clearWatch(userWatchId); } catch(e){}
+            }
             userWatchId = navigator.geolocation.watchPosition(function(pos) {
+                ultimoTimestampGps = Date.now();
                 actualizarPosicionGPS(pos);
             }, function(err) {
-                console.warn("GPS continuo:", err.message);
-            }, { enableHighAccuracy: true, maximumAge: 4000, timeout: 10000 });
+                console.warn("Aviso GPS hardware:", err.message);
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        }
+
+        function forzarLecturaGPSHardware() {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                ultimoTimestampGps = Date.now();
+                actualizarPosicionGPS(pos);
+            }, function(err) {
+                // Si pasaron más de 5 segundos sin reporte de coordenadas, reiniciar sensor
+                if (Date.now() - ultimoTimestampGps > 5000) {
+                    reiniciarWatchPositionGPS();
+                }
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 2500 });
+
+            // Enviar presencia activa si hay usuario logueado
+            enviarLatidoPresencia();
         }
 
         function actualizarPosicionGPS(pos) {
@@ -1686,10 +1711,16 @@
                 pipVideoEl.srcObject = pipStreamTrack;
 
                 setInterval(function() {
-                    if (radarActivo && (document.pictureInPictureElement === pipVideoEl || document.hidden)) {
-                        actualizarPipCanvas();
+                    if (radarActivo) {
+                        // En PiP o segundo plano: forzar recálculo métrico en vivo para que nunca se quede pegado
+                        if (userLat && userLng) {
+                            actualizarPanelCercano();
+                        }
+                        if (document.pictureInPictureElement === pipVideoEl || document.hidden) {
+                            actualizarPipCanvas();
+                        }
                     }
-                }, 600);
+                }, 500);
             }
 
             pipVideoEl.play().catch(function(e) { console.warn("Video play:", e); });
@@ -5830,6 +5861,9 @@
         // =========================================================================
         var usuarioOperadorActual = null;
 
+        var presenciaOperadoresCache = {};
+        var tabUsuariosActiva = 'conectados';
+
         function inicializarUsuariosSistema() {
             var raw = localStorage.getItem('usuarios_registrados_ubica_rick');
             var lista = [];
@@ -5849,13 +5883,11 @@
                 var enc = lista.find(function(u){ return u.id === sesionGuardadaId; });
                 if (enc) usuarioOperadorActual = enc;
             }
-            if (!usuarioOperadorActual && lista.length > 0) {
-                usuarioOperadorActual = lista[0];
-                localStorage.setItem('usuario_sesion_activa_id', usuarioOperadorActual.id);
-            }
 
+            // Si no hay sesión iniciada, mostrar directamente la pantalla de login
             verificarEstadoAccesoOperador();
 
+            // Escuchar usuarios en Firestore
             if (typeof fbDb !== 'undefined' && fbDb) {
                 fbDb.collection('usuarios_control').onSnapshot(function(snapshot) {
                     if (!snapshot.empty) {
@@ -5878,6 +5910,14 @@
                         }
                     }
                 }, function(err){ console.warn("Firestore usuarios_control:", err); });
+
+                // Escuchar presencia en tiempo real (Quién está conectado)
+                fbDb.collection('presencia_operadores').onSnapshot(function(snapPresencia) {
+                    snapPresencia.forEach(function(doc) {
+                        presenciaOperadoresCache[doc.id] = doc.data();
+                    });
+                    renderizarConectadosEnVivo();
+                }, function(err){ console.warn("Firestore presencia:", err); });
             }
         }
 
@@ -5899,32 +5939,220 @@
             }
         }
 
+        // =========================================================================
+        // RESTRICCIÓN TOTAL: CUANDO NO SE TENGA ACCESO, SOLO SALIR LOGIN (USUARIO Y PIN)
+        // =========================================================================
         function verificarEstadoAccesoOperador() {
-            var pantallaBloqueo = document.getElementById('pantalla-bloqueo-operador');
-            var labelBloqueo = document.getElementById('bloqueo-nombre-operador');
+            var pantallaLogin = document.getElementById('pantalla-login-acceso');
+            var alertaBox = document.getElementById('alerta-bloqueo-login');
             var mapEl = document.getElementById('map');
+            var topBar = document.getElementById('top-bar-container');
+            var btnAdd = document.querySelector('.floating-btn-add');
+            var radarHud = document.getElementById('radar-hud-flotante');
 
-            if (!usuarioOperadorActual) return;
-
-            if (usuarioOperadorActual.rol === 'admin') {
-                if (pantallaBloqueo) pantallaBloqueo.style.display = 'none';
-                if (mapEl) mapEl.style.visibility = 'visible';
+            // CASO 1: No hay ninguna sesión iniciada
+            if (!usuarioOperadorActual) {
+                if (pantallaLogin) pantallaLogin.style.display = 'flex';
+                if (alertaBox) alertaBox.style.display = 'none';
+                if (mapEl) { mapEl.style.visibility = 'hidden'; mapEl.style.display = 'none'; }
+                if (topBar) topBar.style.display = 'none';
+                if (btnAdd) btnAdd.style.display = 'none';
+                if (radarHud) radarHud.style.display = 'none';
                 return;
             }
 
+            // CASO 2: Usuario APAGADO por el administrador
             if (usuarioOperadorActual.activo === false) {
-                if (pantallaBloqueo) {
-                    pantallaBloqueo.style.display = 'flex';
+                if (pantallaLogin) pantallaLogin.style.display = 'flex';
+                if (alertaBox) {
+                    alertaBox.style.display = 'block';
+                    alertaBox.innerHTML = `🔒 <b>ACCESO APAGADO:</b> Tu usuario (<b>${usuarioOperadorActual.nombre}</b>) ha sido <b>APAGADO</b> por el administrador. El mapa y las rutas permanecen bloqueadas.`;
                 }
-                if (labelBloqueo) {
-                    labelBloqueo.innerText = usuarioOperadorActual.nombre + " (" + usuarioOperadorActual.login + ")";
+                if (mapEl) { mapEl.style.visibility = 'hidden'; mapEl.style.display = 'none'; }
+                if (topBar) topBar.style.display = 'none';
+                if (btnAdd) btnAdd.style.display = 'none';
+                if (radarHud) radarHud.style.display = 'none';
+                return;
+            }
+
+            // CASO 3: Usuario AUTORIZADO Y ENCENDIDO
+            if (pantallaLogin) pantallaLogin.style.display = 'none';
+            if (alertaBox) alertaBox.style.display = 'none';
+            if (mapEl) { mapEl.style.visibility = 'visible'; mapEl.style.display = 'block'; }
+            if (topBar) topBar.style.display = 'flex';
+            if (map) setTimeout(function(){ map.invalidateSize(); }, 300);
+
+            aplicarPermisosPorRol(usuarioOperadorActual.rol === 'admin' ? 'admin' : 'lector');
+            enviarLatidoPresencia();
+        }
+
+        function ejecutarIngresoLoginAcceso() {
+            var inUser = (document.getElementById('loginAccesoUsuario') ? document.getElementById('loginAccesoUsuario').value : '').trim().toLowerCase();
+            var inPin = (document.getElementById('loginAccesoPin') ? document.getElementById('loginAccesoPin').value : '').trim();
+            var alertaBox = document.getElementById('alerta-bloqueo-login');
+
+            if (!inUser || !inPin) {
+                if (alertaBox) {
+                    alertaBox.style.display = 'block';
+                    alertaBox.innerText = "⚠️ Por favor ingresa tu usuario y contraseña/PIN.";
                 }
-                if (mapEl) {
-                    mapEl.style.visibility = 'hidden';
+                return;
+            }
+
+            var lista = obtenerUsuariosRegistrados();
+            var enc = lista.find(function(u){ return u.login === inUser; });
+
+            if (!enc) {
+                if (alertaBox) {
+                    alertaBox.style.display = 'block';
+                    alertaBox.innerText = "❌ Usuario no encontrado. Verifica tu nombre de usuario.";
                 }
+                return;
+            }
+
+            if (enc.pin && enc.pin !== inPin) {
+                if (alertaBox) {
+                    alertaBox.style.display = 'block';
+                    alertaBox.innerText = "❌ Contraseña o PIN incorrecto.";
+                }
+                return;
+            }
+
+            if (enc.activo === false) {
+                if (alertaBox) {
+                    alertaBox.style.display = 'block';
+                    alertaBox.innerHTML = `🔒 <b>ACCESO APAGADO:</b> Tu usuario (<b>${enc.nombre}</b>) se encuentra <b>APAGADO</b> por el administrador. No tienes permiso para ver el mapa.`;
+                }
+                return;
+            }
+
+            // Inicio de sesión exitoso
+            usuarioOperadorActual = enc;
+            localStorage.setItem('usuario_sesion_activa_id', enc.id);
+            localStorage.setItem('nombre_gestor_actual', enc.nombre);
+
+            if (document.getElementById('loginAccesoUsuario')) document.getElementById('loginAccesoUsuario').value = '';
+            if (document.getElementById('loginAccesoPin')) document.getElementById('loginAccesoPin').value = '';
+
+            verificarEstadoAccesoOperador();
+            mostrarToastNotificacion("🚀 Bienvenido " + enc.nombre + " (" + (enc.rol === 'admin' ? '👑 Admin' : '👤 Operador') + ")");
+        }
+
+        function cerrarSesionYBloquear() {
+            usuarioOperadorActual = null;
+            localStorage.removeItem('usuario_sesion_activa_id');
+            verificarEstadoAccesoOperador();
+            mostrarToastNotificacion("🔒 Sesión cerrada. Mapa bloqueado.");
+        }
+
+        // =========================================================================
+        // CONTROL DE PRESENCIA EN TIEMPO REAL: QUIÉN ESTÁ CONECTADO
+        // =========================================================================
+        function enviarLatidoPresencia() {
+            if (!usuarioOperadorActual || usuarioOperadorActual.activo === false) return;
+
+            var ahora = Date.now();
+            var opciones = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+            var horaStr = new Date().toLocaleTimeString('es-CO', opciones);
+
+            var datos = {
+                id: usuarioOperadorActual.id,
+                nombre: usuarioOperadorActual.nombre,
+                login: usuarioOperadorActual.login,
+                rol: usuarioOperadorActual.rol,
+                activo: (usuarioOperadorActual.activo !== false),
+                ultimoLatido: ahora,
+                horaStr: horaStr,
+                lat: userLat || null,
+                lng: userLng || null
+            };
+
+            presenciaOperadoresCache[usuarioOperadorActual.id] = datos;
+            localStorage.setItem('presencia_operador_local', JSON.stringify(datos));
+
+            if (typeof fbDb !== 'undefined' && fbDb) {
+                fbDb.collection('presencia_operadores').doc(usuarioOperadorActual.id).set(datos, { merge: true }).catch(function(){});
+            }
+        }
+
+        function cambiarTabUsuarios(tab) {
+            tabUsuariosActiva = tab;
+            var tabBtnCon = document.getElementById('tab-btn-conectados');
+            var tabBtnOp = document.getElementById('tab-btn-operadores');
+            var contCon = document.getElementById('tab-contenido-conectados');
+            var contOp = document.getElementById('tab-contenido-operadores');
+
+            if (tab === 'conectados') {
+                if (tabBtnCon) { tabBtnCon.className = "pop-btn pb-green"; }
+                if (tabBtnOp) { tabBtnOp.className = "pop-btn pb-teal"; }
+                if (contCon) contCon.style.display = 'block';
+                if (contOp) contOp.style.display = 'none';
+                renderizarConectadosEnVivo();
             } else {
-                if (pantallaBloqueo) pantallaBloqueo.style.display = 'none';
-                if (mapEl) mapEl.style.visibility = 'visible';
+                if (tabBtnCon) { tabBtnCon.className = "pop-btn pb-teal"; }
+                if (tabBtnOp) { tabBtnOp.className = "pop-btn pb-green"; }
+                if (contCon) contCon.style.display = 'none';
+                if (contOp) contOp.style.display = 'block';
+                renderizarListaUsuariosAdmin();
+            }
+        }
+
+        function renderizarConectadosEnVivo() {
+            var contenedor = document.getElementById('lista-operadores-conectados');
+            var badgeConteo = document.getElementById('conteo-en-linea-badge');
+            if (!contenedor) return;
+
+            var listaUsuarios = obtenerUsuariosRegistrados();
+            contenedor.innerHTML = '';
+            var ahora = Date.now();
+            var enLineaCount = 0;
+
+            listaUsuarios.forEach(function(u) {
+                var pres = presenciaOperadoresCache[u.id];
+                var ts = (pres && pres.ultimoLatido) ? pres.ultimoLatido : 0;
+                // Considerar en línea si reportó en los últimos 3 minutos (180.000 ms)
+                var estaEnLinea = (ahora - ts) < 180000;
+                if (estaEnLinea) enLineaCount++;
+
+                var card = document.createElement('div');
+                card.style.cssText = "background:#f8fafc; border:1.5px solid " + (estaEnLinea ? "#86efac" : "#cbd5e1") + "; border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
+
+                var ubicacionTxt = "";
+                if (pres && pres.lat && pres.lng) {
+                    ubicacionTxt = ` • 📍 GPS: (${pres.lat.toFixed(4)}, ${pres.lng.toFixed(4)})`;
+                }
+
+                var estadoPill = estaEnLinea
+                    ? `<span style="background:#22c55e; color:white; font-size:9.5px; font-weight:900; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:4px; box-shadow:0 0 8px rgba(34,197,94,0.4);">🟢 EN LÍNEA</span>`
+                    : `<span style="background:#94a3b8; color:white; font-size:9.5px; font-weight:bold; padding:2px 6px; border-radius:12px;">⚪ Desconectado</span>`;
+
+                var estaActivo = (u.activo !== false);
+
+                var infoHtml = `
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                            ${estadoPill}
+                            <b style="font-size:13px; color:#0f172a;">${u.nombre}</b>
+                            <span style="font-size:10px; color:#64748b;">(@${u.login})</span>
+                        </div>
+                        <div style="font-size:10.5px; color:#475569;">
+                            Última actividad: <b>${pres ? (pres.horaStr || 'Reciente') : 'Sin actividad hoy'}</b>${ubicacionTxt}
+                        </div>
+                    </div>
+                `;
+
+                var btnApagadoHtml = `
+                    <button type="button" onclick="toggleAccesoUsuario('${u.id}')" class="pop-btn" style="margin:0; padding:6px 10px; font-size:11px; font-weight:bold; border-radius:6px; background:${estaActivo ? 'linear-gradient(145deg, #16a34a, #15803d)' : 'linear-gradient(145deg, #dc2626, #b91c1c)'}; color:white; white-space:nowrap;" title="Apagar o encender el acceso al mapa de este operador">
+                        ${estaActivo ? '🟢 Encendido' : '🔴 Apagado'}
+                    </button>
+                `;
+
+                card.innerHTML = infoHtml + btnApagadoHtml;
+                contenedor.appendChild(card);
+            });
+
+            if (badgeConteo) {
+                badgeConteo.innerText = enLineaCount + (enLineaCount === 1 ? " en línea" : " en línea");
             }
         }
 
@@ -6286,29 +6514,53 @@
             Crea o elimina operadores del equipo. Puedes <b>APAGAR</b> a cualquier operador individualmente con su botón de apagado para suspender su visualización del mapa de inmediato.
         </p>
 
-        <!-- FORMULARIO CREAR USUARIO -->
-        <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:10px 12px; border-radius:10px; margin-bottom:14px;">
-            <b style="font-size:12px; color:#1e293b; display:block; margin-bottom:6px;">➕ Registrar Nuevo Operador:</b>
-            <div style="display:flex; gap:6px; margin-bottom:6px;">
-                <input type="text" id="nuevoUserNombre" placeholder="Nombre (ej. Sergio)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
-                <input type="text" id="nuevoUserLogin" placeholder="Usuario / ID (ej. sergio)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
-            </div>
-            <div style="display:flex; gap:6px; margin-bottom:8px;">
-                <input type="password" id="nuevoUserPin" placeholder="Clave / PIN (ej. 1234)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
-                <select id="nuevoUserRol" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px; font-weight:bold;">
-                    <option value="lector">Operador (Ruta)</option>
-                    <option value="admin">Administrador (Total)</option>
-                </select>
-            </div>
-            <button type="button" onclick="guardarNuevoUsuario()" class="pop-btn pb-green" style="width:100%; margin:0; padding:8px; font-size:12px; font-weight:bold;">
-                💾 Crear Usuario
+        <!-- PESTAÑAS DE ADMINISTRACIÓN: CONECTADOS EN VIVO VS GESTIÓN -->
+        <div style="display:flex; gap:6px; margin-bottom:12px;">
+            <button type="button" id="tab-btn-conectados" onclick="cambiarTabUsuarios('conectados')" class="pop-btn pb-green" style="margin:0; flex:1; padding:8px 6px; font-size:11.5px; font-weight:bold; border-radius:8px;">
+                🟢 Conectados en Vivo
+            </button>
+            <button type="button" id="tab-btn-operadores" onclick="cambiarTabUsuarios('operadores')" class="pop-btn pb-teal" style="margin:0; flex:1; padding:8px 6px; font-size:11.5px; font-weight:bold; border-radius:8px;">
+                👥 Todos los Operadores
             </button>
         </div>
 
-        <!-- LISTA DE OPERADORES REGISTRADOS -->
-        <div>
-            <b style="font-size:12px; color:#1e293b; display:block; margin-bottom:8px;">📋 Operadores Registrados:</b>
-            <div id="lista-usuarios-operadores" style="display:flex; flex-direction:column; gap:8px;">
+        <!-- TAB 1: OPERADORES CONECTADOS EN VIVO (QUIÉN ESTÁ EN LÍNEA) -->
+        <div id="tab-contenido-conectados" style="display:block;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <b style="font-size:12px; color:#1e293b;">🟢 Estado de Operadores en Vivo:</b>
+                <span id="conteo-en-linea-badge" style="font-size:10px; font-weight:bold; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:12px;">0 en línea</span>
+            </div>
+            <div id="lista-operadores-conectados" style="display:flex; flex-direction:column; gap:8px;">
+                <!-- Dinámico con estado en línea y botón de apagado -->
+            </div>
+        </div>
+
+        <!-- TAB 2: TODOS LOS OPERADORES (CREAR / EDITAR / ELIMINAR) -->
+        <div id="tab-contenido-operadores" style="display:none;">
+            <!-- FORMULARIO CREAR USUARIO -->
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:10px 12px; border-radius:10px; margin-bottom:14px;">
+                <b style="font-size:12px; color:#1e293b; display:block; margin-bottom:6px;">➕ Registrar Nuevo Operador:</b>
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    <input type="text" id="nuevoUserNombre" placeholder="Nombre (ej. Sergio)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
+                    <input type="text" id="nuevoUserLogin" placeholder="Usuario / ID (ej. sergio)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
+                </div>
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                    <input type="password" id="nuevoUserPin" placeholder="Clave / PIN (ej. 1234)" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px;">
+                    <select id="nuevoUserRol" class="filter-search" style="flex:1; margin:0; padding:6px 8px; font-size:11.5px; font-weight:bold;">
+                        <option value="lector">Operador (Ruta)</option>
+                        <option value="admin">Administrador (Total)</option>
+                    </select>
+                </div>
+                <button type="button" onclick="guardarNuevoUsuario()" class="pop-btn pb-green" style="width:100%; margin:0; padding:8px; font-size:12px; font-weight:bold;">
+                    💾 Crear Usuario
+                </button>
+            </div>
+
+            <!-- LISTA DE OPERADORES REGISTRADOS -->
+            <div>
+                <b style="font-size:12px; color:#1e293b; display:block; margin-bottom:8px;">📋 Lista Completa de Operadores:</b>
+                <div id="lista-usuarios-operadores" style="display:flex; flex-direction:column; gap:8px;">
+                </div>
             </div>
         </div>
 
@@ -6317,17 +6569,38 @@
         </button>
     </div>
 
-    <!-- PANTALLA DE BLOQUEO CUANDO EL OPERADOR ESTÁ APAGADO -->
-    <div id="pantalla-bloqueo-operador" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:999999999; background:radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); color:white; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:24px; box-sizing:border-box; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
-        <div style="font-size:55px; margin-bottom:12px; filter:drop-shadow(0 0 15px rgba(239,68,68,0.6));">🔒</div>
-        <h2 style="color:#ef4444; margin:0 0 8px 0; font-size:20px; font-weight:900; letter-spacing:0.5px;">ACCESO AL MAPA DESACTIVADO</h2>
-        <p style="color:#cbd5e1; font-size:13px; max-width:340px; line-height:1.5; margin:0 0 20px 0;">
-            El acceso de <b id="bloqueo-nombre-operador" style="color:#38bdf8;">este operador</b> ha sido <span style="color:#ef4444; font-weight:bold;">APAGADO</span> por el administrador.<br><br>
-            El mapa y las rutas permanecen bloqueadas hasta que el administrador reactive tu acceso.
-        </p>
-        <button type="button" onclick="abrirModalCambiarUsuario()" class="pop-btn pb-blue" style="width:auto; padding:10px 20px; font-size:12.5px; font-weight:bold; border-radius:8px;">
-            🔄 Cambiar de Usuario / Iniciar como Admin
-        </button>
+    <!-- PANTALLA COMPLETA DE INGRESO Y BLOQUEO DE ACCESO (CUANDO NO SE TIENE ACCESO AL MAPA) -->
+    <div id="pantalla-login-acceso" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:999999999;
+        background:radial-gradient(circle at center, #0a192f 0%, #042143 60%, #020f20 100%);
+        color:white; flex-direction:column; justify-content:center; align-items:center; padding:20px; box-sizing:border-box; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+        
+        <div style="background:rgba(15, 23, 42, 0.96); border:1.5px solid #00f0ff; border-radius:24px; padding:26px 22px; width:100%; max-width:360px; box-shadow:0 18px 50px rgba(0,0,0,0.8), 0 0 25px rgba(0,240,255,0.25); text-align:center; box-sizing:border-box;">
+            <div style="margin-bottom:10px;">
+                <img src="./favicon.png" alt="Logo UBICA-RICK" style="width:68px; height:68px; border-radius:18px; border:2px solid #00f0ff; box-shadow:0 0 15px rgba(0,240,255,0.4); display:inline-block;">
+            </div>
+            <h2 style="margin:0 0 2px 0; color:#ffffff; font-size:22px; font-weight:900; letter-spacing:1px;">UBICA-RICK</h2>
+            <div style="color:#38bdf8; font-size:11px; font-weight:bold; letter-spacing:0.5px; margin-bottom:14px; text-transform:uppercase;">Control de Ruta y Rastreo</div>
+
+            <div id="alerta-bloqueo-login" style="display:none; background:rgba(239, 68, 68, 0.15); border:1px solid #ef4444; border-radius:8px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#fca5a5; line-height:1.45; text-align:left;">
+            </div>
+
+            <div style="text-align:left; margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#cbd5e1; display:block; margin-bottom:4px;">👤 Usuario:</label>
+                <input type="text" id="loginAccesoUsuario" placeholder="Ingresa tu usuario (ej. sergio)" class="filter-search" style="width:100%; box-sizing:border-box; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:white; font-size:13px;" onkeydown="if(event.key==='Enter') document.getElementById('loginAccesoPin').focus();">
+            </div>
+
+            <div style="text-align:left; margin-bottom:16px;">
+                <label style="font-size:11px; font-weight:bold; color:#cbd5e1; display:block; margin-bottom:4px;">🔑 Contraseña o PIN:</label>
+                <input type="password" id="loginAccesoPin" placeholder="••••••••" class="filter-search" style="width:100%; box-sizing:border-box; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:white; font-size:13px;" onkeydown="if(event.key==='Enter') ejecutarIngresoLoginAcceso();">
+            </div>
+
+            <button type="button" onclick="ejecutarIngresoLoginAcceso()" class="pop-btn pb-blue" style="width:100%; margin:0 0 10px 0; padding:11px; font-size:13px; font-weight:bold; border-radius:8px; box-shadow:0 4px 15px rgba(2,132,199,0.4);">
+                🚀 Ingresar al Sistema
+            </button>
+            <div style="font-size:10px; color:#64748b; margin-top:4px;">
+                Ingresa tus credenciales para acceder al mapa.
+            </div>
+        </div>
     </div>
 
     <!-- MODAL CAMBIO RÁPIDO DE USUARIO / LOGIN DE OPERADOR -->
