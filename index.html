@@ -2590,8 +2590,8 @@
 
             // Gestión de evidencias: primera letra del visitador (ej. [S]) y conteo de visitas
             var inicial = (objP.gestorInicial || (objP.gestor ? objP.gestor.charAt(0) : '')) ? (objP.gestorInicial || objP.gestor.charAt(0)).toUpperCase() : '✔';
-            var numVisitas = objP.visitas || 1;
-            var etiquetaVisitas = numVisitas > 1 ? '<span style="font-size:9.5px; color:#15803d; font-weight:900; margin-left:3px;">(' + numVisitas + 'v)</span>' : '';
+            var numVisitas = objP.visitas || (esVisitada ? 1 : 0);
+            var etiquetaVisitas = (esVisitada && numVisitas >= 1) ? '<span style="font-size:9.5px; color:#15803d; font-weight:900; margin-left:3px;">(' + numVisitas + 'v)</span>' : '';
 
             var badgeFoto = tieneFoto 
                 ? '<span style="background:linear-gradient(135deg, #f59e0b, #d97706); color:white; font-size:9px; padding:1px 4px; border-radius:10px; margin-left:4px; font-weight:900; box-shadow:0 0 8px rgba(245,158,11,0.85); display:inline-flex; align-items:center; vertical-align:middle;" title="Vehículo con Foto Adjunta">📸</span>' 
@@ -4609,43 +4609,55 @@
             if (!item) return;
             var placa = item.placa;
 
-            item.visitada = !item.visitada;
-            localStorage.setItem('visitada_' + item.id, item.visitada ? '1' : '0');
+            // Solicitar nombre del gestor si no está guardado previamente
+            var nombreGuardado = localStorage.getItem('nombre_gestor_actual') || '';
+            var visitasActuales = item.visitas || (item.visitada ? 1 : 0);
+            var proximaVisita = visitasActuales + 1;
+            var promptMsg = visitasActuales > 0
+                ? ("👤 ¿Quién realizó la visita #" + proximaVisita + " a " + placa + "? (Ingresa el nombre del gestor):")
+                : ("👤 ¿Quién realizó la visita a " + placa + "? (Ingresa el nombre del gestor):");
+            var nombreIngresado = prompt(promptMsg, nombreGuardado);
 
-            if (item.visitada) {
-                // Registrar hora exacta de la visita para control de reactivación tras 3 horas
-                item.timestampVisita = Date.now();
-                localStorage.setItem('visita_ts_' + item.id, item.timestampVisita);
-
-                // Solicitar nombre del gestor si no está guardado previamente
-                var nombreGuardado = localStorage.getItem('nombre_gestor_actual') || '';
-                var nombreIngresado = prompt("👤 ¿Quién realizó la visita? (Ingresa el nombre del gestor):", nombreGuardado);
-                if (nombreIngresado !== null && nombreIngresado.trim() !== '') {
-                    item.gestor = nombreIngresado.trim();
-                    item.gestorInicial = item.gestor.charAt(0).toUpperCase();
-                    localStorage.setItem('nombre_gestor_actual', item.gestor);
-                } else if (!item.gestorInicial) {
-                    if (nombreGuardado) {
-                        item.gestor = nombreGuardado;
-                        item.gestorInicial = nombreGuardado.charAt(0).toUpperCase();
-                    } else if (usuarioActual && usuarioActual.email) {
-                        item.gestor = usuarioActual.email.split('@')[0];
-                        item.gestorInicial = item.gestor.charAt(0).toUpperCase();
-                    } else {
-                        item.gestor = "Sergio";
-                        item.gestorInicial = "S";
-                    }
-                }
-                item.visitas = (item.visitas || 0) + 1;
-                localStorage.setItem('gestor_inicial_' + item.id, item.gestorInicial);
-                localStorage.setItem('gestor_nombre_' + item.id, item.gestor || '');
+            // Si cancela con Esc / Cancelar en el diálogo de navegador, no ejecutar
+            if (nombreIngresado === null) {
+                return;
             }
-            localStorage.setItem('visitas_' + item.id, item.visitas || 0);
+
+            // SOLO SE PUEDE MARCAR VISITADO (NUNCA DESMARCAR)
+            item.visitada = true;
+            localStorage.setItem('visitada_' + item.id, '1');
+
+            // Registrar hora exacta de la visita para control de reactivación tras 3 horas
+            item.timestampVisita = Date.now();
+            localStorage.setItem('visita_ts_' + item.id, item.timestampVisita);
+
+            if (nombreIngresado.trim() !== '') {
+                item.gestor = nombreIngresado.trim();
+                item.gestorInicial = item.gestor.charAt(0).toUpperCase();
+                localStorage.setItem('nombre_gestor_actual', item.gestor);
+            } else if (!item.gestorInicial) {
+                if (nombreGuardado) {
+                    item.gestor = nombreGuardado;
+                    item.gestorInicial = nombreGuardado.charAt(0).toUpperCase();
+                } else if (usuarioActual && usuarioActual.email) {
+                    item.gestor = usuarioActual.email.split('@')[0];
+                    item.gestorInicial = item.gestor.charAt(0).toUpperCase();
+                } else {
+                    item.gestor = "Sergio";
+                    item.gestorInicial = "S";
+                }
+            }
+
+            // Incrementar conteo de visitas acumuladas
+            item.visitas = proximaVisita;
+            localStorage.setItem('gestor_inicial_' + item.id, item.gestorInicial);
+            localStorage.setItem('gestor_nombre_' + item.id, item.gestor || '');
+            localStorage.setItem('visitas_' + item.id, item.visitas);
 
             if (item.marker) {
                 var customIcon = L.divIcon({
                     className: '',
-                    html: generarMarcadorProfesional(item, item.visitada),
+                    html: generarMarcadorProfesional(item, true),
                     iconAnchor: [42, 30],
                     popupAnchor: [0, -30]
                 });
@@ -4656,9 +4668,9 @@
             guardarPuntosStorage();
             if (typeof fbDb !== 'undefined' && fbDb) {
                 fbDb.collection('puntos_ubica_rick').doc(item.id).update({
-                    visitada: item.visitada,
-                    timestampVisita: item.timestampVisita || null,
-                    visitas: item.visitas || 0,
+                    visitada: true,
+                    timestampVisita: item.timestampVisita,
+                    visitas: item.visitas,
                     gestorInicial: item.gestorInicial || '',
                     gestor: item.gestor || ''
                 }).catch(function(err){ console.warn("Error actualizando visita en Firestore:", err); });
@@ -4666,14 +4678,8 @@
             actualizarKPIs();
             actualizarPanelCercano();
 
-            if (item.visitada) {
-                var vecesTxt = (item.visitas === 1) ? "1 visita" : (item.visitas + " visitas");
-                mostrarToastNotificacion("✅ " + placa + " visitada por [" + item.gestorInicial + "] (" + vecesTxt + ")");
-            } else {
-                delete item.timestampVisita;
-                localStorage.removeItem('visita_ts_' + item.id);
-                mostrarToastNotificacion("↩️ Dirección de " + placa + " marcada como pendiente.");
-            }
+            var vecesTxt = (item.visitas === 1) ? "1 visita" : (item.visitas + " visitas");
+            mostrarToastNotificacion("✅ " + placa + " marcada como visitada por [" + item.gestorInicial + "] (" + vecesTxt + ")");
         }
 
         function mostrarOpcionesEliminar(markerId) {
@@ -5751,11 +5757,13 @@
             var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '-';
             var vColor = (p.color && p.color !== '-') ? p.color : '-';
             var dirReal = p.dirOriginal || p.dir || "-";
-            var txtBtnVisitada = esVisitada ? "↩️ Desmarcar Visitada" : "✅ Marcar Visitado";
+            var esVisitada = !!p.visitada;
+            var numVis = p.visitas || (esVisitada ? 1 : 0);
+            var txtBtnVisitada = numVis > 0 ? ("✅ Marcar Visitado (" + numVis + (numVis === 1 ? " visita" : " visitas") + ")") : "✅ Marcar Visitado";
 
             // Primera letra del visitador y conteo de visitas para evidencia
             var gestorInicial = (p.gestorInicial || (p.gestor ? p.gestor.charAt(0) : '') || '').toUpperCase();
-            var vecesTxt = (p.visitas === 1) ? '1 vez' : ((p.visitas || 1) + ' veces');
+            var vecesTxt = (numVis === 1) ? '1 vez' : (numVis + ' veces');
             var infoVisitasHtml = esVisitada 
                 ? `<span id="visitas-val-${markerId}" style="color:#15803d; font-weight:bold;">✅ <b>[${gestorInicial || 'V'}]</b> Visitado (${vecesTxt})</span>`
                 : `<span id="visitas-val-${markerId}" style="color:#64748b; font-weight:600;">⏳ Pendiente (0 visitas)</span>`;
@@ -5844,7 +5852,7 @@
                                 </div>
                                 
                                 <div style="display:flex; gap:6px;">
-                                    <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn ${esVisitada ? 'pb-teal' : 'pb-green'}" style="flex:1;">${txtBtnVisitada}</button>
+                                    <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1.2; font-size:11.5px; padding:7px 4px; line-height:1.2;">${txtBtnVisitada}</button>
                                     ${(rolUsuarioActual === 'lector') ? '' : `<button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>`}
                                 </div>
                                 
