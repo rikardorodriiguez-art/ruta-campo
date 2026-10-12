@@ -3263,9 +3263,20 @@
                 }
 
                 var totalPuntos = 0;
+                var placasOmitidasYaActivas = [];
 
                 for (let v of vehiculos) {
                     var placaNorm = v.placa.toUpperCase().trim();
+
+                    // Comprobar si la placa ya se encuentra activa en el sistema
+                    var yaExisteEnSistema = puntosData.some(function(pd) {
+                        return pd.placa && pd.placa.toUpperCase().trim() === placaNorm;
+                    });
+                    if (yaExisteEnSistema) {
+                        placasOmitidasYaActivas.push(placaNorm);
+                        mostrarToastNotificacion("ℹ️ La placa " + placaNorm + " ya está activa en el sistema. Omitida.");
+                        continue;
+                    }
 
                     // Verificación en historial de placas eliminadas
                     var infoElim = consultarPlacaEliminada(placaNorm);
@@ -3281,8 +3292,6 @@
                         removerDeHistorialEliminadas(placaNorm);
                     }
 
-                    // Limpiar todas las ubicaciones viejas de esta placa para evitar duplicados
-                    eliminarTodasDePlaca(placaNorm);
                     placasRegistradas[placaNorm] = true;
 
                     var dirsAsignadas = 0;
@@ -3348,7 +3357,17 @@
                     }
                 }
 
-                alert("🚀 ¡Éxito! Se cargaron " + vehiculos.length + " vehículo(s) con un total de " + totalPuntos + " ubicaciones.");
+                if (vehiculos.length === 1 && placasOmitidasYaActivas.length === 1) {
+                    alert("⚠️ La placa " + placasOmitidasYaActivas[0] + " ya está activa en el sistema. Ha sido omitida.");
+                } else if (placasOmitidasYaActivas.length > 0) {
+                    var msg = "ℹ️ Se omitieron (" + placasOmitidasYaActivas.length + ") placas porque ya están activas en el sistema:\n" + placasOmitidasYaActivas.join(", ");
+                    if (totalPuntos > 0) {
+                        msg += "\n\n✅ Se agregaron (" + (vehiculos.length - placasOmitidasYaActivas.length) + ") placas nuevas con " + totalPuntos + " ubicaciones.";
+                    }
+                    alert(msg);
+                } else {
+                    alert("🚀 ¡Éxito! Se cargaron " + vehiculos.length + " vehículo(s) con un total de " + totalPuntos + " ubicaciones.");
+                }
                 if (document.getElementById(elementId)) document.getElementById(elementId).value = '';
                 cerrarSecciones();
                 actualizarPanelCercano();
@@ -3377,6 +3396,16 @@
             if(!placa) { alert("Por favor ingresa la Placa."); return; }
             if(!dir) { alert("Ingresa la dirección o coordenadas (lat, lng)."); return; }
 
+            // Comprobar si la placa ya se encuentra activa en el sistema
+            var yaActivaManual = puntosData.some(function(pd) {
+                return pd.placa && pd.placa.toUpperCase().trim() === placa;
+            });
+            if (yaActivaManual) {
+                alert("⚠️ La placa " + placa + " ya está activa en el sistema.");
+                mostrarToastNotificacion("⚠️ La placa " + placa + " ya está activa en el sistema.");
+                return;
+            }
+
             // Verificación en historial de placas eliminadas
             var infoElim = consultarPlacaEliminada(placa);
             if (infoElim) {
@@ -3399,7 +3428,7 @@
             }
 
             try {
-                if(placasRegistradas[placa]) eliminarTodasDePlaca(placa);
+                // Placa nueva a registrar
                 placasRegistradas[placa] = true;
                 
                 var coords = null;
@@ -3506,6 +3535,16 @@
 
             if (!placa) { alert("Por favor ingresa la Placa."); return; }
             if (!urlStr && !dirOpcional) { alert("Ingresa el enlace de Google Maps o la dirección opcional."); return; }
+
+            // Comprobar si la placa ya se encuentra activa en el sistema
+            var yaActivaMaps = puntosData.some(function(pd) {
+                return pd.placa && pd.placa.toUpperCase().trim() === placa;
+            });
+            if (yaActivaMaps) {
+                alert("⚠️ La placa " + placa + " ya está activa en el sistema.");
+                mostrarToastNotificacion("⚠️ La placa " + placa + " ya está activa en el sistema.");
+                return;
+            }
 
             var loadingOverlay = document.getElementById('loading-overlay');
             var loadingTexto = document.getElementById('loading-texto');
@@ -3650,6 +3689,19 @@
                     var mPlaca = rawText.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
                     if (mPlaca) placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
                     else placa = "SIN_PLACA";
+                }
+
+                // Comprobar si la placa ya se encuentra activa en el sistema
+                if (placa && placa !== "SIN_PLACA") {
+                    var yaActivaOcr = puntosData.some(function(pd) {
+                        return pd.placa && pd.placa.toUpperCase().trim() === placa;
+                    });
+                    if (yaActivaOcr) {
+                        if (loadingOverlay) loadingOverlay.style.display = 'none';
+                        alert("⚠️ La placa " + placa + " ya está activa en el sistema.");
+                        mostrarToastNotificacion("⚠️ La placa " + placa + " ya está activa en el sistema.");
+                        return;
+                    }
                 }
 
                 // Verificación si la placa detectada ya fue eliminada anteriormente
