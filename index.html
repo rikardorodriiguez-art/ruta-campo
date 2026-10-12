@@ -3108,34 +3108,74 @@
                 var lineas = b.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
 
                 var telsMatch = b.match(/\b3[0-9]{9}\b/g) || [];
-                var telefonos = [...new Set(telsMatch)];
+                var telefonos = [...new Set(telsMatch)].slice(0, 2);
 
                 var direcciones = [];
                 lineas.forEach(function(l) {
                     var up = l.toUpperCase();
                     if (['IDENTIFICACI', 'EXPEDICI', 'CEDULA', 'CÉDULA', 'CODIGO', 'LICENCIA', 'FECHA'].some(p => up.includes(p))) return;
+
+                    // Si es una fila de tabla RUNT/Tránsito con fechas:
+                    var fechas = up.match(/\b\d{1,2}\/\d{1,2}\/(\d{2,4})\b/g) || [];
+                    if (fechas.length >= 2) {
+                        var ultFechaStr = fechas[1];
+                        var ultAnoMatch = ultFechaStr.match(/\d{1,2}\/\d{1,2}\/(\d{2,4})/);
+                        if (ultAnoMatch) {
+                            var yStr = ultAnoMatch[1];
+                            var ano = (yStr.length === 2) ? parseInt('20' + yStr) : parseInt(yStr);
+                            if (ano < 2026) return; // Descartar fecha menor a 2026
+                        }
+                        var posSegunda = up.indexOf(ultFechaStr);
+                        var textoDesp = (posSegunda !== -1) ? up.substring(posSegunda + ultFechaStr.length) : up;
+                        var tieneNo = /\bNO\b/.test(textoDesp);
+                        var tieneSi = /\b(?:SI|S1)\b/.test(textoDesp);
+                        if (tieneNo && !tieneSi) return; // Descartar si dice NO
+                        if (!tieneSi && tieneNo) return;
+                    } else if (fechas.length === 1) {
+                        var soloAnoM = fechas[0].match(/\d{1,2}\/\d{1,2}\/(\d{2,4})/);
+                        if (soloAnoM) {
+                            var anoS = (soloAnoM[1].length === 2) ? parseInt('20' + soloAnoM[1]) : parseInt(soloAnoM[1]);
+                            if (anoS < 2026) return;
+                        }
+                    }
+
                     var mCoord = l.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
                     if (mCoord) {
-                        if (!direcciones.includes(l)) direcciones.push(l);
+                        if (!direcciones.includes(l) && direcciones.length < 4) direcciones.push(l);
                         return;
                     }
-                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM|KILOMETRO)\s*(?:SUR|NORTE|ESTE|OESTE)?\s*(\d+|[A-Z]\b)/i;
+                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|CIRC|AUTOPISTA|KM|KILOMETRO)\s*(?:SUR|NORTE|ESTE|OESTE)?\s*(\d+|[A-Z]\b)/i;
                     var tieneVia = patronVia.test(up);
                     var tieneNum = up.includes('#') || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up);
                     var esDirEtq = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(l);
-                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|BOGOTA|CALI)/i.test(up);
+                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ANTIOQUIA)/i.test(up);
                     if ((esDirEtq || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 6) {
                         if (!['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(k => up.includes(k))) {
-                            var cleanDir = l.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '').trim();
-                            if (cleanDir) {
+                            var cleanDir = l.replace(/^\s*\d+\s*(?:RES-LAB|RES|LAB|COM|DIR|DOM)?\s*/i, '')
+                                            .replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '')
+                                            .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b.*$/i, '')
+                                            .replace(/\(\s*[A-Z\s]+\s*\)/gi, '')
+                                            .replace(/\b050\d+\b.*$/i, '')
+                                            .replace(/\s+\d+\s+(?:SI|NO)\s+.*$/i, '')
+                                            .replace(/\b(SI|S1|NO)\b/gi, '')
+                                            .replace(/\s+/g, ' ')
+                                            .trim();
+
+                            var mMunM = cleanDir.match(/\s+(MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO)$/i);
+                            if (mMunM && !cleanDir.includes(',')) {
+                                var iM = mMunM.index;
+                                cleanDir = cleanDir.substring(0, iM) + ', ' + cleanDir.substring(iM).trim();
+                            }
+
+                            if (cleanDir && cleanDir.length > 5) {
                                 var kDirNueva = normalizarClaveAprendizaje(cleanDir, '');
                                 var yaExiste = direcciones.some(function(dExistente) {
                                     return normalizarClaveAprendizaje(dExistente, '') === kDirNueva;
                                 });
-                                if (!yaExiste) {
+                                if (!yaExiste && direcciones.length < 4) {
                                     direcciones.push(cleanDir);
                                 } else {
-                                    console.log("Dirección repetida omitida en texto:", cleanDir);
+                                    console.log("Dirección repetida o límite alcanzado:", cleanDir);
                                 }
                             }
                         }
@@ -3865,16 +3905,12 @@
                     }
                 }
 
-                // Detectar teléfonos celulares (3XXXXXXXXX) y fijos de Medellín (4XXXXXX)
+                // OMITIR HISTÓRICO DE TELÉFONOS FIJOS (PREFIJOS 604, 606, ETC.)
+                // EXTRAER ÚNICAMENTE LOS DOS PRIMEROS TELÉFONOS CELULARES (10 DÍGITOS INICIADOS EN 3)
                 var mCels = rawText.match(/\b3[0-9]{9}\b/g) || [];
-                var mFijos = rawText.match(/\b(?:604)?\s*(?:4[0-9]{6}|5[0-9]{6})\b/g) || [];
-                var telsUnicos = [];
-                mCels.forEach(function(c) { if (!telsUnicos.includes(c)) telsUnicos.push(c); });
-                mFijos.forEach(function(f) {
-                    var fNorm = f.replace(/\s+/g, '');
-                    if (!telsUnicos.includes(fNorm)) telsUnicos.push(fNorm);
-                });
-                var telsTexto = telsUnicos.slice(0, 2).join(', ') || '-';
+                var celsUnicos = [];
+                mCels.forEach(function(c) { if (!celsUnicos.includes(c)) celsUnicos.push(c); });
+                var telsTexto = celsUnicos.slice(0, 2).join(' - ') || '-';
 
                 // Lista de términos prohibidos de documentos de identidad, cédulas y licencias
                 var terminosProhibidosDoc = [
@@ -3895,32 +3931,49 @@
                         return;
                     }
 
-                    // REGLA EXACTA DE TABLA RUNT / TRANSITO:
-                    // 1. En la columna 8 (P. ACTIVO) debe decir SI
-                    // 2. En la columna 6 (ÚLTIMO REPORTE) el año NO debe ser menor a 2026 (>= 2026)
+                    // REGLAS PRECISAS DE EXTRACCIÓN DE TABLAS VEHICULARES:
+                    // 1. Omitir número de fila inicial (1, 2, 3...) y tipo (RES, LAB, RES-LAB).
+                    // 2. En la segunda fecha (ÚLTIMO REPORTE): tomar ÚNICAMENTE del AÑO 26 EN ADELANTE (>= 2026).
+                    // 3. En la columna P. ACTIVO / ESTADO: debe decir 'SI' (descartar inmediatamente si dice 'NO').
+                    // 4. Extraer dirección completa con ciudad (ej: KR 48 # 58 - 57, BELLO).
+                    // 5. Máximo 4 direcciones por placa.
+
                     var fechas = up.match(/\b\d{1,2}\/\d{1,2}\/(\d{2,4})\b/g) || [];
                     if (fechas.length >= 2) {
-                        var ultFechaStr = fechas[fechas.length - 1];
+                        // Segunda fecha: Último Reporte
+                        var ultFechaStr = fechas[1];
                         var ultAnoMatch = ultFechaStr.match(/\d{1,2}\/\d{1,2}\/(\d{2,4})/);
                         if (ultAnoMatch) {
                             var yStr = ultAnoMatch[1];
                             var ano = (yStr.length === 2) ? parseInt('20' + yStr) : parseInt(yStr);
                             if (ano < 2026) {
-                                console.log("Omitida dirección por fecha antigua (<2026):", lTrim);
-                                return; // Descartar por año menor a 2026
+                                console.log("Omitida dirección por año < 2026 (" + ano + "):", lTrim);
+                                return; // Descartar por año anterior al 2026
                             }
                         }
 
-                        // Verificar P. ACTIVO: debe ser SI
-                        var tieneNo = /\bNO\b/.test(up);
-                        var tieneSi = /\b(?:SI|S1)\b/.test(up);
+                        // Verificar que en P. ACTIVO (después de las fechas) diga SI y no diga NO
+                        var posSegundaFecha = up.indexOf(ultFechaStr);
+                        var textoDespues = (posSegundaFecha !== -1) ? up.substring(posSegundaFecha + ultFechaStr.length) : up;
+                        var tieneNo = /\bNO\b/.test(textoDespues);
+                        var tieneSi = /\b(?:SI|S1)\b/.test(textoDespues);
                         if (tieneNo && !tieneSi) {
-                            console.log("Omitida dirección por P. ACTIVO == NO:", lTrim);
+                            console.log("Omitida dirección por estado NO:", lTrim);
                             return; // Descartar porque dice NO
+                        }
+                        if (!tieneSi && !tieneNo) {
+                            // Si no se encontró en el segmento posterior, revisar en toda la fila
+                            if (/\bNO\b/.test(up) && !/\b(?:SI|S1)\b/.test(up)) return;
+                        }
+                    } else if (fechas.length === 1) {
+                        var soloAnoM = fechas[0].match(/\d{1,2}\/\d{1,2}\/(\d{2,4})/);
+                        if (soloAnoM) {
+                            var anoSolo = (soloAnoM[1].length === 2) ? parseInt('20' + soloAnoM[1]) : parseInt(soloAnoM[1]);
+                            if (anoSolo < 2026) return;
                         }
                     }
 
-                    // Coordenadas válidas en la foto
+                    // Coordenadas válidas directas en la foto
                     var mCoord = lTrim.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
                     if (mCoord) {
                         direccionesDetectadas.push({ dir: lTrim, prioridad: 10 });
@@ -3928,25 +3981,38 @@
                     }
 
                     // Nomenclatura urbana colombiana: Debe tener vía principal y número
-                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|AUTOPISTA|KM|KILOMETRO)\s*(?:SUR|NORTE|ESTE|OESTE)?\s*(\d+|[A-Z]\b)/i;
+                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|CIRC|AUTOPISTA|KM|KILOMETRO)\s*(?:SUR|NORTE|ESTE|OESTE)?\s*(\d+|[A-Z]\b)/i;
                     var tieneVia = patronVia.test(up);
                     var tieneNum = up.includes('#') || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up);
                     var esEtiquetaDir = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(lTrim);
-                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|RIONEGRO|GIRARDOTA|BARBOSA|ANTIOQUIA)/i.test(up);
+                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ANTIOQUIA)/i.test(up);
 
                     if ((esEtiquetaDir || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 6) {
                         var noEsRuido = !['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(k => up.includes(k));
                         if (noEsRuido) {
-                            var dirLimpia = lTrim.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '')
-                                                 .replace(/^\s*\d+\s*(?:RES-LAB|RES|LAB|COM|DIR|DOM)?\s*/i, '')
-                                                 .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b.*$/i, '')
-                                                 .replace(/\b050\d+\b.*$/i, '')
+                            // Limpiar fila de tabla:
+                            // 1. Quitar número inicial de fila y etiqueta RES/LAB/RES-LAB
+                            var dirLimpia = lTrim.replace(/^\s*\d+\s*(?:RES-LAB|RES|LAB|COM|DIR|DOM)?\s*/i, '')
+                                                 .replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '');
+                            // 2. Quitar desde la primera fecha en adelante
+                            dirLimpia = dirLimpia.replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b.*$/i, '');
+                            // 3. Quitar departamento entre paréntesis (ej: ( ANTIOQUIA ), ( CALDAS ))
+                            dirLimpia = dirLimpia.replace(/\(\s*[A-Z\s]+\s*\)/gi, '');
+                            // 4. Limpiar ruidos finales
+                            dirLimpia = dirLimpia.replace(/\b050\d+\b.*$/i, '')
                                                  .replace(/\s+\d+\s+(?:SI|NO)\s+.*$/i, '')
-                                                 .replace(/\b(SI|S1)\b/gi, '')
-                                                 .replace(/\b\d+\s*$/, '')
+                                                 .replace(/\b(SI|S1|NO)\b/gi, '')
+                                                 .replace(/\s+/g, ' ')
                                                  .trim();
+
+                            // Formatear ciudad con coma si termina con municipio conocido
+                            var mMunMatch = dirLimpia.match(/\s+(MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO)$/i);
+                            if (mMunMatch && !dirLimpia.includes(',')) {
+                                var idxMun = mMunMatch.index;
+                                dirLimpia = dirLimpia.substring(0, idxMun) + ', ' + dirLimpia.substring(idxMun).trim();
+                            }
+
                             if (dirLimpia.length > 5) {
-                                // Verificar duplicados
                                 var kNueva = normalizarClaveAprendizaje(dirLimpia, '');
                                 var yaExiste = direccionesDetectadas.some(function(dExistente) {
                                     return normalizarClaveAprendizaje(dExistente.dir, '') === kNueva;
@@ -3959,7 +4025,7 @@
                     }
                 });
 
-                direccionesDetectadas.sort((a, b) => b.prioridad - a.prioridad);
+                // Mantener el orden original de la tabla y limitar a MÁXIMO 4 DIRECCIONES
                 var dirsFinales = [];
                 var llavesVistas = {};
                 direccionesDetectadas.forEach(function(d) {
@@ -3999,10 +4065,24 @@
                 // Inyectar en el textarea unificado de texto (txtWhatsapp)
                 if (document.getElementById('txtWhatsapp')) document.getElementById('txtWhatsapp').value = formatoIA;
 
+                // Auto-llenar también los campos de Ingreso Manual para conveniencia
+                if (document.getElementById('manPlaca')) document.getElementById('manPlaca').value = (placa !== 'SIN_PLACA') ? placa : '';
+                if (document.getElementById('manTel')) document.getElementById('manTel').value = (telsTexto !== '-') ? telsTexto : '';
+                if (document.getElementById('manDir')) document.getElementById('manDir').value = dirsFinales[0] || '';
+                if (document.getElementById('manDir2')) document.getElementById('manDir2').value = dirsFinales[1] || '';
+                if (document.getElementById('manDir3')) document.getElementById('manDir3').value = dirsFinales[2] || '';
+                if (document.getElementById('manDir4')) document.getElementById('manDir4').value = dirsFinales[3] || '';
+
                 if (dirsFinales.length > 0) {
-                    alert("✅ ¡Información extraída con éxito de la foto! Se transfirió a la Opción 1 (Pegar Reporte / Texto). Pulsa '🚀 Procesar y Agregar'.");
+                    var dirsListado = dirsFinales.map(function(d, i){ return (i + 1) + ". " + d; }).join("\n");
+                    alert("✅ ¡INFORMACIÓN EXTRAÍDA CON ÉXITO!\n\n" +
+                          "🚗 Placa: " + placa + "\n" +
+                          "📱 Celulares: " + telsTexto + "\n" +
+                          "📍 Direcciones vigentes (≥ 2026 y SI):\n" + dirsListado + "\n\n" +
+                          "Se transfirió a la Opción 1. Pulsa '🚀 Procesar y Agregar' para mapear.");
+                    mostrarToastNotificacion("📸 " + placa + ": " + dirsFinales.length + " direcciones y celulares extraídos.");
                 } else {
-                    alert("⚠️ Se detectó la placa " + placa + ", pero en la foto analizada no se detectó una dirección de calle o carrera válida. Por favor completa la dirección en el campo 'DIRECCIÓN 1' antes de mapear.");
+                    alert("⚠️ Se detectó la placa " + placa + ", pero ninguna dirección cumplió con fecha ≥ 2026 y estado SI. Verifica la foto o ingresa manualmente.");
                 }
 
                 // Abrir automáticamente la sección de texto
