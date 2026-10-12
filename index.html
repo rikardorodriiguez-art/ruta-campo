@@ -41,7 +41,7 @@
 
         /* BARRA SUPERIOR RESPONSIVE NO COLISIONANTE */
         #top-bar-container {
-            position: fixed; top: 6px; left: 4px; right: 4px; z-index: 9999;
+            position: fixed; top: 6px; left: 4px; right: 4px; z-index: 100000000 !important;
             display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center;
             pointer-events: none; gap: 4px;
             overflow-x: auto;
@@ -65,15 +65,16 @@
         .text-pico { color: #fcc419; }
 
         #top-actions {
-            pointer-events: auto;
+            pointer-events: auto !important;
             display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0;
         }
 
         .btn-top-action {
             background: linear-gradient(145deg, #1e293b, #0f172a); color: white; border: none;
-            padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer;
+            padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.18);
             display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;
+            pointer-events: auto !important; touch-action: manipulation;
         }
         .btn-top-action:active { transform: translateY(2px); }
         .btn-radar-active { background: linear-gradient(145deg, #00b894, #00ff87) !important; color: #1a252f !important; border-color: #00ff87 !important; }
@@ -614,7 +615,7 @@
             <span class="kpi-sep">|</span>
             <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
             <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.1</span>
+            <span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:0.3px;" title="Versión actualizada">v6.3</span>
         </div>
                 <div id="top-actions">
             <!-- PERFIL ACTIVO -->
@@ -630,6 +631,88 @@
             <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8; font-weight:bold;" title="Abrir Menú de Capas, Rutas y Sistema">🛠️ Menú</button></div>
     </div>
 
+    <!-- BOTÓN AGREGAR Y MENÚ DE 5 OPCIONES -->
+    <button class="floating-btn-add" onclick="toggleMenuAdd()">➕ Agregar</button>
+    <div id="menuOpciones" class="floating-menu">
+        <div class="header-menu">
+            <b style="color: #2c3e50; font-size: 14px;">Opciones de Carga:</b>
+            <button onclick="cerrarMenuAdd()">✖</button>
+        </div>
+        <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">1. 📱 Pegar reporte texto (WhatsApp)</button>
+        <button class="main-opt mo-2" onclick="abrirSeccion('manual')">2. ✍️ Ingreso manual completo</button>
+        <button class="main-opt mo-maps" onclick="abrirSeccion('link-maps')">3. 🧭 Agregar por Link de Google Maps</button>
+        <button class="main-opt mo-foto" onclick="abrirSeccion('tabla-foto')">4. 📸 Subir Foto de Tabla (Auto)</button>
+        <button class="main-opt mo-3" onclick="abrirSeccion('gemini')">5. ⚡ Pegar Extracción IA (Gemini)</button>
+
+        <!-- SECCIÓN 1: WHATSAPP / MULTI-REPORTE -->
+        <div id="seccion-whatsapp" class="sub-panel">
+            <b style="color:#2c3e50; font-size:11px;">Pega los reportes tal como vienen de WhatsApp (una o varias placas):</b>
+            <textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ... &#10;&#10;[6:04 p. m.] UBICAR &#10;LRW993 ..." style="height: 140px; font-size: 11px;"></textarea>
+            <button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 2: INGRESO MANUAL -->
+        <div id="seccion-manual" class="sub-panel">
+            <b style="font-size: 11px; color:#8e44ad;">Ingreso Directo / Coordenadas:</b>
+            <input type="text" id="manPlaca" placeholder="Placa (Obligatorio)">
+            <input type="text" id="manMarca" placeholder="Marca (ej: SUZUKI, RENAULT)">
+            <input type="text" id="manLinea" placeholder="Línea (ej: SWIFT, LOGAN)">
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="manModelo" placeholder="Modelo (ej: 2023)" style="flex:1;">
+                <input type="text" id="manColor" placeholder="Color (ej: GRIS)" style="flex:1;">
+            </div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="manSoat" placeholder="SOAT (SI/NO)" style="flex:1;">
+                <input type="text" id="manTecno" placeholder="Tecno (SI/NO)" style="flex:1;">
+            </div>
+            <input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
+            <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas (lat,lng)">
+            
+            <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 3: LINK DE GOOGLE MAPS -->
+        <div id="seccion-link-maps" class="sub-panel">
+            <b style="color:#2980b9; font-size:12px;">🧭 AGREGAR POR LINK DE GOOGLE MAPS</b><br>
+            <span style="font-size: 10px; color:#555; display:block; margin: 4px 0 8px 0;">Pega el enlace compartido desde Google Maps (ej: https://maps.app.goo.gl/... o coordenadas):</span>
+            
+            <input type="text" id="linkMapsPlaca" placeholder="Placa del vehículo (Obligatorio)">
+            <input type="text" id="linkMapsUrl" placeholder="Link de Google Maps (https://maps.app.goo.gl/...)">
+            <input type="text" id="linkMapsDir" placeholder="Dirección opcional (ej: Calle 33 # 76 - 82, Medellín)">
+            <input type="text" id="linkMapsCel" placeholder="Celulares (opcional, hasta 2)">
+            
+            <button class="action act-blue" onclick="procesarLinkGoogleMaps()">🧭 Ubicar y Agregar al Mapa</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 4: FOTO TABLA DIRECTA SIN COPIAR NI PEGAR -->
+        <div id="seccion-tabla-foto" class="sub-panel">
+            <b style="color:#d35400; font-size:12px;">📸 ESCANEO AUTOMÁTICO DE TABLA</b><br>
+            <span style="font-size: 10px; color:#555; display:block; margin: 4px 0 8px 0;">Sube la foto o captura. El sistema extrae la placa, teléfonos y direcciones vigentes (máximo 4) y las deja listas en la <b>Opción 5 (⚡ Pegar Extracción IA)</b>:</span>
+            
+            <input type="text" id="fotoTablaPlaca" placeholder="Placa del vehículo (ej: LRW993)">
+            <div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:11px; font-weight:bold; color:#2c3e50;">📁 Adjuntar captura o foto de la galería:</label>
+                <input type="file" id="fotoTablaInput" accept="image/*" style="font-size:11px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; width:100%;">
+            </div>
+            
+            <button class="action act-orange" onclick="procesarFotoTablaDirecta()">⚡ Extraer y Pasar a Opción 5 (IA)</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 5: GEMINI MULTI-PLACA -->
+        <div id="seccion-gemini" class="sub-panel">
+            <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br>
+            <span style="font-size: 10px; color:#666; display:block; margin: 4px 0 8px 0;">Pega aquí uno o varios vehículos:</span>
+            <textarea id="txtGemini" placeholder="PLACA: GCV922&#10;MARCA: SUZUKI&#10;LÍNEA: SWIFT DZIRE TAM&#10;MODELO: 2020&#10;COLOR: GRIS METALICO&#10;SOAT: SI | TECNO: SI&#10;DIRECCIÓN 1: KR 62 A # 74 SUR - 143, LA ESTRELLA&#10;&#10;PLACA: LRW993&#10;MARCA: RENAULT&#10;LÍNEA: LOGAN&#10;MODELO: 2023&#10;COLOR: GRIS ESTRELLA&#10;SOAT: NO | TECNO: NO&#10;CELULARES: 3106658981, 3017433454&#10;DIRECCIÓN 1: KR 55 B # 79 - 22, MEDELLIN" style="height: 140px; font-size: 11px;"></textarea>
+            <button class="action act-green" onclick="procesarTextoUniversal('txtGemini')">🚀 Mapear Ubicaciones</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+    </div>
+
+    
     <!-- PANEL FLOTANTE DE FILTROS Y OPCIONES -->
     <div id="panelFiltros" class="floating-filter-panel" style="display:none; position:fixed; top:58px; left:12px; z-index:10000000;
         background:white; border-radius:16px; box-shadow:0 14px 45px rgba(0,0,0,0.4);
@@ -1254,13 +1337,17 @@
                 if (!map.hasLayer(capaMotosEnVivo)) {
                     capaMotosEnVivo.addTo(map);
                 }
-                refrescarCapaMotosEnVivo();
+                var totalMotos = refrescarCapaMotosEnVivo();
 
                 if (btnMenu) {
                     btnMenu.innerHTML = '🏍️ Motos en Vivo: 🟢 ACTIVO';
                     btnMenu.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
                 }
-                mostrarToastNotificacion("🏍️ Capa de motorizados en vivo activada.");
+                if (totalMotos > 0) {
+                    mostrarToastNotificacion("🏍️ Capa de motos en vivo activada: " + totalMotos + " moto(s) detectadas.");
+                } else {
+                    mostrarToastNotificacion("🏍️ Capa de motos activada. Se mostrarán tus compañeros y tu moto en cuanto reporten GPS.");
+                }
             } else {
                 if (capaMotosEnVivo && map.hasLayer(capaMotosEnVivo)) {
                     map.removeLayer(capaMotosEnVivo);
@@ -1282,42 +1369,48 @@
             var motosDibujadas = 0;
 
             listaUsuarios.forEach(function(u) {
-                // No dibujar al mismo usuario si es quien tiene la app abierta
-                if (usuarioOperadorActual && u.id === usuarioOperadorActual.id) return;
-
+                var esPropio = (usuarioOperadorActual && u.id === usuarioOperadorActual.id);
                 var pres = presenciaOperadoresCache[u.id];
+
+                // Si es el usuario actual en moto y tiene GPS activo, asegurar que se muestre de inmediato
+                if (esPropio && (!pres || !pres.lat) && typeof miUbicacionCoords !== 'undefined' && miUbicacionCoords) {
+                    pres = { lat: miUbicacionCoords[0], lng: miUbicacionCoords[1], ultimoLatido: ahora, horaStr: 'En vivo (Tu GPS)' };
+                }
+
                 if (!pres || !pres.lat || !pres.lng) return;
 
                 var ts = pres.ultimoLatido || 0;
                 var estaEnLinea = (ahora - ts) < 300000; // Últimos 5 min
-                if (!estaEnLinea) return;
+                if (!estaEnLinea && !esPropio) return;
 
-                var motoHtml = `
-                    <div style="background:#0f172a; color:#38bdf8; border:2px solid #38bdf8; border-radius:20px; padding:3px 9px; font-size:11.5px; font-weight:900; box-shadow:0 0 14px rgba(56,189,248,0.85); display:inline-flex; align-items:center; gap:5px; white-space:nowrap; cursor:pointer;">
-                        <span style="font-size:15px;">🏍️</span> <span>${u.nombre}</span>
-                    </div>
-                `;
+                var colorBorde = esPropio ? '#10b981' : '#38bdf8';
+                var colorSombra = esPropio ? 'rgba(16,185,129,0.85)' : 'rgba(56,189,248,0.85)';
+                var etiqueta = esPropio ? '🏍️ Mi Moto (' + u.nombre + ')' : '🏍️ ' + u.nombre;
+
+                var motoHtml = '<div style="background:#0f172a; color:' + colorBorde + '; border:2px solid ' + colorBorde + '; border-radius:20px; padding:3px 9px; font-size:11.5px; font-weight:900; box-shadow:0 0 14px ' + colorSombra + '; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; cursor:pointer;">' +
+                    '<span>' + etiqueta + '</span>' +
+                '</div>';
 
                 var customIcon = L.divIcon({
                     className: 'moto-marker-live',
                     html: motoHtml,
-                    iconSize: [95, 28],
-                    iconAnchor: [47, 14]
+                    iconSize: [110, 28],
+                    iconAnchor: [55, 14]
                 });
 
                 var markerMoto = L.marker([pres.lat, pres.lng], { icon: customIcon });
-                markerMoto.bindPopup(`
-                    <div style="font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size:12px; min-width:190px;">
-                        <div style="font-weight:900; font-size:13.5px; color:#0f172a; margin-bottom:4px;">🏍️ Motorizado: ${u.nombre}</div>
-                        <div style="color:#64748b; font-size:11px;">🆔 Usuario: <b>@${u.login}</b></div>
-                        <div style="color:#2563eb; font-size:11px; margin-top:2px;">📍 GPS: (${pres.lat.toFixed(4)}, ${pres.lng.toFixed(4)})</div>
-                        <div style="color:#15803d; font-size:11px; font-weight:bold; margin-top:4px;">⏱️ Reporte: ${pres.horaStr || 'En vivo'}</div>
-                        <div style="margin-top:8px; display:flex; gap:4px;">
-                            <button type="button" onclick="map.setView([${pres.lat}, ${pres.lng}], 18)" class="pop-btn pb-blue" style="margin:0; flex:1; padding:6px; font-size:11px;">🔍 Acercar</button>
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${pres.lat},${pres.lng}&travelmode=driving" target="_blank" class="pop-btn pb-teal" style="margin:0; flex:1; padding:6px; font-size:11px; text-decoration:none; text-align:center;">🧭 Waze/Maps</a>
-                        </div>
-                    </div>
-                `);
+                markerMoto.bindPopup(
+                    '<div style="font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size:12px; min-width:190px;">' +
+                        '<div style="font-weight:900; font-size:13.5px; color:#0f172a; margin-bottom:4px;">🏍️ Motorizado: ' + u.nombre + (esPropio ? ' <b>(TÚ)</b>' : '') + '</div>' +
+                        '<div style="color:#64748b; font-size:11px;">🆔 Usuario: <b>@' + u.login + '</b> (' + u.rol.toUpperCase() + ')</div>' +
+                        '<div style="color:#2563eb; font-size:11px; margin-top:2px;">📍 GPS: (' + pres.lat.toFixed(4) + ', ' + pres.lng.toFixed(4) + ')</div>' +
+                        '<div style="color:#15803d; font-size:11px; font-weight:bold; margin-top:4px;">⏱️ Reporte: ' + (pres.horaStr || 'En vivo') + '</div>' +
+                        '<div style="margin-top:8px; display:flex; gap:4px;">' +
+                            '<button type="button" onclick="map.setView([' + pres.lat + ', ' + pres.lng + '], 18)" class="pop-btn pb-blue" style="margin:0; flex:1; padding:6px; font-size:11px;">🔍 Acercar</button>' +
+                            (!esPropio ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' + pres.lat + ',' + pres.lng + '&travelmode=driving" target="_blank" class="pop-btn pb-teal" style="margin:0; flex:1; padding:6px; font-size:11px; text-decoration:none; text-align:center;">🧭 Waze/Maps</a>' : '') +
+                        '</div>' +
+                    '</div>'
+                );
                 capaMotosEnVivo.addLayer(markerMoto);
                 motosDibujadas++;
             });
@@ -1325,6 +1418,7 @@
             if (mostrandoMotosEnVivo && !map.hasLayer(capaMotosEnVivo)) {
                 capaMotosEnVivo.addTo(map);
             }
+            return motosDibujadas;
         }
 
         // -------------------------------------------------------------------------
@@ -3989,8 +4083,10 @@
         }
 
         function cerrarMenuAdd() {
-            document.getElementById('menuOpciones').style.display = 'none';
-            document.getElementById('backdrop-modal').style.display = 'none';
+            var elMenu = document.getElementById('menuOpciones');
+            if (elMenu) elMenu.style.display = 'none';
+            var elBackdrop = document.getElementById('backdrop-modal');
+            if (elBackdrop) elBackdrop.style.display = 'none';
             cerrarSecciones();
         }
 
@@ -4031,11 +4127,28 @@
         }
 
         function cerrarTodosLosModales() {
-            document.getElementById('menuOpciones').style.display = 'none';
-            document.getElementById('panelFiltros').style.display = 'none';
-            document.getElementById('modal-config').style.display = 'none';
-            document.getElementById('modal-asistente').style.display = 'none';
-            document.getElementById('backdrop-modal').style.display = 'none';
+            var elMenu = document.getElementById('menuOpciones');
+            if (elMenu) elMenu.style.display = 'none';
+            var elFiltros = document.getElementById('panelFiltros');
+            if (elFiltros) elFiltros.style.display = 'none';
+            var elConfig = document.getElementById('modal-config');
+            if (elConfig) elConfig.style.display = 'none';
+            var elAsistente = document.getElementById('modal-asistente');
+            if (elAsistente) elAsistente.style.display = 'none';
+            var elPerfil = document.getElementById('modal-perfil-usuario');
+            if (elPerfil) elPerfil.style.display = 'none';
+            var elRuta = document.getElementById('modal-ruta-corredor');
+            if (elRuta) elRuta.style.display = 'none';
+            var elCierre = document.getElementById('modal-cierre-turno');
+            if (elCierre) elCierre.style.display = 'none';
+            var elExcel = document.getElementById('modal-importar-excel');
+            if (elExcel) elExcel.style.display = 'none';
+            var elBorrado = document.getElementById('modal-borrado-masivo');
+            if (elBorrado) elBorrado.style.display = 'none';
+            var elUsuarios = document.getElementById('modal-usuarios');
+            if (elUsuarios) elUsuarios.style.display = 'none';
+            var elBackdrop = document.getElementById('backdrop-modal');
+            if (elBackdrop) elBackdrop.style.display = 'none';
             cerrarSecciones();
         }
 
@@ -4305,11 +4418,25 @@
                 lat: 6.1550, lng: -75.6420, foto: null
             },
             {
+                id: 'gcv_2', placa: 'GCV922', marca: 'SUZUKI', linea: 'SWIFT DZIRE TAM', modelo: '2020', color: 'GRIS METALICO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '-', dir: 'KR 62 A # 74 SUR - 143 CS 102, LA ESTRELLA ( ANTIOQUIA )',
+                dirOriginal: 'KR 62 A # 74 SUR - 143 CS 102, LA ESTRELLA ( ANTIOQUIA )', dirAjustada: null,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 6 * 3600 * 1000, visitada: false,
+                lat: 6.1583, lng: -75.6444, foto: null
+            },
+            {
                 id: 'lrw_1', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
                 soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 45 # 26 - 162 TO 9 AP 24-72, MEDELLIN ( ANTIOQUIA ) [Prioridad 5]',
                 dirOriginal: 'KR 45 # 26 - 162 TO 9 AP 24-72, MEDELLIN ( ANTIOQUIA ) [Prioridad 5]', dirAjustada: null,
                 fecha: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 4 * 86400000, visitada: false,
                 lat: 6.2280, lng: -75.5710, foto: null
+            },
+            {
+                id: 'lrw_2', placa: 'LRW993', marca: 'RENAULT', linea: 'LOGAN', modelo: '2023', color: 'GRIS ESTRELLA',
+                soat: 'NO', tecnomecanica: 'NO', telefonos: '3106658981, 3017433454', dir: 'KR 58 CC # 81 F - 95 AP 301 URBANO, MEDELLIN ( ANTIOQUIA ) [Prioridad 12]',
+                dirOriginal: 'KR 58 CC # 81 F - 95 AP 301 URBANO, MEDELLIN ( ANTIOQUIA ) [Prioridad 12]', dirAjustada: null,
+                fecha: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 4 * 86400000, visitada: false,
+                lat: 6.2750, lng: -75.5760, foto: null
             },
             {
                 id: 'ttn_1', placa: 'TTN168', marca: 'CHEVROLET', linea: 'ONIX', modelo: '2022', color: 'BLANCO',
@@ -4324,6 +4451,34 @@
                 dirOriginal: 'CR 43 A # 1 SUR - 150, MEDELLIN ( ANTIOQUIA )', dirAjustada: null,
                 fecha: new Date(Date.now() - 40 * 86400000).toISOString().split('T')[0], timestamp: Date.now() - 40 * 86400000, visitada: false,
                 lat: 6.2080, lng: -75.5720, foto: null
+            },
+            {
+                id: 'fqx_1', placa: 'FQX434', marca: 'TOYOTA', linea: 'HILUX', modelo: '2022', color: 'PLATEADO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '3147890123', dir: 'CL 50 # 42 - 15, ITAGUI ( ANTIOQUIA )',
+                dirOriginal: 'CL 50 # 42 - 15, ITAGUI ( ANTIOQUIA )', dirAjustada: null,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 2 * 3600 * 1000, visitada: false,
+                lat: 6.1725, lng: -75.6080, foto: null
+            },
+            {
+                id: 'elr_1', placa: 'ELR610', marca: 'KIA', linea: 'PICANTO', modelo: '2021', color: 'AZUL',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '3206549870', dir: 'DG 55 # 34 - 10, BELLO ( ANTIOQUIA )',
+                dirOriginal: 'DG 55 # 34 - 10, BELLO ( ANTIOQUIA )', dirAjustada: null,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 1 * 3600 * 1000, visitada: false,
+                lat: 6.3350, lng: -75.5560, foto: null
+            },
+            {
+                id: 'eos_1', placa: 'EOS403', marca: 'CHEVROLET', linea: 'TRACKER', modelo: '2023', color: 'NEGRO',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '3119876543', dir: 'CL 38 SUR # 43 A - 25, ENVIGADO ( ANTIOQUIA )',
+                dirOriginal: 'CL 38 SUR # 43 A - 25, ENVIGADO ( ANTIOQUIA )', dirAjustada: null,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 8 * 3600 * 1000, visitada: false,
+                lat: 6.1690, lng: -75.5860, foto: null
+            },
+            {
+                id: 'isj_1', placa: 'ISJ226', marca: 'YAMAHA', linea: 'NMAX', modelo: '2024', color: 'MATE',
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '3023456789', dir: 'CR 45 # 71 SUR - 30, SABANETA ( ANTIOQUIA )',
+                dirOriginal: 'CR 45 # 71 SUR - 30, SABANETA ( ANTIOQUIA )', dirAjustada: null,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now() - 3 * 3600 * 1000, visitada: false,
+                lat: 6.1510, lng: -75.6150, foto: null
             }
         ];
 
@@ -4376,7 +4531,6 @@
             var lista = null;
 
             if (candidatos.length > 0) {
-                // Preferir listas que tengan placas diferentes a las 4 iniciales de prueba
                 var placasDefault = ['GCV922', 'LRW993', 'TTN168', 'EQW167'];
                 candidatos.sort(function(a, b) {
                     var aTieneReales = a.lista.some(function(item) { return !placasDefault.includes((item.placa || '').toUpperCase().trim()); });
@@ -4395,13 +4549,18 @@
 
             var listaLimpia = [];
             var conteoPorPlaca = {};
-            var llavesVistasStorage = {};
 
             lista.forEach(function(p) {
-                if (!p.placa) return;
+                if (!p || !p.placa) return;
                 var placa = p.placa.toUpperCase().trim();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
                 if (conteoPorPlaca[placa] >= 4) return;
+
+                var latNum = parseFloat(p.lat);
+                var lngNum = parseFloat(p.lng);
+                if (isNaN(latNum) || isNaN(lngNum)) return;
+                p.lat = latNum;
+                p.lng = lngNum;
 
                 p.dirOriginal = p.dirOriginal || p.dir;
                 p.dir = p.dirOriginal;
@@ -4410,7 +4569,6 @@
                 p.visitas = parseInt(p.visitas || localStorage.getItem('visitas_' + p.id) || (p.visitada ? 1 : 0)) || 0;
                 p.comentarios = p.comentarios || '';
 
-                // DEDUPLICACIÓN ESTRICTA: Cuando haya dos direcciones iguales para la misma placa, dejar solo 1
                 var kDir = placa + "_" + normalizarClaveAprendizaje(p.dirOriginal || p.dir, '');
                 var indexExistente = listaLimpia.findIndex(function(itemExistente) {
                     var kExistente = itemExistente.placa.toUpperCase().trim() + "_" + normalizarClaveAprendizaje(itemExistente.dirOriginal || itemExistente.dir, '');
@@ -4418,15 +4576,12 @@
                 });
 
                 if (indexExistente !== -1) {
-                    // Si ya existe la misma dirección, preferir la que tenga coordenadas ajustadas manualmente
                     if (p.dirAjustada && !listaLimpia[indexExistente].dirAjustada) {
                         listaLimpia[indexExistente] = p;
                     }
-                    console.log("Dirección repetida omitida para " + placa + ":", p.dirOriginal);
                     return;
                 }
 
-                // Evitar duplicados físicos a menos de 50 metros para la misma placa
                 var esDuplicadoFisico = listaLimpia.some(function(existente) {
                     if (existente.placa.toUpperCase().trim() !== placa) return false;
                     if (existente.lat && existente.lng && p.lat && p.lng) {
@@ -4435,19 +4590,24 @@
                     }
                     return false;
                 });
-                if (esDuplicadoFisico) {
-                    return;
-                }
+                if (esDuplicadoFisico) return;
 
                 conteoPorPlaca[placa]++;
                 listaLimpia.push(p);
             });
 
-            // Respaldo de seguridad en múltiples claves para inmunidad contra borrado
-            var jsonLimpio = JSON.stringify(listaLimpia);
-            localStorage.setItem('puntos_raptor_guardados', jsonLimpio);
-            localStorage.setItem('puntos_ubica_rick_guardados', jsonLimpio);
-            localStorage.setItem('backup_seguridad_puntos_permanente', jsonLimpio);
+            if (listaLimpia.length > 0) {
+                var jsonLimpio = JSON.stringify(listaLimpia);
+                localStorage.setItem('puntos_raptor_guardados', jsonLimpio);
+                localStorage.setItem('puntos_ubica_rick_guardados', jsonLimpio);
+                localStorage.setItem('backup_seguridad_puntos_permanente', jsonLimpio);
+            }
+
+            puntosData.forEach(function(p) {
+                if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
+            });
+            puntosData = [];
+            placasRegistradas = {};
 
             listaLimpia.forEach(function(p, index) {
                 placasRegistradas[p.placa] = true;
@@ -5472,6 +5632,15 @@
         }
 
         function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
+            if (!p || !p.placa) return;
+            var latNum = parseFloat(p.lat);
+            var lngNum = parseFloat(p.lng);
+            if (isNaN(latNum) || isNaN(lngNum)) {
+                console.warn("Punto omitido por coordenadas inválidas:", p);
+                return;
+            }
+            p.lat = latNum;
+            p.lng = lngNum;
             p.id = p.id || 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
             p.pico = tienePicoYPlaca(p.placa);
             p.esHoy = (p.fecha === hoyStr);
@@ -5765,10 +5934,10 @@
             localStorage.setItem('ubica_rick_rol', rol);
             var esAdmin = (rol === 'admin');
 
-            // 1. Botón flotante para agregar placas (Solo Administrador)
+            // 1. Botón flotante para agregar placas (Siempre visible para facilitar captura en campo)
             var btnAdd = document.querySelector('.floating-btn-add');
             if (btnAdd) {
-                btnAdd.style.display = esAdmin ? 'flex' : 'none';
+                btnAdd.style.display = 'flex';
             }
 
             // 2. Botón de Modo Edición / Modo Moto en barra superior (Solo Administrador)
@@ -5873,21 +6042,24 @@
         }
 
         function actualizarPuntosDesdeNube(puntosNube) {
-            if (!puntosNube || puntosNube.length === 0) return;
+            if (!puntosNube || !Array.isArray(puntosNube) || puntosNube.length === 0) {
+                console.log("Nube sin puntos o vacía. Se conservan todos los puntos locales.");
+                return;
+            }
 
-            // FUSIÓN INTELIGENTE NO DESTRUCTIVA:
-            // Combinar puntos de la nube con puntos locales para nunca borrar trabajo local
             var mapaPorId = {};
             var puntosCombinados = [];
 
             puntosNube.forEach(function(pn) {
-                mapaPorId[pn.id] = pn;
-                puntosCombinados.push(pn);
+                if (pn && pn.id && pn.placa) {
+                    mapaPorId[pn.id] = pn;
+                    puntosCombinados.push(pn);
+                }
             });
 
             // Conservar puntos locales que el usuario haya agregado
             puntosData.forEach(function(plocal) {
-                if (!mapaPorId[plocal.id]) {
+                if (plocal && plocal.id && !mapaPorId[plocal.id]) {
                     var yaExistePlaca = puntosCombinados.some(function(pc) {
                         return pc.placa && plocal.placa && pc.placa.toUpperCase().trim() === plocal.placa.toUpperCase().trim();
                     });
@@ -5900,6 +6072,8 @@
                 }
             });
 
+            if (puntosCombinados.length === 0) return;
+
             puntosData.forEach(function(p) {
                 if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
             });
@@ -5911,11 +6085,16 @@
             var llavesVistasNube = {};
 
             puntosCombinados.forEach(function(p) {
-                if (!p.placa) return;
+                if (!p || !p.placa) return;
                 var placa = p.placa.toUpperCase().trim();
                 conteoPorPlaca[placa] = conteoPorPlaca[placa] || 0;
-
                 if (conteoPorPlaca[placa] >= 4) return;
+
+                var latNum = parseFloat(p.lat);
+                var lngNum = parseFloat(p.lng);
+                if (isNaN(latNum) || isNaN(lngNum)) return;
+                p.lat = latNum;
+                p.lng = lngNum;
 
                 var esDuplicadoFisico = listaLimpiaNube.some(function(existente) {
                     if (existente.placa.toUpperCase().trim() !== placa) return false;
@@ -5940,20 +6119,22 @@
                 agregarMarcadorAlMapa(p, idx, false);
             });
 
-            var datosCache = puntosData.map(function(item) {
-                return {
-                    id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
-                    telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
-                    fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
-                    timestampVisita: item.timestampVisita || null,
-                    visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
-                    lat: item.lat, lng: item.lng, foto: item.foto,
-                    soat: item.soat, tecnomecanica: item.tecnomecanica
-                };
-            });
-            localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosCache));
-            localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosCache));
-            localStorage.setItem('backup_seguridad_puntos_permanente', JSON.stringify(datosCache));
+            if (puntosData.length > 0) {
+                var datosCache = puntosData.map(function(item) {
+                    return {
+                        id: item.id, placa: item.placa, marca: item.marca, linea: item.linea, modelo: item.modelo, color: item.color,
+                        telefonos: item.telefonos, dir: item.dir, dirOriginal: item.dirOriginal || item.dir, dirAjustada: item.dirAjustada || null,
+                        fecha: item.fecha, timestamp: item.timestamp || Date.now(), visitada: !!item.visitada,
+                        timestampVisita: item.timestampVisita || null,
+                        visitas: item.visitas || 0, gestorInicial: item.gestorInicial || '', gestor: item.gestor || '', comentarios: item.comentarios || '',
+                        lat: item.lat, lng: item.lng, foto: item.foto,
+                        soat: item.soat, tecnomecanica: item.tecnomecanica
+                    };
+                });
+                localStorage.setItem('puntos_raptor_guardados', JSON.stringify(datosCache));
+                localStorage.setItem('puntos_ubica_rick_guardados', JSON.stringify(datosCache));
+                localStorage.setItem('backup_seguridad_puntos_permanente', JSON.stringify(datosCache));
+            }
             actualizarKPIs();
             actualizarPanelCercano();
         }
@@ -7093,6 +7274,7 @@
 
             // Lista base garantizada con el administrador real y los operadores
             var usuariosBase = [
+                { id: 'usr_pcrick', nombre: 'Pcrick', login: 'pcrick', pin: 'Pao0288@', rol: 'admin', activo: true },
                 { id: 'usr_admin_master', nombre: 'Rikardo Rodríguez', login: 'rikardorodriiguez@gmail.com', pin: 'Pao0288@', rol: 'admin', activo: true },
                 { id: 'usr_admin_alt', nombre: 'Administrador', login: 'admin', pin: 'admin123', rol: 'admin', activo: true },
                 { id: 'usr_rick', nombre: 'rick', login: 'rick@ubica.com', pin: 'Pao0288@', rol: 'lector', activo: true },
@@ -7173,7 +7355,7 @@
                 if (alertaBox) alertaBox.style.display = 'none';
                 if (mapEl) { mapEl.style.visibility = 'hidden'; mapEl.style.display = 'none'; }
                 if (topBar) topBar.style.display = 'none';
-                if (btnAdd) btnAdd.style.display = 'none';
+                // btnAdd handled by permissions
                 if (radarHud) radarHud.style.display = 'none';
                 return;
             }
@@ -7187,7 +7369,7 @@
                 }
                 if (mapEl) { mapEl.style.visibility = 'hidden'; mapEl.style.display = 'none'; }
                 if (topBar) topBar.style.display = 'none';
-                if (btnAdd) btnAdd.style.display = 'none';
+                // btnAdd handled by permissions
                 if (radarHud) radarHud.style.display = 'none';
                 return;
             }
