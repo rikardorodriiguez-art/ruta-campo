@@ -1015,6 +1015,7 @@
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
             <button id="btn-filtro-motos" onclick="toggleCapaMotosEnVivo()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Ver ubicación en vivo de los motorizados">🏍️ Motos en Vivo</button>
             <button id="btn-filtro-reporte" onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
+            <button id="btn-filtro-instalar-app" onclick="ejecutarInstalacionNativaPWA()" class="pop-btn pb-purple" style="margin:0; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #7c3aed, #5b21b6);" title="Instalar UBICA-RICK como App nativa en Android">📲 Instalar como App en el Celular</button>
             <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:12px; padding:9px 6px;">🗺️ Ver Todas en Pantalla</button>
             <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:12px; padding:9px 6px;">⚙️ Configuración</button>
@@ -6371,7 +6372,7 @@
         var esStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
         window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
+            deferredInstallPrompt = e;
             deferredInstallPrompt = e;
             var btnTop = document.getElementById('btn-top-instalar');
             if (btnTop && !esStandalone) {
@@ -6388,6 +6389,53 @@
             var btnTop = document.getElementById('btn-top-instalar');
             if (btnTop) btnTop.innerHTML = "✅ App";
         });
+
+        async function ejecutarInstalacionNativaPWA() {
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+                mostrarToastNotificacion("✅ Ya estás dentro de UBICA-RICK instalada.");
+                return;
+            }
+
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt.userChoice.then(function(choice) {
+                    if (choice.outcome === 'accepted') {
+                        mostrarToastNotificacion("🚀 ¡Instalando UBICA-RICK!");
+                    }
+                    deferredInstallPrompt = null;
+                });
+                return;
+            }
+
+            mostrarToastNotificacion("🔍 Verificando archivos de instalación en GitHub...");
+            var errores = [];
+
+            try {
+                var rM = await fetch('./manifest.json');
+                if (!rM.ok) errores.push("manifest.json (Error " + rM.status + ")");
+            } catch(e) { errores.push("manifest.json no encontrado"); }
+
+            try {
+                var rS = await fetch('./sw.js');
+                if (!rS.ok) errores.push("sw.js (Error " + rS.status + ")");
+            } catch(e) { errores.push("sw.js no encontrado"); }
+
+            try {
+                var rI = await fetch('./icon-192.png');
+                if (!rI.ok) errores.push("icon-192.png (Error " + rI.status + ")");
+            } catch(e) { errores.push("icon-192.png no encontrado"); }
+
+            try {
+                var rI2 = await fetch('./icon-512.png');
+                if (!rI2.ok) errores.push("icon-512.png (Error " + rI2.status + ")");
+            } catch(e) { errores.push("icon-512.png no encontrado"); }
+
+            if (errores.length > 0) {
+                alert("⚠️ ATENCIÓN: Faltan archivos en tu GitHub para que Chrome permita instalar como App:\n\n• " + errores.join("\n• ") + "\n\nPor favor sube estos archivos a la raíz de tu repositorio en GitHub para activar el botón de Instalar.");
+            } else {
+                alert("✅ Todos los archivos de la App (sw.js, manifest.json, iconos) están presentes y cargaron al 100% desde GitHub.\n\nSi Chrome aún dice 'No se puede instalar':\n1. Si ya creaste un 'Acceso directo' antes en tu pantalla, bórralo de tu celular (Chrome no permite instalar si ya hay un acceso directo previo).\n2. Cierra Chrome por completo y vuelve a abrirlo.");
+            }
+        }
 
         function solicitarInstalacionApp() {
             if (esStandalone) {
