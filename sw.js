@@ -1,9 +1,10 @@
-// Service Worker para UBICA-RICK PWA
-const CACHE_NAME = 'ubica-rick-v29';
+// Service Worker para UBICA-RICK PWA v6.2
+const CACHE_NAME = 'ubica-rick-v6.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './sw.js',
   './icon-192.png',
   './icon-512.png',
   './favicon.png'
@@ -13,7 +14,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Usar Promise.allSettled para que si algún archivo secundario no existe aún, NO rompa la instalación
       return Promise.allSettled(
         ASSETS_TO_CACHE.map((url) => {
           return fetch(url).then((res) => {
