@@ -637,24 +637,7 @@
         </div>
     </div>
 
-        <!-- RADAR COMPACTO SUPERIOR EN EL MAPA -->
-    <div id="panel-cercano">
-        <div class="radar-top-row">
-            <div class="radar-placa">
-                <span>🚨</span>
-                <span id="cercano-placa">---</span>
-                <span id="cercano-dist" class="radar-dist">(-- m)</span>
-            </div>
-            <div id="cercano-info" class="radar-info">---</div>
-            <button class="btn-radar-close" onclick="cerrarRadar()" title="Minimizar panel superior">✖</button>
-        </div>
-        <div class="radar-buttons">
-            <button class="btn-radar-ir" onclick="irCercanoMaps()">🧭 Maps</button>
-            <button class="btn-radar-ok" onclick="visitarCercanoDesdeRadar()">✅ Visitada</button>
-            <button class="btn-radar-ir" onclick="centrarEnVehiculoCercano()" style="background:#334155;">🎯 Ver</button>
-            <button class="btn-radar-ir" onclick="iniciarPipRadar()" style="background:linear-gradient(135deg, #7c3aed, #6d28d9);">🪟 Flotar</button>
-        </div>
-    </div>
+        <!-- RADAR COMPACTO SUPERIOR ELIMINADO - OPCIÓN A: SOLO CÁPSULA FLOTANTE -->
 
     <!-- BOTÓN / WIDGET FLOTANTE RADAR FUTURISTA -->
     <div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
@@ -1304,24 +1287,20 @@
             localStorage.setItem('raptor_radar_activo', radarActivo ? '1' : '0');
             actualizarBotonRadarUI();
             
-            var panel = document.getElementById('panel-cercano');
             var hud = document.getElementById('radar-hud-flotante');
 
             if (radarActivo) {
-                radarOculto = false;
-                if (panel) panel.style.display = 'block';
                 if (hud) hud.style.display = 'block';
-                mostrarToastNotificacion("🚨 Radar ENCENDIDO: Visible en mapa y botón flotante.");
+                mostrarToastNotificacion("🚨 Radar Flotante ENCENDIDO.");
                 actualizarPanelCercano();
                 iniciarArrastreHud();
                 prepararPipVideo(false);
             } else {
-                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 if (document.pictureInPictureElement) {
                     try { document.exitPictureInPicture(); } catch(e){}
                 }
-                mostrarToastNotificacion("⚪ Radar APAGADO: Alertas silenciadas.");
+                mostrarToastNotificacion("⚪ Radar Flotante APAGADO.");
             }
         }
 
@@ -1338,11 +1317,7 @@
         }
 
         function cerrarRadar() {
-            // Al tocar la X en el panel superior, en lugar de apagar el radar, se oculta el panel superior
-            // y se mantiene el botón flotante futurista activo para no tapar el mapa
-            var panel = document.getElementById('panel-cercano');
-            if (panel) panel.style.display = 'none';
-            mostrarToastNotificacion("ℹ️ Panel superior minimizado. Radar activo en el botón flotante.");
+            toggleRadar();
         }
 
         function toggleExpandirHud(e) {
@@ -2070,17 +2045,14 @@
 
         function actualizarPanelCercano() {
             actualizarBotonRadarUI();
-            var panel = document.getElementById('panel-cercano');
             var hud = document.getElementById('radar-hud-flotante');
 
             if (!radarActivo) {
-                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 return;
             }
 
             if (puntosData.length === 0) {
-                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 return;
             }
@@ -2089,15 +2061,6 @@
 
             // Si el radar está encendido pero el GPS móvil aún no detecta posición
             if (!userLat || !userLng) {
-                if (panel) {
-                    panel.style.display = 'block';
-                    var cPlaca = document.getElementById('cercano-placa');
-                    var cDist = document.getElementById('cercano-dist');
-                    var cInfo = document.getElementById('cercano-info');
-                    if (cPlaca) cPlaca.innerText = "GPS...";
-                    if (cDist) cDist.innerText = "(Buscando señal)";
-                    if (cInfo) cInfo.innerText = "Toca 🎯 para activar";
-                }
                 actualizarTextosHud(null, null);
                 return;
             }
@@ -2106,15 +2069,6 @@
             var pendientes = puntosData.filter(esElegibleParaRadar);
 
             if (pendientes.length === 0) {
-                if (panel) {
-                    panel.style.display = 'block';
-                    var cPlaca = document.getElementById('cercano-placa');
-                    var cDist = document.getElementById('cercano-dist');
-                    var cInfo = document.getElementById('cercano-info');
-                    if (cPlaca) cPlaca.innerText = "Completado";
-                    if (cDist) cDist.innerText = "✅";
-                    if (cInfo) cInfo.innerText = "¡Todos visitados!";
-                }
                 placaMasCercanaObj = null;
                 menorDistanciaMetros = Infinity;
                 actualizarTextosHud(null, null);
@@ -2137,18 +2091,6 @@
                 menorDistanciaMetros = menorDist;
 
                 var distTxt = menorDist < 1000 ? Math.round(menorDist) + " metros" : (menorDist / 1000).toFixed(1) + " km";
-                var detCarro = (masCercano.marca && masCercano.marca !== '-' && masCercano.marca !== 'VEHÍCULO') ? masCercano.marca : 'VEHÍCULO';
-                if (masCercano.visitada) detCarro += " (Re-visita >3h)";
-                var colorTxt = (masCercano.color && masCercano.color !== '-') ? masCercano.color : 'SIN COLOR';
-
-                // Actualizar Panel Superior
-                if (panel && !radarOculto) panel.style.display = 'block';
-                var cPlaca = document.getElementById('cercano-placa');
-                var cDist = document.getElementById('cercano-dist');
-                var cInfo = document.getElementById('cercano-info');
-                if (cPlaca) cPlaca.innerText = masCercano.placa;
-                if (cDist) cDist.innerText = "(" + distTxt + ")";
-                if (cInfo) cInfo.innerText = detCarro + " • " + colorTxt;
 
                 // Actualizar Botón Flotante Futurista HUD
                 actualizarTextosHud(masCercano, distTxt);
