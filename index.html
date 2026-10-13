@@ -2212,12 +2212,15 @@
                 // Actualizar Botón Flotante Futurista HUD
                 actualizarTextosHud(masCercano, distTxt);
 
-                // Alerta sonora y vibración si está a 500m o menos
+                // Alerta sonora, voz con color del carro y vibración si está a 500m o menos
                 if (menorDist <= 500) {
                     var ahora = Date.now();
                     if (ahora - ultimaAlertaTs > 25000) {
                         emitirAlertaSonora();
                         emitirVibracion();
+                        if (configApp && configApp.sonidoAlerta && typeof hablarInstruccionCopiloto === "function") {
+                            hablarInstruccionCopiloto("Objetivo cerca a " + Math.round(menorDist) + " metros: " + describirVehiculoParaVoz(masCercano));
+                        }
                         ultimaAlertaTs = ahora;
                     }
                 }
@@ -7029,9 +7032,9 @@ async function procesarFotoTablaDirecta(usarGemini) {
                         <div id="popup-resumen-${markerId}" style="display:none; padding:2px; font-size:11px; color:#333;">
                             <div style="margin-bottom:5px; color:#1e293b; font-size:11px; line-height:1.25; font-weight:600;"><b>📍</b> ${dirReal}</div>
                             <div style="display:flex; gap:4px;">
-                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="margin:0; flex:1; padding:6px 4px; font-size:10.5px; text-align:center; text-decoration:none;">🧭 Maps</a>
-                                <a href="${wazeUrl}" target="_blank" class="pop-btn" style="margin:0; flex:1; padding:6px 4px; font-size:10.5px; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold;">🚗 Waze</a>
-                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}')" class="pop-btn pb-teal" style="margin:0; flex:1; padding:6px 4px; font-size:10.5px;">➕ Ver</button>
+                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="margin:0; flex:1; padding:6px 4px; font-size:10.5px; text-align:center; text-decoration:none; color:#ffffff !important;">🧭 Maps</a>
+                                <button type="button" onclick="event.stopPropagation(); navegarPuntoEnMiMapa('${markerId}')" class="pop-btn" style="margin:0; flex:1.1; padding:6px 4px; font-size:10.5px; text-align:center; background:linear-gradient(145deg, #059669, #047857); color:#ffffff !important; border:1px solid #34d399; border-radius:6px; font-weight:900;">🗺️ Mi Mapa</button>
+                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}')" class="pop-btn pb-teal" style="margin:0; flex:0.9; padding:6px 4px; font-size:10.5px;">➕ Ver</button>
                             </div>
                         </div>
 
@@ -7053,8 +7056,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
                             <!-- BOTONES PRINCIPALES DE NAVEGACIÓN Y VISITA EN 1 SOLA FILA -->
                             <div style="display:flex; gap:5px; margin-bottom:5px;">
-                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="flex:1; margin:0; padding:8px 4px; font-size:11.5px; text-align:center; text-decoration:none;">🧭 Maps</a>
-                                <a href="${wazeUrl}" target="_blank" class="pop-btn" style="flex:1; margin:0; padding:8px 4px; font-size:11.5px; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold;">🚗 Waze</a>
+                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="flex:0.95; margin:0; padding:8px 4px; font-size:11.5px; text-align:center; text-decoration:none; color:#ffffff !important;">🧭 Maps</a>
+                                <button type="button" onclick="event.stopPropagation(); navegarPuntoEnMiMapa('${markerId}')" class="pop-btn" style="flex:1.15; margin:0; padding:8px 4px; font-size:11.5px; text-align:center; background:linear-gradient(145deg, #059669, #047857); color:#ffffff !important; border:1px solid #34d399; border-radius:6px; font-weight:900;">🗺️ Mi Mapa</button>
                                 <button type="button" onclick="event.stopPropagation(); marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1.15; margin:0; padding:8px 4px; font-size:11px;">${txtBtnVisitada}</button>
                             </div>
 
@@ -8483,6 +8486,31 @@ async function procesarFotoTablaDirecta(usarGemini) {
             };
         }
 
+        function describirVehiculoParaVoz(p) {
+            if (!p) return "";
+            var m = (p.marca && p.marca !== "-" && p.marca !== "VEHÍCULO") ? p.marca : "";
+            var l = (p.linea && p.linea !== "-") ? p.linea : "";
+            var mod = (p.modelo && p.modelo !== "-") ? p.modelo : "";
+            var col = (p.color && p.color !== "-") ? p.color : "sin color registrado";
+            var carro = [m, l, mod].filter(Boolean).join(" ") || "vehículo";
+            return "placa " + (p.placa || "") + ", " + carro + ", color " + col;
+        }
+
+        function navegarPuntoEnMiMapa(markerId) {
+            var item = puntosData.find(function(d) { return d.id === markerId; });
+            if (!item || !item.lat || !item.lng) {
+                mostrarToastNotificacion("⚠️ No se encontraron coordenadas para este vehículo.");
+                return;
+            }
+            map.closePopup();
+            cerrarModalRutaCorredor();
+            var origen = obtenerOrigenRutaBase();
+            var paradas = [item];
+            var coordsPaso = [origen, { lat: item.lat, lng: item.lng }];
+            var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradas);
+            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🗺️ Hacia " + item.placa, true);
+        }
+
         function hablarInstruccionCopiloto(texto) {
             if (!navVozActiva || !('speechSynthesis' in window) || !texto) return;
             if (texto === navUltimoTextoVoz) return;
@@ -8648,9 +8676,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
             var pAct = navParadas[navIndiceActual];
             if (pAct) {
-                var m = (pAct.marca && pAct.marca !== '-' && pAct.marca !== 'VEHÍCULO') ? pAct.marca : '';
-                var l = (pAct.linea && pAct.linea !== '-') ? pAct.linea : '';
-                hablarInstruccionCopiloto("Iniciando patrullaje en mapa con " + navParadas.length + " paradas. Parada 1: placa " + pAct.placa + ", " + m + " " + l);
+                if (navParadas.length === 1) {
+                    hablarInstruccionCopiloto("Navegando en mi mapa hacia " + describirVehiculoParaVoz(pAct));
+                } else {
+                    hablarInstruccionCopiloto("Iniciando patrullaje en mi mapa con " + navParadas.length + " paradas. Parada 1: " + describirVehiculoParaVoz(pAct));
+                }
             }
         }
 
@@ -8673,6 +8703,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
             navIndiceActual = idx;
             navUltimaAlertaPlacaIdx = -1;
             renderizarParadaCopilotoActual(true);
+            var p = navParadas[navIndiceActual];
+            if (p) {
+                hablarInstruccionCopiloto("Parada " + (navIndiceActual + 1) + ": " + describirVehiculoParaVoz(p));
+            }
         }
 
         function cambiarParadaCopiloto(delta) {
@@ -8692,9 +8726,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             renderizarParadaCopilotoActual(true);
             var p = navParadas[navIndiceActual];
             if (p) {
-                var m = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
-                var l = (p.linea && p.linea !== '-') ? p.linea : '';
-                hablarInstruccionCopiloto("Siguiente objetivo, parada " + (navIndiceActual + 1) + ": placa " + p.placa + ", " + m + " " + l);
+                hablarInstruccionCopiloto("Siguiente objetivo, parada " + (navIndiceActual + 1) + ": " + describirVehiculoParaVoz(p));
             }
         }
 
@@ -8896,9 +8928,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             // Alerta por voz cuando el motorizado está a menos de 180 metros de la placa objetivo
             if (distObjetivoM > 0 && distObjetivoM <= 180 && navUltimaAlertaPlacaIdx !== navIndiceActual) {
                 navUltimaAlertaPlacaIdx = navIndiceActual;
-                var m = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
-                var col = (p.color && p.color !== '-') ? p.color : '';
-                hablarInstruccionCopiloto("Atención, estás a " + distObjetivoM + " metros de la placa " + p.placa + ", " + m + " color " + col);
+                hablarInstruccionCopiloto("Atención, estás a " + distObjetivoM + " metros de la " + describirVehiculoParaVoz(p));
             }
         }
 
@@ -9337,12 +9367,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
 
         function iniciarNavegacionWazeObjetivo() {
-            if (!objetivo1a1Actual || !objetivo1a1Actual.lat || !objetivo1a1Actual.lng) {
+            if (!objetivo1a1Actual || !objetivo1a1Actual.id) {
                 mostrarToastNotificacion("⚠️ No hay objetivo cercano detectado.");
                 return;
             }
-            var url = "https://waze.com/ul?ll=" + objetivo1a1Actual.lat + "," + objetivo1a1Actual.lng + "&navigate=yes";
-            window.open(url, '_blank');
+            navegarPuntoEnMiMapa(objetivo1a1Actual.id);
         }
 
         function iniciarNavegacionMapsObjetivo() {
@@ -10519,8 +10548,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 <div id="obj-dist-txt" style="font-size:13px; font-weight:bold; color:#2563eb; margin-top:4px;">--</div>
             </div>
             <div style="display:flex; gap:6px; margin-bottom:8px;">
-                <button type="button" onclick="iniciarNavegacionWazeObjetivo()" class="pop-btn pb-teal" style="margin:0; flex:1; padding:10px; font-size:12px; font-weight:bold; background:#0284c7;">
-                    🏎️ Ir en Waze
+                <button type="button" onclick="iniciarNavegacionWazeObjetivo()" class="pop-btn pb-green" style="margin:0; flex:1; padding:10px; font-size:12px; font-weight:900; background:linear-gradient(135deg, #059669, #047857);">
+                    🗺️ Ir en Mi Mapa
                 </button>
                 <button type="button" onclick="iniciarNavegacionMapsObjetivo()" class="pop-btn pb-blue" style="margin:0; flex:1; padding:10px; font-size:12px; font-weight:bold;">
                     🗺️ Ir en Maps
