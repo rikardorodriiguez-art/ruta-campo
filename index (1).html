@@ -202,9 +202,25 @@
             width: 340px; max-width: 92vw; z-index: 9999999; display: none; font-size: 12px;
         }
 
-        /* POPUP DE MARCADOR CON TABLA DE ESPECIFICACIONES */
-        .leaflet-popup-content { margin: 8px 10px; line-height: 1.4; max-width: none !important; }
-        .car-thumbnail { width: 100%; max-height: 130px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid #ccc; pointer-events: none; -webkit-user-drag: none; user-select: none; }
+        /* POPUP DE MARCADOR COMPACTO Y VISOR DE FOTO PARA MOTO */
+        .leaflet-popup-content { margin: 7px 8px; line-height: 1.35; max-width: none !important; }
+        .car-photo-box {
+            position: relative; width: 100%; background: #0f172a; border-radius: 8px;
+            margin-bottom: 6px; border: 1.5px solid #334155; overflow: hidden;
+            cursor: pointer; pointer-events: auto; user-select: none;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .car-thumbnail {
+            width: 100%; max-height: 135px; object-fit: contain; display: block;
+            pointer-events: auto; cursor: pointer; -webkit-user-drag: none; user-select: none;
+        }
+        .car-photo-Hint {
+            position: absolute; bottom: 5px; right: 6px;
+            background: rgba(15, 23, 42, 0.88); color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 12px;
+            padding: 2px 8px; font-size: 10px; font-weight: 800;
+            pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
         .specs-table { width: 100%; font-size: 0.92em; border-collapse: collapse; margin-bottom: 8px; }
         .specs-table td { padding: 2px 0; vertical-align: top; font-size: inherit; }
         .specs-label { color: #7f8c8d; font-weight: bold; width: 28%; font-size: inherit; }
@@ -637,24 +653,7 @@
         </div>
     </div>
 
-        <!-- RADAR COMPACTO SUPERIOR EN EL MAPA -->
-    <div id="panel-cercano">
-        <div class="radar-top-row">
-            <div class="radar-placa">
-                <span>🚨</span>
-                <span id="cercano-placa">---</span>
-                <span id="cercano-dist" class="radar-dist">(-- m)</span>
-            </div>
-            <div id="cercano-info" class="radar-info">---</div>
-            <button class="btn-radar-close" onclick="cerrarRadar()" title="Minimizar panel superior">✖</button>
-        </div>
-        <div class="radar-buttons">
-            <button class="btn-radar-ir" onclick="irCercanoMaps()">🧭 Maps</button>
-            <button class="btn-radar-ok" onclick="visitarCercanoDesdeRadar()">✅ Visitada</button>
-            <button class="btn-radar-ir" onclick="centrarEnVehiculoCercano()" style="background:#334155;">🎯 Ver</button>
-            <button class="btn-radar-ir" onclick="iniciarPipRadar()" style="background:linear-gradient(135deg, #7c3aed, #6d28d9);">🪟 Flotar</button>
-        </div>
-    </div>
+        <!-- RADAR COMPACTO SUPERIOR ELIMINADO - OPCIÓN A: SOLO CÁPSULA FLOTANTE -->
 
     <!-- BOTÓN / WIDGET FLOTANTE RADAR FUTURISTA -->
     <div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
@@ -674,6 +673,7 @@
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
+                <button type="button" id="hud-cap-btn-foto" onclick="event.stopPropagation(); if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-mini" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border-color:#fde047;" title="Ver foto del vehículo en pantalla completa">📸</button>
                 <button type="button" onclick="event.stopPropagation(); iniciarPipRadar();" class="hud-btn-mini" style="background:linear-gradient(135deg, #7c3aed, #6d28d9); border-color:#a78bfa;" title="Flotar sobre WhatsApp y otras apps">🪟</button>
                 <button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Google Maps">🧭</button>
                 <button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3);" title="Expandir Radar HUD">➕</button>
@@ -722,6 +722,7 @@
             </div>
 
             <div class="hud-actions-row">
+                <button type="button" id="hud-exp-btn-foto" onclick="if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-action" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fde047; color:#fff;" title="Ver foto del carro en pantalla completa">📸 Foto</button>
                 <button type="button" onclick="irCercanoMaps()" class="hud-btn-action hud-btn-maps" title="Abrir ruta en Google Maps">🧭 Maps</button>
                 <button type="button" onclick="visitarCercanoDesdeRadar()" class="hud-btn-action hud-btn-visitar" title="Marcar como visitada">✅ Visitada</button>
                 <button type="button" onclick="centrarEnVehiculoCercano()" class="hud-btn-action" style="background:#334155; border:1px solid #64748b;" title="Ver en el mapa">🎯 Ver</button>
@@ -774,6 +775,39 @@
     <div id="loading-overlay">
         <div style="font-size: 32px;">⏳</div>
         <span id="loading-texto">Procesando...</span>
+        <button type="button" onclick="cancelarCarga()" style="margin-top:14px; background:#ef4444; color:white; border:none; padding:7px 16px; border-radius:8px; font-weight:bold; font-size:12.5px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.3);">✖ Cancelar / Desbloquear</button>
+    </div>
+
+    <!-- VISOR DE FOTO DE PANTALLA COMPLETA PARA MOTO (1 TOQUE + ZOOM FÁCIL) -->
+    <div id="modal-visor-foto-moto" onclick="if(event.target === this) cerrarVisorFotoCarro();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.96); z-index:20000005; flex-direction:column; justify-content:space-between; align-items:center; padding:12px; box-sizing:border-box; user-select:none; -webkit-user-select:none; touch-action:none;">
+        <!-- Cabecera con placa y datos del carro -->
+        <div style="width:100%; max-width:500px; background:#0f172a; border:1.5px solid #334155; border-radius:12px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; box-shadow:0 6px 20px rgba(0,0,0,0.6);">
+            <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+                <span id="visor-foto-placa" style="background:#000; color:#ffea00; border:2px solid #ffea00; border-radius:6px; padding:3px 9px; font-size:18px; font-weight:900; letter-spacing:1px; flex-shrink:0;">---</span>
+                <div style="overflow:hidden;">
+                    <div id="visor-foto-carro" style="color:#ffffff; font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">VEHÍCULO</div>
+                    <div id="visor-foto-color" style="color:#38bdf8; font-size:11.5px; font-weight:700;">COLOR</div>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarVisorFotoCarro()" style="background:#dc2626; color:white; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; font-weight:bold; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(220,38,38,0.5);">✖</button>
+        </div>
+
+        <!-- Área central de la imagen con soporte de zoom táctil y arrastre -->
+        <div id="visor-foto-stage" style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; margin:8px 0;">
+            <img id="visor-foto-img" src="" alt="Foto del Vehículo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; transform:translate(0px, 0px) scale(1); transition:transform 0.12s ease-out; transform-origin:center center; pointer-events:auto; -webkit-user-drag:none;">
+        </div>
+
+        <!-- Barra inferior de controles grandes para usar con guantes / en moto -->
+        <div style="width:100%; max-width:500px; display:flex; flex-direction:column; gap:8px; box-sizing:border-box;">
+            <div style="display:flex; justify-content:center; align-items:center; gap:6px; background:#0f172a; padding:6px; border-radius:10px; border:1px solid #334155;">
+                <button type="button" onclick="cambiarZoomVisorFoto(-0.5)" style="flex:1; background:#1e293b; color:white; border:1px solid #475569; border-radius:8px; padding:9px 0; font-size:14px; font-weight:900; cursor:pointer;">➖ Alejar</button>
+                <button type="button" onclick="fijarZoomVisorFoto(1)" id="btn-visor-1x" style="background:#2563eb; color:white; border:none; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">1x</button>
+                <button type="button" onclick="fijarZoomVisorFoto(2)" id="btn-visor-2x" style="background:#1e293b; color:#38bdf8; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">2x</button>
+                <button type="button" onclick="fijarZoomVisorFoto(3)" id="btn-visor-3x" style="background:#1e293b; color:#38bdf8; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">3x</button>
+                <button type="button" onclick="cambiarZoomVisorFoto(0.5)" style="flex:1; background:#1e293b; color:white; border:1px solid #475569; border-radius:8px; padding:9px 0; font-size:14px; font-weight:900; cursor:pointer;">➕ Acercar</button>
+            </div>
+            <button type="button" onclick="cerrarVisorFotoCarro()" style="width:100%; background:linear-gradient(135deg, #ef4444, #b91c1c); color:white; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:900; letter-spacing:0.5px; cursor:pointer; box-shadow:0 4px 15px rgba(239,68,68,0.4);">✖ CERRAR FOTO Y VOLVER AL MAPA</button>
+        </div>
     </div>
 
     <div id="modal-asistente">
@@ -1027,10 +1061,10 @@
                 <option value="OTRO">Otros / Nacional</option>
             </select>
         </div>
-        <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Con Pico y Placa</label>
-        <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
-        <label class="filter-option"><input type="checkbox" id="chkFoto" checked onchange="actualizarFiltros()"> 📸 Con Foto (Prioritarias)</label>
-        <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
+        <label class="filter-option"><input type="checkbox" id="chkPico" onchange="alCambiarFiltroCheckbox('pico')"> ⚠️ Con Pico y Placa</label>
+        <label class="filter-option"><input type="checkbox" id="chkHoy" onchange="alCambiarFiltroCheckbox('hoy')"> 📅 Subidas hoy</label>
+        <label class="filter-option"><input type="checkbox" id="chkFoto" onchange="alCambiarFiltroCheckbox('foto')"> 📸 Con Foto (Prioritarias)</label>
+        <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="alCambiarFiltroCheckbox('todas')"> 👁️ Ver todas</label>
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
@@ -1061,6 +1095,35 @@
             sonidoAlerta: localStorage.getItem('raptor_sonido') !== "0",
             vibrarAlerta: localStorage.getItem('raptor_vibrar') !== "0"
         };
+
+        var timerSafetyLoading = null;
+        function mostrarCargando(texto) {
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                if (loadingTexto) loadingTexto.innerText = texto || "Procesando...";
+            }
+            if (timerSafetyLoading) clearTimeout(timerSafetyLoading);
+            timerSafetyLoading = setTimeout(function() {
+                ocultarCargando();
+                mostrarToastNotificacion("⚠️ Tiempo de espera agotado. Pantalla desbloqueada.");
+            }, 25000);
+        }
+
+        function ocultarCargando() {
+            var loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            if (timerSafetyLoading) {
+                clearTimeout(timerSafetyLoading);
+                timerSafetyLoading = null;
+            }
+        }
+
+        function cancelarCarga() {
+            ocultarCargando();
+            mostrarToastNotificacion("Operación cancelada.");
+        }
 
         var map = L.map('map', {
             zoomControl: true,
@@ -1122,12 +1185,21 @@
 
             reiniciarWatchPositionGPS();
 
-            // Loop activo de alta frecuencia: consulta forzada cada 1200ms con maximumAge: 0
-            // Evita que el GPS se quede pegado cuando el móvil va en marcha o en segundo plano
+            // Watchdog suave: solo si pasan más de 25 segundos sin reporte se consulta una vez
+            // NUNCA reiniciar agresivamente watchPosition cada 5s para no interrumpir el flujo continuo del satélite
             if (timerGpsActivo) clearInterval(timerGpsActivo);
             timerGpsActivo = setInterval(function() {
-                forzarLecturaGPSHardware();
-            }, 1200);
+                var delta = Date.now() - ultimoTimestampGps;
+                if (delta > 25000 && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(pos) {
+                        ultimoTimestampGps = Date.now();
+                        actualizarPosicionGPS(pos);
+                    }, function(err) {
+                        console.warn("Watchdog GPS suave:", err.message);
+                    }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 7000 });
+                }
+                enviarLatidoPresencia();
+            }, 6000);
         }
 
         function reiniciarWatchPositionGPS() {
@@ -1139,7 +1211,7 @@
                 actualizarPosicionGPS(pos);
             }, function(err) {
                 console.warn("Aviso GPS hardware:", err.message);
-            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+            }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
         }
 
         function forzarLecturaGPSHardware() {
@@ -1148,13 +1220,9 @@
                 ultimoTimestampGps = Date.now();
                 actualizarPosicionGPS(pos);
             }, function(err) {
-                // Si pasaron más de 5 segundos sin reporte de coordenadas, reiniciar sensor
-                if (Date.now() - ultimoTimestampGps > 5000) {
-                    reiniciarWatchPositionGPS();
-                }
-            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 2500 });
+                console.warn("Lectura puntual GPS:", err.message);
+            }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
 
-            // Enviar presencia activa si hay usuario logueado
             enviarLatidoPresencia();
         }
 
@@ -1186,6 +1254,9 @@
 
             actualizarPanelCercano();
             verificarGeocercaLlegada(userLat, userLng);
+            if (typeof actualizarProgresoNavegadorEnVivo === 'function') {
+                actualizarProgresoNavegadorEnVivo(pos);
+            }
         }
 
         function centrarEnMiGPS() {
@@ -1304,24 +1375,20 @@
             localStorage.setItem('raptor_radar_activo', radarActivo ? '1' : '0');
             actualizarBotonRadarUI();
             
-            var panel = document.getElementById('panel-cercano');
             var hud = document.getElementById('radar-hud-flotante');
 
             if (radarActivo) {
-                radarOculto = false;
-                if (panel) panel.style.display = 'block';
                 if (hud) hud.style.display = 'block';
-                mostrarToastNotificacion("🚨 Radar ENCENDIDO: Visible en mapa y botón flotante.");
+                mostrarToastNotificacion("🚨 Radar Flotante ENCENDIDO.");
                 actualizarPanelCercano();
                 iniciarArrastreHud();
                 prepararPipVideo(false);
             } else {
-                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 if (document.pictureInPictureElement) {
                     try { document.exitPictureInPicture(); } catch(e){}
                 }
-                mostrarToastNotificacion("⚪ Radar APAGADO: Alertas silenciadas.");
+                mostrarToastNotificacion("⚪ Radar Flotante APAGADO.");
             }
         }
 
@@ -1338,11 +1405,7 @@
         }
 
         function cerrarRadar() {
-            // Al tocar la X en el panel superior, en lugar de apagar el radar, se oculta el panel superior
-            // y se mantiene el botón flotante futurista activo para no tapar el mapa
-            var panel = document.getElementById('panel-cercano');
-            if (panel) panel.style.display = 'none';
-            mostrarToastNotificacion("ℹ️ Panel superior minimizado. Radar activo en el botón flotante.");
+            toggleRadar();
         }
 
         function toggleExpandirHud(e) {
@@ -2070,17 +2133,14 @@
 
         function actualizarPanelCercano() {
             actualizarBotonRadarUI();
-            var panel = document.getElementById('panel-cercano');
             var hud = document.getElementById('radar-hud-flotante');
 
             if (!radarActivo) {
-                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 return;
             }
 
             if (puntosData.length === 0) {
-                if (panel) panel.style.display = 'none';
                 if (hud) hud.style.display = 'none';
                 return;
             }
@@ -2089,15 +2149,6 @@
 
             // Si el radar está encendido pero el GPS móvil aún no detecta posición
             if (!userLat || !userLng) {
-                if (panel) {
-                    panel.style.display = 'block';
-                    var cPlaca = document.getElementById('cercano-placa');
-                    var cDist = document.getElementById('cercano-dist');
-                    var cInfo = document.getElementById('cercano-info');
-                    if (cPlaca) cPlaca.innerText = "GPS...";
-                    if (cDist) cDist.innerText = "(Buscando señal)";
-                    if (cInfo) cInfo.innerText = "Toca 🎯 para activar";
-                }
                 actualizarTextosHud(null, null);
                 return;
             }
@@ -2106,15 +2157,6 @@
             var pendientes = puntosData.filter(esElegibleParaRadar);
 
             if (pendientes.length === 0) {
-                if (panel) {
-                    panel.style.display = 'block';
-                    var cPlaca = document.getElementById('cercano-placa');
-                    var cDist = document.getElementById('cercano-dist');
-                    var cInfo = document.getElementById('cercano-info');
-                    if (cPlaca) cPlaca.innerText = "Completado";
-                    if (cDist) cDist.innerText = "✅";
-                    if (cInfo) cInfo.innerText = "¡Todos visitados!";
-                }
                 placaMasCercanaObj = null;
                 menorDistanciaMetros = Infinity;
                 actualizarTextosHud(null, null);
@@ -2137,18 +2179,6 @@
                 menorDistanciaMetros = menorDist;
 
                 var distTxt = menorDist < 1000 ? Math.round(menorDist) + " metros" : (menorDist / 1000).toFixed(1) + " km";
-                var detCarro = (masCercano.marca && masCercano.marca !== '-' && masCercano.marca !== 'VEHÍCULO') ? masCercano.marca : 'VEHÍCULO';
-                if (masCercano.visitada) detCarro += " (Re-visita >3h)";
-                var colorTxt = (masCercano.color && masCercano.color !== '-') ? masCercano.color : 'SIN COLOR';
-
-                // Actualizar Panel Superior
-                if (panel && !radarOculto) panel.style.display = 'block';
-                var cPlaca = document.getElementById('cercano-placa');
-                var cDist = document.getElementById('cercano-dist');
-                var cInfo = document.getElementById('cercano-info');
-                if (cPlaca) cPlaca.innerText = masCercano.placa;
-                if (cDist) cDist.innerText = "(" + distTxt + ")";
-                if (cInfo) cInfo.innerText = detCarro + " • " + colorTxt;
 
                 // Actualizar Botón Flotante Futurista HUD
                 actualizarTextosHud(masCercano, distTxt);
@@ -2199,6 +2229,11 @@
             if (elDist) elDist.innerText = '🎯 ' + distTxt;
             if (elCarro) elCarro.innerText = carroDesc;
             if (elColor) elColor.innerText = colorDesc;
+
+            var btnCapFoto = document.getElementById('hud-cap-btn-foto');
+            var btnExpFoto = document.getElementById('hud-exp-btn-foto');
+            if (btnCapFoto) btnCapFoto.style.display = p.foto ? 'inline-flex' : 'none';
+            if (btnExpFoto) btnExpFoto.style.display = p.foto ? 'inline-flex' : 'none';
 
             if (enAlerta) {
                 cap.classList.add('alerta-rango');
@@ -2394,7 +2429,20 @@
             ctx.shadowBlur = 12;
             ctx.stroke();
             ctx.restore();
+
+            // Forzar actualización inmediata del cuadro en la ventana flotante Picture-in-Picture en segundo plano
+            if (pipStreamTrack) {
+                try {
+                    var vTracks = pipStreamTrack.getVideoTracks();
+                    if (vTracks && vTracks.length > 0 && typeof vTracks[0].requestFrame === 'function') {
+                        vTracks[0].requestFrame();
+                    }
+                } catch(eRf) {}
+            }
         }
+
+        var pipWorker = null;
+        var pipAudioCtx = null;
 
         function prepararPipVideo(autoLanzar) {
             if (!document.pictureInPictureEnabled && !('pictureInPictureEnabled' in document)) return;
@@ -2410,11 +2458,9 @@
 
             if (!pipVideoEl) {
                 pipVideoEl = document.createElement('video');
-                pipVideoEl.muted = true;
                 pipVideoEl.autoplay = true;
                 pipVideoEl.playsInline = true;
                 pipVideoEl.setAttribute('autoplay', '');
-                pipVideoEl.setAttribute('muted', '');
                 pipVideoEl.setAttribute('playsinline', '');
                 pipVideoEl.setAttribute('autopictureinpicture', '');
                 pipVideoEl.autoPictureInPicture = true;
@@ -2430,20 +2476,70 @@
                 pipVideoEl.style.zIndex = '-999';
                 document.body.appendChild(pipVideoEl);
 
-                pipStreamTrack = pipCanvasEl.captureStream(12);
-                pipVideoEl.srcObject = pipStreamTrack;
+                pipStreamTrack = pipCanvasEl.captureStream(15);
 
-                setInterval(function() {
-                    if (radarActivo) {
-                        // En PiP o segundo plano: forzar recálculo métrico en vivo para que nunca se quede pegado
-                        if (userLat && userLng) {
-                            actualizarPanelCercano();
-                        }
-                        if (document.pictureInPictureElement === pipVideoEl || document.hidden) {
-                            actualizarPipCanvas();
+                // Portador de audio inaudible para que Android OS otorgue prioridad de Media Player en segundo plano
+                try {
+                    var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) {
+                        pipAudioCtx = new AudioContextClass();
+                        var osc = pipAudioCtx.createOscillator();
+                        var gain = pipAudioCtx.createGain();
+                        gain.gain.value = 0.00001; // Inaudible (silencio absoluto)
+                        var dest = pipAudioCtx.createMediaStreamDestination();
+                        osc.connect(gain);
+                        gain.connect(dest);
+                        osc.start();
+                        var aTracks = dest.stream.getAudioTracks();
+                        if (aTracks && aTracks.length > 0) {
+                            pipStreamTrack.addTrack(aTracks[0]);
                         }
                     }
-                }, 500);
+                } catch(eAudio) {
+                    console.warn("Audio carrier warning:", eAudio);
+                }
+
+                pipVideoEl.srcObject = pipStreamTrack;
+                pipVideoEl.muted = false; // Con audio inaudible, muted=false evita suspensión de Android
+                pipVideoEl.volume = 0.01;
+
+                // Registrar MediaSession para evitar que Android mate el proceso en segundo plano mientras corre Google Maps
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: "UBICA-RICK Radar Activo",
+                        artist: "Navegación Táctica",
+                        album: "Patrullaje"
+                    });
+                    navigator.mediaSession.playbackState = "playing";
+                }
+
+                // Web Worker Background Ticker: invulnerable a la congelación de setInterval de pestañas en segundo plano
+                try {
+                    var workerCode = "setInterval(function(){ postMessage('tick'); }, 500);";
+                    var workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+                    pipWorker = new Worker(URL.createObjectURL(workerBlob));
+                    pipWorker.onmessage = function() {
+                        if (radarActivo) {
+                            if (userLat && userLng) {
+                                actualizarPanelCercano();
+                            }
+                            if (document.pictureInPictureElement === pipVideoEl || document.hidden) {
+                                actualizarPipCanvas();
+                            }
+                        }
+                    };
+                } catch(eWk) {
+                    setInterval(function() {
+                        if (radarActivo) {
+                            if (userLat && userLng) {
+                                actualizarPanelCercano();
+                            }
+                            if (document.pictureInPictureElement === pipVideoEl || document.hidden) {
+                                actualizarPipCanvas();
+                            }
+                        }
+                    }, 500);
+                }
             }
 
             pipVideoEl.play().catch(function(e) { console.warn("Video play:", e); });
@@ -2995,11 +3091,14 @@
 
             // PASO 5: VERIFICACIÓN CON MAPAS EN LÍNEA CON FILTRADO ESTRICTO DE CRUCES VIALES
 
-            // 5.1. Google Maps Geocoding Oficial (si hay clave configurada)
+            // 5.1. Google Maps Geocoding Oficial (si hay clave configurada con timeout de seguridad)
             if (configApp && configApp.googleApiKey) {
                 try {
                     var urlG = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(dirLimpia + ", " + munNombre + ", Colombia") + "&key=" + configApp.googleApiKey;
-                    var respG = await fetch(urlG);
+                    var ctrlG = new AbortController();
+                    var toG = setTimeout(function() { ctrlG.abort(); }, 3500);
+                    var respG = await fetch(urlG, { signal: ctrlG.signal });
+                    clearTimeout(toG);
                     var dataG = await respG.json();
                     if (dataG.status === "OK" && dataG.results.length > 0) {
                         var loc = dataG.results[0].geometry.location;
@@ -3914,21 +4013,71 @@
                 };
                 reader.readAsDataURL(file);
             });
-        }
-
-                async function procesarFotoConGemini(archivo, placaManual, apiKey) {
-            var base64Data = await new Promise(function(resolve, reject) {
+        }        function comprimirImagenParaGemini(archivo) {
+            return new Promise(function(resolve, reject) {
+                if (!archivo) {
+                    reject(new Error("No se ha seleccionado ningún archivo de imagen."));
+                    return;
+                }
                 var reader = new FileReader();
                 reader.onload = function(e) {
-                    var raw = e.target.result;
-                    var commaIdx = raw.indexOf(',');
-                    resolve(commaIdx !== -1 ? raw.substring(commaIdx + 1) : raw);
+                    var img = new Image();
+                    img.onload = function() {
+                        try {
+                            var maxDim = 1600;
+                            var w = img.width;
+                            var h = img.height;
+                            if (w > maxDim || h > maxDim) {
+                                if (w > h) {
+                                    h = Math.round((h * maxDim) / w);
+                                    w = maxDim;
+                                } else {
+                                    w = Math.round((w * maxDim) / h);
+                                    h = maxDim;
+                                }
+                            }
+                            var canvas = document.createElement('canvas');
+                            canvas.width = w;
+                            canvas.height = h;
+                            var ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                            var commaIdx = dataUrl.indexOf(',');
+                            resolve({
+                                base64: commaIdx !== -1 ? dataUrl.substring(commaIdx + 1) : dataUrl,
+                                mimeType: 'image/jpeg'
+                            });
+                        } catch(errCanvas) {
+                            var raw = e.target.result;
+                            var comma = raw.indexOf(',');
+                            resolve({
+                                base64: comma !== -1 ? raw.substring(comma + 1) : raw,
+                                mimeType: archivo.type || 'image/jpeg'
+                            });
+                        }
+                    };
+                    img.onerror = function() {
+                        var raw = e.target.result;
+                        var comma = raw.indexOf(',');
+                        resolve({
+                            base64: comma !== -1 ? raw.substring(comma + 1) : raw,
+                            mimeType: archivo.type || 'image/jpeg'
+                        });
+                    };
+                    img.src = e.target.result;
                 };
-                reader.onerror = reject;
+                reader.onerror = function(err) {
+                    reject(new Error("Error al leer el archivo de imagen: " + (err.message || err)));
+                };
                 reader.readAsDataURL(archivo);
             });
+        }
 
-            var mimeType = archivo.type || 'image/jpeg';
+        async function procesarFotoConGemini(archivo, placaManual, apiKey) {
+            var comp = await comprimirImagenParaGemini(archivo);
+            var base64Data = comp.base64;
+            var mimeType = comp.mimeType;
+
             var promptTexto = "Eres el extractor oficial de reportes vehiculares y de clientes para UBICA-RICK en Colombia.\n" +
                 "Analiza la imagen adjunta y extrae ÚNICAMENTE un objeto JSON válido con este formato exacto sin texto adicional:\n" +
                 "{\n" +
@@ -3968,13 +4117,10 @@
                 }
             };
 
-            // Modelos vigentes y activos de Gemini (2.5 Flash, 2.0 Flash)
             var modelosAProbar = [
-                'gemini-2.5-flash',
+                'gemini-1.5-flash',
                 'gemini-2.0-flash',
-                'gemini-2.0-flash-001',
-                'gemini-2.5-pro',
-                'gemini-1.5-flash-latest'
+                'gemini-1.5-pro'
             ];
 
             var ultimoError = null;
@@ -3984,11 +4130,16 @@
                 var url = "https://generativelanguage.googleapis.com/v1beta/models/" + mod + ":generateContent?key=" + encodeURIComponent(apiKey);
 
                 try {
+                    var ctrl = new AbortController();
+                    var timerId = setTimeout(function() { ctrl.abort(); }, 12000);
+
                     var resp = await fetch(url, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(payload),
+                        signal: ctrl.signal
                     });
+                    clearTimeout(timerId);
 
                     if (resp.ok) {
                         var resJson = await resp.json();
@@ -3998,61 +4149,21 @@
                             return JSON.parse(cleanJson);
                         }
                     } else if (resp.status === 404) {
-                        console.warn("Modelo " + mod + " no disponible (404), probando siguiente modelo...");
+                        console.warn("Modelo " + mod + " 404, probando siguiente modelo...");
                         continue;
                     } else {
                         var errTxt = await resp.text();
                         ultimoError = new Error("HTTP " + resp.status + ": " + errTxt);
-                        break;
+                        continue;
                     }
                 } catch(eFetch) {
                     ultimoError = eFetch;
+                    console.warn("Aviso modelo " + mod + ":", eFetch.message || eFetch);
                 }
-            }
-
-            // Si los modelos predeterminados dieron 404, consultar la lista activa de modelos de la cuenta
-            try {
-                console.log("Consultando modelos habilitados en la cuenta de Google...");
-                var urlList = "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(apiKey);
-                var respList = await fetch(urlList);
-                if (respList.ok) {
-                    var listData = await respList.json();
-                    if (listData && listData.models) {
-                        var modelosValidos = listData.models.filter(function(m) {
-                            var methods = m.supportedGenerationMethods || [];
-                            return methods.includes('generateContent');
-                        });
-                        modelosValidos.sort(function(a, b) {
-                            var aF = a.name.includes('flash') ? 1 : 0;
-                            var bF = b.name.includes('flash') ? 1 : 0;
-                            return bF - aF;
-                        });
-
-                        for (var j = 0; j < modelosValidos.length; j++) {
-                            var mNombre = modelosValidos[j].name.replace(/^models\//, '');
-                            var urlDin = "https://generativelanguage.googleapis.com/v1beta/models/" + mNombre + ":generateContent?key=" + encodeURIComponent(apiKey);
-                            var respDin = await fetch(urlDin, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(payload)
-                            });
-                            if (respDin.ok) {
-                                var dinJson = await respDin.json();
-                                var dinTxt = dinJson.candidates && dinJson.candidates[0] && dinJson.candidates[0].content && dinJson.candidates[0].content.parts[0] && dinJson.candidates[0].content.parts[0].text;
-                                if (dinTxt) {
-                                    var cleanDin = dinTxt.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-                                    return JSON.parse(cleanDin);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch(eList) {
-                console.warn("Fallo consultando lista dinámica de modelos:", eList);
             }
 
             if (ultimoError) throw ultimoError;
-            throw new Error("No se encontró ningún modelo activo de Gemini disponible en tu proyecto.");
+            throw new Error("No se pudo conectar con los modelos de Gemini AI.");
         }
 
         function aplicarResultadoExtraccion(datos, fuente) {
@@ -4137,12 +4248,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 return; 
             }
 
-            var loadingOverlay = document.getElementById('loading-overlay');
-            var loadingTexto = document.getElementById('loading-texto');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'flex';
-                if (loadingTexto) loadingTexto.innerText = "🔍 Analizando imagen y extrayendo datos...";
-            }
+                        mostrarCargando("🔍 Analizando imagen y extrayendo datos...");
 
             try {
                 var archivo = fileInput.files[0];
@@ -4162,16 +4268,19 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     }
 
                     if (apiKeyGemini) {
-                        if (loadingTexto) loadingTexto.innerText = "🤖 Leyendo tabla con Inteligencia Artificial Gemini Vision (100% Preciso)...";
+                        mostrarCargando("🤖 Leyendo tabla con Inteligencia Artificial Gemini Vision (100% Preciso)...");
                         try {
                             var datosGemini = await procesarFotoConGemini(archivo, placa, apiKeyGemini);
                             if (datosGemini && (datosGemini.direcciones || datosGemini.celulares || datosGemini.titular)) {
+                                ocultarCargando();
                                 aplicarResultadoExtraccion(datosGemini, "Gemini AI");
                                 return;
                             }
                         } catch(errGem) {
                             console.warn("Fallo Gemini API:", errGem);
+                            ocultarCargando();
                             alert("⚠️ No se pudo procesar con Gemini AI (" + (errGem.message || errGem) + ").\n\nContinuando con el motor OCR local...");
+                            mostrarCargando("🔍 Leyendo texto con OCR local...");
                         }
                     }
                 }
@@ -4479,7 +4588,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 console.error(err);
                 alert("No se pudo leer la imagen automáticamente: " + (err.message || err));
             } finally {
-                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                ocultarCargando();
             }
         }
 
@@ -4751,12 +4860,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
             cerrarFiltros();
             map.closePopup();
 
-            var pendientes = puntosData.filter(function(p) {
-                return !p.visitada;
-            });
+            var pendientes = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
 
             if (pendientes.length === 0) {
-                alert("No hay ubicaciones pendientes para trazar ruta.");
+                alert("No hay ubicaciones pendientes que coincidan con los filtros activos.");
                 return;
             }
 
@@ -4804,12 +4911,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
             cerrarFiltros();
             map.closePopup();
 
-            var pendientes = puntosData.filter(function(p) {
-                return !p.visitada;
-            });
+            var pendientes = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
 
             if (pendientes.length === 0) {
-                alert("No hay ubicaciones pendientes.");
+                alert("No hay ubicaciones pendientes que coincidan con los filtros activos.");
                 return;
             }
 
@@ -5152,6 +5257,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
             var vecesTxt = (item.visitas === 1) ? "1 visita" : (item.visitas + " visitas");
             mostrarToastNotificacion("✅ " + placa + " marcada como visitada por [" + item.gestorInicial + "] (" + vecesTxt + ")");
+
+            if (typeof alMarcarVisitadaEnNavegador === 'function') {
+                alMarcarVisitadaEnNavegador(item);
+            }
         }
 
         function mostrarOpcionesEliminar(markerId) {
@@ -5455,58 +5564,116 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (elFoto) elFoto.innerText = conFoto;
         }
 
-        function actualizarFiltros() {
-            var textoBusqueda = document.getElementById('inputBuscarPlaca').value.toUpperCase().trim();
-            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
-            var verPico = document.getElementById('chkPico').checked;
-            var verHoy = document.getElementById('chkHoy').checked;
-            var verFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : true;
-            var verTodas = document.getElementById('chkTodas').checked;
-            var ocultarVisitadas = document.getElementById('chkSoloPendientes').checked;
+        function alCambiarFiltroCheckbox(tipo) {
+            var elPico = document.getElementById('chkPico');
+            var elHoy = document.getElementById('chkHoy');
+            var elFoto = document.getElementById('chkFoto');
+            var elTodas = document.getElementById('chkTodas');
 
-            puntosData.forEach(function(item) {
-                var coincideBusqueda = (textoBusqueda === "" || item.placa.includes(textoBusqueda));
-                var esVisitada = !!item.visitada;
-
-                if (ocultarVisitadas && esVisitada) {
-                    if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
-                    return;
+            if (tipo === 'todas') {
+                if (elTodas && elTodas.checked) {
+                    if (elPico) elPico.checked = false;
+                    if (elHoy) elHoy.checked = false;
+                    if (elFoto) elFoto.checked = false;
                 }
-
-                if (selMun !== 'TODOS') {
-                    var dirTexto = ((item.dirOriginal || item.dir || '') + ' ' + (item.marca || '')).toUpperCase();
-                    if (selMun === 'OTRO') {
-                        var esAburra = ['MEDELLIN', 'BELLO', 'ITAGUI', 'ENVIGADO', 'SABANETA', 'ESTRELLA', 'COPACABANA', 'CALDAS', 'RIONEGRO'].some(function(m){ return dirTexto.includes(m); });
-                        if (esAburra) {
-                            if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
-                            return;
-                        }
-                    } else {
-                        var normTarget = selMun.replace('ITAGUI', 'ITAGU').replace('MEDELLIN', 'MEDELL');
-                        var matchMun = dirTexto.includes(selMun) || dirTexto.includes(normTarget);
-                        if (!matchMun) {
-                            if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
-                            return;
-                        }
-                    }
-                }
-
-                var pasaFiltroEstado = false;
-                if (verTodas) {
-                    pasaFiltroEstado = true;
+            } else {
+                if ((elPico && elPico.checked) || (elHoy && elHoy.checked) || (elFoto && elFoto.checked)) {
+                    if (elTodas) elTodas.checked = false;
                 } else {
-                    if (verPico && item.pico) pasaFiltroEstado = true;
-                    if (verHoy && item.esHoy) pasaFiltroEstado = true;
-                    if (verFoto && item.foto) pasaFiltroEstado = true;
-                    if (!verPico && !verHoy && !verFoto) pasaFiltroEstado = false;
+                    if (elTodas) elTodas.checked = true;
                 }
+            }
+            actualizarFiltros();
+        }
 
-                if (coincideBusqueda && pasaFiltroEstado) {
+        function pasaFiltrosActivos(item, opciones) {
+            opciones = opciones || {};
+            if (!item || !item.lat || !item.lng) return false;
+
+            var textoBusqueda = (document.getElementById('inputBuscarPlaca') ? document.getElementById('inputBuscarPlaca').value : '').toUpperCase().trim();
+            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
+            var verPico = document.getElementById('chkPico') ? document.getElementById('chkPico').checked : false;
+            var verHoy = document.getElementById('chkHoy') ? document.getElementById('chkHoy').checked : false;
+            var verFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : false;
+            var verTodas = document.getElementById('chkTodas') ? document.getElementById('chkTodas').checked : true;
+            var ocultarVisitadas = document.getElementById('chkSoloPendientes') ? document.getElementById('chkSoloPendientes').checked : false;
+
+            // 1. Filtro de búsqueda por texto de placa
+            if (textoBusqueda !== "" && !(item.placa || '').toUpperCase().includes(textoBusqueda)) {
+                return false;
+            }
+
+            // 2. Filtro de visitadas
+            var soloPendientes = (typeof opciones.soloPendientes === 'boolean') ? opciones.soloPendientes : ocultarVisitadas;
+            if (soloPendientes && !esElegibleParaRadar(item)) {
+                return false;
+            }
+
+            // 3. Filtro por Municipio (respeta la selección del usuario o override de tab)
+            var munFiltro = opciones.municipioOverride || selMun;
+            if (munFiltro !== 'TODOS') {
+                var dirTexto = ((item.dirOriginal || item.dir || '') + ' ' + (item.marca || '') + ' ' + (item.municipio || '')).toUpperCase();
+                if (munFiltro === 'OTRO') {
+                    var esAburra = ['MEDELLIN', 'BELLO', 'ITAGUI', 'ENVIGADO', 'SABANETA', 'ESTRELLA', 'COPACABANA', 'CALDAS', 'RIONEGRO'].some(function(m){ return dirTexto.includes(m); });
+                    if (esAburra) return false;
+                } else {
+                    var normTarget = munFiltro.replace('ITAGUI', 'ITAGU').replace('MEDELLIN', 'MEDELL');
+                    var matchMun = dirTexto.includes(munFiltro) || dirTexto.includes(normTarget) || (item.municipio && item.municipio.toUpperCase().includes(normTarget));
+                    if (!matchMun) return false;
+                }
+            }
+
+            // 4. Filtro de Criterio de Estado (Pico y Placa, Subidas hoy, Con Foto)
+            if (!verTodas) {
+                var pasaEstado = false;
+                if (verPico && item.pico) pasaEstado = true;
+                if (verHoy && item.esHoy) pasaEstado = true;
+                if (verFoto && item.foto) pasaEstado = true;
+                if (!pasaEstado) return false;
+            }
+
+            // 5. Criterio táctico adicional si viene de pestaña táctica
+            if (opciones.criterioTactico) {
+                var hoyStr = new Date().toISOString().split('T')[0];
+                var coincidePico = !!item.pico;
+                var coincideHoy = (item.fecha === hoyStr || (item.timestamp && (Date.now() - item.timestamp) < 86400000));
+                var coincideFoto = !!item.foto;
+
+                if (opciones.criterioTactico === 'foto' && !coincideFoto) return false;
+                if (opciones.criterioTactico === 'pico' && !coincidePico) return false;
+                if (opciones.criterioTactico === 'hoy' && !coincideHoy) return false;
+                if (opciones.criterioTactico === 'prioritarias' && (!coincideFoto && !coincidePico && !coincideHoy)) return false;
+            }
+
+            return true;
+        }
+
+        function obtenerPuntosFiltradosParaRuta(opciones) {
+            return puntosData.filter(function(p) {
+                return pasaFiltrosActivos(p, opciones);
+            });
+        }
+
+        function actualizarFiltros() {
+            var visiblesCount = 0;
+            puntosData.forEach(function(item) {
+                var pasa = pasaFiltrosActivos(item);
+                if (pasa) {
+                    visiblesCount++;
                     if (!map.hasLayer(item.marker)) map.addLayer(item.marker);
                 } else {
                     if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
                 }
             });
+
+            var badge = document.getElementById('indicador-placas-filtro');
+            if (badge) {
+                badge.textContent = visiblesCount + " de " + puntosData.length + " placas";
+            }
+
+            if (typeof actualizarBadgeFiltrosRuta === 'function') {
+                actualizarBadgeFiltrosRuta();
+            }
         }
 
         // =========================================================================
@@ -5870,12 +6037,182 @@ async function procesarFotoTablaDirecta(usarGemini) {
         window.calcularPicoYPlacaNacional = calcularPicoYPlacaNacional;
 
         
+        // =========================================================================
+        // VISOR DE FOTO DE PANTALLA COMPLETA PARA MOTO (1 TOQUE, PINCH Y ARRASTRE)
+        // =========================================================================
+        var visorScale = 1;
+        var visorPanX = 0;
+        var visorPanY = 0;
+        var visorTouchInit = false;
+
+        function abrirVisorFotoCarro(markerId) {
+            var item = puntosData.find(function(d) { return d.id === markerId; });
+            if (!item || !item.foto) {
+                mostrarToastNotificacion("ℹ️ Este vehículo no tiene foto registrada.");
+                return;
+            }
+            var modal = document.getElementById('modal-visor-foto-moto');
+            var img = document.getElementById('visor-foto-img');
+            var elPlaca = document.getElementById('visor-foto-placa');
+            var elCarro = document.getElementById('visor-foto-carro');
+            var elColor = document.getElementById('visor-foto-color');
+
+            if (!modal || !img) return;
+
+            img.src = item.foto;
+            if (elPlaca) elPlaca.textContent = item.placa || '---';
+
+            var m = (item.marca && item.marca !== '-' && item.marca !== 'VEHÍCULO') ? item.marca : '';
+            var l = (item.linea && item.linea !== '-') ? item.linea : '';
+            var mod = (item.modelo && item.modelo !== '-') ? item.modelo : '';
+            var descCarro = (m + ' ' + l + ' ' + mod).trim() || 'VEHÍCULO';
+            if (elCarro) elCarro.textContent = descCarro;
+            if (elColor) elColor.textContent = '🎨 ' + ((item.color && item.color !== '-') ? item.color : 'SIN COLOR');
+
+            visorScale = 1;
+            visorPanX = 0;
+            visorPanY = 0;
+            actualizarTransformVisorFoto();
+
+            modal.style.display = 'flex';
+            inicializarGestosVisorFoto();
+        }
+
+        function cerrarVisorFotoCarro() {
+            var modal = document.getElementById('modal-visor-foto-moto');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function actualizarTransformVisorFoto() {
+            var img = document.getElementById('visor-foto-img');
+            if (!img) return;
+            if (visorScale <= 1) {
+                visorScale = 1;
+                visorPanX = 0;
+                visorPanY = 0;
+            }
+            img.style.transform = 'translate(' + Math.round(visorPanX) + 'px, ' + Math.round(visorPanY) + 'px) scale(' + visorScale.toFixed(2) + ')';
+
+            var b1 = document.getElementById('btn-visor-1x');
+            var b2 = document.getElementById('btn-visor-2x');
+            var b3 = document.getElementById('btn-visor-3x');
+            if (b1) b1.style.background = (Math.abs(visorScale - 1) < 0.2) ? '#2563eb' : '#1e293b';
+            if (b2) b2.style.background = (Math.abs(visorScale - 2) < 0.2) ? '#2563eb' : '#1e293b';
+            if (b3) b3.style.background = (Math.abs(visorScale - 3) < 0.2) ? '#2563eb' : '#1e293b';
+        }
+
+        function fijarZoomVisorFoto(nuevoZoom) {
+            visorScale = Math.min(Math.max(nuevoZoom, 1), 4);
+            if (visorScale === 1) {
+                visorPanX = 0;
+                visorPanY = 0;
+            }
+            actualizarTransformVisorFoto();
+        }
+
+        function cambiarZoomVisorFoto(delta) {
+            fijarZoomVisorFoto(visorScale + delta);
+        }
+
+        function inicializarGestosVisorFoto() {
+            if (visorTouchInit) return;
+            var stage = document.getElementById('visor-foto-stage');
+            var img = document.getElementById('visor-foto-img');
+            if (!stage || !img) return;
+            visorTouchInit = true;
+
+            var startDist = 0;
+            var baseScale = 1;
+            var isDragging = false;
+            var dragStartX = 0, dragStartY = 0;
+            var initialPanX = 0, initialPanY = 0;
+            var lastTapTs = 0;
+
+            stage.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 2) {
+                    isDragging = false;
+                    var dx = e.touches[0].clientX - e.touches[1].clientX;
+                    var dy = e.touches[0].clientY - e.touches[1].clientY;
+                    startDist = Math.sqrt(dx * dx + dy * dy);
+                    baseScale = visorScale;
+                    img.style.transition = 'none';
+                } else if (e.touches.length === 1) {
+                    var now = Date.now();
+                    if (now - lastTapTs < 280) {
+                        // Doble toque rápido alterna entre 1x y 2.5x
+                        if (visorScale > 1.2) fijarZoomVisorFoto(1);
+                        else fijarZoomVisorFoto(2.5);
+                        lastTapTs = 0;
+                        return;
+                    }
+                    lastTapTs = now;
+
+                    if (visorScale > 1) {
+                        isDragging = true;
+                        dragStartX = e.touches[0].clientX;
+                        dragStartY = e.touches[0].clientY;
+                        initialPanX = visorPanX;
+                        initialPanY = visorPanY;
+                        img.style.transition = 'none';
+                    }
+                }
+            }, { passive: false });
+
+            stage.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 2 && startDist > 0) {
+                    e.preventDefault();
+                    var dx = e.touches[0].clientX - e.touches[1].clientX;
+                    var dy = e.touches[0].clientY - e.touches[1].clientY;
+                    var dist = Math.sqrt(dx * dx + dy * dy);
+                    visorScale = Math.min(Math.max(baseScale * (dist / startDist), 1), 4);
+                    actualizarTransformVisorFoto();
+                } else if (e.touches.length === 1 && isDragging && visorScale > 1) {
+                    e.preventDefault();
+                    visorPanX = initialPanX + (e.touches[0].clientX - dragStartX);
+                    visorPanY = initialPanY + (e.touches[0].clientY - dragStartY);
+                    actualizarTransformVisorFoto();
+                }
+            }, { passive: false });
+
+            stage.addEventListener('touchend', function(e) {
+                img.style.transition = 'transform 0.12s ease-out';
+                if (!e.touches || e.touches.length < 2) startDist = 0;
+                if (!e.touches || e.touches.length === 0) isDragging = false;
+            });
+        }
+
+        // Actualizar posición del popup en Leaflet SIN llamar a popup.update() (que borraba el DOM)
+        function refrescarPosicionPopupSinReset(markerId) {
+            var item = puntosData.find(function(d) { return d.id === markerId; });
+            if (item && item.marker && item.marker.getPopup()) {
+                var pop = item.marker.getPopup();
+                if (pop && pop._map) {
+                    if (pop._updateLayout) pop._updateLayout();
+                    if (pop._updatePosition) pop._updatePosition();
+                }
+            }
+        }
+
+        function toggleMasDetallesPopup(markerId) {
+            var box = document.getElementById('popup-extra-box-' + markerId);
+            var btn = document.getElementById('btn-mas-detalles-' + markerId);
+            if (!box) return;
+            if (box.style.display === 'none') {
+                box.style.display = 'block';
+                if (btn) btn.innerHTML = '🔼 Ocultar detalles y edición';
+            } else {
+                box.style.display = 'none';
+                if (btn) btn.innerHTML = '⚙️ Más detalles / Editar ▾';
+            }
+            refrescarPosicionPopupSinReset(markerId);
+        }
+
         // GESTOR DE AGRANDAR Y MINIMIZAR CON DOS DEDOS (PINCH-TO-ZOOM) EN LA FICHA
         function ajustarZoomPopup(markerId, delta) {
             var contenedor = document.getElementById('popup-zoomable-' + markerId);
             if (!contenedor) return;
             var currentScale = parseFloat(contenedor.getAttribute('data-scale') || '1');
-            var targetScale = Math.min(Math.max(currentScale + delta, 0.65), 1.85);
+            var targetScale = Math.min(Math.max(currentScale + delta, 0.70), 1.65);
             aplicarZoomPopup(markerId, targetScale);
         }
 
@@ -5886,22 +6223,22 @@ async function procesarFotoTablaDirecta(usarGemini) {
             scale = Math.round(scale * 100) / 100;
             contenedor.setAttribute('data-scale', scale);
 
-            var anchoBase = Math.round(295 * scale);
-            var maxWidth = Math.min(window.innerWidth * 0.95, 480);
-            var targetWidth = Math.max(Math.min(anchoBase, maxWidth), 160);
+            var anchoBase = Math.round(255 * scale);
+            var maxWidth = Math.min(window.innerWidth * 0.88, 420);
+            var targetWidth = Math.max(Math.min(anchoBase, maxWidth), 175);
             contenedor.style.width = targetWidth + 'px';
 
-            var fontSize = Math.round(13 * scale);
+            var fontSize = Math.round(12.5 * scale);
             contenedor.style.fontSize = fontSize + 'px';
 
             var img = contenedor.querySelector('.car-thumbnail');
             if (img) {
-                img.style.maxHeight = Math.round(150 * scale) + 'px';
+                img.style.maxHeight = Math.round(135 * scale) + 'px';
             }
 
             var detalles = document.getElementById('popup-detalles-' + markerId);
             if (detalles) {
-                detalles.style.maxHeight = Math.min(Math.round(52 * scale), 75) + 'vh';
+                detalles.style.maxHeight = Math.min(Math.round(48 * scale), 70) + 'vh';
             }
 
             var zoomLbl = document.getElementById('zoom-val-' + markerId);
@@ -5909,10 +6246,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 zoomLbl.innerText = Math.round(scale * 100) + '%';
             }
 
-            var item = puntosData.find(function(d) { return d.id === markerId; });
-            if (item && item.marker && item.marker.getPopup()) {
-                item.marker.getPopup().update();
-            }
+            refrescarPosicionPopupSinReset(markerId);
         }
 
         function inicializarZoomDosDedos(markerId, targetEl) {
@@ -6055,23 +6389,19 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var btn = document.getElementById('btn-min-' + markerId);
             if (!detallesDiv) return;
 
-            var item = puntosData.find(function(d) { return d.id === markerId; });
-
             if (detallesDiv.style.display === 'none') {
                 // AMPLIAR / EXPANDIR
                 detallesDiv.style.display = 'block';
                 if (resumenDiv) resumenDiv.style.display = 'none';
-                if (btn) btn.innerHTML = '➖ Minimizar';
+                if (btn) btn.innerHTML = '➖ Min';
             } else {
                 // APEQUEÑAR / MINIMIZAR
                 detallesDiv.style.display = 'none';
                 if (resumenDiv) resumenDiv.style.display = 'block';
-                if (btn) btn.innerHTML = '➕ Ampliar';
+                if (btn) btn.innerHTML = '➕ Ver';
             }
 
-            if (item && item.marker && item.marker.getPopup()) {
-                item.marker.getPopup().update();
-            }
+            refrescarPosicionPopupSinReset(markerId);
         }
 
         function toggleEditMode(markerId) {
@@ -6214,12 +6544,19 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 console.warn('Aviso Pico y Placa:', ePico);
             }
             p.pico = resPicoNac.aplica;
-            var estadoPicoTxt = resPicoNac.aplica ? ("⚠️ PICO Y PLACA (" + resPicoNac.ciudad + ")") : ("✅ HÁBIL (" + resPicoNac.ciudad + ")");
+            var estadoPicoCorto = resPicoNac.aplica ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
+            var estadoPicoDetalle = resPicoNac.aplica ? ("⚠️ PICO Y PLACA (" + resPicoNac.ciudad + ")") : ("✅ HÁBIL (" + resPicoNac.ciudad + ")");
             var esVisitada = !!p.visitada;
             var infoColor = obtenerColorPorAntiguedad(p, esVisitada);
             var googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng);
             var wazeUrl = "https://waze.com/ul?ll=" + encodeURIComponent(p.lat + "," + p.lng) + "&navigate=yes";
-            var imgHtml = p.foto ? `<img src="${p.foto}" class="car-thumbnail">` : '';
+
+            var imgHtml = p.foto ? `
+                <div class="car-photo-box" onclick="event.stopPropagation(); abrirVisorFotoCarro('${markerId}');" title="Toca para ver la foto en pantalla completa">
+                    <img src="${p.foto}" class="car-thumbnail" alt="Vehículo ${p.placa}">
+                    <span class="car-photo-Hint">🔍 Toca para ampliar foto</span>
+                </div>
+            ` : '';
 
             var soatClass = (p.soat === 'SI' || p.soat === 'VIGENTE') ? 'badge-si' : 'badge-no';
             var tecnoClass = (p.tecnomecanica === 'SI' || p.tecnomecanica === 'VIGENTE') ? 'badge-si' : 'badge-no';
@@ -6228,12 +6565,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var vLinea = (p.linea && p.linea !== '-') ? p.linea : '-';
             var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '-';
             var vColor = (p.color && p.color !== '-') ? p.color : '-';
+            var carroResumen = [vMarca !== '-' ? vMarca : '', vLinea !== '-' ? vLinea : '', vModelo !== '-' ? vModelo : ''].filter(Boolean).join(' ') || 'Vehículo';
             var dirReal = p.dirOriginal || p.dir || "-";
-            var esVisitada = !!p.visitada;
             var numVis = p.visitas || (esVisitada ? 1 : 0);
-            var txtBtnVisitada = numVis > 0 ? ("✅ Marcar Visitado (" + numVis + (numVis === 1 ? " visita" : " visitas") + ")") : "✅ Marcar Visitado";
+            var txtBtnVisitada = numVis > 0 ? ("✅ Visitado (" + numVis + ")") : "✅ Visitado";
 
-            // Primera letra del visitador y conteo de visitas para evidencia
             var gestorInicial = (p.gestorInicial || (p.gestor ? p.gestor.charAt(0) : '') || '').toUpperCase();
             var vecesTxt = (numVis === 1) ? '1 vez' : (numVis + ' veces');
             var infoVisitasHtml = esVisitada 
@@ -6241,108 +6577,110 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 : `<span id="visitas-val-${markerId}" style="color:#64748b; font-weight:600;">⏳ Pendiente (0 visitas)</span>`;
 
             return `
-                <div id="popup-zoomable-${markerId}" class="popup-zoom-container" data-scale="1" ontouchstart="inicializarZoomDosDedos('${markerId}', this)" style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; width: 295px; max-width: 95vw; box-sizing: border-box; transition: width 0.15s ease, font-size 0.15s ease;">
+                <div id="popup-zoomable-${markerId}" class="popup-zoom-container" data-scale="1" ontouchstart="inicializarZoomDosDedos('${markerId}', this)" style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 12.5px; width: 255px; max-width: 84vw; box-sizing: border-box; transition: width 0.15s ease, font-size 0.15s ease;">
                     <div id="view-mode-${markerId}">
-                        ${imgHtml}
-                        <div class="popup-header-bar" style="background:#0f172a; color:white; padding:5px 8px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; width:100%; border:1px solid #334155; gap:4px;">
-                            <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
-                                <span style="font-size:15px; font-weight:900; letter-spacing:0.5px; color:#ffffff; white-space:nowrap;">${p.placa}</span>
-                                <span style="font-size:9px; font-weight:bold; background:${p.pico ? '#d35400' : '#16a34a'}; color:#ffffff; padding:2px 5px; border-radius:4px; white-space:nowrap; text-transform:uppercase;">${estadoPicoTxt}</span>
+                        <!-- CABECERA COMPACTA SIN DESBORDAMIENTO -->
+                        <div class="popup-header-bar" style="background:#0f172a; color:white; padding:5px 7px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; width:100%; border:1px solid #334155; gap:3px;">
+                            <div style="display:flex; align-items:center; gap:4px; min-width:0; overflow:hidden;">
+                                <span style="font-size:14.5px; font-weight:900; letter-spacing:0.5px; color:#ffea00; background:#000; padding:1px 5px; border-radius:4px; border:1px solid #ffea00; white-space:nowrap;">${p.placa}</span>
+                                <span style="font-size:8.5px; font-weight:800; background:${p.pico ? '#d35400' : '#16a34a'}; color:#ffffff; padding:2px 4px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${estadoPicoCorto}</span>
                             </div>
                             <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
-                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', -0.2);" ontouchend="event.stopPropagation(); event.preventDefault(); ajustarZoomPopup('${markerId}', -0.2);" class="btn-zoom-pop" title="Reducir tamaño">−</button>
-                                <span id="zoom-val-${markerId}" style="font-size:9.5px; font-weight:bold; color:#38bdf8; min-width:26px; text-align:center; user-select:none;">100%</span>
-                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', 0.2);" ontouchend="event.stopPropagation(); event.preventDefault(); ajustarZoomPopup('${markerId}', 0.2);" class="btn-zoom-pop" title="Aumentar tamaño">+</button>
-                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}');" ontouchend="event.stopPropagation(); event.preventDefault(); toggleMinimizarPopup('${markerId}');" id="btn-min-${markerId}" class="btn-min-pop" style="padding:0 6px; font-size:9.5px;" title="Minimizar o expandir ventana">➖ Min</button>
+                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', -0.15);" class="btn-zoom-pop" style="width:23px; height:23px; font-size:13px;" title="Reducir">−</button>
+                                <span id="zoom-val-${markerId}" style="font-size:9px; font-weight:bold; color:#38bdf8; min-width:24px; text-align:center; user-select:none;">100%</span>
+                                <button type="button" onclick="event.stopPropagation(); ajustarZoomPopup('${markerId}', 0.15);" class="btn-zoom-pop" style="width:23px; height:23px; font-size:13px;" title="Aumentar">+</button>
+                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}');" id="btn-min-${markerId}" class="btn-min-pop" style="height:23px; padding:0 5px; font-size:9px;" title="Minimizar">➖ Min</button>
                             </div>
                         </div>
 
-                        <!-- VISTA COMPACTA CUANDO ESTÁ MINIMIZADO -->
-                        <div id="popup-resumen-${markerId}" style="display:none; padding:4px 2px; font-size:11px; color:#333;">
-                            <div style="margin-bottom:6px; color:#2c3e50; font-size:11px; line-height:1.3; font-weight:600;"><b>📍 Dir Real:</b> ${dirReal}</div>
+                        ${imgHtml}
+
+                        <!-- VISTA SUPER COMPACTA CUANDO ESTÁ MINIMIZADO -->
+                        <div id="popup-resumen-${markerId}" style="display:none; padding:2px; font-size:11px; color:#333;">
+                            <div style="margin-bottom:5px; color:#1e293b; font-size:11px; line-height:1.25; font-weight:600;"><b>📍</b> ${dirReal}</div>
                             <div style="display:flex; gap:4px;">
-                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="margin:0; flex:1; padding:5px 4px; font-size:10px; text-align:center; text-decoration:none;">🧭 Maps</a>
-                                <a href="${wazeUrl}" target="_blank" class="pop-btn" style="margin:0; flex:1; padding:5px 4px; font-size:10px; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold;">🚗 Waze</a>
-                                <button type="button" onclick="iniciarModoMover('${markerId}')" class="pop-btn pb-orange" style="margin:0; flex:1; padding:5px 4px; font-size:10px;">📍 Mover</button>
-                                <button type="button" onclick="toggleMinimizarPopup('${markerId}')" class="pop-btn pb-teal" style="margin:0; flex:1; padding:5px 4px; font-size:10px;">➕ Ficha</button>
+                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="margin:0; flex:1; padding:6px 4px; font-size:10.5px; text-align:center; text-decoration:none;">🧭 Maps</a>
+                                <a href="${wazeUrl}" target="_blank" class="pop-btn" style="margin:0; flex:1; padding:6px 4px; font-size:10.5px; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold;">🚗 Waze</a>
+                                <button type="button" onclick="event.stopPropagation(); toggleMinimizarPopup('${markerId}')" class="pop-btn pb-teal" style="margin:0; flex:1; padding:6px 4px; font-size:10.5px;">➕ Ver</button>
                             </div>
                         </div>
 
-                        <!-- VISTA DETALLADA EXPANDIDA -->
-                        <div id="popup-detalles-${markerId}" style="max-height:52vh; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:2px;">
-                            <table class="specs-table">
-                                <tr><td class="specs-label">Marca:</td><td class="specs-val">${vMarca}</td></tr>
-                                <tr><td class="specs-label">Línea:</td><td class="specs-val">${vLinea}</td></tr>
-                                <tr><td class="specs-label">Modelo:</td><td class="specs-val">${vModelo}</td></tr>
-                                <tr><td class="specs-label">Color:</td><td class="specs-val">${vColor}</td></tr>
-                                <tr>
-                                    <td class="specs-label">SOAT:</td>
-                                    <td><span class="badge-status-soat ${soatClass}">${p.soat || 'NO'}</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="specs-label">Tecno:</td>
-                                    <td><span class="badge-status-soat ${tecnoClass}">${p.tecnomecanica || 'NO'}</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="specs-label">Celulares:</td>
-                                    <td>${formatearCelularesHtml(p.telefonos)}</td>
-                                </tr>
-                                <tr>
-                                    <td class="specs-label">Dirección:</td>
-                                    <td style="color:#2c3e50; font-size:11px; font-weight:600; line-height:1.3;">${dirReal}</td>
-                                </tr>
-                                ${p.dirAjustada ? `
-                                <tr>
-                                    <td class="specs-label" style="color:#d35400;">GPS Ajuste:</td>
-                                    <td style="color:#d35400; font-size:10.5px; font-weight:bold;">📍 ${p.dirAjustada}</td>
-                                </tr>
-                                ` : ''}
-                                <tr>
-                                    <td class="specs-label">Antigüedad:</td>
-                                    <td><span style="font-weight:bold; color:${infoColor.color}; font-size:11px;">${infoColor.etiqueta}</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="specs-label">Tiempo Reg.:</td>
-                                    <td style="color:#1e293b; font-size:11px; font-weight:600;">⏱️ ${formatearTiempoRegistrado(p)}</td>
-                                </tr>
-                                <tr>
-                                    <td class="specs-label">Visitas:</td>
-                                    <td>${infoVisitasHtml}</td>
-                                </tr>
-                                ${p.comentarios ? `
-                                <tr>
-                                    <td class="specs-label" style="vertical-align:top;">Notas:</td>
-                                    <td style="color:#0f172a; font-size:11px; line-height:1.35; background:#f8fafc; border-left:3px solid #6366f1; padding:3px 6px; border-radius:4px;">📝 ${p.comentarios}</td>
-                                </tr>
-                                ` : ''}
-                            </table>
-                            
-                            <div style="margin-top: 6px; border-top: 1px solid #eee; padding-top: 6px;">
-                                <div style="display:flex; gap:6px; margin-bottom:6px;">
-                                    <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="flex:1; margin:0; text-align:center; text-decoration:none;">🧭 Google Maps</a>
-                                    <a href="${wazeUrl}" target="_blank" class="pop-btn" style="flex:1; margin:0; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold; padding:7px 4px; display:inline-block;">🚗 Waze</a>
+                        <!-- VISTA PRINCIPAL ÁGIL PARA MOTO (NO INTRUSIVA) -->
+                        <div id="popup-detalles-${markerId}" style="max-height:48vh; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:1px;">
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px; padding:6px 8px; margin-bottom:6px;">
+                                <div style="font-weight:800; color:#0f172a; font-size:12px; line-height:1.25; margin-bottom:2px;">
+                                    🚗 ${carroResumen}
                                 </div>
-                                
-                                <div style="display:flex; gap:6px;">
-                                    <button onclick="marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1.2; font-size:11.5px; padding:7px 4px; line-height:1.2;">${txtBtnVisitada}</button>
-                                    ${(rolUsuarioActual === 'lector') ? '' : `<button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1;">✏️ Editar</button>`}
+                                <div style="font-weight:700; color:#0369a1; font-size:11px; margin-bottom:4px;">
+                                    🎨 Color: <span style="color:#0f172a;">${vColor}</span> • <span style="color:${infoColor.color};">${infoColor.etiqueta}</span>
                                 </div>
-                                
-                                ${(rolUsuarioActual === 'lector') ? '' : `
-                                <label class="pop-btn pb-purple" style="cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:6px; font-size:11.5px; text-decoration:none;">
-                                    📸 ${p.foto ? 'Cambiar Foto del Vehículo' : 'Subir Foto del Vehículo'}
-                                    <input type="file" accept="image/*" onchange="subirFotoVehiculo('${p.placa}', '${markerId}', event)" style="display:none;">
-                                </label>
-                                
-                                <button onclick="iniciarModoMover('${markerId}')" class="pop-btn pb-orange">3. 📍 Mover punto / Arrastrar</button>
-                                <button onclick="iniciarRecalcular('${markerId}')" class="pop-btn pb-teal">🔄 Recalcular / Cambiar Enlace</button>
-                                <button onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red">🗑️ Eliminar</button>
-                                `}
+                                <div style="font-size:11px; color:#1e293b; font-weight:600; line-height:1.25; padding-top:3px; border-top:1px dashed #cbd5e1;">
+                                    📍 ${dirReal}
+                                </div>
+                                ${p.dirAjustada ? `<div style="color:#d35400; font-size:10px; font-weight:bold; margin-top:2px;">🎯 GPS Ajuste: ${p.dirAjustada}</div>` : ''}
+                                ${(p.telefonos && p.telefonos !== '-') ? `<div style="margin-top:4px; padding-top:3px; border-top:1px dashed #cbd5e1;">${formatearCelularesHtml(p.telefonos)}</div>` : ''}
                             </div>
-                            
-                            <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #fadbd8; padding: 8px; border-radius: 6px;">
-                                <button onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 4px;">❌ Borrar esta dirección</button>
-                                <button onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred">🗑️ Borrar TODAS las de ${p.placa}</button>
+
+                            <!-- BOTONES PRINCIPALES DE NAVEGACIÓN Y VISITA EN 1 SOLA FILA -->
+                            <div style="display:flex; gap:5px; margin-bottom:5px;">
+                                <a href="${googleMapsUrl}" target="_blank" class="pop-btn pb-blue" style="flex:1; margin:0; padding:8px 4px; font-size:11.5px; text-align:center; text-decoration:none;">🧭 Maps</a>
+                                <a href="${wazeUrl}" target="_blank" class="pop-btn" style="flex:1; margin:0; padding:8px 4px; font-size:11.5px; text-align:center; background:linear-gradient(145deg, #0284c7, #0369a1); color:white; text-decoration:none; border-radius:6px; font-weight:bold;">🚗 Waze</a>
+                                <button type="button" onclick="event.stopPropagation(); marcarVisitada('${p.placa}', '${markerId}')" class="pop-btn pb-green" style="flex:1.15; margin:0; padding:8px 4px; font-size:11px;">${txtBtnVisitada}</button>
+                            </div>
+
+                            ${p.foto ? `
+                            <button type="button" onclick="event.stopPropagation(); abrirVisorFotoCarro('${markerId}')" class="pop-btn" style="width:100%; margin:0 0 5px 0; padding:7px; font-size:11.5px; background:linear-gradient(135deg, #0f172a, #1e293b); border:1px solid #38bdf8; color:#38bdf8; border-radius:6px; font-weight:800;">
+                                🔍 Ver Foto del Carro en Pantalla Completa
+                            </button>
+                            ` : ''}
+
+                            <!-- BOTÓN DESPLEGABLE PARA DETALLES TÉCNICOS Y EDICIÓN (EVITA SATURAR LA PANTALLA) -->
+                            <button type="button" id="btn-mas-detalles-${markerId}" onclick="event.stopPropagation(); toggleMasDetallesPopup('${markerId}')" style="width:100%; background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; border-radius:6px; padding:5px; font-size:10.5px; font-weight:700; cursor:pointer; margin-bottom:2px;">
+                                ⚙️ Más detalles / Editar ▾
+                            </button>
+
+                            <div id="popup-extra-box-${markerId}" style="display:none; margin-top:5px; padding-top:5px; border-top:1px solid #e2e8f0;">
+                                <table class="specs-table" style="font-size:11px; margin-bottom:6px;">
+                                    <tr><td class="specs-label">Pico/Placa:</td><td class="specs-val">${estadoPicoDetalle}</td></tr>
+                                    <tr>
+                                        <td class="specs-label">SOAT / Tecno:</td>
+                                        <td><span class="badge-status-soat ${soatClass}">SOAT: ${p.soat || 'NO'}</span> <span class="badge-status-soat ${tecnoClass}">TECNO: ${p.tecnomecanica || 'NO'}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="specs-label">Tiempo Reg.:</td>
+                                        <td style="color:#1e293b; font-size:10.5px; font-weight:600;">⏱️ ${formatearTiempoRegistrado(p)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="specs-label">Visitas:</td>
+                                        <td>${infoVisitasHtml}</td>
+                                    </tr>
+                                    ${p.comentarios ? `
+                                    <tr>
+                                        <td class="specs-label" style="vertical-align:top;">Notas:</td>
+                                        <td style="color:#0f172a; font-size:10.5px; line-height:1.3; background:#f8fafc; border-left:3px solid #6366f1; padding:3px 6px; border-radius:4px;">📝 ${p.comentarios}</td>
+                                    </tr>
+                                    ` : ''}
+                                </table>
+
+                                ${(rolUsuarioActual === 'lector') ? '' : `
+                                <div style="display:flex; gap:5px; margin-bottom:5px;">
+                                    <button type="button" onclick="toggleEditMode('${markerId}')" class="pop-btn pb-purple" style="flex:1; margin:0; padding:6px; font-size:11px;">✏️ Editar</button>
+                                    <label class="pop-btn pb-purple" style="flex:1.2; margin:0; padding:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; font-size:11px; text-decoration:none;">
+                                        📸 ${p.foto ? 'Cambiar Foto' : 'Subir Foto'}
+                                        <input type="file" accept="image/*" onchange="subirFotoVehiculo('${p.placa}', '${markerId}', event)" style="display:none;">
+                                    </label>
+                                </div>
+                                <div style="display:flex; gap:5px; margin-bottom:4px;">
+                                    <button type="button" onclick="iniciarModoMover('${markerId}')" class="pop-btn pb-orange" style="flex:1; margin:0; padding:6px; font-size:10.5px;">📍 Mover</button>
+                                    <button type="button" onclick="iniciarRecalcular('${markerId}')" class="pop-btn pb-teal" style="flex:1; margin:0; padding:6px; font-size:10.5px;">🔄 Enlace</button>
+                                    <button type="button" onclick="mostrarOpcionesEliminar('${markerId}')" class="pop-btn pb-red" style="flex:1; margin:0; padding:6px; font-size:10.5px;">🗑️ Borrar</button>
+                                </div>
+                                `}
+
+                                <div id="eliminar-container-${markerId}" style="display: none; margin-top: 5px; background: #fadbd8; padding: 6px; border-radius: 6px;">
+                                    <button type="button" onclick="eliminarEstaDireccion('${markerId}')" class="pop-btn pb-red" style="margin-bottom: 4px; padding:5px; font-size:11px;">❌ Borrar esta dirección</button>
+                                    <button type="button" onclick="eliminarTodasDePlaca('${p.placa}')" class="pop-btn pb-darkred" style="margin:0; padding:5px; font-size:11px;">🗑️ Borrar TODAS las de ${p.placa}</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -6410,14 +6748,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
                         </div>
 
                         <div style="display:flex; gap:5px; margin-top:10px;">
-                            <button onclick="guardarEdicionPopup('${markerId}')" class="pop-btn pb-green" style="flex:1;">💾 Guardar</button>
-                            <button onclick="toggleEditMode('${markerId}')" class="pop-btn pb-red" style="flex:1;">Cancelar</button>
+                            <button type="button" onclick="guardarEdicionPopup('${markerId}')" class="pop-btn pb-green" style="flex:1;">💾 Guardar</button>
+                            <button type="button" onclick="toggleEditMode('${markerId}')" class="pop-btn pb-red" style="flex:1;">Cancelar</button>
                         </div>
                     </div>
                 </div>
             `;
         }
-
         function agregarMarcadorAlMapa(p, idx, guardarEnStorage) {
             p.id = p.id || 'marker_' + idx + '_' + Math.random().toString(36).substr(2, 5);
             p.pico = tienePicoYPlaca(p.placa);
@@ -6454,13 +6791,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var marker = L.marker([p.lat, p.lng], { icon: customIcon }).addTo(map);
             p.marker = marker;
             
-            // autoPanPadding para que el popup nunca se sobreponga bajo la barra superior
+            // autoPanPadding amplio a la izquierda y arriba para no chocar con botones + / - / GPS ni barra superior
             marker.bindPopup(generarContenidoPopup(p, p.id), {
                 autoPan: true,
-                maxWidth: 480,
-                minWidth: 160,
-                autoPanPaddingTopLeft: [20, 75],
-                autoPanPaddingBottomRight: [20, 75]
+                maxWidth: 420,
+                minWidth: 175,
+                autoPanPaddingTopLeft: [58, 68],
+                autoPanPaddingBottomRight: [16, 65]
             });
             
             if (guardarEnStorage) {
@@ -7463,6 +7800,43 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
+        function actualizarBadgeFiltrosRuta() {
+            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
+            var verPico = document.getElementById('chkPico') ? document.getElementById('chkPico').checked : false;
+            var verHoy = document.getElementById('chkHoy') ? document.getElementById('chkHoy').checked : false;
+            var verFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : false;
+            var verTodas = document.getElementById('chkTodas') ? document.getElementById('chkTodas').checked : true;
+            var ocultarVis = document.getElementById('chkSoloPendientes') ? document.getElementById('chkSoloPendientes').checked : false;
+
+            var partes = [];
+            if (selMun === 'TODOS') partes.push("Todos los Municipios");
+            else if (selMun === 'OTRO') partes.push("Otros / Nacional");
+            else partes.push("🏙️ " + selMun);
+
+            if (verTodas) {
+                partes.push("Ver todas");
+            } else {
+                if (verPico) partes.push("⚠️ Pico y Placa");
+                if (verHoy) partes.push("📅 Hoy");
+                if (verFoto) partes.push("📸 Con Foto");
+            }
+            if (ocultarVis) partes.push("⏳ Solo pendientes");
+
+            var textoFiltros = partes.join(" • ");
+            var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: ocultarVis });
+
+            var elTxt = document.getElementById('txt-filtros-activos-ruta');
+            var elBadge = document.getElementById('badge-conteo-activos-ruta');
+            if (elTxt) elTxt.textContent = textoFiltros;
+            if (elBadge) elBadge.textContent = pool.length + " placas";
+
+            // Sincronizar también el selector de municipio de la pestaña si ya eligió uno
+            var selRutaMun = document.getElementById('rutaMunicipioSelect');
+            if (selRutaMun && selMun !== 'TODOS' && selMun !== 'OTRO') {
+                selRutaMun.value = selMun;
+            }
+        }
+
         function abrirModalRutaCorredor() {
             cerrarFiltros();
             cerrarConfig();
@@ -7480,7 +7854,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 inBase.placeholder = "Mi GPS Actual (" + userLat.toFixed(4) + ", " + userLng.toFixed(4) + ")";
             }
 
-            // Calcular objetivo 1 a 1 de inmediato para que nunca salga vacío
+            actualizarBadgeFiltrosRuta();
             actualizarObjetivo1a1();
         }
 
@@ -7494,110 +7868,655 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
-        // --- TRAZADO VIAL REAL USANDO MALLA VIAL DE CALLES (OSRM) ---
-        async function obtenerGeometriaVialReal(coordsArray) {
+        // =========================================================================
+        // MOTOR VIAL MULTI-PARADAS SIN LÍMITE Y MODO COPILOTO GPS EN EL MAPA
+        // =========================================================================
+        var navCopilotoActivo = false;
+        var navParadas = [];
+        var navOrigen = null;
+        var navIndiceActual = 0;
+        var navDatosViales = null;
+        var navAutoFollow = true;
+        var navVozActiva = true;
+        var navUltimoTextoVoz = "";
+        var navUltimaAlertaPlacaIdx = -1;
+        var navCapaTramoActivo = null;
+        var navLineaGuiaGps = null;
+        var navUltimoGpsPos = null;
+        var navUltimoGpsTs = 0;
+
+        // Desactivar auto-centrado si el usuario arrastra el mapa con el dedo
+        map.on('dragstart', function() {
+            if (navCopilotoActivo && navAutoFollow) {
+                navAutoFollow = false;
+                actualizarBotonAutoFollowUI();
+            }
+        });
+
+        function traducirManiobraOSRM(step) {
+            if (!step || !step.maneuver) return { icono: '⬆️', texto: 'Continúa por la vía principal' };
+            var type = step.maneuver.type || '';
+            var mod = step.maneuver.modifier || '';
+            var calle = (step.name && step.name.trim() !== '') ? (' por ' + step.name.trim()) : '';
+
+            if (type === 'arrive') {
+                return { icono: '🏁', texto: 'Llegando al punto objetivo' + calle };
+            }
+            if (type === 'depart') {
+                return { icono: '🚀', texto: 'Inicia recorrido' + (calle || ' hacia el primer punto') };
+            }
+            if (type === 'roundabout' || type === 'rotary') {
+                var exitNum = step.maneuver.exit ? (' (salida ' + step.maneuver.exit + ')') : '';
+                return { icono: '🔄', texto: 'Toma la glorieta' + exitNum + calle };
+            }
+            if (mod.includes('uturn')) {
+                return { icono: '↩️', texto: 'Retorno en U' + calle };
+            }
+            if (mod === 'sharp right') {
+                return { icono: '⤵️', texto: 'Giro cerrado a la derecha' + calle };
+            }
+            if (mod === 'right') {
+                return { icono: '↱', texto: 'Gira a la derecha' + calle };
+            }
+            if (mod === 'slight right') {
+                return { icono: '↗️', texto: 'Mantente a la derecha' + calle };
+            }
+            if (mod === 'sharp left') {
+                return { icono: '⤶', texto: 'Giro cerrado a la izquierda' + calle };
+            }
+            if (mod === 'left') {
+                return { icono: '↰', texto: 'Gira a la izquierda' + calle };
+            }
+            if (mod === 'slight left') {
+                return { icono: '↖️', texto: 'Mantente a la izquierda' + calle };
+            }
+            return { icono: '⬆️', texto: 'Continúa recto' + (calle || ' por la vía') };
+        }
+
+        async function consultarTramoOSRM(coordsChunk) {
             try {
-                if (!coordsArray || coordsArray.length < 2) return null;
-                var strCoords = coordsArray.map(function(c){ return c.lng + ',' + c.lat; }).join(';');
-                var url = 'https://router.project-osrm.org/route/v1/driving/' + strCoords + '?overview=full&geometries=geojson';
-                
+                var strCoords = coordsChunk.map(function(c){ return c.lng.toFixed(6) + ',' + c.lat.toFixed(6); }).join(';');
+                var url = 'https://router.project-osrm.org/route/v1/driving/' + strCoords + '?overview=full&geometries=geojson&steps=true';
                 var controller = new AbortController();
-                var timeoutId = setTimeout(function(){ controller.abort(); }, 3500);
-                
+                var timeoutId = setTimeout(function(){ controller.abort(); }, 5500);
                 var resp = await fetch(url, { signal: controller.signal });
                 clearTimeout(timeoutId);
-                
                 if (resp.ok) {
                     var data = await resp.json();
-                    if (data.routes && data.routes.length > 0 && data.routes[0].geometry) {
-                        var geomCoords = data.routes[0].geometry.coordinates.map(function(pt) {
+                    if (data.routes && data.routes.length > 0) {
+                        var route = data.routes[0];
+                        var geomCoords = (route.geometry && route.geometry.coordinates) ? route.geometry.coordinates.map(function(pt) {
                             return [pt[1], pt[0]];
+                        }) : coordsChunk.map(function(c){ return [c.lat, c.lng]; });
+
+                        var legsParsed = (route.legs || []).map(function(leg) {
+                            var legPts = [];
+                            var pasos = [];
+                            (leg.steps || []).forEach(function(st) {
+                                if (st.geometry && st.geometry.coordinates) {
+                                    st.geometry.coordinates.forEach(function(c) {
+                                        legPts.push([c[1], c[0]]);
+                                    });
+                                }
+                                var trad = traducirManiobraOSRM(st);
+                                pasos.push({
+                                    icono: trad.icono,
+                                    texto: trad.texto,
+                                    calle: st.name || '',
+                                    distancia: Math.round(st.distance || 0),
+                                    duracion: Math.round(st.duration || 0),
+                                    lat: (st.maneuver && st.maneuver.location) ? st.maneuver.location[1] : null,
+                                    lng: (st.maneuver && st.maneuver.location) ? st.maneuver.location[0] : null
+                                });
+                            });
+                            return {
+                                puntos: legPts,
+                                distanciaMetros: Math.round(leg.distance || 0),
+                                duracionSeg: Math.round(leg.duration || 0),
+                                pasos: pasos
+                            };
                         });
+
                         return {
                             puntos: geomCoords,
-                            distanciaKm: (data.routes[0].distance / 1000).toFixed(1),
-                            duracionMin: Math.round(data.routes[0].duration / 60)
+                            distanciaMetros: route.distance || 0,
+                            duracionSeg: route.duration || 0,
+                            legs: legsParsed
                         };
                     }
                 }
             } catch(e) {
-                console.warn("OSRM routing fallback:", e);
+                console.warn("OSRM chunk fallback:", e);
+            }
+
+            // Fallback lineal si no hay respuesta del servidor vial
+            var fallbackLegs = [];
+            var totalDist = 0;
+            for (var k = 0; k < coordsChunk.length - 1; k++) {
+                var a = coordsChunk[k];
+                var b = coordsChunk[k + 1];
+                var d = calcularDistancia(a.lat, a.lng, b.lat, b.lng);
+                totalDist += d;
+                fallbackLegs.push({
+                    puntos: [[a.lat, a.lng], [b.lat, b.lng]],
+                    distanciaMetros: Math.round(d),
+                    duracionSeg: Math.round(d / 8.3),
+                    pasos: [{
+                        icono: '🧭',
+                        texto: 'Dirígete hacia la parada #' + (k + 1),
+                        calle: '',
+                        distancia: Math.round(d),
+                        duracion: Math.round(d / 8.3),
+                        lat: a.lat,
+                        lng: a.lng
+                    }]
+                });
             }
             return {
-                puntos: coordsArray.map(function(c){ return [c.lat, c.lng]; }),
-                distanciaKm: null,
-                duracionMin: null
+                puntos: coordsChunk.map(function(c){ return [c.lat, c.lng]; }),
+                distanciaMetros: totalDist,
+                duracionSeg: Math.round(totalDist / 8.3),
+                legs: fallbackLegs
             };
         }
 
-        function trazarRutaVialEnMapa(coordsPaso, paradasItems, urlGoogleMaps, tituloRuta) {
+        // Soporta rutas de 4, 15, 50 o más de 100 paradas dividiendo en bloques viales automáticos
+        async function obtenerGeometriaVialReal(coordsArray) {
+            if (!coordsArray || coordsArray.length < 2) return null;
+            var tamanoBloque = 20;
+            var todosPuntos = [];
+            var todosLegs = [];
+            var distTotalM = 0;
+            var durTotalS = 0;
+
+            for (var inicio = 0; inicio < coordsArray.length - 1; inicio += (tamanoBloque - 1)) {
+                var sub = coordsArray.slice(inicio, inicio + tamanoBloque);
+                if (sub.length < 2) break;
+                var resBloque = await consultarTramoOSRM(sub);
+                if (resBloque) {
+                    if (todosPuntos.length > 0 && resBloque.puntos.length > 0) {
+                        todosPuntos = todosPuntos.concat(resBloque.puntos.slice(1));
+                    } else {
+                        todosPuntos = todosPuntos.concat(resBloque.puntos);
+                    }
+                    todosLegs = todosLegs.concat(resBloque.legs || []);
+                    distTotalM += (resBloque.distanciaMetros || 0);
+                    durTotalS += (resBloque.duracionSeg || 0);
+                }
+            }
+
+            return {
+                puntos: todosPuntos,
+                distanciaKm: (distTotalM / 1000).toFixed(1),
+                duracionMin: Math.max(1, Math.round(durTotalS / 60)),
+                legs: todosLegs
+            };
+        }
+
+        function hablarInstruccionCopiloto(texto) {
+            if (!navVozActiva || !('speechSynthesis' in window) || !texto) return;
+            if (texto === navUltimoTextoVoz) return;
+            navUltimoTextoVoz = texto;
+            try {
+                window.speechSynthesis.cancel();
+                var utter = new SpeechSynthesisUtterance(texto);
+                utter.lang = 'es-CO';
+                utter.rate = 1.03;
+                utter.pitch = 1.0;
+                window.speechSynthesis.speak(utter);
+            } catch(eVoz) {}
+        }
+
+        function toggleVozCopiloto() {
+            navVozActiva = !navVozActiva;
+            var btn = document.getElementById('btn-nav-voz');
+            if (btn) {
+                btn.innerHTML = navVozActiva ? '🔊' : '🔇';
+                btn.style.background = navVozActiva ? '#059669' : '#334155';
+            }
+            if (navVozActiva) {
+                navUltimoTextoVoz = "";
+                hablarInstruccionCopiloto("Voz de copiloto activada.");
+            } else if ('speechSynthesis' in window) {
+                try { window.speechSynthesis.cancel(); } catch(e){}
+            }
+        }
+
+        function activarAutoFollowCopiloto() {
+            navAutoFollow = true;
+            actualizarBotonAutoFollowUI();
+            if (userLat && userLng) {
+                map.setView([userLat, userLng], 17, { animate: true });
+            } else if (navParadas[navIndiceActual]) {
+                var p = navParadas[navIndiceActual];
+                map.setView([p.lat, p.lng], 16, { animate: true });
+            }
+        }
+
+        function actualizarBotonAutoFollowUI() {
+            var btn = document.getElementById('btn-nav-autofollow');
+            if (!btn) return;
+            if (navAutoFollow) {
+                btn.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+                btn.style.borderColor = '#38bdf8';
+                btn.innerHTML = '🎯 Siguiendo';
+            } else {
+                btn.style.background = 'linear-gradient(135deg, #ea580c, #c2410c)';
+                btn.style.borderColor = '#fde047';
+                btn.innerHTML = '🎯 Centrar Moto';
+            }
+        }
+
+        function trazarRutaVialEnMapa(coordsPaso, paradasItems, urlGoogleMaps, tituloRuta, iniciarCopilotoDirecto) {
             if (capaRutaActiva && map.hasLayer(capaRutaActiva)) {
                 map.removeLayer(capaRutaActiva);
             }
             capaRutaActiva = L.layerGroup();
 
+            navParadas = (paradasItems || []).slice();
+            navOrigen = coordsPaso && coordsPaso.length > 0 ? coordsPaso[0] : obtenerOrigenRutaBase();
+            navIndiceActual = 0;
+
+            mostrarCargando("🛣️ Consultando malla vial calle por calle (" + navParadas.length + " paradas)...");
+
             obtenerGeometriaVialReal(coordsPaso).then(function(resRuta) {
-                var puntosLinea = resRuta ? resRuta.puntos : coordsPaso.map(c => [c.lat, c.lng]);
+                ocultarCargando();
+                navDatosViales = resRuta;
+                var puntosLinea = (resRuta && resRuta.puntos && resRuta.puntos.length > 0) ? resRuta.puntos : coordsPaso.map(function(c){ return [c.lat, c.lng]; });
                 var distKm = (resRuta && resRuta.distanciaKm) ? resRuta.distanciaKm : "--";
                 var durMin = (resRuta && resRuta.duracionMin) ? resRuta.duracionMin : "--";
 
                 var lineaGlow = L.polyline(puntosLinea, {
                     color: '#00f0ff',
-                    weight: 9,
-                    opacity: 0.35,
+                    weight: 10,
+                    opacity: 0.28,
                     lineCap: 'round',
                     lineJoin: 'round'
                 });
                 capaRutaActiva.addLayer(lineaGlow);
 
                 var lineaPrincipal = L.polyline(puntosLinea, {
-                    color: '#0284c7',
+                    color: '#2563eb',
                     weight: 5,
-                    opacity: 0.95,
+                    opacity: 0.9,
                     lineCap: 'round',
                     lineJoin: 'round'
                 });
                 capaRutaActiva.addLayer(lineaPrincipal);
 
+                navCapaTramoActivo = L.layerGroup();
+                capaRutaActiva.addLayer(navCapaTramoActivo);
+
                 paradasItems.forEach(function(item, idx) {
                     var numIcon = L.divIcon({
                         className: 'waypoint-marker-icon',
-                        html: `<div style="background:#0f172a; color:#00f0ff; border:2px solid #00f0ff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:11px; box-shadow:0 0 10px rgba(0,240,255,0.7);">${idx + 1}</div>`,
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
+                        html: `<div id="wp-bubble-${idx}" onclick="seleccionarParadaCopiloto(${idx})" style="background:#0f172a; color:#00f0ff; border:2px solid #00f0ff; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:11.5px; box-shadow:0 0 10px rgba(0,240,255,0.8); cursor:pointer;">${idx + 1}</div>`,
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
                     });
-                    var markerWp = L.marker([item.lat, item.lng], { icon: numIcon, zIndexOffset: 1000 });
-                    markerWp.bindTooltip(`<b>Parada ${idx + 1}:</b> ${item.placa} (${item.vehiculo || ''})`, { direction: 'top', offset: [0, -10] });
+                    var markerWp = L.marker([item.lat, item.lng], { icon: numIcon, zIndexOffset: 1200 });
+                    markerWp.on('click', function() {
+                        if (navCopilotoActivo) {
+                            seleccionarParadaCopiloto(idx);
+                        } else if (item.marker) {
+                            item.marker.openPopup();
+                        }
+                    });
                     capaRutaActiva.addLayer(markerWp);
                 });
 
                 capaRutaActiva.addTo(map);
 
-                try {
-                    map.fitBounds(lineaPrincipal.getBounds(), { padding: [50, 50] });
-                } catch(efit) {}
+                if (iniciarCopilotoDirecto) {
+                    iniciarModoCopilotoEnMapa();
+                } else {
+                    try {
+                        map.fitBounds(lineaPrincipal.getBounds(), { padding: [55, 55] });
+                    } catch(efit) {}
 
-                var hud = document.getElementById('hud-ruta-activa');
-                var hudTit = document.getElementById('hud-ruta-titulo');
-                var hudStats = document.getElementById('hud-ruta-stats');
-                var hudBtnMaps = document.getElementById('hud-btn-abrir-maps');
+                    var hud = document.getElementById('hud-ruta-activa');
+                    var hudTit = document.getElementById('hud-ruta-titulo');
+                    var hudStats = document.getElementById('hud-ruta-stats');
+                    var hudBtnMaps = document.getElementById('hud-btn-abrir-maps');
 
-                if (hud) hud.style.display = 'block';
-                if (hudTit) hudTit.innerText = tituloRuta || "🛣️ Ruta Activa (Malla Vial)";
-                if (hudStats) {
-                    hudStats.innerHTML = `📍 <b>${paradasItems.length} paradas</b> • 📏 <b>${distKm} km</b> • ⏱️ <b>~${durMin} min</b>`;
+                    if (hud) hud.style.display = 'block';
+                    if (hudTit) hudTit.innerText = tituloRuta || "🛣️ Ruta Activa (Malla Vial)";
+                    if (hudStats) {
+                        hudStats.innerHTML = `📍 <b>${paradasItems.length} paradas</b> • 📏 <b>${distKm} km</b> • ⏱️ <b>~${durMin} min</b>`;
+                    }
+                    if (hudBtnMaps && urlGoogleMaps) {
+                        hudBtnMaps.href = urlGoogleMaps;
+                    }
                 }
-                if (hudBtnMaps && urlGoogleMaps) {
-                    hudBtnMaps.href = urlGoogleMaps;
-                }
+            }).catch(function(errR) {
+                ocultarCargando();
+                console.warn("Error trazando ruta:", errR);
             });
         }
 
+        function iniciarModoCopilotoEnMapa() {
+            if (!navParadas || navParadas.length === 0) {
+                mostrarToastNotificacion("⚠️ Primero genera una ruta en el Centro de Rutas.");
+                return;
+            }
+            navCopilotoActivo = true;
+            navAutoFollow = true;
+            navUltimaAlertaPlacaIdx = -1;
+
+            var hudMini = document.getElementById('hud-ruta-activa');
+            if (hudMini) hudMini.style.display = 'none';
+
+            var hudCopiloto = document.getElementById('hud-navegador-copiloto');
+            if (hudCopiloto) hudCopiloto.style.display = 'block';
+
+            // Ocultar barra superior principal para dar máxima visión tipo Google Maps
+            var topBar = document.getElementById('top-bar-container');
+            if (topBar) topBar.style.display = 'none';
+
+            actualizarBotonAutoFollowUI();
+            renderizarParadaCopilotoActual(true);
+
+            var pAct = navParadas[navIndiceActual];
+            if (pAct) {
+                var m = (pAct.marca && pAct.marca !== '-' && pAct.marca !== 'VEHÍCULO') ? pAct.marca : '';
+                var l = (pAct.linea && pAct.linea !== '-') ? pAct.linea : '';
+                hablarInstruccionCopiloto("Iniciando patrullaje en mapa con " + navParadas.length + " paradas. Parada 1: placa " + pAct.placa + ", " + m + " " + l);
+            }
+        }
+
+        function detenerModoCopilotoEnMapa() {
+            navCopilotoActivo = false;
+            var hudCopiloto = document.getElementById('hud-navegador-copiloto');
+            if (hudCopiloto) hudCopiloto.style.display = 'none';
+
+            var topBar = document.getElementById('top-bar-container');
+            if (topBar) topBar.style.display = 'flex';
+
+            if (capaRutaActiva && map.hasLayer(capaRutaActiva)) {
+                var hudMini = document.getElementById('hud-ruta-activa');
+                if (hudMini) hudMini.style.display = 'block';
+            }
+        }
+
+        function seleccionarParadaCopiloto(idx) {
+            if (!navParadas || idx < 0 || idx >= navParadas.length) return;
+            navIndiceActual = idx;
+            navUltimaAlertaPlacaIdx = -1;
+            renderizarParadaCopilotoActual(true);
+        }
+
+        function cambiarParadaCopiloto(delta) {
+            if (!navParadas || navParadas.length === 0) return;
+            var nuevo = navIndiceActual + delta;
+            if (nuevo < 0) {
+                mostrarToastNotificacion("ℹ️ Ya estás en la primera parada.");
+                return;
+            }
+            if (nuevo >= navParadas.length) {
+                hablarInstruccionCopiloto("Has completado todas las paradas de la ruta.");
+                mostrarToastNotificacion("🏁 ¡Felicidades! Llegaste al final de las " + navParadas.length + " paradas.");
+                return;
+            }
+            navIndiceActual = nuevo;
+            navUltimaAlertaPlacaIdx = -1;
+            renderizarParadaCopilotoActual(true);
+            var p = navParadas[navIndiceActual];
+            if (p) {
+                var m = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
+                var l = (p.linea && p.linea !== '-') ? p.linea : '';
+                hablarInstruccionCopiloto("Siguiente objetivo, parada " + (navIndiceActual + 1) + ": placa " + p.placa + ", " + m + " " + l);
+            }
+        }
+
+        function marcarParadaActualVisitadaYSiguiente() {
+            var p = navParadas[navIndiceActual];
+            if (!p) return;
+            marcarVisitada(p.placa, p.id);
+        }
+
+        function alMarcarVisitadaEnNavegador(itemVisitado) {
+            if (!navCopilotoActivo || !navParadas || navParadas.length === 0) return;
+            var pActual = navParadas[navIndiceActual];
+            if (pActual && (pActual.id === itemVisitado.id || pActual.placa === itemVisitado.placa)) {
+                if (navIndiceActual < navParadas.length - 1) {
+                    setTimeout(function() {
+                        cambiarParadaCopiloto(1);
+                    }, 350);
+                } else {
+                    renderizarParadaCopilotoActual(false);
+                    hablarInstruccionCopiloto("Ruta finalizada. Todas las paradas fueron inspeccionadas.");
+                    mostrarToastNotificacion("🏁 ¡Ruta completada con éxito!");
+                }
+            }
+        }
+
+        function abrirParadaActualEnAppExterna() {
+            var p = navParadas[navIndiceActual];
+            if (!p) return;
+            var url = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.lat + "," + p.lng) + "&travelmode=driving";
+            window.open(url, '_blank');
+        }
+
+        function renderizarParadaCopilotoActual(centrarCamara) {
+            if (!navParadas || navParadas.length === 0) return;
+            var p = navParadas[navIndiceActual];
+            if (!p) return;
+
+            // 1. Actualizar burbujas numeradas en el mapa
+            for (var i = 0; i < navParadas.length; i++) {
+                var b = document.getElementById('wp-bubble-' + i);
+                if (b) {
+                    if (i < navIndiceActual || navParadas[i].visitada) {
+                        b.style.background = '#15803d';
+                        b.style.color = '#ffffff';
+                        b.style.borderColor = '#86efac';
+                        b.innerHTML = '✓';
+                    } else if (i === navIndiceActual) {
+                        b.style.background = '#ffea00';
+                        b.style.color = '#000000';
+                        b.style.borderColor = '#ef4444';
+                        b.style.transform = 'scale(1.28)';
+                        b.innerHTML = (i + 1);
+                    } else {
+                        b.style.background = '#0f172a';
+                        b.style.color = '#00f0ff';
+                        b.style.borderColor = '#00f0ff';
+                        b.style.transform = 'scale(1)';
+                        b.innerHTML = (i + 1);
+                    }
+                }
+            }
+
+            // 2. Resaltar el tramo vial activo en color Verde Neón (#00ff87)
+            if (navCapaTramoActivo) {
+                navCapaTramoActivo.clearLayers();
+                var legActivo = (navDatosViales && navDatosViales.legs && navDatosViales.legs[navIndiceActual]) ? navDatosViales.legs[navIndiceActual] : null;
+                if (legActivo && legActivo.puntos && legActivo.puntos.length > 1) {
+                    var polyActivaGlow = L.polyline(legActivo.puntos, {
+                        color: '#00ff87',
+                        weight: 12,
+                        opacity: 0.45,
+                        lineCap: 'round'
+                    });
+                    var polyActiva = L.polyline(legActivo.puntos, {
+                        color: '#10b981',
+                        weight: 6,
+                        opacity: 1.0,
+                        lineCap: 'round'
+                    });
+                    navCapaTramoActivo.addLayer(polyActivaGlow);
+                    navCapaTramoActivo.addLayer(polyActiva);
+                }
+
+                // Línea guía punteada en vivo desde el GPS de la moto hasta el objetivo actual
+                if (userLat && userLng) {
+                    navLineaGuiaGps = L.polyline([[userLat, userLng], [p.lat, p.lng]], {
+                        color: '#ffea00',
+                        weight: 3.5,
+                        dashArray: '8, 8',
+                        opacity: 0.9
+                    });
+                    navCapaTramoActivo.addLayer(navLineaGuiaGps);
+                }
+            }
+
+            // 3. Actualizar textos de la barra inferior
+            var elOrden = document.getElementById('nav-parada-orden');
+            var elPlaca = document.getElementById('nav-parada-placa');
+            var elPico = document.getElementById('nav-parada-pico');
+            var elCarro = document.getElementById('nav-parada-carro');
+            var elDir = document.getElementById('nav-parada-dir');
+            var btnFoto = document.getElementById('btn-nav-ver-foto');
+
+            if (elOrden) elOrden.innerText = "PARADA " + (navIndiceActual + 1) + " DE " + navParadas.length;
+            if (elPlaca) elPlaca.innerText = p.placa || '---';
+            if (elPico) {
+                elPico.innerText = p.pico ? "⚠️ PICO Y PLACA" : "✅ HÁBIL";
+                elPico.style.background = p.pico ? "#d35400" : "#16a34a";
+            }
+
+            var vMarca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
+            var vLinea = (p.linea && p.linea !== '-') ? p.linea : '';
+            var vModelo = (p.modelo && p.modelo !== '-') ? p.modelo : '';
+            var vColor = (p.color && p.color !== '-') ? p.color : 'SIN COLOR';
+            var descVeh = ([vMarca, vLinea, vModelo].filter(Boolean).join(' ') || 'VEHÍCULO') + ' • 🎨 ' + vColor;
+
+            if (elCarro) elCarro.innerText = "🚗 " + descVeh;
+            if (elDir) elDir.innerText = "📍 " + (p.dirOriginal || p.dir || 'Dirección registrada');
+            if (btnFoto) {
+                btnFoto.style.display = p.foto ? 'inline-flex' : 'none';
+            }
+
+            // 4. Actualizar métricas de distancia y cartel superior de maniobras
+            actualizarMetricasYManiobraCopiloto();
+
+            // 5. Enfocar cámara si se solicitó
+            if (centrarCamara) {
+                if (navAutoFollow && userLat && userLng) {
+                    map.setView([userLat, userLng], 17, { animate: true });
+                } else {
+                    map.setView([p.lat, p.lng], 16, { animate: true });
+                }
+            }
+        }
+
+        function actualizarMetricasYManiobraCopiloto() {
+            if (!navCopilotoActivo || !navParadas || !navParadas[navIndiceActual]) return;
+            var p = navParadas[navIndiceActual];
+            var orig = (userLat && userLng) ? { lat: userLat, lng: userLng } : navOrigen;
+            var distObjetivoM = orig ? Math.round(calcularDistancia(orig.lat, orig.lng, p.lat, p.lng)) : 0;
+            var minEst = Math.max(1, Math.round(distObjetivoM / 350));
+
+            var elDist = document.getElementById('nav-parada-dist');
+            if (elDist) {
+                var txtD = distObjetivoM < 1000 ? (distObjetivoM + " m") : ((distObjetivoM / 1000).toFixed(1) + " km");
+                elDist.innerText = "🎯 " + txtD + " (~" + minEst + " min)";
+            }
+
+            // Determinar el paso vial más cercano en el tramo actual
+            var legActivo = (navDatosViales && navDatosViales.legs && navDatosViales.legs[navIndiceActual]) ? navDatosViales.legs[navIndiceActual] : null;
+            var iconoGiro = '⬆️';
+            var textoGiro = 'Dirígete hacia ' + p.placa + ' (' + (p.dirOriginal || p.dir || '') + ')';
+            var distGiroTxt = distObjetivoM < 1000 ? (distObjetivoM + ' m') : ((distObjetivoM / 1000).toFixed(1) + ' km');
+            var subGiroTxt = 'Objetivo #' + (navIndiceActual + 1) + ' de ' + navParadas.length + ' • Restan ' + (navParadas.length - navIndiceActual) + ' placas';
+
+            if (legActivo && legActivo.pasos && legActivo.pasos.length > 0 && orig) {
+                var mejorPaso = legActivo.pasos[0];
+                var menorD = Infinity;
+                var idxMejor = 0;
+
+                for (var s = 0; s < legActivo.pasos.length; s++) {
+                    var st = legActivo.pasos[s];
+                    if (st.lat && st.lng) {
+                        var dSt = calcularDistancia(orig.lat, orig.lng, st.lat, st.lng);
+                        if (dSt < menorD) {
+                            menorD = dSt;
+                            mejorPaso = st;
+                            idxMejor = s;
+                        }
+                    }
+                }
+                // Mostrar la siguiente maniobra si ya estamos encima de la actual (< 25m)
+                if (menorD < 25 && idxMejor + 1 < legActivo.pasos.length) {
+                    mejorPaso = legActivo.pasos[idxMejor + 1];
+                    if (mejorPaso.lat && mejorPaso.lng) {
+                        menorD = calcularDistancia(orig.lat, orig.lng, mejorPaso.lat, mejorPaso.lng);
+                    }
+                }
+                iconoGiro = mejorPaso.icono || '⬆️';
+                textoGiro = mejorPaso.texto || textoGiro;
+                var dGiroM = Math.round(menorD < Infinity ? menorD : (mejorPaso.distancia || distObjetivoM));
+                distGiroTxt = dGiroM < 1000 ? (dGiroM + ' m') : ((dGiroM / 1000).toFixed(1) + ' km');
+
+                if (idxMejor + 1 < legActivo.pasos.length) {
+                    subGiroTxt = 'Luego: ' + legActivo.pasos[idxMejor + 1].texto;
+                }
+            }
+
+            var elIcono = document.getElementById('nav-giro-icono');
+            var elGiroDist = document.getElementById('nav-giro-dist');
+            var elGiroTxt = document.getElementById('nav-giro-texto');
+            var elGiroSub = document.getElementById('nav-giro-sub');
+
+            if (elIcono) elIcono.innerText = iconoGiro;
+            if (elGiroDist) elGiroDist.innerText = distGiroTxt;
+            if (elGiroTxt) elGiroTxt.innerText = textoGiro;
+            if (elGiroSub) elGiroSub.innerText = subGiroTxt;
+
+            // Alerta por voz cuando el motorizado está a menos de 180 metros de la placa objetivo
+            if (distObjetivoM > 0 && distObjetivoM <= 180 && navUltimaAlertaPlacaIdx !== navIndiceActual) {
+                navUltimaAlertaPlacaIdx = navIndiceActual;
+                var m = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
+                var col = (p.color && p.color !== '-') ? p.color : '';
+                hablarInstruccionCopiloto("Atención, estás a " + distObjetivoM + " metros de la placa " + p.placa + ", " + m + " color " + col);
+            }
+        }
+
+        function actualizarProgresoNavegadorEnVivo(pos) {
+            if (!navCopilotoActivo) return;
+
+            // Calcular velocidad en km/h (desde sensor hardware o diferencial GPS)
+            var velKmh = 0;
+            if (pos && pos.coords && typeof pos.coords.speed === 'number' && pos.coords.speed >= 0) {
+                velKmh = Math.round(pos.coords.speed * 3.6);
+            } else if (userLat && userLng && navUltimoGpsPos && navUltimoGpsTs > 0) {
+                var dtSeg = (Date.now() - navUltimoGpsTs) / 1000;
+                if (dtSeg > 0.4 && dtSeg < 15) {
+                    var distM = calcularDistancia(navUltimoGpsPos.lat, navUltimoGpsPos.lng, userLat, userLng);
+                    var calcKmh = Math.round((distM / dtSeg) * 3.6);
+                    if (calcKmh < 140) velKmh = calcKmh;
+                }
+            }
+            if (userLat && userLng) {
+                navUltimoGpsPos = { lat: userLat, lng: userLng };
+                navUltimoGpsTs = Date.now();
+            }
+
+            var elVel = document.getElementById('nav-velocidad-val');
+            if (elVel) elVel.innerText = velKmh;
+
+            // Actualizar línea punteada en vivo hacia la parada actual
+            var p = navParadas[navIndiceActual];
+            if (p && navLineaGuiaGps && userLat && userLng) {
+                navLineaGuiaGps.setLatLngs([[userLat, userLng], [p.lat, p.lng]]);
+            }
+
+            actualizarMetricasYManiobraCopiloto();
+
+            // Mover cámara siguiendo la moto si el seguimiento automático está activo
+            if (navAutoFollow && userLat && userLng) {
+                map.panTo([userLat, userLng], { animate: true, duration: 0.5 });
+            }
+        }
+
         function limpiarRutaActiva() {
+            detenerModoCopilotoEnMapa();
             if (capaRutaActiva && map.hasLayer(capaRutaActiva)) {
                 map.removeLayer(capaRutaActiva);
             }
             capaRutaActiva = null;
+            navParadas = [];
+            navDatosViales = null;
             var hud = document.getElementById('hud-ruta-activa');
             if (hud) hud.style.display = 'none';
             mostrarToastNotificacion("🧹 Ruta limpiada del mapa.");
@@ -7612,13 +8531,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
-        // --- ORDENAMIENTO POR CERCANÍA CONTINUA (NEAREST NEIGHBOR / TSP) ---
+        // --- ORDENAMIENTO POR CERCANÍA CONTINUA + OPTIMIZACIÓN 2-OPT ANTI ZIG-ZAG ---
         function ordenarPuntosPorCercania(origen, listaPuntos, limite) {
             var pendientes = listaPuntos.slice();
             var rutaOrdenada = [];
             var puntoActual = origen;
 
-            var maxParadas = Math.min(pendientes.length, limite || 8);
+            var limNum = parseInt(limite) || 8;
+            var maxParadas = (limNum >= 999) ? pendientes.length : Math.min(pendientes.length, limNum);
 
             for (var i = 0; i < maxParadas; i++) {
                 var mejorDist = Infinity;
@@ -7639,6 +8559,34 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     puntoActual = { lat: seleccionado.lat, lng: seleccionado.lng };
                 }
             }
+
+            // Optimización 2-Opt ligera para descruzar tramos cuando hay muchas paradas
+            if (rutaOrdenada.length >= 4 && rutaOrdenada.length <= 80) {
+                var mejorado = true;
+                var iter = 0;
+                while (mejorado && iter < 25) {
+                    mejorado = false;
+                    iter++;
+                    for (var a = 0; a < rutaOrdenada.length - 2; a++) {
+                        var pPrev = (a === 0) ? origen : rutaOrdenada[a - 1];
+                        var pA = rutaOrdenada[a];
+                        for (var b = a + 1; b < rutaOrdenada.length - 1; b++) {
+                            var pB = rutaOrdenada[b];
+                            var pNext = rutaOrdenada[b + 1];
+                            var distActual = calcularDistancia(pPrev.lat, pPrev.lng, pA.lat, pA.lng) +
+                                             calcularDistancia(pB.lat, pB.lng, pNext.lat, pNext.lng);
+                            var distNueva = calcularDistancia(pPrev.lat, pPrev.lng, pB.lat, pB.lng) +
+                                            calcularDistancia(pA.lat, pA.lng, pNext.lat, pNext.lng);
+                            if (distNueva + 5 < distActual) {
+                                var subRev = rutaOrdenada.slice(a, b + 1).reverse();
+                                rutaOrdenada.splice.apply(rutaOrdenada, [a, b - a + 1].concat(subRev));
+                                mejorado = true;
+                            }
+                        }
+                    }
+                }
+            }
+
             return rutaOrdenada;
         }
 
@@ -7647,11 +8595,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var latO = origen.lat.toFixed(6);
             var lngO = origen.lng.toFixed(6);
 
-            var destinoFinal = paradas[paradas.length - 1];
+            // Google Maps externo soporta máximo 9 puntos (8 intermedios + 1 final)
+            var paradasMaps = paradas.slice(0, 9);
+            var destinoFinal = paradasMaps[paradasMaps.length - 1];
             var latD = destinoFinal.lat.toFixed(6);
             var lngD = destinoFinal.lng.toFixed(6);
 
-            var waypoints = paradas.slice(0, paradas.length - 1).map(function(p) {
+            var waypoints = paradasMaps.slice(0, paradasMaps.length - 1).map(function(p) {
                 return p.lat.toFixed(6) + ',' + p.lng.toFixed(6);
             }).join('|');
 
@@ -7673,44 +8623,41 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
 
         // =========================================================================
-        // 1. RUTA DE CERCANÍA (PATRULLAJE RÁPIDO DE 4 A 8 MÁS CERCANAS)
+        // 1. RUTA DE CERCANÍA (SOPORTA 4, 8, 15, 25, 50 O TODAS LAS FILTRADAS)
         // =========================================================================
-        async function ejecutarRutaCercania() {
-            var limite = parseInt(document.getElementById('rutaCercaniaCantidad').value) || 6;
+        async function ejecutarRutaCercania(enMapaPropio) {
+            var limite = parseInt(document.getElementById('rutaCercaniaCantidad').value) || 15;
             var soloPendientes = document.getElementById('chkRutaCercaniaPendientes').checked;
             var origen = obtenerOrigenRutaBase();
 
-            var pool = puntosData.filter(function(p) {
-                if (!p.lat || !p.lng) return false;
-                if (soloPendientes && !esElegibleParaRadar(p)) return false;
-                return true;
-            });
+            var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: soloPendientes });
 
-            // Si todas están visitadas pero el usuario quiere patrullar, usar todo el mapa
-            if (pool.length === 0) {
-                pool = puntosData.filter(p => p.lat && p.lng);
+            if (pool.length === 0 && soloPendientes) {
+                pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: false });
             }
 
             if (pool.length === 0) {
-                alert("No hay placas registradas en el mapa para enrutar.");
+                alert("No hay placas registradas que coincidan con los filtros activos para enrutar.");
                 return;
             }
 
             var paradasOrdenadas = ordenarPuntosPorCercania(origen, pool, limite);
-            var coordsPaso = [origen].concat(paradasOrdenadas.map(p => ({ lat: p.lat, lng: p.lng })));
+            var coordsPaso = [origen].concat(paradasOrdenadas.map(function(p){ return { lat: p.lat, lng: p.lng }; }));
             var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradasOrdenadas);
 
             cerrarModalRutaCorredor();
-            trazarRutaVialEnMapa(coordsPaso, paradasOrdenadas, urlMaps, "🎯 Ronda de Cercanía (" + paradasOrdenadas.length + " placas)");
+            trazarRutaVialEnMapa(coordsPaso, paradasOrdenadas, urlMaps, "🎯 Ronda de Cercanía (" + paradasOrdenadas.length + " placas)", !!enMapaPropio);
 
-            mostrarToastNotificacion("🚀 Ronda trazada. Abriendo Google Maps...");
-            window.open(urlMaps, '_blank');
+            if (!enMapaPropio) {
+                mostrarToastNotificacion("🚀 Abriendo primeras paradas en Google Maps...");
+                window.open(urlMaps, '_blank');
+            }
         }
 
         // =========================================================================
         // 2. RUTA HACIA DESTINO (CORREDOR VIAL EN EL CAMINO CON DESVÍO)
         // =========================================================================
-        async function calcularYAbrirRutaCorredor() {
+        async function calcularYAbrirRutaCorredor(enMapaPropio) {
             var destTexto = (document.getElementById('rutaCorredorDestino') ? document.getElementById('rutaCorredorDestino').value : '').trim();
             if (!destTexto) {
                 alert("Por favor escribe el destino final (ej: Envigado, Parque Envigado o una dirección).");
@@ -7719,14 +8666,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
             var origTexto = (document.getElementById('rutaCorredorOrigen') ? document.getElementById('rutaCorredorOrigen').value : '').trim();
             var radioMax = parseInt(document.getElementById('rutaCorredorRadio') ? document.getElementById('rutaCorredorRadio').value : 500) || 500;
+            var limiteCorredor = parseInt(document.getElementById('rutaCorredorCantidad') ? document.getElementById('rutaCorredorCantidad').value : 25) || 25;
             var soloPendientes = document.getElementById('chkRutaSoloPendientes') ? document.getElementById('chkRutaSoloPendientes').checked : true;
 
-            var loadingOverlay = document.getElementById('loading-overlay');
-            var loadingTexto = document.getElementById('loading-texto');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'flex';
-                if (loadingTexto) loadingTexto.innerText = "🧭 Calculando destino y ruta en corredor...";
-            }
+            mostrarCargando("🧭 Calculando destino y ruta en corredor...");
 
             try {
                 var coordsDest = null;
@@ -7738,7 +8681,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }
 
                 if (!coordsDest || !coordsDest.lat || !coordsDest.lng) {
-                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                    ocultarCargando();
                     alert("No fue posible geocodificar el destino '" + destTexto + "'. Intenta ingresar un municipio (ej: Envigado, Sabaneta) o una dirección más específica.");
                     return;
                 }
@@ -7761,128 +8704,107 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 var lngD = coordsDest.lng;
 
                 var candidatos = [];
-                puntosData.forEach(function(item) {
-                    if (!item.lat || !item.lng) return;
-                    if (soloPendientes && !esElegibleParaRadar(item)) return;
+                var poolFiltro = obtenerPuntosFiltradosParaRuta({ soloPendientes: soloPendientes });
 
+                poolFiltro.forEach(function(item) {
                     var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
                     if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
                         candidatos.push({ item: item, dist: res.dist, t: res.t });
                     }
                 });
 
-                // Si no hay pendientes en el desvío, incluir cualquiera en el desvío
-                if (candidatos.length === 0) {
-                    puntosData.forEach(function(item) {
-                        if (!item.lat || !item.lng) return;
-                        var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
-                        if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
-                            candidatos.push({ item: item, dist: res.dist, t: res.t });
-                        }
-                    });
-                }
-
                 candidatos.sort(function(a, b) { return a.t - b.t; });
-                var paradas = candidatos.slice(0, 8).map(c => c.item);
+                var maxPar = (limiteCorredor >= 999) ? candidatos.length : limiteCorredor;
+                var paradas = candidatos.slice(0, maxPar).map(function(c){ return c.item; });
 
-                var todasLasParadas = paradas.concat([{ lat: latD, lng: lngD, placa: 'DESTINO: ' + destTexto }]);
-                var coordsPaso = [coordsOrig].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng }))).concat([coordsDest]);
+                var todasLasParadas = paradas.concat([{ lat: latD, lng: lngD, placa: 'DESTINO: ' + destTexto, dir: destTexto, marca: 'META FINAL' }]);
+                var coordsPaso = [coordsOrig].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; })).concat([coordsDest]);
                 var urlMaps = construirUrlGoogleMapsMultiParadas(coordsOrig, todasLasParadas);
 
-                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                ocultarCargando();
                 cerrarModalRutaCorredor();
 
-                trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🧭 Corredor hacia " + destTexto);
+                trazarRutaVialEnMapa(coordsPaso, todasLasParadas, urlMaps, "🧭 Corredor hacia " + destTexto, !!enMapaPropio);
 
-                mostrarToastNotificacion("🚀 Corredor trazado con " + paradas.length + " placas.");
-                window.open(urlMaps, '_blank');
+                if (!enMapaPropio) {
+                    mostrarToastNotificacion("🚀 Corredor trazado con " + paradas.length + " placas.");
+                    window.open(urlMaps, '_blank');
+                }
 
             } catch(eCorredor) {
-                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                ocultarCargando();
                 alert("Error al calcular corredor: " + eCorredor.message);
             }
         }
 
         // =========================================================================
-        // 3. RUTA DE BARRIDO POR MUNICIPIO O SECTOR
+        // 3. RUTA DE BARRIDO POR MUNICIPIO O SECTOR (SIN LÍMITE DE 8)
         // =========================================================================
-        async function ejecutarRutaMunicipio() {
+        async function ejecutarRutaMunicipio(enMapaPropio) {
             var mun = document.getElementById('rutaMunicipioSelect').value;
-            var limite = parseInt(document.getElementById('rutaMunicipioCantidad').value) || 8;
+            var limite = parseInt(document.getElementById('rutaMunicipioCantidad').value) || 25;
 
-            var pool = puntosData.filter(function(p) {
-                if (!p.lat || !p.lng) return false;
-                var munPunto = (p.municipio || '').toUpperCase();
-                var dirPunto = (p.dir || p.dirOriginal || '').toUpperCase();
-                return munPunto.includes(mun) || dirPunto.includes(mun);
-            });
+            var pool = obtenerPuntosFiltradosParaRuta({ municipioOverride: mun, soloPendientes: true });
+            if (pool.length === 0) {
+                pool = obtenerPuntosFiltradosParaRuta({ municipioOverride: mun, soloPendientes: false });
+            }
 
             if (pool.length === 0) {
-                alert("No se encontraron placas registradas en " + mun + ".");
+                alert("No se encontraron placas que coincidan con los filtros activos en " + mun + ".");
                 return;
             }
 
             var origen = (userLat && userLng) ? { lat: userLat, lng: userLng } : (CENTROS_MUNICIPIOS[mun] || { lat: pool[0].lat, lng: pool[0].lng });
             var paradas = ordenarPuntosPorCercania(origen, pool, limite);
-            var coordsPaso = [origen].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng })));
+            var coordsPaso = [origen].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; }));
             var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradas);
 
             cerrarModalRutaCorredor();
-            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🏙️ Barrido en " + mun + " (" + paradas.length + " placas)");
+            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🏙️ Barrido en " + mun + " (" + paradas.length + " placas)", !!enMapaPropio);
 
-            mostrarToastNotificacion("🚀 Barrido en " + mun + " iniciado.");
-            window.open(urlMaps, '_blank');
+            if (!enMapaPropio) {
+                mostrarToastNotificacion("🚀 Barrido en " + mun + " iniciado (" + paradas.length + " placas).");
+                window.open(urlMaps, '_blank');
+            }
         }
 
         // =========================================================================
-        // 4. RUTA TÁCTICA: PICO Y PLACA HOY / SUBIDAS HOY
+        // 4. RUTA TÁCTICA: PICO Y PLACA HOY / SUBIDAS HOY / CON FOTO
         // =========================================================================
-        async function ejecutarRutaTactica() {
+        async function ejecutarRutaTactica(enMapaPropio) {
             var criterio = document.getElementById('rutaTacticaCriterio').value;
-            var hoyStr = new Date().toISOString().split('T')[0];
+            var limite = parseInt(document.getElementById('rutaTacticaCantidad') ? document.getElementById('rutaTacticaCantidad').value : 25) || 25;
 
-            var pool = puntosData.filter(function(p) {
-                if (!p.lat || !p.lng) return false;
-
-                var coincidePico = !!p.pico;
-                var coincideHoy = (p.fecha === hoyStr || (p.timestamp && (Date.now() - p.timestamp) < 86400000));
-                var coincideFoto = !!p.foto;
-
-                if (criterio === 'foto') return coincideFoto;
-                if (criterio === 'pico') return coincidePico;
-                if (criterio === 'hoy') return coincideHoy;
-                if (criterio === 'prioritarias') return coincideFoto || coincidePico || coincideHoy;
-                return coincideFoto || coincidePico || coincideHoy;
-            });
-
+            var pool = obtenerPuntosFiltradosParaRuta({ criterioTactico: criterio, soloPendientes: true });
             if (pool.length === 0) {
-                alert("No se encontraron placas con el criterio táctico seleccionado. Mostrando placas pendientes generales.");
-                pool = puntosData.filter(p => p.lat && p.lng);
+                pool = obtenerPuntosFiltradosParaRuta({ criterioTactico: criterio, soloPendientes: false });
             }
 
             if (pool.length === 0) {
-                alert("No hay placas en el mapa.");
+                alert("No se encontraron placas que coincidan con el criterio táctico y los filtros activos.");
                 return;
             }
 
             var origen = obtenerOrigenRutaBase();
-            var paradas = ordenarPuntosPorCercania(origen, pool, 8);
-            var coordsPaso = [origen].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng })));
+            var paradas = ordenarPuntosPorCercania(origen, pool, limite);
+            var coordsPaso = [origen].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; }));
             var urlMaps = construirUrlGoogleMapsMultiParadas(origen, paradas);
 
             cerrarModalRutaCorredor();
-            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "⚠️ Ruta Táctica Prioritaria (" + paradas.length + " placas)");
+            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "⚠️ Ruta Táctica Prioritaria (" + paradas.length + " placas)", !!enMapaPropio);
 
-            mostrarToastNotificacion("⚠️ Ruta táctica generada.");
-            window.open(urlMaps, '_blank');
+            if (!enMapaPropio) {
+                mostrarToastNotificacion("⚠️ Ruta táctica generada (" + paradas.length + " placas).");
+                window.open(urlMaps, '_blank');
+            }
         }
 
         // =========================================================================
         // 5. RUTA CIRCULAR: CIRCUITO CON RETORNO A BASE / ORIGEN
         // =========================================================================
-        async function ejecutarRutaCircular() {
+        async function ejecutarRutaCircular(enMapaPropio) {
             var baseTexto = (document.getElementById('rutaCircularBase') ? document.getElementById('rutaCircularBase').value : '').trim();
-            var limite = parseInt(document.getElementById('rutaCircularCantidad').value) || 6;
+            var limite = parseInt(document.getElementById('rutaCircularCantidad').value) || 15;
 
             var coordsBase = null;
             if (baseTexto) {
@@ -7896,23 +8818,28 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 coordsBase = obtenerOrigenRutaBase();
             }
 
-            var pool = puntosData.filter(p => p.lat && p.lng);
+            var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
+            if (pool.length === 0) {
+                pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: false });
+            }
 
             if (pool.length === 0) {
-                alert("No hay placas en el mapa para generar circuito.");
+                alert("No hay placas que coincidan con los filtros activos para generar el circuito.");
                 return;
             }
 
             var paradas = ordenarPuntosPorCercania(coordsBase, pool, limite);
-            var paradasConRetorno = paradas.concat([{ lat: coordsBase.lat, lng: coordsBase.lng, placa: 'RETORNO A BASE' }]);
-            var coordsPaso = [coordsBase].concat(paradas.map(p => ({ lat: p.lat, lng: p.lng }))).concat([coordsBase]);
+            var paradasConRetorno = paradas.concat([{ lat: coordsBase.lat, lng: coordsBase.lng, placa: 'RETORNO A BASE', dir: baseTexto || 'Punto de partida', marca: 'BASE OPERATIVA' }]);
+            var coordsPaso = [coordsBase].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; })).concat([coordsBase]);
             var urlMaps = construirUrlGoogleMapsMultiParadas(coordsBase, paradasConRetorno);
 
             cerrarModalRutaCorredor();
-            trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🔁 Circuito Circular con Retorno a Base");
+            trazarRutaVialEnMapa(coordsPaso, paradasConRetorno, urlMaps, "🔁 Circuito Circular (" + paradas.length + " placas + Retorno)", !!enMapaPropio);
 
-            mostrarToastNotificacion("🔁 Circuito circular trazado.");
-            window.open(urlMaps, '_blank');
+            if (!enMapaPropio) {
+                mostrarToastNotificacion("🔁 Circuito circular trazado.");
+                window.open(urlMaps, '_blank');
+            }
         }
 
         // =========================================================================
@@ -7922,8 +8849,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var latBase = (typeof userLat !== 'undefined' && userLat) ? userLat : null;
             var lngBase = (typeof userLng !== 'undefined' && userLng) ? userLng : null;
 
+            var poolFiltradoPendientes = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
+
             if (!latBase || !lngBase) {
-                if (puntosData.length > 0 && puntosData[0].lat && puntosData[0].lng) {
+                if (poolFiltradoPendientes.length > 0) {
+                    latBase = poolFiltradoPendientes[0].lat;
+                    lngBase = poolFiltradoPendientes[0].lng;
+                } else if (puntosData.length > 0 && puntosData[0].lat && puntosData[0].lng) {
                     latBase = puntosData[0].lat;
                     lngBase = puntosData[0].lng;
                 } else {
@@ -7935,11 +8867,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var menorDist = Infinity;
             var objCercano = null;
 
-            // 1. Buscar entre no visitadas
-            puntosData.forEach(function(item) {
-                if (!item.lat || !item.lng) return;
-                if (!esElegibleParaRadar(item)) return;
-
+            // 1. Buscar entre las placas que cumplen con los filtros activos y están pendientes
+            poolFiltradoPendientes.forEach(function(item) {
                 var d = calcularDistancia(latBase, lngBase, item.lat, item.lng);
                 if (d < menorDist) {
                     menorDist = d;
@@ -7947,10 +8876,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }
             });
 
-            // 2. Si todas fueron visitadas, tomar la más cercana de todo el mapa
-            if (!objCercano && puntosData.length > 0) {
-                puntosData.forEach(function(item) {
-                    if (!item.lat || !item.lng) return;
+            // 2. Si todas están visitadas, tomar la más cercana dentro de los filtros activos
+            if (!objCercano) {
+                var poolTodasFiltradas = obtenerPuntosFiltradosParaRuta({ soloPendientes: false });
+                poolTodasFiltradas.forEach(function(item) {
                     var d = calcularDistancia(latBase, lngBase, item.lat, item.lng);
                     if (d < menorDist) {
                         menorDist = d;
@@ -8958,9 +9887,18 @@ async function procesarFotoTablaDirecta(usarGemini) {
         background:white; border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,0.65); z-index:10000000;
         width:94%; max-width:460px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
         
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:8px;">
             <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">🧭 Centro de Rutas y Patrullaje Inteligente</b>
             <button onclick="cerrarModalRutaCorredor()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <!-- INDICADOR VISUAL EN VIVO DE FILTROS RESPETADOS -->
+        <div id="caja-filtros-activos-ruta" style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:11px; color:#1e40af; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <b>🔍 Filtros aplicados a la ruta:</b>
+                <div id="txt-filtros-activos-ruta" style="font-weight:700; color:#1d4ed8; margin-top:2px;">Todos los Municipios • Ver todas</div>
+            </div>
+            <span id="badge-conteo-activos-ruta" style="background:#2563eb; color:white; font-size:10.5px; font-weight:900; padding:3px 8px; border-radius:12px; white-space:nowrap;">0 placas</span>
         </div>
 
         <!-- PESTAÑAS DE TIPOS DE RUTAS (CUADRÍCULA 3x2 100% VISIBLE) -->
@@ -8973,61 +9911,79 @@ async function procesarFotoTablaDirecta(usarGemini) {
             <button type="button" id="tab-btn-ruta-siguiente" onclick="cambiarTabRuta('siguiente')" class="pop-btn pb-teal" style="margin:0; padding:8px 4px; font-size:11.5px; font-weight:bold; border-radius:8px;">🏎️ 1 a 1</button>
         </div>
 
-        <!-- TAB 1: RONDA DE CERCANÍA (TOP MÁS CERCANAS EN ORDEN ÓPTIMO) -->
+        <!-- TAB 1: RONDA DE CERCANÍA (TOP MÁS CERCANAS EN ORDEN ÓPTIMO SIN LÍMITE) -->
         <div id="tab-contenido-ruta-cercania" style="display:block;">
             <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#1e40af; line-height:1.4;">
-                ⚡ <b>Ronda Rápida de Patrullaje:</b> Conecta las placas pendientes más cercanas a tu moto en orden eficiente para visitarlas una tras otra sin zig-zagueos.
+                ⚡ <b>Ronda Rápida de Patrullaje:</b> Conecta 15, 25, 50 o todas las placas más cercanas a tu moto en orden vial continuo sin zig-zagueos y navega dentro de tu propio mapa.
             </div>
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de vehículos:</span>
-                <select id="rutaCercaniaCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
-                    <option value="4">4 placas más cercanas</option>
-                    <option value="6" selected>6 placas más cercanas</option>
+                <select id="rutaCercaniaCantidad" style="padding:5px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="6">6 placas más cercanas</option>
                     <option value="8">8 placas más cercanas</option>
+                    <option value="15" selected>15 placas más cercanas</option>
+                    <option value="25">25 placas más cercanas</option>
+                    <option value="50">50 placas más cercanas</option>
+                    <option value="999">🔥 TODAS las placas del filtro</option>
                 </select>
             </div>
             <label class="filter-option" style="margin-bottom:12px;">
                 <input type="checkbox" id="chkRutaCercaniaPendientes" checked> ⏳ Solo placas pendientes (sin visitar)
             </label>
-            <button type="button" onclick="ejecutarRutaCercania()" class="pop-btn pb-blue" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #2563eb, #1d4ed8);">
-                🚀 Generar Ruta Vial y Abrir en Google Maps
+            <button type="button" onclick="ejecutarRutaCercania(true)" class="pop-btn pb-green" style="width:100%; padding:11px; font-size:13px; font-weight:900; margin-bottom:6px; background:linear-gradient(135deg, #059669, #047857); box-shadow:0 4px 14px rgba(5,150,105,0.35);">
+                🗺️ Navegar Aquí en Mi Mapa (Modo Copiloto GPS)
+            </button>
+            <button type="button" onclick="ejecutarRutaCercania(false)" class="pop-btn pb-blue" style="width:100%; padding:8px; font-size:11.5px; font-weight:bold; margin-bottom:6px; background:#1e40af;">
+                ↗️ Abrir en Google Maps Externo (Máx. 8 paradas)
             </button>
         </div>
 
         <!-- TAB 2: RUTA HACIA DESTINO (CORREDOR VIAL EN EL CAMINO) -->
         <div id="tab-contenido-ruta-destino" style="display:none;">
             <p style="font-size:11.5px; color:#475569; margin:0 0 10px 0; line-height:1.4;">
-                Ingresa tu destino (ej. Envigado). Si en tu trayecto pasas cerca de alguna placa registrada, se incluirá en el camino.
+                Ingresa tu destino (ej. Envigado). Todas las placas dentro del corredor se ordenarán en camino hacia tu meta.
             </p>
-            <div style="margin-bottom:10px;">
+            <div style="margin-bottom:8px;">
                 <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">📍 Punto de Partida / Origen:</label>
                 <input type="text" id="rutaCorredorOrigen" class="filter-search" placeholder="Mi GPS actual (o escribe ej: Bello)" style="width:100%; box-sizing:border-box;">
             </div>
-            <div style="margin-bottom:10px;">
+            <div style="margin-bottom:8px;">
                 <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">🏁 Destino Final:</label>
                 <input type="text" id="rutaCorredorDestino" class="filter-search" placeholder="Ej: Envigado, Parque Envigado, Calle 38 Sur..." style="width:100%; box-sizing:border-box;">
             </div>
-            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+            <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:7px 10px; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:11.5px; font-weight:600; color:#334155;">Radio máximo de desvío:</span>
                 <select id="rutaCorredorRadio" style="padding:4px 8px; font-size:11px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
                     <option value="300">300 metros</option>
                     <option value="500" selected>500 metros</option>
                     <option value="800">800 metros</option>
-                    <option value="1000">1.000 metros (1 km)</option>
+                    <option value="1200">1.200 metros (1.2 km)</option>
                 </select>
             </div>
-            <label class="filter-option" style="margin-bottom:12px;">
+            <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:7px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <span style="font-size:11.5px; font-weight:600; color:#334155;">Máximo de paradas:</span>
+                <select id="rutaCorredorCantidad" style="padding:4px 8px; font-size:11px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="8">8 placas en el camino</option>
+                    <option value="15">15 placas en el camino</option>
+                    <option value="30" selected>30 placas en el camino</option>
+                    <option value="999">🔥 TODAS las del corredor</option>
+                </select>
+            </div>
+            <label class="filter-option" style="margin-bottom:10px;">
                 <input type="checkbox" id="chkRutaSoloPendientes" checked> ⏳ Solo placas pendientes (sin visitar)
             </label>
-            <button type="button" onclick="calcularYAbrirRutaCorredor()" class="pop-btn pb-blue" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #0284c7, #0369a1);">
-                🧭 Trazar Corredor y Abrir en Google Maps
+            <button type="button" onclick="calcularYAbrirRutaCorredor(true)" class="pop-btn pb-green" style="width:100%; padding:11px; font-size:13px; font-weight:900; margin-bottom:6px; background:linear-gradient(135deg, #059669, #047857);">
+                🗺️ Navegar Corredor Aquí en Mi Mapa
+            </button>
+            <button type="button" onclick="calcularYAbrirRutaCorredor(false)" class="pop-btn pb-blue" style="width:100%; padding:8px; font-size:11.5px; font-weight:bold; margin-bottom:6px; background:#0284c7;">
+                ↗️ Abrir en Google Maps Externo (Máx. 8)
             </button>
         </div>
 
         <!-- TAB 3: BARRIDO POR MUNICIPIO O SECTOR -->
         <div id="tab-contenido-ruta-municipio" style="display:none;">
             <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#166534; line-height:1.4;">
-                🏙️ <b>Barrido de Zona:</b> Filtra los vehículos de un municipio y crea el circuito de inspección vial continuo.
+                🏙️ <b>Barrido de Zona Completo:</b> Enruta 15, 25, 50 o todas las placas de un municipio calle por calle en tu mapa.
             </div>
             <div style="margin-bottom:10px;">
                 <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">Elige el Municipio a patrullar:</label>
@@ -9044,23 +10000,29 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 </select>
             </div>
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
-                <span style="font-size:11.5px; font-weight:bold; color:#334155;">Límite de paradas:</span>
+                <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de paradas:</span>
                 <select id="rutaMunicipioCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
-                    <option value="5">5 paradas</option>
-                    <option value="8" selected>8 paradas</option>
+                    <option value="8">8 paradas</option>
+                    <option value="15">15 paradas</option>
+                    <option value="25" selected>25 paradas</option>
+                    <option value="50">50 paradas</option>
+                    <option value="999">🔥 TODAS las del municipio</option>
                 </select>
             </div>
-            <button type="button" onclick="ejecutarRutaMunicipio()" class="pop-btn pb-green" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #16a34a, #15803d);">
-                🏙️ Iniciar Barrido en Google Maps
+            <button type="button" onclick="ejecutarRutaMunicipio(true)" class="pop-btn pb-green" style="width:100%; padding:11px; font-size:13px; font-weight:900; margin-bottom:6px; background:linear-gradient(135deg, #16a34a, #15803d);">
+                🗺️ Patrullar Municipio Aquí en Mi Mapa
+            </button>
+            <button type="button" onclick="ejecutarRutaMunicipio(false)" class="pop-btn pb-blue" style="width:100%; padding:8px; font-size:11.5px; font-weight:bold; margin-bottom:6px;">
+                ↗️ Abrir en Google Maps Externo (Máx. 8)
             </button>
         </div>
 
         <!-- TAB 4: RUTA TÁCTICA PICO Y PLACA / SUBIDAS HOY -->
         <div id="tab-contenido-ruta-tactica" style="display:none;">
             <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#991b1b; line-height:1.4;">
-                ⚠️ <b>Alta Probabilidad:</b> Enruta vehículos que tienen restricción de Pico y Placa hoy o fueron subidos hoy (mayor probabilidad de encontrarlos estacionados).
+                ⚠️ <b>Alta Probabilidad:</b> Enruta todos los vehículos con Pico y Placa hoy, con foto o subidos hoy.
             </div>
-            <div style="margin-bottom:12px;">
+            <div style="margin-bottom:10px;">
                 <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">Criterio de Prioridad:</label>
                 <select id="rutaTacticaCriterio" style="padding:7px 10px; font-size:12px; font-weight:bold; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:white;">
                     <option value="foto" selected>📸 Con Foto del Vehículo (Prioridad Alta)</option>
@@ -9069,15 +10031,28 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     <option value="prioritarias">🔥 Todas Prioritarias (Foto + Pico y Placa + Hoy)</option>
                 </select>
             </div>
-            <button type="button" onclick="ejecutarRutaTactica()" class="pop-btn pb-red" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #dc2626, #b91c1c);">
-                ⚠️ Generar Ruta Táctica en Google Maps
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+                <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de paradas:</span>
+                <select id="rutaTacticaCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                    <option value="8">8 prioritarias</option>
+                    <option value="15">15 prioritarias</option>
+                    <option value="25" selected>25 prioritarias</option>
+                    <option value="50">50 prioritarias</option>
+                    <option value="999">🔥 TODAS las prioritarias</option>
+                </select>
+            </div>
+            <button type="button" onclick="ejecutarRutaTactica(true)" class="pop-btn pb-green" style="width:100%; padding:11px; font-size:13px; font-weight:900; margin-bottom:6px; background:linear-gradient(135deg, #059669, #047857);">
+                🗺️ Navegar Ruta Táctica Aquí en Mi Mapa
+            </button>
+            <button type="button" onclick="ejecutarRutaTactica(false)" class="pop-btn pb-red" style="width:100%; padding:8px; font-size:11.5px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #dc2626, #b91c1c);">
+                ↗️ Abrir en Google Maps Externo (Máx. 8)
             </button>
         </div>
 
         <!-- TAB 5: CIRCUITO CIRCULAR (RETORNO A BASE) -->
         <div id="tab-contenido-ruta-circular" style="display:none;">
             <div style="background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#6b21a8; line-height:1.4;">
-                🔁 <b>Circuito Cerrado:</b> Sales de tu base u oficina, visitas las placas y la ruta te regresa al mismo punto de partida sin repetir avenidas.
+                🔁 <b>Circuito Cerrado:</b> Sales de tu base u oficina, recorres las placas y la ruta te regresa al punto de partida.
             </div>
             <div style="margin-bottom:10px;">
                 <label style="font-size:11px; font-weight:bold; color:#1e293b; display:block; margin-bottom:3px;">🏠 Punto de Base / Salida y Regreso:</label>
@@ -9086,19 +10061,26 @@ async function procesarFotoTablaDirecta(usarGemini) {
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de paradas:</span>
                 <select id="rutaCircularCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
-                    <option value="4">4 placas + Regreso</option>
-                    <option value="6" selected>6 placas + Regreso</option>
+                    <option value="6">6 placas + Regreso</option>
+                    <option value="8">8 placas + Regreso</option>
+                    <option value="15" selected>15 placas + Regreso</option>
+                    <option value="25">25 placas + Regreso</option>
+                    <option value="50">50 placas + Regreso</option>
+                    <option value="999">🔥 TODAS + Regreso</option>
                 </select>
             </div>
-            <button type="button" onclick="ejecutarRutaCircular()" class="pop-btn pb-purple" style="width:100%; padding:10px; font-size:13px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #7c3aed, #5b21b6);">
-                🔁 Generar Circuito Circular en Google Maps
+            <button type="button" onclick="ejecutarRutaCircular(true)" class="pop-btn pb-green" style="width:100%; padding:11px; font-size:13px; font-weight:900; margin-bottom:6px; background:linear-gradient(135deg, #059669, #047857);">
+                🗺️ Navegar Circuito Aquí en Mi Mapa
+            </button>
+            <button type="button" onclick="ejecutarRutaCircular(false)" class="pop-btn pb-purple" style="width:100%; padding:8px; font-size:11.5px; font-weight:bold; margin-bottom:6px; background:linear-gradient(135deg, #7c3aed, #5b21b6);">
+                ↗️ Abrir en Google Maps Externo (Máx. 8)
             </button>
         </div>
 
         <!-- TAB 6: MODO SIGUIENTE OBJETIVO (1 A 1 PARA MOTO) -->
         <div id="tab-contenido-ruta-siguiente" style="display:none;">
             <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:10px; margin-bottom:12px; font-size:11.5px; color:#c2410c; line-height:1.4;">
-                🏎️ <b>Modo 1 a 1 para Moto:</b> No te compliques con 8 paradas juntas. La app te guía al objetivo más cercano en <b>Waze</b> o <b>Google Maps</b>. Al marcarlo como visitado, salta automáticamente al siguiente.
+                🏎️ <b>Modo 1 a 1 para Moto:</b> La app te guía al objetivo más cercano. Al marcarlo como visitado, salta automáticamente al siguiente.
             </div>
             <div id="caja-info-objetivo-cercano" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:12px; margin-bottom:14px; text-align:center;">
                 <div style="font-size:11px; color:#64748b; font-weight:bold;">OBJETIVO INMEDIATO:</div>
@@ -9124,24 +10106,94 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </button>
     </div>
 
-    <!-- HUD FLOTANTE DE RUTA ACTIVA EN EL MAPA -->
+    <!-- HUD RESUMEN DE RUTA ACTIVA EN EL MAPA (CUANDO NO ESTÁ EN MODO COPILOTO COMPLETO) -->
     <div id="hud-ruta-activa" style="display:none; position:fixed; top:55px; left:50%; transform:translateX(-50%); z-index:999999;
-        background:rgba(15, 23, 42, 0.95); border:1.5px solid #00f0ff; border-radius:14px; padding:8px 14px; box-shadow:0 8px 30px rgba(0,0,0,0.6);
-        color:white; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width:92vw; width:340px; box-sizing:border-box;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <b id="hud-ruta-titulo" style="font-size:12px; color:#38bdf8;">🛣️ Ruta Activa (Vial Real)</b>
+        background:rgba(15, 23, 42, 0.95); border:1.5px solid #00f0ff; border-radius:14px; padding:8px 12px; box-shadow:0 8px 30px rgba(0,0,0,0.6);
+        color:white; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width:94vw; width:355px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <b id="hud-ruta-titulo" style="font-size:12px; color:#38bdf8;">🛣️ Ruta Activa (Malla Vial)</b>
             <button onclick="limpiarRutaActiva()" style="background:#ef4444; border:none; color:white; border-radius:4px; font-size:10px; font-weight:bold; padding:2px 6px; cursor:pointer;" title="Limpiar ruta trazada">✖ Quitar</button>
         </div>
-        <div id="hud-ruta-stats" style="font-size:11px; color:#e2e8f0; margin-bottom:8px;">
+        <div id="hud-ruta-stats" style="font-size:11px; color:#e2e8f0; margin-bottom:7px;">
             0 paradas • 0.0 km
         </div>
-        <div style="display:flex; gap:6px;">
-            <a id="hud-btn-abrir-maps" href="#" target="_blank" style="flex:1; text-align:center; padding:7px; background:#2563eb; color:white; text-decoration:none; font-size:11px; font-weight:bold; border-radius:6px;">
-                🧭 Google Maps
-            </a>
-            <button onclick="centrarEnRutaActiva()" style="flex:1; padding:7px; background:#0f766e; color:white; border:none; font-size:11px; font-weight:bold; border-radius:6px; cursor:pointer;">
-                🗺️ Centrar Ruta
+        <div style="display:flex; gap:5px;">
+            <button onclick="iniciarModoCopilotoEnMapa()" style="flex:1.4; padding:7px 6px; background:linear-gradient(135deg, #059669, #047857); color:white; border:1px solid #34d399; font-size:11px; font-weight:900; border-radius:6px; cursor:pointer;">
+                🗺️ Modo Copiloto
             </button>
+            <a id="hud-btn-abrir-maps" href="#" target="_blank" style="flex:1; text-align:center; padding:7px 4px; background:#2563eb; color:white; text-decoration:none; font-size:11px; font-weight:bold; border-radius:6px;">
+                ↗️ Maps (8)
+            </a>
+            <button onclick="centrarEnRutaActiva()" style="flex:0.9; padding:7px 4px; background:#0f766e; color:white; border:none; font-size:11px; font-weight:bold; border-radius:6px; cursor:pointer;">
+                🎯 Ver Todo
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- NAVEGADOR COPILOTO GPS EN VIVO DENTRO DEL MAPA (ESTILO GOOGLE MAPS / WAZE) -->
+    <!-- ========================================================================= -->
+    <div id="hud-navegador-copiloto" style="display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif; user-select:none;">
+        <!-- BANNER SUPERIOR DE GIROS Y MANIOBRAS VIALES -->
+        <div id="nav-banner-superior" style="position:fixed; top:8px; left:50%; transform:translateX(-50%); width:95vw; max-width:460px; z-index:1000001;
+            background:linear-gradient(145deg, #064e3b, #022c22); border:2px solid #10b981; border-radius:16px; padding:10px 12px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.75); color:white; box-sizing:border-box;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                    <div style="background:rgba(16, 185, 129, 0.22); border:1.5px solid #34d399; border-radius:12px; min-width:52px; height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
+                        <span id="nav-giro-icono" style="font-size:22px; line-height:1;">⬆️</span>
+                        <span id="nav-giro-dist" style="font-size:10px; font-weight:900; color:#a7f3d0; margin-top:2px;">-- m</span>
+                    </div>
+                    <div style="min-width:0; flex:1;">
+                        <div id="nav-giro-texto" style="font-size:14px; font-weight:900; color:#ffffff; line-height:1.2; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+                            Calculando instrucción vial...
+                        </div>
+                        <div id="nav-giro-sub" style="font-size:10.5px; color:#a7f3d0; font-weight:600; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            Modo Copiloto UBICA-RICK activo
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <div style="background:#0f172a; border:1.5px solid #38bdf8; border-radius:8px; padding:2px 7px; text-align:center;">
+                            <span id="nav-velocidad-val" style="font-size:13px; font-weight:900; color:#38bdf8;">0</span>
+                            <span style="font-size:8.5px; color:#94a3b8; font-weight:bold; display:block; line-height:0.9;">km/h</span>
+                        </div>
+                        <button type="button" id="btn-nav-voz" onclick="toggleVozCopiloto()" style="background:#059669; color:white; border:1px solid #6ee7b7; border-radius:8px; width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Activar/Silenciar voz de navegación">🔊</button>
+                        <button type="button" onclick="detenerModoCopilotoEnMapa()" style="background:#dc2626; color:white; border:1px solid #fca5a5; border-radius:8px; width:34px; height:34px; font-size:14px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Salir del modo copiloto">✖</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA INFERIOR DE OBJETIVO ACTUAL Y CONTROL DE PARADAS EN CADENA -->
+        <div id="nav-barra-inferior" style="position:fixed; bottom:10px; left:50%; transform:translateX(-50%); width:95vw; max-width:460px; z-index:1000001;
+            background:rgba(15, 23, 42, 0.97); border:2px solid #00f0ff; border-radius:16px; padding:10px 12px;
+            box-shadow:0 12px 35px rgba(0,0,0,0.85); color:white; box-sizing:border-box;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span id="nav-parada-orden" style="background:#2563eb; color:white; font-size:10px; font-weight:900; padding:2px 7px; border-radius:10px; letter-spacing:0.4px;">PARADA 1 DE 1</span>
+                    <span id="nav-parada-placa" style="background:#000000; color:#ffea00; border:1.5px solid #ffea00; font-size:16px; font-weight:900; padding:1px 8px; border-radius:5px; letter-spacing:1px;">---</span>
+                    <span id="nav-parada-pico" style="background:#16a34a; color:white; font-size:8.5px; font-weight:900; padding:2px 5px; border-radius:4px;">✅ HÁBIL</span>
+                </div>
+                <span id="nav-parada-dist" style="font-size:12px; font-weight:900; color:#00ff87; white-space:nowrap;">🎯 -- m</span>
+            </div>
+
+            <div id="nav-parada-carro" style="font-size:11.5px; font-weight:800; color:#f8fafc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px;">
+                🚗 VEHÍCULO
+            </div>
+            <div id="nav-parada-dir" style="font-size:11px; font-weight:600; color:#93c5fd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:8px;">
+                📍 Dirección
+            </div>
+
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button type="button" onclick="cambiarParadaCopiloto(-1)" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:8px; padding:8px 8px; font-size:11px; font-weight:800; cursor:pointer;" title="Parada anterior">⏮️</button>
+                <button type="button" id="btn-nav-ver-foto" onclick="if(navParadas[navIndiceActual]) abrirVisorFotoCarro(navParadas[navIndiceActual].id);" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); color:white; border:1px solid #fde047; border-radius:8px; padding:8px 9px; font-size:11.5px; font-weight:900; cursor:pointer; align-items:center; gap:3px;" title="Ver foto del carro en pantalla completa">📸 Foto</button>
+                <button type="button" id="btn-nav-autofollow" onclick="activarAutoFollowCopiloto()" style="background:linear-gradient(135deg, #0284c7, #0369a1); color:white; border:1px solid #38bdf8; border-radius:8px; padding:8px 8px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">🎯 Siguiendo</button>
+                <button type="button" onclick="marcarParadaActualVisitadaYSiguiente()" style="flex:1; background:linear-gradient(135deg, #16a34a, #15803d); color:white; border:1px solid #86efac; border-radius:8px; padding:8px 6px; font-size:11.5px; font-weight:900; cursor:pointer; text-align:center;">✅ Visitado ➔ Sig.</button>
+                <button type="button" onclick="cambiarParadaCopiloto(1)" style="background:#334155; color:#f8fafc; border:1px solid #64748b; border-radius:8px; padding:8px 8px; font-size:11px; font-weight:800; cursor:pointer;" title="Saltar a la siguiente parada">⏭️</button>
+                <button type="button" onclick="abrirParadaActualEnAppExterna()" style="background:#1e3a8a; color:#93c5fd; border:1px solid #3b82f6; border-radius:8px; padding:8px 7px; font-size:11px; font-weight:800; cursor:pointer;" title="Abrir solo esta parada en Google Maps">↗️</button>
+            </div>
         </div>
     </div>
 
