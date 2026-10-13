@@ -802,6 +802,12 @@
             <span style="font-size:10px; color:#7f8c8d; display:block; margin-top:3px;">Si se deja vacía, se usan automáticamente Photon + OpenStreetMap (Gratuitos).</span>
         </div>
 
+        <div id="cfg-seccion-gemini" style="margin-top:8px; background:#f0fdf4; border:1.5px solid #86efac; padding:8px 10px; border-radius:8px;">
+            <label style="display:block; font-size:11px; font-weight:bold; color:#166534;">🤖 Clave Google Gemini AI API (Lectura de Fotos 100% Precisa):</label>
+            <input type="password" id="cfg-gemini-key" placeholder="Pega tu API Key de Gemini (Gratis en aistudio.google.com)" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #86efac; border-radius:4px; box-sizing:border-box;">
+            <span style="font-size:10px; color:#15803d; display:block; margin-top:3px;">Permite que la app lea capturas de WhatsApp y fotos de tablas directamente con Inteligencia Artificial sin errores.</span>
+        </div>
+
         <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:12px;">
             <input type="checkbox" id="cfg-sonido" checked> 🔊 Alerta sonora de proximidad (&lt; 200m)
         </label>
@@ -948,7 +954,8 @@
                 <input type="file" id="fotoTablaInput" accept="image/*" style="font-size:11px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; width:100%;">
             </div>
             
-            <button class="action act-orange" onclick="procesarFotoTablaDirecta()">⚡ Extraer y Pasar a Opción 5 (IA)</button>
+            <button class="action act-green" onclick="procesarFotoTablaDirecta(true)" style="background:linear-gradient(135deg, #10b981, #059669); margin-bottom:6px; font-weight:900;">🤖 1. Extraer con Gemini AI (Recomendado / 100% Preciso)</button>
+            <button class="action act-orange" onclick="procesarFotoTablaDirecta(false)" style="margin-bottom:6px;">📷 2. Extraer con OCR Local (Tesseract)</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
 
@@ -1050,6 +1057,7 @@
         // CONFIGURACIÓN GLOBAL
         var configApp = {
             googleApiKey: localStorage.getItem('raptor_google_apikey') || "",
+            geminiApiKey: localStorage.getItem('ubica_rick_gemini_key') || "",
             sonidoAlerta: localStorage.getItem('raptor_sonido') !== "0",
             vibrarAlerta: localStorage.getItem('raptor_vibrar') !== "0"
         };
@@ -3908,7 +3916,152 @@
             });
         }
 
-        async function procesarFotoTablaDirecta() {
+                async function procesarFotoConGemini(archivo, placaManual, apiKey) {
+            var base64Data = await new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var raw = e.target.result;
+                    var commaIdx = raw.indexOf(',');
+                    resolve(commaIdx !== -1 ? raw.substring(commaIdx + 1) : raw);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(archivo);
+            });
+
+            var mimeType = archivo.type || 'image/jpeg';
+            var promptTexto = "Eres el extractor oficial de reportes vehiculares y de clientes para UBICA-RICK en Colombia.\n" +
+                "Analiza la imagen adjunta y extrae ÚNICAMENTE un objeto JSON válido con este formato exacto sin texto adicional:\n" +
+                "{\n" +
+                '  "placa": "' + (placaManual || '') + '",\n' +
+                '  "titular": "Nombre completo del titular si aparece en Información Básica del Cliente, o vacío",\n' +
+                '  "cedula": "Número de cédula/ID si aparece, o vacío",\n' +
+                '  "celulares": "Los dos primeros números celulares de 10 dígitos que inicien en 3 separados por \' - \' (OMITIR teléfonos fijos de 7 dígitos o con prefijos 604/606/601)",\n' +
+                '  "direcciones": [\n' +
+                '    "Dirección 1 con ciudad",\n' +
+                '    "Dirección 2 con ciudad"\n' +
+                '  ]\n' +
+                "}\n\n" +
+                "REGLAS OBLIGATORIAS DE EXTRACCIÓN:\n" +
+                "1. En la tabla de direcciones, toma ÚNICAMENTE las filas donde la segunda fecha (ÚLTIMO REPORTE) sea del año 2026 en adelante (>= 2026).\n" +
+                "2. La columna de estado (P. ACTIVO) debe decir \'SI\'. Si dice \'NO\', descarta la fila inmediatamente.\n" +
+                "3. Máximo 4 direcciones vigentes.\n" +
+                "4. Si la fecha es de 2025 o anterior (ej. 2015 a 2025), descarta la fila.\n" +
+                "5. Omitir teléfonos fijos completamente y tomar solo los dos primeros números celulares.\n" +
+                "6. Une cada dirección con su respectivo municipio (ej: \'KR 48 # 58 - 57, BELLO\' o \'TV 18 # 7 D - 127 AP 301, ZIPAQUIRA\').\n" +
+                "Responde ÚNICAMENTE con el bloque JSON.";
+
+            var payload = {
+                contents: [{
+                    parts: [
+                        { text: promptTexto },
+                        {
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: base64Data
+                            }
+                        }
+                    ]
+                }],
+                generationConfig: {
+                    temperature: 0.1,
+                    response_mime_type: "application/json"
+                }
+            };
+
+            var url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + encodeURIComponent(apiKey);
+
+            var resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                var errTxt = await resp.text();
+                throw new Error("HTTP " + resp.status + ": " + errTxt);
+            }
+
+            var resJson = await resp.json();
+            var txtRes = resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content && resJson.candidates[0].content.parts[0] && resJson.candidates[0].content.parts[0].text;
+            if (!txtRes) throw new Error("Gemini no devolvió texto.");
+
+            var cleanJson = txtRes.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+            return JSON.parse(cleanJson);
+        }
+
+        function aplicarResultadoExtraccion(datos, fuente) {
+            var inputPlacaEl = document.getElementById('fotoTablaPlaca');
+            var placa = datos.placa ? datos.placa.toUpperCase().replace(/[^A-Z0-9]/g, '').trim() : '';
+
+            var titularOcr = datos.titular || '';
+            if (datos.cedula && !titularOcr.includes(datos.cedula)) {
+                titularOcr += titularOcr ? (" (C.C. " + datos.cedula + ")") : ("C.C. " + datos.cedula);
+            }
+
+            // Si no hay placa detectada, solicitarla amistosamente
+            if (!placa || placa === 'SIN_PLACA') {
+                var titularTxt = titularOcr ? ("\n👤 Titular detectado: " + titularOcr) : "";
+                var pPrompt = prompt("🚗 LECTURA COMPLETADA POR " + fuente.toUpperCase() + titularTxt + "\n\nIngresa la placa del vehículo asignada (ej: UDS22G):", "");
+                if (pPrompt && pPrompt.trim() !== '') {
+                    placa = pPrompt.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+                } else {
+                    placa = 'SIN_PLACA';
+                }
+            }
+            if (inputPlacaEl && placa !== 'SIN_PLACA') inputPlacaEl.value = placa;
+
+            var telsTexto = datos.celulares || '-';
+            var dirsFinales = datos.direcciones || [];
+
+            // Auto-llenar campos de Ingreso Manual
+            if (document.getElementById('manPlaca')) document.getElementById('manPlaca').value = (placa !== 'SIN_PLACA') ? placa : '';
+            if (document.getElementById('manTel')) document.getElementById('manTel').value = (telsTexto !== '-') ? telsTexto : '';
+            if (document.getElementById('manDir')) document.getElementById('manDir').value = dirsFinales[0] || '';
+            if (document.getElementById('manDir2')) document.getElementById('manDir2').value = dirsFinales[1] || '';
+            if (document.getElementById('manDir3')) document.getElementById('manDir3').value = dirsFinales[2] || '';
+            if (document.getElementById('manDir4')) document.getElementById('manDir4').value = dirsFinales[3] || '';
+
+            // Formatear para Opción 1 / WhatsApp / Gemini Multi-Placa
+            var formatoIA = "PLACA: " + placa + "\n" +
+                            "MARCA: -\n" +
+                            "LÍNEA: -\n" +
+                            "MODELO: -\n" +
+                            "COLOR: -\n" +
+                            "SOAT: SI | TECNO: SI\n" +
+                            "CELULARES: " + telsTexto + "\n" +
+                            (titularOcr ? ("NOTAS: Titular: " + titularOcr + "\n") : "");
+
+            if (dirsFinales.length > 0) {
+                dirsFinales.forEach(function(d, idx) {
+                    formatoIA += "DIRECCIÓN " + (idx + 1) + ": " + d + "\n";
+                });
+            } else {
+                formatoIA += "DIRECCIÓN 1: (Ingresa la dirección aquí)\n";
+            }
+
+            if (document.getElementById('txtWhatsapp')) document.getElementById('txtWhatsapp').value = formatoIA;
+            if (document.getElementById('txtGemini')) document.getElementById('txtGemini').value = formatoIA;
+
+            var loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+
+            if (dirsFinales.length > 0) {
+                var dirsListado = dirsFinales.map(function(d, i){ return (i + 1) + ". " + d; }).join("\n");
+                alert("✅ ¡INFORMACIÓN EXTRAÍDA CON ÉXITO (" + fuente + ")!\n\n" +
+                      "🚗 Placa: " + placa + "\n" +
+                      "📱 Celulares: " + telsTexto + "\n" +
+                      (titularOcr ? ("👤 Titular: " + titularOcr + "\n") : "") +
+                      "📍 Direcciones vigentes (≥ 2026 y SI):\n" + dirsListado + "\n\n" +
+                      "Se transfirió a la Opción 1. Pulsa '🚀 Procesar y Agregar' para mapear.");
+                mostrarToastNotificacion("🤖 " + placa + ": " + dirsFinales.length + " direcciones y celulares listos.");
+            } else {
+                alert("⚠️ Placa: " + placa + "\nNo se encontraron direcciones vigentes con fecha ≥ 2026 y estado SI en la imagen.");
+            }
+
+            abrirSeccion('whatsapp');
+        }
+
+async function procesarFotoTablaDirecta(usarGemini) {
             var inputPlacaEl = document.getElementById('fotoTablaPlaca');
             var placa = (inputPlacaEl ? inputPlacaEl.value : "").toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
             var fileInput = document.getElementById('fotoTablaInput');
@@ -3926,6 +4079,37 @@
             }
 
             try {
+                var archivo = fileInput.files[0];
+                var apiKeyGemini = localStorage.getItem('ubica_rick_gemini_key') || (configApp && configApp.geminiApiKey) || "";
+
+                // 1. INTENTAR PRIMERO CON GEMINI AI SI ESTÁ DISPONIBLE O SOLICITADO
+                if (usarGemini !== false) {
+                    if (!apiKeyGemini) {
+                        var solicitada = prompt("🤖 LECTURA INTELIGENTE CON GOOGLE GEMINI AI\n\nIngresa tu clave API gratuita de Google Gemini (puedes obtenerla gratis en https://aistudio.google.com/app/apikey):", "");
+                        if (solicitada && solicitada.trim() !== '') {
+                            apiKeyGemini = solicitada.trim();
+                            localStorage.setItem('ubica_rick_gemini_key', apiKeyGemini);
+                            if (configApp) configApp.geminiApiKey = apiKeyGemini;
+                            var elCfgKey = document.getElementById('cfg-gemini-key');
+                            if (elCfgKey) elCfgKey.value = apiKeyGemini;
+                        }
+                    }
+
+                    if (apiKeyGemini) {
+                        if (loadingTexto) loadingTexto.innerText = "🤖 Leyendo tabla con Inteligencia Artificial Gemini Vision (100% Preciso)...";
+                        try {
+                            var datosGemini = await procesarFotoConGemini(archivo, placa, apiKeyGemini);
+                            if (datosGemini && (datosGemini.direcciones || datosGemini.celulares || datosGemini.titular)) {
+                                aplicarResultadoExtraccion(datosGemini, "Gemini AI");
+                                return;
+                            }
+                        } catch(errGem) {
+                            console.warn("Fallo Gemini API:", errGem);
+                            alert("⚠️ No se pudo procesar con Gemini AI (" + (errGem.message || errGem) + ").\n\nContinuando con el motor OCR local...");
+                        }
+                    }
+                }
+
                 if (typeof Tesseract === 'undefined') {
                     throw new Error("El motor de lectura aún se está inicializando. Espera 3 segundos e intenta de nuevo.");
                 }
@@ -4586,6 +4770,7 @@
             cerrarFiltros();
             map.closePopup();
             document.getElementById('cfg-apikey').value = configApp.googleApiKey;
+            if (document.getElementById('cfg-gemini-key')) document.getElementById('cfg-gemini-key').value = configApp.geminiApiKey || '';
             document.getElementById('cfg-sonido').checked = configApp.sonidoAlerta;
             document.getElementById('cfg-vibrar').checked = configApp.vibrarAlerta;
             document.getElementById('backdrop-modal').style.display = 'block';
@@ -4614,6 +4799,10 @@
 
         function guardarConfig() {
             configApp.googleApiKey = document.getElementById('cfg-apikey').value.trim();
+            if (document.getElementById('cfg-gemini-key')) {
+                configApp.geminiApiKey = document.getElementById('cfg-gemini-key').value.trim();
+                localStorage.setItem('ubica_rick_gemini_key', configApp.geminiApiKey);
+            }
             configApp.sonidoAlerta = document.getElementById('cfg-sonido').checked;
             configApp.vibrarAlerta = document.getElementById('cfg-vibrar').checked;
 
