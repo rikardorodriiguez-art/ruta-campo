@@ -4154,11 +4154,20 @@
                 }
             };
 
-            var modelosAProbar = [
-                'gemini-1.5-flash',
+            var modeloCache = localStorage.getItem('ubica_rick_gemini_modelo_ok') || '';
+            var listaBase = [
+                'gemini-2.5-flash',
+                'gemini-2.5-flash-lite',
                 'gemini-2.0-flash',
-                'gemini-1.5-pro'
+                'gemini-2.0-flash-001',
+                'gemini-2.5-pro',
+                'gemini-1.5-flash-latest'
             ];
+            var modelosAProbar = [];
+            if (modeloCache) modelosAProbar.push(modeloCache);
+            listaBase.forEach(function(m) {
+                if (modelosAProbar.indexOf(m) === -1) modelosAProbar.push(m);
+            });
 
             var ultimoError = null;
 
@@ -4168,7 +4177,7 @@
 
                 try {
                     var ctrl = new AbortController();
-                    var timerId = setTimeout(function() { ctrl.abort(); }, 12000);
+                    var timerId = setTimeout(function() { ctrl.abort(); }, 14000);
 
                     var resp = await fetch(url, {
                         method: "POST",
@@ -4182,16 +4191,17 @@
                         var resJson = await resp.json();
                         var txtRes = resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content && resJson.candidates[0].content.parts[0] && resJson.candidates[0].content.parts[0].text;
                         if (txtRes) {
+                            localStorage.setItem('ubica_rick_gemini_modelo_ok', mod);
                             var cleanJson = txtRes.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
                             return JSON.parse(cleanJson);
                         }
                     } else if (resp.status === 404) {
-                        console.warn("Modelo " + mod + " 404, probando siguiente modelo...");
+                        console.warn("Modelo " + mod + " no disponible (404), probando siguiente...");
                         continue;
                     } else {
                         var errTxt = await resp.text();
                         ultimoError = new Error("HTTP " + resp.status + ": " + errTxt);
-                        continue;
+                        break;
                     }
                 } catch(eFetch) {
                     ultimoError = eFetch;
@@ -4199,8 +4209,57 @@
                 }
             }
 
+            // Si los nombres predeterminados dieron 404, consultar dinámicamente los modelos activos de la cuenta
+            try {
+                var ctrlList = new AbortController();
+                var tidList = setTimeout(function() { ctrlList.abort(); }, 6000);
+                var urlList = "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(apiKey);
+                var respList = await fetch(urlList, { signal: ctrlList.signal });
+                clearTimeout(tidList);
+                if (respList.ok) {
+                    var listData = await respList.json();
+                    if (listData && listData.models) {
+                        var modelosValidos = listData.models.filter(function(m) {
+                            var methods = m.supportedGenerationMethods || [];
+                            return methods.indexOf('generateContent') !== -1;
+                        });
+                        modelosValidos.sort(function(a, b) {
+                            var aF = a.name.indexOf('flash') !== -1 ? 1 : 0;
+                            var bF = b.name.indexOf('flash') !== -1 ? 1 : 0;
+                            return bF - aF;
+                        });
+                        var maxIntentosDin = Math.min(modelosValidos.length, 3);
+                        for (var j = 0; j < maxIntentosDin; j++) {
+                            var mNombre = modelosValidos[j].name.replace(/^models\//, '');
+                            if (modelosAProbar.indexOf(mNombre) !== -1) continue;
+                            var ctrlDin = new AbortController();
+                            var tidDin = setTimeout(function() { ctrlDin.abort(); }, 14000);
+                            var urlDin = "https://generativelanguage.googleapis.com/v1beta/models/" + mNombre + ":generateContent?key=" + encodeURIComponent(apiKey);
+                            var respDin = await fetch(urlDin, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(payload),
+                                signal: ctrlDin.signal
+                            });
+                            clearTimeout(tidDin);
+                            if (respDin.ok) {
+                                var dinJson = await respDin.json();
+                                var dinTxt = dinJson.candidates && dinJson.candidates[0] && dinJson.candidates[0].content && dinJson.candidates[0].content.parts[0] && dinJson.candidates[0].content.parts[0].text;
+                                if (dinTxt) {
+                                    localStorage.setItem('ubica_rick_gemini_modelo_ok', mNombre);
+                                    var cleanDin = dinTxt.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+                                    return JSON.parse(cleanDin);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch(eList) {
+                console.warn("Aviso lista dinámica de modelos:", eList);
+            }
+
             if (ultimoError) throw ultimoError;
-            throw new Error("No se pudo conectar con los modelos de Gemini AI.");
+            throw new Error("No se encontró un modelo activo en tu API Key de Gemini.");
         }
 
         // =========================================================================
@@ -4681,7 +4740,9 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 return; 
             }
 
-                        mostrarCargando("🔍 Analizando imagen y extrayendo datos...");
+            var loadingOverlay = document.getElementById('loading-overlay');
+            var loadingTexto = document.getElementById('loading-texto');
+            mostrarCargando("🔍 Analizando imagen y extrayendo datos...");
 
             try {
                 var archivo = fileInput.files[0];
