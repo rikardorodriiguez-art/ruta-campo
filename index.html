@@ -1010,10 +1010,10 @@
                 <option value="OTRO">Otros / Nacional</option>
             </select>
         </div>
-        <label class="filter-option"><input type="checkbox" id="chkPico" checked onchange="actualizarFiltros()"> ⚠️ Con Pico y Placa</label>
-        <label class="filter-option"><input type="checkbox" id="chkHoy" checked onchange="actualizarFiltros()"> 📅 Subidas hoy</label>
-        <label class="filter-option"><input type="checkbox" id="chkFoto" checked onchange="actualizarFiltros()"> 📸 Con Foto (Prioritarias)</label>
-        <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="actualizarFiltros()"> 👁️ Ver todas</label>
+        <label class="filter-option"><input type="checkbox" id="chkPico" onchange="alCambiarFiltroCheckbox('pico')"> ⚠️ Con Pico y Placa</label>
+        <label class="filter-option"><input type="checkbox" id="chkHoy" onchange="alCambiarFiltroCheckbox('hoy')"> 📅 Subidas hoy</label>
+        <label class="filter-option"><input type="checkbox" id="chkFoto" onchange="alCambiarFiltroCheckbox('foto')"> 📸 Con Foto (Prioritarias)</label>
+        <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="alCambiarFiltroCheckbox('todas')"> 👁️ Ver todas</label>
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
@@ -4693,12 +4693,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
             cerrarFiltros();
             map.closePopup();
 
-            var pendientes = puntosData.filter(function(p) {
-                return !p.visitada;
-            });
+            var pendientes = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
 
             if (pendientes.length === 0) {
-                alert("No hay ubicaciones pendientes para trazar ruta.");
+                alert("No hay ubicaciones pendientes que coincidan con los filtros activos.");
                 return;
             }
 
@@ -4746,12 +4744,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
             cerrarFiltros();
             map.closePopup();
 
-            var pendientes = puntosData.filter(function(p) {
-                return !p.visitada;
-            });
+            var pendientes = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
 
             if (pendientes.length === 0) {
-                alert("No hay ubicaciones pendientes.");
+                alert("No hay ubicaciones pendientes que coincidan con los filtros activos.");
                 return;
             }
 
@@ -5397,58 +5393,116 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (elFoto) elFoto.innerText = conFoto;
         }
 
-        function actualizarFiltros() {
-            var textoBusqueda = document.getElementById('inputBuscarPlaca').value.toUpperCase().trim();
-            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
-            var verPico = document.getElementById('chkPico').checked;
-            var verHoy = document.getElementById('chkHoy').checked;
-            var verFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : true;
-            var verTodas = document.getElementById('chkTodas').checked;
-            var ocultarVisitadas = document.getElementById('chkSoloPendientes').checked;
+        function alCambiarFiltroCheckbox(tipo) {
+            var elPico = document.getElementById('chkPico');
+            var elHoy = document.getElementById('chkHoy');
+            var elFoto = document.getElementById('chkFoto');
+            var elTodas = document.getElementById('chkTodas');
 
-            puntosData.forEach(function(item) {
-                var coincideBusqueda = (textoBusqueda === "" || item.placa.includes(textoBusqueda));
-                var esVisitada = !!item.visitada;
-
-                if (ocultarVisitadas && esVisitada) {
-                    if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
-                    return;
+            if (tipo === 'todas') {
+                if (elTodas && elTodas.checked) {
+                    if (elPico) elPico.checked = false;
+                    if (elHoy) elHoy.checked = false;
+                    if (elFoto) elFoto.checked = false;
                 }
-
-                if (selMun !== 'TODOS') {
-                    var dirTexto = ((item.dirOriginal || item.dir || '') + ' ' + (item.marca || '')).toUpperCase();
-                    if (selMun === 'OTRO') {
-                        var esAburra = ['MEDELLIN', 'BELLO', 'ITAGUI', 'ENVIGADO', 'SABANETA', 'ESTRELLA', 'COPACABANA', 'CALDAS', 'RIONEGRO'].some(function(m){ return dirTexto.includes(m); });
-                        if (esAburra) {
-                            if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
-                            return;
-                        }
-                    } else {
-                        var normTarget = selMun.replace('ITAGUI', 'ITAGU').replace('MEDELLIN', 'MEDELL');
-                        var matchMun = dirTexto.includes(selMun) || dirTexto.includes(normTarget);
-                        if (!matchMun) {
-                            if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
-                            return;
-                        }
-                    }
-                }
-
-                var pasaFiltroEstado = false;
-                if (verTodas) {
-                    pasaFiltroEstado = true;
+            } else {
+                if ((elPico && elPico.checked) || (elHoy && elHoy.checked) || (elFoto && elFoto.checked)) {
+                    if (elTodas) elTodas.checked = false;
                 } else {
-                    if (verPico && item.pico) pasaFiltroEstado = true;
-                    if (verHoy && item.esHoy) pasaFiltroEstado = true;
-                    if (verFoto && item.foto) pasaFiltroEstado = true;
-                    if (!verPico && !verHoy && !verFoto) pasaFiltroEstado = false;
+                    if (elTodas) elTodas.checked = true;
                 }
+            }
+            actualizarFiltros();
+        }
 
-                if (coincideBusqueda && pasaFiltroEstado) {
+        function pasaFiltrosActivos(item, opciones) {
+            opciones = opciones || {};
+            if (!item || !item.lat || !item.lng) return false;
+
+            var textoBusqueda = (document.getElementById('inputBuscarPlaca') ? document.getElementById('inputBuscarPlaca').value : '').toUpperCase().trim();
+            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
+            var verPico = document.getElementById('chkPico') ? document.getElementById('chkPico').checked : false;
+            var verHoy = document.getElementById('chkHoy') ? document.getElementById('chkHoy').checked : false;
+            var verFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : false;
+            var verTodas = document.getElementById('chkTodas') ? document.getElementById('chkTodas').checked : true;
+            var ocultarVisitadas = document.getElementById('chkSoloPendientes') ? document.getElementById('chkSoloPendientes').checked : false;
+
+            // 1. Filtro de búsqueda por texto de placa
+            if (textoBusqueda !== "" && !(item.placa || '').toUpperCase().includes(textoBusqueda)) {
+                return false;
+            }
+
+            // 2. Filtro de visitadas
+            var soloPendientes = (typeof opciones.soloPendientes === 'boolean') ? opciones.soloPendientes : ocultarVisitadas;
+            if (soloPendientes && !esElegibleParaRadar(item)) {
+                return false;
+            }
+
+            // 3. Filtro por Municipio (respeta la selección del usuario o override de tab)
+            var munFiltro = opciones.municipioOverride || selMun;
+            if (munFiltro !== 'TODOS') {
+                var dirTexto = ((item.dirOriginal || item.dir || '') + ' ' + (item.marca || '') + ' ' + (item.municipio || '')).toUpperCase();
+                if (munFiltro === 'OTRO') {
+                    var esAburra = ['MEDELLIN', 'BELLO', 'ITAGUI', 'ENVIGADO', 'SABANETA', 'ESTRELLA', 'COPACABANA', 'CALDAS', 'RIONEGRO'].some(function(m){ return dirTexto.includes(m); });
+                    if (esAburra) return false;
+                } else {
+                    var normTarget = munFiltro.replace('ITAGUI', 'ITAGU').replace('MEDELLIN', 'MEDELL');
+                    var matchMun = dirTexto.includes(munFiltro) || dirTexto.includes(normTarget) || (item.municipio && item.municipio.toUpperCase().includes(normTarget));
+                    if (!matchMun) return false;
+                }
+            }
+
+            // 4. Filtro de Criterio de Estado (Pico y Placa, Subidas hoy, Con Foto)
+            if (!verTodas) {
+                var pasaEstado = false;
+                if (verPico && item.pico) pasaEstado = true;
+                if (verHoy && item.esHoy) pasaEstado = true;
+                if (verFoto && item.foto) pasaEstado = true;
+                if (!pasaEstado) return false;
+            }
+
+            // 5. Criterio táctico adicional si viene de pestaña táctica
+            if (opciones.criterioTactico) {
+                var hoyStr = new Date().toISOString().split('T')[0];
+                var coincidePico = !!item.pico;
+                var coincideHoy = (item.fecha === hoyStr || (item.timestamp && (Date.now() - item.timestamp) < 86400000));
+                var coincideFoto = !!item.foto;
+
+                if (opciones.criterioTactico === 'foto' && !coincideFoto) return false;
+                if (opciones.criterioTactico === 'pico' && !coincidePico) return false;
+                if (opciones.criterioTactico === 'hoy' && !coincideHoy) return false;
+                if (opciones.criterioTactico === 'prioritarias' && (!coincideFoto && !coincidePico && !coincideHoy)) return false;
+            }
+
+            return true;
+        }
+
+        function obtenerPuntosFiltradosParaRuta(opciones) {
+            return puntosData.filter(function(p) {
+                return pasaFiltrosActivos(p, opciones);
+            });
+        }
+
+        function actualizarFiltros() {
+            var visiblesCount = 0;
+            puntosData.forEach(function(item) {
+                var pasa = pasaFiltrosActivos(item);
+                if (pasa) {
+                    visiblesCount++;
                     if (!map.hasLayer(item.marker)) map.addLayer(item.marker);
                 } else {
                     if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
                 }
             });
+
+            var badge = document.getElementById('indicador-placas-filtro');
+            if (badge) {
+                badge.textContent = visiblesCount + " de " + puntosData.length + " placas";
+            }
+
+            if (typeof actualizarBadgeFiltrosRuta === 'function') {
+                actualizarBadgeFiltrosRuta();
+            }
         }
 
         // =========================================================================
@@ -7405,6 +7459,43 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
+        function actualizarBadgeFiltrosRuta() {
+            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
+            var verPico = document.getElementById('chkPico') ? document.getElementById('chkPico').checked : false;
+            var verHoy = document.getElementById('chkHoy') ? document.getElementById('chkHoy').checked : false;
+            var verFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : false;
+            var verTodas = document.getElementById('chkTodas') ? document.getElementById('chkTodas').checked : true;
+            var ocultarVis = document.getElementById('chkSoloPendientes') ? document.getElementById('chkSoloPendientes').checked : false;
+
+            var partes = [];
+            if (selMun === 'TODOS') partes.push("Todos los Municipios");
+            else if (selMun === 'OTRO') partes.push("Otros / Nacional");
+            else partes.push("🏙️ " + selMun);
+
+            if (verTodas) {
+                partes.push("Ver todas");
+            } else {
+                if (verPico) partes.push("⚠️ Pico y Placa");
+                if (verHoy) partes.push("📅 Hoy");
+                if (verFoto) partes.push("📸 Con Foto");
+            }
+            if (ocultarVis) partes.push("⏳ Solo pendientes");
+
+            var textoFiltros = partes.join(" • ");
+            var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: ocultarVis });
+
+            var elTxt = document.getElementById('txt-filtros-activos-ruta');
+            var elBadge = document.getElementById('badge-conteo-activos-ruta');
+            if (elTxt) elTxt.textContent = textoFiltros;
+            if (elBadge) elBadge.textContent = pool.length + " placas";
+
+            // Sincronizar también el selector de municipio de la pestaña si ya eligió uno
+            var selRutaMun = document.getElementById('rutaMunicipioSelect');
+            if (selRutaMun && selMun !== 'TODOS' && selMun !== 'OTRO') {
+                selRutaMun.value = selMun;
+            }
+        }
+
         function abrirModalRutaCorredor() {
             cerrarFiltros();
             cerrarConfig();
@@ -7422,7 +7513,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 inBase.placeholder = "Mi GPS Actual (" + userLat.toFixed(4) + ", " + userLng.toFixed(4) + ")";
             }
 
-            // Calcular objetivo 1 a 1 de inmediato para que nunca salga vacío
+            actualizarBadgeFiltrosRuta();
             actualizarObjetivo1a1();
         }
 
@@ -7622,19 +7713,15 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var soloPendientes = document.getElementById('chkRutaCercaniaPendientes').checked;
             var origen = obtenerOrigenRutaBase();
 
-            var pool = puntosData.filter(function(p) {
-                if (!p.lat || !p.lng) return false;
-                if (soloPendientes && !esElegibleParaRadar(p)) return false;
-                return true;
-            });
+            var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: soloPendientes });
 
-            // Si todas están visitadas pero el usuario quiere patrullar, usar todo el mapa
-            if (pool.length === 0) {
-                pool = puntosData.filter(p => p.lat && p.lng);
+            // Si todas están visitadas pero el usuario quiere patrullar, usar pool filtrado general
+            if (pool.length === 0 && soloPendientes) {
+                pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: false });
             }
 
             if (pool.length === 0) {
-                alert("No hay placas registradas en el mapa para enrutar.");
+                alert("No hay placas registradas que coincidan con los filtros activos para enrutar.");
                 return;
             }
 
@@ -7645,7 +7732,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             cerrarModalRutaCorredor();
             trazarRutaVialEnMapa(coordsPaso, paradasOrdenadas, urlMaps, "🎯 Ronda de Cercanía (" + paradasOrdenadas.length + " placas)");
 
-            mostrarToastNotificacion("🚀 Ronda trazada. Abriendo Google Maps...");
+            mostrarToastNotificacion("🚀 Ronda trazada (" + paradasOrdenadas.length + " placas con filtros activos).");
             window.open(urlMaps, '_blank');
         }
 
@@ -7703,26 +7790,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 var lngD = coordsDest.lng;
 
                 var candidatos = [];
-                puntosData.forEach(function(item) {
-                    if (!item.lat || !item.lng) return;
-                    if (soloPendientes && !esElegibleParaRadar(item)) return;
+                var poolFiltro = obtenerPuntosFiltradosParaRuta({ soloPendientes: soloPendientes });
 
+                poolFiltro.forEach(function(item) {
                     var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
                     if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
                         candidatos.push({ item: item, dist: res.dist, t: res.t });
                     }
                 });
-
-                // Si no hay pendientes en el desvío, incluir cualquiera en el desvío
-                if (candidatos.length === 0) {
-                    puntosData.forEach(function(item) {
-                        if (!item.lat || !item.lng) return;
-                        var res = distanciaPuntoASegmentoMetros(item.lat, item.lng, latO, lngO, latD, lngD);
-                        if (res.dist <= radioMax && res.t >= -0.05 && res.t <= 1.05) {
-                            candidatos.push({ item: item, dist: res.dist, t: res.t });
-                        }
-                    });
-                }
 
                 candidatos.sort(function(a, b) { return a.t - b.t; });
                 var paradas = candidatos.slice(0, 8).map(c => c.item);
@@ -7752,15 +7827,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var mun = document.getElementById('rutaMunicipioSelect').value;
             var limite = parseInt(document.getElementById('rutaMunicipioCantidad').value) || 8;
 
-            var pool = puntosData.filter(function(p) {
-                if (!p.lat || !p.lng) return false;
-                var munPunto = (p.municipio || '').toUpperCase();
-                var dirPunto = (p.dir || p.dirOriginal || '').toUpperCase();
-                return munPunto.includes(mun) || dirPunto.includes(mun);
-            });
+            var pool = obtenerPuntosFiltradosParaRuta({ municipioOverride: mun, soloPendientes: true });
+            if (pool.length === 0) {
+                pool = obtenerPuntosFiltradosParaRuta({ municipioOverride: mun, soloPendientes: false });
+            }
 
             if (pool.length === 0) {
-                alert("No se encontraron placas registradas en " + mun + ".");
+                alert("No se encontraron placas que coincidan con los filtros activos en " + mun + ".");
                 return;
             }
 
@@ -7772,7 +7845,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             cerrarModalRutaCorredor();
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🏙️ Barrido en " + mun + " (" + paradas.length + " placas)");
 
-            mostrarToastNotificacion("🚀 Barrido en " + mun + " iniciado.");
+            mostrarToastNotificacion("🚀 Barrido en " + mun + " iniciado (" + paradas.length + " placas).");
             window.open(urlMaps, '_blank');
         }
 
@@ -7781,29 +7854,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
         // =========================================================================
         async function ejecutarRutaTactica() {
             var criterio = document.getElementById('rutaTacticaCriterio').value;
-            var hoyStr = new Date().toISOString().split('T')[0];
 
-            var pool = puntosData.filter(function(p) {
-                if (!p.lat || !p.lng) return false;
-
-                var coincidePico = !!p.pico;
-                var coincideHoy = (p.fecha === hoyStr || (p.timestamp && (Date.now() - p.timestamp) < 86400000));
-                var coincideFoto = !!p.foto;
-
-                if (criterio === 'foto') return coincideFoto;
-                if (criterio === 'pico') return coincidePico;
-                if (criterio === 'hoy') return coincideHoy;
-                if (criterio === 'prioritarias') return coincideFoto || coincidePico || coincideHoy;
-                return coincideFoto || coincidePico || coincideHoy;
-            });
-
+            var pool = obtenerPuntosFiltradosParaRuta({ criterioTactico: criterio, soloPendientes: true });
             if (pool.length === 0) {
-                alert("No se encontraron placas con el criterio táctico seleccionado. Mostrando placas pendientes generales.");
-                pool = puntosData.filter(p => p.lat && p.lng);
+                pool = obtenerPuntosFiltradosParaRuta({ criterioTactico: criterio, soloPendientes: false });
             }
 
             if (pool.length === 0) {
-                alert("No hay placas en el mapa.");
+                alert("No se encontraron placas que coincidan con el criterio táctico y los filtros activos.");
                 return;
             }
 
@@ -7815,7 +7873,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             cerrarModalRutaCorredor();
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "⚠️ Ruta Táctica Prioritaria (" + paradas.length + " placas)");
 
-            mostrarToastNotificacion("⚠️ Ruta táctica generada.");
+            mostrarToastNotificacion("⚠️ Ruta táctica generada (" + paradas.length + " placas).");
             window.open(urlMaps, '_blank');
         }
 
@@ -7838,10 +7896,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 coordsBase = obtenerOrigenRutaBase();
             }
 
-            var pool = puntosData.filter(p => p.lat && p.lng);
+            var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
+            if (pool.length === 0) {
+                pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: false });
+            }
 
             if (pool.length === 0) {
-                alert("No hay placas en el mapa para generar circuito.");
+                alert("No hay placas que coincidan con los filtros activos para generar el circuito.");
                 return;
             }
 
@@ -7864,8 +7925,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var latBase = (typeof userLat !== 'undefined' && userLat) ? userLat : null;
             var lngBase = (typeof userLng !== 'undefined' && userLng) ? userLng : null;
 
+            var poolFiltradoPendientes = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
+
             if (!latBase || !lngBase) {
-                if (puntosData.length > 0 && puntosData[0].lat && puntosData[0].lng) {
+                if (poolFiltradoPendientes.length > 0) {
+                    latBase = poolFiltradoPendientes[0].lat;
+                    lngBase = poolFiltradoPendientes[0].lng;
+                } else if (puntosData.length > 0 && puntosData[0].lat && puntosData[0].lng) {
                     latBase = puntosData[0].lat;
                     lngBase = puntosData[0].lng;
                 } else {
@@ -7877,11 +7943,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var menorDist = Infinity;
             var objCercano = null;
 
-            // 1. Buscar entre no visitadas
-            puntosData.forEach(function(item) {
-                if (!item.lat || !item.lng) return;
-                if (!esElegibleParaRadar(item)) return;
-
+            // 1. Buscar entre las placas que cumplen con los filtros activos y están pendientes
+            poolFiltradoPendientes.forEach(function(item) {
                 var d = calcularDistancia(latBase, lngBase, item.lat, item.lng);
                 if (d < menorDist) {
                     menorDist = d;
@@ -7889,10 +7952,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }
             });
 
-            // 2. Si todas fueron visitadas, tomar la más cercana de todo el mapa
-            if (!objCercano && puntosData.length > 0) {
-                puntosData.forEach(function(item) {
-                    if (!item.lat || !item.lng) return;
+            // 2. Si todas están visitadas, tomar la más cercana dentro de los filtros activos
+            if (!objCercano) {
+                var poolTodasFiltradas = obtenerPuntosFiltradosParaRuta({ soloPendientes: false });
+                poolTodasFiltradas.forEach(function(item) {
                     var d = calcularDistancia(latBase, lngBase, item.lat, item.lng);
                     if (d < menorDist) {
                         menorDist = d;
@@ -8900,9 +8963,18 @@ async function procesarFotoTablaDirecta(usarGemini) {
         background:white; border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,0.65); z-index:10000000;
         width:94%; max-width:460px; max-height:88vh; overflow-y:auto; padding:18px; box-sizing:border-box; display:none; font-family:-apple-system, BlinkMacSystemFont, Arial, sans-serif;">
         
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:8px;">
             <b style="color:#0f172a; font-size:15px; display:flex; align-items:center; gap:6px;">🧭 Centro de Rutas y Patrullaje Inteligente</b>
             <button onclick="cerrarModalRutaCorredor()" style="background:#f1f5f9; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+
+        <!-- INDICADOR VISUAL EN VIVO DE FILTROS RESPETADOS -->
+        <div id="caja-filtros-activos-ruta" style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:11px; color:#1e40af; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <b>🔍 Filtros aplicados a la ruta:</b>
+                <div id="txt-filtros-activos-ruta" style="font-weight:700; color:#1d4ed8; margin-top:2px;">Todos los Municipios • Ver todas</div>
+            </div>
+            <span id="badge-conteo-activos-ruta" style="background:#2563eb; color:white; font-size:10.5px; font-weight:900; padding:3px 8px; border-radius:12px; white-space:nowrap;">0 placas</span>
         </div>
 
         <!-- PESTAÑAS DE TIPOS DE RUTAS (CUADRÍCULA 3x2 100% VISIBLE) -->
