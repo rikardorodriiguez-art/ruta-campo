@@ -180,6 +180,11 @@
             box-shadow: 0 -8px 30px rgba(0,0,0,0.45); z-index: 9999999; display: none; font-size: 12px;
             border-top: 3px solid #2980b9; max-height: 52vh; overflow-y: auto;
         }
+        @keyframes pulse-pico-activo {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.85), 0 4px 12px rgba(0,0,0,0.35); }
+            70% { box-shadow: 0 0 0 9px rgba(220, 38, 38, 0), 0 4px 12px rgba(0,0,0,0.35); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0), 0 4px 12px rgba(0,0,0,0.35); }
+        }
         @keyframes pulse-gps {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(41, 128, 185, 0.7); }
             70% { transform: scale(1.15); box-shadow: 0 0 0 14px rgba(41, 128, 185, 0); }
@@ -2777,27 +2782,42 @@
         }
 
         // GENERADOR DE MARCADORES CON COLOR POR ANTIGÜEDAD Y ESTADO VISITADA POR DIRECCIÓN
+        // Verifica si en este instante está activo el horario de Pico y Placa en Medellín/Valle de Aburrá (Lun-Vie 6:00 a.m. a 8:00 p.m.)
+        function estaEnHorarioPicoYPlacaActivo() {
+            var ahora = new Date();
+            var dia = ahora.getDay(); // 1=Lunes ... 5=Viernes
+            var hora = ahora.getHours();
+            return (dia >= 1 && dia <= 5 && hora >= 6 && hora < 20);
+        }
+
         function generarMarcadorProfesional(p, esVisitada) {
             var placa = (typeof p === 'object') ? p.placa : p;
             var objP = (typeof p === 'object') ? p : { placa: p };
             var info = obtenerColorPorAntiguedad(objP, esVisitada);
 
             var tieneFoto = !!(objP.foto);
+            var tienePicoHoy = !!(objP.pico);
+            var picoEnHorarioActivo = (!esVisitada && tienePicoHoy && estaEnHorarioPicoYPlacaActivo());
 
-            var estiloBorde = esVisitada ? '2px solid #86efac' : (tieneFoto ? '3px solid #f59e0b' : '3px solid ' + info.borde);
+            var estiloBorde = esVisitada ? '2px solid #86efac' : (picoEnHorarioActivo ? '3px solid #dc2626' : (tieneFoto ? '3px solid #f59e0b' : '3px solid ' + info.borde));
             var estiloBg = esVisitada ? '#f0fdf4' : (tieneFoto ? '#fffbeb' : info.bg);
             var colorTxt = esVisitada ? '#166534' : (tieneFoto ? '#78350f' : '#0f172a');
-            var sombraExtra = tieneFoto 
-                ? 'box-shadow: 0 4px 16px rgba(245, 158, 11, 0.75), 0 0 10px rgba(245, 158, 11, 0.55);' 
-                : 'box-shadow: 0 4px 12px rgba(0,0,0,0.35);';
+            var sombraExtra = picoEnHorarioActivo
+                ? 'animation: pulse-pico-activo 1.6s infinite;'
+                : (tieneFoto 
+                    ? 'box-shadow: 0 4px 16px rgba(245, 158, 11, 0.75), 0 0 10px rgba(245, 158, 11, 0.55);' 
+                    : 'box-shadow: 0 4px 12px rgba(0,0,0,0.35);');
 
-            // Gestión de evidencias: primera letra del visitador (ej. [S]) y conteo de visitas
             var inicial = (objP.gestorInicial || (objP.gestor ? objP.gestor.charAt(0) : '')) ? (objP.gestorInicial || objP.gestor.charAt(0)).toUpperCase() : '✔';
             var numVisitas = objP.visitas || (esVisitada ? 1 : 0);
             var etiquetaVisitas = (esVisitada && numVisitas >= 1) ? '<span style="font-size:9.5px; color:#15803d; font-weight:900; margin-left:3px;">(' + numVisitas + 'v)</span>' : '';
 
             var badgeFoto = tieneFoto 
                 ? '<span style="background:linear-gradient(135deg, #f59e0b, #d97706); color:white; font-size:9px; padding:1px 4px; border-radius:10px; margin-left:4px; font-weight:900; box-shadow:0 0 8px rgba(245,158,11,0.85); display:inline-flex; align-items:center; vertical-align:middle;" title="Vehículo con Foto Adjunta">📸</span>' 
+                : '';
+
+            var badgePicoActivo = picoEnHorarioActivo
+                ? '<span style="background:#dc2626; color:#ffffff; font-size:8.5px; padding:1px 4px; border-radius:8px; margin-left:3px; font-weight:900; display:inline-flex; align-items:center;" title="🚦 Pico y Placa ACTIVO ahora (6am-8pm): Alta probabilidad en casa">🚦</span>'
                 : '';
 
             var dotHtml = esVisitada 
@@ -2809,9 +2829,10 @@
                    dotHtml +
                    '<span style="letter-spacing: 0.5px; line-height: 1;">' + placa + '</span>' +
                    badgeFoto +
+                   badgePicoActivo +
                    (esVisitada ? etiquetaVisitas : '') +
                    '</div>' +
-                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid ' + (esVisitada ? '#86efac' : (tieneFoto ? '#f59e0b' : info.borde)) + ';"></div>' +
+                   '<div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid ' + (esVisitada ? '#86efac' : (picoEnHorarioActivo ? '#dc2626' : (tieneFoto ? '#f59e0b' : info.borde))) + ';"></div>' +
                    '<div style="position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #ffffff;"></div>' +
                    '</div>';
         }
@@ -9647,7 +9668,29 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var saltoKmEl = document.getElementById('selectSaltoMaxKmRuta');
             var saltoVal = saltoKmEl ? parseFloat(saltoKmEl.value) : 10;
             if (saltoVal && saltoVal < 900) {
-                partes.push("📏 Máx " + saltoVal + " km entre placas");
+                partes.push("📏 Máx " + saltoVal + " km");
+            }
+            var sentidoRioEl = document.getElementById('selectSentidoRioRuta');
+            var sentidoVal = sentidoRioEl ? sentidoRioEl.value : 'cercania';
+            if (sentidoVal === 'sur_norte') partes.push("⬆️ Sur ➔ Norte");
+            else if (sentidoVal === 'norte_sur') partes.push("⬇️ Norte ➔ Sur");
+            else if (sentidoVal === 'mismo_costado') partes.push("🌊 Mismo Costado del Río");
+
+            var boxSem = document.getElementById('semaforo-pico-horario-box');
+            if (boxSem) {
+                var enHoraPico = estaEnHorarioPicoYPlacaActivo();
+                var cantPicoHoy = pool.filter(function(p) { return !!p.pico; }).length;
+                if (enHoraPico) {
+                    boxSem.style.background = '#fef2f2';
+                    boxSem.style.borderColor = '#f87171';
+                    boxSem.style.color = '#991b1b';
+                    boxSem.innerHTML = '🚦 <b>SEMÁFORO PICO Y PLACA ACTIVO (6am–8pm):</b> Hay <b>' + cantPicoHoy + ' placas</b> con restricción hoy (alta probabilidad guardadas en casa).';
+                } else {
+                    boxSem.style.background = '#f8fafc';
+                    boxSem.style.borderColor = '#cbd5e1';
+                    boxSem.style.color = '#475569';
+                    boxSem.innerHTML = '⚪ <b>Fuera de horario Pico y Placa (6am–8pm):</b> ' + cantPicoHoy + ' placas tienen el dígito de hoy.';
+                }
             }
 
             var textoFiltros = partes.join(" • ");
@@ -10520,7 +10563,36 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
-        // --- ORDENAMIENTO POR CERCANÍA CONTINUA + CONTROL DE SALTO MÁXIMO (10 KM) + 2-OPT ---
+        // Devuelve la longitud aproximada del eje del Río Medellín / Autopista según la latitud
+        function obtenerLongitudEjeRioMedellin(lat) {
+            var pts = [
+                { lat: 6.090, lng: -75.635 }, // Caldas
+                { lat: 6.155, lng: -75.615 }, // Sabaneta / La Estrella
+                { lat: 6.185, lng: -75.592 }, // Itagüí / Aguacatala
+                { lat: 6.220, lng: -75.578 }, // Industriales / Poblado
+                { lat: 6.255, lng: -75.575 }, // Centro / Macarena
+                { lat: 6.290, lng: -75.565 }, // Tricentenario / Castilla
+                { lat: 6.330, lng: -75.552 }, // Bello / Niquía
+                { lat: 6.355, lng: -75.510 }, // Copacabana
+                { lat: 6.430, lng: -75.330 }  // Barbosa
+            ];
+            if (lat <= pts[0].lat) return pts[0].lng;
+            if (lat >= pts[pts.length - 1].lat) return pts[pts.length - 1].lng;
+            for (var i = 0; i < pts.length - 1; i++) {
+                if (lat >= pts[i].lat && lat <= pts[i + 1].lat) {
+                    var ratio = (lat - pts[i].lat) / (pts[i + 1].lat - pts[i].lat);
+                    return pts[i].lng + ratio * (pts[i + 1].lng - pts[i].lng);
+                }
+            }
+            return -75.575;
+        }
+
+        // Devuelve 'OCCIDENTAL' (lado Itagüí/Belén/Laureles/Robledo) u 'ORIENTAL' (lado Envigado/Poblado/Manrique)
+        function obtenerCostadoRioMedellin(lat, lng) {
+            return (lng < obtenerLongitudEjeRioMedellin(lat)) ? 'OCCIDENTAL' : 'ORIENTAL';
+        }
+
+        // --- ORDENAMIENTO INTELIGENTE: CERCANÍA + MODO SENTIDO DEL RÍO + PICO Y PLACA + SALTO MÁXIMO (10 KM) ---
         function ordenarPuntosPorCercania(origen, listaPuntos, limite, saltoMaxKmOverride) {
             var pendientes = listaPuntos.slice();
             var rutaOrdenada = [];
@@ -10532,37 +10604,91 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 : (selSaltoEl ? (parseFloat(selSaltoEl.value) || 10) : 10);
             var saltoMaxMetros = (saltoMaxKm >= 900) ? Infinity : (saltoMaxKm * 1000);
 
+            var selSentidoEl = document.getElementById('selectSentidoRioRuta');
+            var sentidoRio = selSentidoEl ? selSentidoEl.value : 'cercania';
+            var chkPrioPicoEl = document.getElementById('chkPriorizarPicoEnHorario');
+            var priorizarPico = (chkPrioPicoEl && chkPrioPicoEl.checked && estaEnHorarioPicoYPlacaActivo());
+
+            var costadoActual = obtenerCostadoRioMedellin(puntoActual.lat, puntoActual.lng);
+
             var limNum = parseInt(limite) || 8;
             var maxParadas = (limNum >= 999) ? pendientes.length : Math.min(pendientes.length, limNum);
             var omitidasPorDistancia = 0;
 
             for (var i = 0; i < maxParadas; i++) {
-                var mejorDist = Infinity;
+                var mejorScore = Infinity;
+                var mejorDistReal = Infinity;
                 var mejorIdx = -1;
+
+                // En modo "mismo_costado", verificar si todavía quedan placas válidas en el mismo costado dentro del salto máximo
+                var hayEnMismoCostado = false;
+                if (sentidoRio === 'mismo_costado') {
+                    for (var jc = 0; jc < pendientes.length; jc++) {
+                        var pc = pendientes[jc];
+                        var dc = calcularDistancia(puntoActual.lat, puntoActual.lng, pc.lat, pc.lng);
+                        if ((rutaOrdenada.length === 0 || dc <= saltoMaxMetros) && obtenerCostadoRioMedellin(pc.lat, pc.lng) === costadoActual) {
+                            hayEnMismoCostado = true;
+                            break;
+                        }
+                    }
+                }
 
                 for (var j = 0; j < pendientes.length; j++) {
                     var p = pendientes[j];
                     var d = calcularDistancia(puntoActual.lat, puntoActual.lng, p.lat, p.lng);
-                    if (d < mejorDist) {
-                        mejorDist = d;
+                    if (rutaOrdenada.length > 0 && d > saltoMaxMetros) {
+                        continue; // Nunca permitir un salto mayor a saltoMaxMetros (ej. 10 km)
+                    }
+
+                    var score = d;
+                    var costadoP = obtenerCostadoRioMedellin(p.lat, p.lng);
+
+                    if (sentidoRio === 'sur_norte') {
+                        // Barrer de Sur a Norte (menor latitud primero en franjas progresivas) sin cruzar el río sin necesidad
+                        var avanceSur = (p.lat - 6.02) * 111000; // metros desde el extremo sur (Caldas)
+                        score = (avanceSur * 1.65) + (d * 0.55) + (costadoP !== costadoActual ? 900 : 0);
+                    } else if (sentidoRio === 'norte_sur') {
+                        // Barrer de Norte a Sur (mayor latitud primero en franjas progresivas) sin cruzar el río sin necesidad
+                        var avanceNorte = (6.46 - p.lat) * 111000; // metros desde el extremo norte (Barbosa)
+                        score = (avanceNorte * 1.65) + (d * 0.55) + (costadoP !== costadoActual ? 900 : 0);
+                    } else if (sentidoRio === 'mismo_costado') {
+                        if (hayEnMismoCostado && costadoP !== costadoActual) {
+                            score += 500000; // Terminar primero todo este lado del río antes de cruzar puente
+                        }
+                    } else {
+                        // Modo cercanía libre: pequeña penalización de 450m por cruzar puente del río para evitar zig-zag entre orillas
+                        if (costadoP !== costadoActual) {
+                            score += 450;
+                        }
+                    }
+
+                    // Si el semáforo de Pico y Placa está activo (6am-8pm) y la opción de priorizar está activa, bonificar placas con Pico y Placa cercanas
+                    if (priorizarPico && p.pico) {
+                        score -= 1200;
+                    }
+
+                    if (score < mejorScore) {
+                        mejorScore = score;
+                        mejorDistReal = d;
                         mejorIdx = j;
                     }
                 }
 
                 if (mejorIdx !== -1) {
-                    // A partir de la primera parada enlazada, exigir que el salto del punto actual al siguiente NO supere saltoMaxMetros (ej. 10 km)
-                    if (rutaOrdenada.length > 0 && mejorDist > saltoMaxMetros) {
-                        omitidasPorDistancia = pendientes.length;
-                        break;
-                    }
                     var seleccionado = pendientes.splice(mejorIdx, 1)[0];
                     rutaOrdenada.push(seleccionado);
                     puntoActual = { lat: seleccionado.lat, lng: seleccionado.lng };
+                    costadoActual = obtenerCostadoRioMedellin(puntoActual.lat, puntoActual.lng);
+                } else {
+                    if (pendientes.length > 0) {
+                        omitidasPorDistancia = pendientes.length;
+                    }
+                    break;
                 }
             }
 
-            // Optimización 2-Opt ligera para descruzar tramos respetando el salto máximo entre paradas
-            if (rutaOrdenada.length >= 4 && rutaOrdenada.length <= 80) {
+            // Optimización 2-Opt ligera para descruzar tramos (en modos de cercanía/costado) respetando el salto máximo
+            if ((sentidoRio === 'cercania' || sentidoRio === 'mismo_costado') && rutaOrdenada.length >= 4 && rutaOrdenada.length <= 80) {
                 var mejorado = true;
                 var iter = 0;
                 while (mejorado && iter < 25) {
@@ -11915,13 +12041,22 @@ async function procesarFotoTablaDirecta(usarGemini) {
             <span id="badge-conteo-activos-ruta" style="background:#2563eb; color:white; font-size:10.5px; font-weight:900; padding:3px 8px; border-radius:12px; white-space:nowrap;">0 placas</span>
         </div>
 
-        <!-- ESCUDO DE CIUDAD Y LÍMITE DE SALTO ENTRE PLACA Y PLACA -->
+        <!-- SEMÁFORO HORARIO AUTOMÁTICO DE PICO Y PLACA (6:00 A.M. A 8:00 P.M.) -->
+        <div id="semaforo-pico-horario-box" style="background:#fef2f2; border:1.5px solid #f87171; border-radius:8px; padding:6px 10px; margin-bottom:6px; font-size:10.5px; color:#991b1b; line-height:1.35;">
+            🚦 <b>Semáforo Pico y Placa (6am–8pm):</b> Verificando horario activo...
+        </div>
+
+        <!-- ESCUDO DE CIUDAD, SALTO MÁXIMO (10 KM) Y MODO SENTIDO DEL RÍO -->
         <div style="background:#fffbeb; border:1.5px solid #fcd34d; border-radius:8px; padding:7px 10px; margin-bottom:8px;">
-            <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:#92400e; cursor:pointer; margin-bottom:6px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:#92400e; cursor:pointer; margin-bottom:4px;">
                 <input type="checkbox" id="chkRutaSoloValleAburra" checked onchange="actualizarBadgeFiltrosRuta()">
                 🛡️ Solo Valle de Aburrá (Excluir Rionegro, Bogotá, Bucaramanga, etc.)
             </label>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:#b91c1c; cursor:pointer; margin-bottom:6px;">
+                <input type="checkbox" id="chkPriorizarPicoEnHorario" checked onchange="actualizarBadgeFiltrosRuta()">
+                🚦 Priorizar vehículos con Pico y Placa en horario activo (6am–8pm)
+            </label>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
                 <span style="font-size:11px; font-weight:800; color:#78350f; white-space:nowrap;">📏 Salto máx. 1 a otro:</span>
                 <select id="selectSaltoMaxKmRuta" onchange="actualizarBadgeFiltrosRuta()" style="flex:1; padding:4px 6px; font-size:11px; font-weight:800; color:#0f172a; border-radius:6px; border:1px solid #f59e0b; background:white;">
                     <option value="3">Máx. 3 km (Mismo sector)</option>
@@ -11930,6 +12065,15 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     <option value="10" selected>Máx. 10 km (Recomendado)</option>
                     <option value="15">Máx. 15 km (Aburrá amplio)</option>
                     <option value="999">Sin límite de distancia</option>
+                </select>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <span style="font-size:11px; font-weight:800; color:#0369a1; white-space:nowrap;">🌊 Sentido del Río:</span>
+                <select id="selectSentidoRioRuta" onchange="actualizarBadgeFiltrosRuta()" style="flex:1; padding:4px 6px; font-size:11px; font-weight:800; color:#0f172a; border-radius:6px; border:1px solid #38bdf8; background:white;">
+                    <option value="cercania" selected>🎯 Libre por Cercanía (Evita cruzar puentes)</option>
+                    <option value="sur_norte">⬆️ Sur ➔ Norte (Subiendo hacia Bello)</option>
+                    <option value="norte_sur">⬇️ Norte ➔ Sur (Bajando hacia Envigado/Sur)</option>
+                    <option value="mismo_costado">🌊 Barrer mi Costado del Río Primero</option>
                 </select>
             </div>
         </div>
