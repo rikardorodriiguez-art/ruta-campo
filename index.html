@@ -675,7 +675,7 @@
             <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
                 <button type="button" id="hud-cap-btn-foto" onclick="event.stopPropagation(); if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-mini" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border-color:#fde047;" title="Ver foto del vehículo en pantalla completa">📸</button>
                 <button type="button" onclick="event.stopPropagation(); iniciarPipRadar();" class="hud-btn-mini" style="background:linear-gradient(135deg, #7c3aed, #6d28d9); border-color:#a78bfa;" title="Flotar sobre WhatsApp y otras apps">🪟</button>
-                <button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Google Maps">🧭</button>
+                <button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Mi Mapa">🗺️</button>
                 <button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3);" title="Expandir Radar HUD">➕</button>
             </div>
         </div>
@@ -723,7 +723,7 @@
 
             <div class="hud-actions-row">
                 <button type="button" id="hud-exp-btn-foto" onclick="if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-action" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fde047; color:#fff;" title="Ver foto del carro en pantalla completa">📸 Foto</button>
-                <button type="button" onclick="irCercanoMaps()" class="hud-btn-action hud-btn-maps" title="Abrir ruta en Google Maps">🧭 Maps</button>
+                <button type="button" onclick="irCercanoMaps()" class="hud-btn-action hud-btn-maps" title="Navegar hacia este objetivo en Mi Mapa">🗺️ Mi Mapa</button>
                 <button type="button" onclick="visitarCercanoDesdeRadar()" class="hud-btn-action hud-btn-visitar" title="Marcar como visitada">✅ Visitada</button>
                 <button type="button" onclick="centrarEnVehiculoCercano()" class="hud-btn-action" style="background:#334155; border:1px solid #64748b;" title="Ver en el mapa">🎯 Ver</button>
                 <button type="button" onclick="iniciarPipRadar()" class="hud-btn-action hud-btn-pip" title="Flotar sobre Google Maps / Celular">🪟 Flotar</button>
@@ -912,6 +912,7 @@
         </label>
         
         <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
+            <button id="btn-filtro-instalar-app" type="button" onclick="ejecutarInstalacionNativaPWA()" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold; background:linear-gradient(135deg, #7c3aed, #5b21b6);" title="Instalar UBICA-RICK como App nativa en Android">📲 Instalar como App en el Celular</button>
             <button id="btn-config-cierre-turno" type="button" onclick="cerrarConfig(); abrirModalCierreTurno();" class="pop-btn pb-green" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
             <button id="btn-config-gestion-usuarios" type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold;">👥 Gestión de Usuarios</button>
             <button id="btn-config-sync-nube" type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
@@ -1169,10 +1170,9 @@
         <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
         
         <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
-            <button id="btn-filtro-motos" onclick="toggleCapaMotosEnVivo()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Ver ubicación en vivo de los motorizados">🏍️ Motos en Vivo</button>
-            <button id="btn-filtro-reporte" onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
-            <button id="btn-filtro-instalar-app" onclick="ejecutarInstalacionNativaPWA()" class="pop-btn pb-purple" style="margin:0; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #7c3aed, #5b21b6);" title="Instalar UBICA-RICK como App nativa en Android">📲 Instalar como App en el Celular</button>
             <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
+            <button id="btn-filtro-reporte" onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
+            <button id="btn-filtro-motos" onclick="toggleCapaMotosEnVivo()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Ver ubicación en vivo de los motorizados">🏍️ Motos en Vivo</button>
             <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:12px; padding:9px 6px;">🗺️ Ver Todas en Pantalla</button>
             <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:12px; padding:9px 6px;">⚙️ Configuración</button>
         </div>
@@ -2368,13 +2368,8 @@
         }
 
         function irCercanoMaps() {
-            if (placaMasCercanaObj) {
-                var urlMaps = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(placaMasCercanaObj.lat + "," + placaMasCercanaObj.lng);
-                // Si el dispositivo soporta Picture-in-Picture, intentamos abrir la ventana flotante
-                if (document.pictureInPictureEnabled && !document.pictureInPictureElement) {
-                    try { iniciarPipRadar(); } catch(e){}
-                }
-                window.open(urlMaps, '_blank');
+            if (placaMasCercanaObj && placaMasCercanaObj.id) {
+                navegarPuntoEnMiMapa(placaMasCercanaObj.id);
             }
         }
 
