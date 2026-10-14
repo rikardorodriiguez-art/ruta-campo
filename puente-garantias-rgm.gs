@@ -2,25 +2,51 @@
  * ============================================================================
  * PUENTE AUTOMÁTICO DE GARANTÍAS MOBILIARIAS PARA UBICA-RICK (v6.2)
  * ============================================================================
- * INSTRUCCIONES RÁPIDAS (SOLO SE HACE 1 VEZ):
- * 1. Entra a https://script.google.com y toca en "Nuevo proyecto".
- * 2. Borra lo que haya en el editor y pega todo este código.
- * 3. Arriba a la derecha toca en "Implementar" -> "Nueva implementación".
- * 4. En "Selecciona el tipo" (icono de engranaje ⚙️) elige "Aplicación web".
- * 5. En "Quién tiene acceso" selecciona: "Cualquier persona" (Anyone).
- * 6. Toca "Implementar", copia la "URL de la aplicación web" (termina en /exec)
- *    y pégala en UBICA-RICK en el botón "⚙️ Puente".
+ * INSTRUCCIONES RÁPIDAS (PARA ACTUALIZAR TU PUENTE):
+ * 1. Abre tu proyecto en https://script.google.com
+ * 2. Borra el código anterior y pega todo este código nuevo.
+ * 3. Toca el icono de Guardar (💾).
+ * 4. Arriba a la derecha toca en "Implementar" -> "Nueva implementación"
+ *    (o "Gestionar implementaciones" -> Editar ✏️ -> "Nueva versión").
+ * 5. Toca "Implementar".
  * ============================================================================
  */
 
 function doGet(e) {
   var params = (e && e.parameter) ? e.parameter : {};
+  var urlDirecta = (params.url || "").toString().trim();
   var placa = (params.placa || params.NumeroBien || "").toString().toUpperCase().replace(/[^A-Z0-9]/g, "").trim();
+
+  if (urlDirecta && urlDirecta.indexOf("garantiasmobiliarias.com.co") !== -1) {
+    var mPl = urlDirecta.match(/NumeroBien=([a-zA-Z0-9]+)/i);
+    if (mPl && mPl[1] && !placa) {
+      placa = mPl[1].toUpperCase();
+    }
+    if (/ResultadoConsultaGarantias\.aspx/i.test(urlDirecta)) {
+      try {
+        var respDir = UrlFetchApp.fetch(urlDirecta, {
+          method: "get",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "es-CO,es;q=0.9"
+          },
+          muteHttpExceptions: true
+        });
+        var htmlDir = respDir.getContentText("UTF-8");
+        var datosDir = parsearTextoGarantias(htmlDir, placa);
+        if (datosDir) {
+          datosDir.ok = Boolean(datosDir.marca || datosDir.linea || datosDir.modelo || datosDir.garante);
+          return responderJson(datosDir);
+        }
+      } catch (errDir) {}
+    }
+  }
 
   if (!placa) {
     return responderJson({
       ok: false,
-      error: "Debes enviar el parámetro ?placa=LRW205"
+      error: "Debes enviar el parámetro ?placa=JYY140"
     });
   }
 
@@ -53,16 +79,19 @@ function consultarPlacaEnGarantiasMobiliarias(placa) {
     if (!resp) return;
     var headers = resp.getAllHeaders();
     if (!headers) return;
-    var setCookies = headers["Set-Cookie"] || headers["set-cookie"];
-    if (!setCookies) return;
-    var lista = Array.isArray(setCookies) ? setCookies : [setCookies];
-    for (var i = 0; i < lista.length; i++) {
-      var parte = String(lista[i]).split(";")[0].trim();
-      var eq = parte.indexOf("=");
-      if (eq > 0) {
-        var k = parte.substring(0, eq).trim();
-        var v = parte.substring(eq + 1).trim();
-        cookiesMap[k] = v;
+    for (var hk in headers) {
+      if (headers.hasOwnProperty(hk) && hk.toLowerCase() === "set-cookie") {
+        var setCookies = headers[hk];
+        var lista = Array.isArray(setCookies) ? setCookies : [setCookies];
+        for (var i = 0; i < lista.length; i++) {
+          var parte = String(lista[i]).split(";")[0].trim();
+          var eq = parte.indexOf("=");
+          if (eq > 0) {
+            var k = parte.substring(0, eq).trim();
+            var v = parte.substring(eq + 1).trim();
+            cookiesMap[k] = v;
+          }
+        }
       }
     }
   }
@@ -84,7 +113,8 @@ function consultarPlacaEnGarantiasMobiliarias(placa) {
       var reqHeaders = {
         "User-Agent": ua,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "es-CO,es;q=0.9"
+        "Accept-Language": "es-CO,es;q=0.9",
+        "Origin": baseHost
       };
       var ck = obtenerCookieHeader();
       if (ck) reqHeaders["Cookie"] = ck;
@@ -110,7 +140,13 @@ function consultarPlacaEnGarantiasMobiliarias(placa) {
 
       if (code === 301 || code === 302 || code === 303 || code === 307 || code === 308) {
         var hAll = resp.getAllHeaders();
-        var loc = hAll["Location"] || hAll["location"];
+        var loc = "";
+        for (var lk in hAll) {
+          if (hAll.hasOwnProperty(lk) && lk.toLowerCase() === "location") {
+            loc = hAll[lk];
+            break;
+          }
+        }
         if (!loc) return resp;
         if (loc.indexOf("http") !== 0) {
           if (loc.indexOf("/") === 0) loc = baseHost + loc;
@@ -133,8 +169,8 @@ function consultarPlacaEnGarantiasMobiliarias(placa) {
 
   var html1 = resp1.getContentText("UTF-8");
 
-  // PASO 1.5: Si la página cargó el formulario pero aún no ejecutó el botón Consultar, disparar la consulta por serial
-  if (!/Detalle\s+de\s+la\s+Garant|20\d{14,18}/i.test(html1)) {
+  // PASO 1.5: Solo si NO hay ningún Folio de 17 dígitos ni Formulario Registral en html1, disparar el botón Consultar
+  if (!/\b20\d{14,18}\b|Formulario\s+Registral/i.test(html1)) {
     var btnConsultarInfo = extraerBotonConsultarInicial(html1, placa);
     if (btnConsultarInfo) {
       var payloadConsulta = construirPayloadAspNet(html1, btnConsultarInfo.target, btnConsultarInfo.argument, btnConsultarInfo.extraFields);
@@ -158,64 +194,86 @@ function consultarPlacaEnGarantiasMobiliarias(placa) {
     return datosFolio;
   }
 
-  // PASO 2: Extraer la acción en la columna Acciones (después de Formulario Registral de Ejecución / Inscripción)
-  var accionFila = extraerAccionTablaGarantias(html1, baseHost);
+  // PASO 2: Extraer el primer icono de la columna Acciones (en la fila de Formulario Registral de Ejecución)
+  var accionesCandidatas = extraerAccionesTablaGarantias(html1, baseHost);
   var html2 = "";
 
-  if (accionFila && accionFila.type === "url") {
-    var resp2 = fetchConSesion(accionFila.url, {
-      method: "get",
-      headers: { "Referer": urlConsulta }
-    });
-    if (resp2) html2 = resp2.getContentText("UTF-8");
-  } else if (accionFila && (accionFila.type === "postback" || accionFila.type === "image" || accionFila.type === "submit")) {
-    var extraF = {};
-    if (accionFila.type === "image" && accionFila.name) {
-      extraF[accionFila.name + ".x"] = "10";
-      extraF[accionFila.name + ".y"] = "10";
-    } else if (accionFila.type === "submit" && accionFila.name) {
-      extraF[accionFila.name] = accionFila.value || "";
-    }
-    var payloadPaso2 = construirPayloadAspNet(html1, accionFila.target || "", accionFila.argument || "", extraF);
-    var respPost = fetchConSesion(urlConsulta, {
-      method: "post",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Referer": urlConsulta
-      },
-      payload: payloadPaso2
-    });
-    if (respPost) {
-      var txtPost = respPost.getContentText("UTF-8");
-      var mRedir = txtPost.match(/pageRedirect\|\|([^|]+)/i);
-      if (mRedir && mRedir[1]) {
-        var uRedir = decodeURIComponent(mRedir[1]);
-        if (uRedir.indexOf("http") !== 0) {
-          uRedir = uRedir.indexOf("/") === 0 ? (baseHost + uRedir) : (baseHost + "/rgm/Garantias/" + uRedir);
-        }
-        var respRedir = fetchConSesion(uRedir, { method: "get", headers: { "Referer": urlConsulta } });
-        if (respRedir) html2 = respRedir.getContentText("UTF-8");
-      } else {
-        html2 = txtPost;
-        var subAccion = extraerAccionTablaGarantias(html2, baseHost);
-        if (subAccion && subAccion.type === "url" && !/A[ñn]o\s+Correspondiente/i.test(html2)) {
-          var respDet2 = fetchConSesion(subAccion.url, { method: "get", headers: { "Referer": urlConsulta } });
-          if (respDet2) html2 = respDet2.getContentText("UTF-8");
+  for (var ai = 0; ai < accionesCandidatas.length; ai++) {
+    var accionFila = accionesCandidatas[ai];
+    if (accionFila.type === "url") {
+      var resp2 = fetchConSesion(accionFila.url, {
+        method: "get",
+        headers: { "Referer": urlConsulta }
+      });
+      if (resp2) html2 = resp2.getContentText("UTF-8");
+    } else {
+      var extraF = {};
+      if (accionFila.name) {
+        if (accionFila.type === "image") {
+          extraF[accionFila.name + ".x"] = "10";
+          extraF[accionFila.name + ".y"] = "10";
+        } else if (accionFila.type === "submit") {
+          extraF[accionFila.name] = accionFila.value || "";
         }
       }
-    }
-  }
+      var payloadPaso2 = construirPayloadAspNet(html1, accionFila.target || "", accionFila.argument || "", extraF);
 
-  if (html2) {
-    var datosDetalle = parsearTextoGarantias(html2, placa);
-    if (datosDetalle) {
-      if (datosFolio) {
-        if (!datosDetalle.acreedor && datosFolio.acreedor) datosDetalle.acreedor = datosFolio.acreedor;
-        if (!datosDetalle.garante && datosFolio.garante) datosDetalle.garante = datosFolio.garante;
-        if (!datosDetalle.cedula && datosFolio.cedula) datosDetalle.cedula = datosFolio.cedula;
+      // Intento 2A: Con X-MicrosoftAjax: Delta=true para capturar pageRedirect directo
+      var respDelta = fetchConSesion(urlConsulta, {
+        method: "post",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-MicrosoftAjax": "Delta=true",
+          "X-Requested-With": "XMLHttpRequest",
+          "Referer": urlConsulta
+        },
+        payload: payloadPaso2
+      });
+      if (respDelta) {
+        var txtDelta = respDelta.getContentText("UTF-8");
+        var uRedir = extraerUrlRedireccionRgm(txtDelta, baseHost);
+        if (uRedir) {
+          var respRedir = fetchConSesion(uRedir, { method: "get", headers: { "Referer": urlConsulta } });
+          if (respRedir) html2 = respRedir.getContentText("UTF-8");
+        } else if (/A[ñn]o\s+Correspondiente|Bienes\s+Garantizados\s*\(\s*Por\s+serial\s*\)/i.test(txtDelta)) {
+          html2 = txtDelta;
+        }
       }
-      datosDetalle.ok = Boolean(datosDetalle.marca || datosDetalle.linea || datosDetalle.modelo || datosDetalle.garante);
-      return datosDetalle;
+
+      // Intento 2B: POST estándar siguiendo redirección 302
+      if (!html2 || !/A[ñn]o\s+Correspondiente|Bienes\s+Garantizados\s*\(\s*Por\s+serial\s*\)/i.test(html2)) {
+        var respPost = fetchConSesion(urlConsulta, {
+          method: "post",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Referer": urlConsulta
+          },
+          payload: payloadPaso2
+        });
+        if (respPost) {
+          var txtPost = respPost.getContentText("UTF-8");
+          var uRedir2 = extraerUrlRedireccionRgm(txtPost, baseHost);
+          if (uRedir2) {
+            var respRedir2 = fetchConSesion(uRedir2, { method: "get", headers: { "Referer": urlConsulta } });
+            if (respRedir2) html2 = respRedir2.getContentText("UTF-8");
+          } else {
+            html2 = txtPost;
+          }
+        }
+      }
+    }
+
+    if (html2) {
+      var datosDetalle = parsearTextoGarantias(html2, placa);
+      if (datosDetalle && (datosDetalle.marca || datosDetalle.linea || datosDetalle.modelo)) {
+        if (datosFolio) {
+          if (!datosDetalle.acreedor && datosFolio.acreedor) datosDetalle.acreedor = datosFolio.acreedor;
+          if (!datosDetalle.garante && datosFolio.garante) datosDetalle.garante = datosFolio.garante;
+          if (!datosDetalle.cedula && datosFolio.cedula) datosDetalle.cedula = datosFolio.cedula;
+        }
+        datosDetalle.ok = true;
+        return datosDetalle;
+      }
     }
   }
 
@@ -229,6 +287,30 @@ function consultarPlacaEnGarantiasMobiliarias(placa) {
     placa: placa,
     error: "No se encontraron registros activos de Garantías Mobiliarias para la placa " + placa
   };
+}
+
+function extraerUrlRedireccionRgm(texto, baseHost) {
+  if (!texto) return "";
+  var mRedir = texto.match(/pageRedirect\|\|([^|]+)/i);
+  if (mRedir && mRedir[1]) {
+    var u = decodeURIComponent(mRedir[1]).replace(/&amp;/g, "&").trim();
+    if (u.indexOf("http") !== 0) {
+      u = u.indexOf("/") === 0 ? (baseHost + u) : (baseHost + "/rgm/Garantias/" + u);
+    }
+    return u;
+  }
+  var mUrl = texto.match(/((?:https?:\/\/[^"'\s|<>]+|\/rgm\/Garantias\/)?ResultadoConsultaGarantias\.aspx\?[^"'\s|<>]+)/i);
+  if (mUrl && mUrl[1]) {
+    var u2 = mUrl[1].replace(/&amp;/g, "&").trim();
+    if (u2.indexOf("%3f") !== -1 || u2.indexOf("%3F") !== -1 || u2.indexOf("%26") !== -1) {
+      try { u2 = decodeURIComponent(u2); } catch (e) {}
+    }
+    if (u2.indexOf("http") !== 0) {
+      u2 = u2.indexOf("/") === 0 ? (baseHost + u2) : (baseHost + "/rgm/Garantias/" + u2.replace(/^\.\//, ""));
+    }
+    return u2;
+  }
+  return "";
 }
 
 function extraerBotonConsultarInicial(html, placa) {
@@ -264,53 +346,117 @@ function extraerBotonConsultarInicial(html, placa) {
   if (mPbCons) {
     return { target: mPbCons[1], argument: mPbCons[2] || "", extraFields: extra };
   }
-  if ( Object.keys(extra).length > 0 ) {
+  if (Object.keys(extra).length > 0) {
     return { target: "", argument: "", extraFields: extra };
   }
   return null;
 }
 
-function extraerAccionTablaGarantias(html, baseHost) {
-  if (!html) return null;
-  // 1. Buscar primero cualquier enlace directo a ResultadoConsultaGarantias.aspx en toda la respuesta
-  var mUrlGlobal = html.match(/(?:href|window\.open)\s*=\s*["']([^"']*ResultadoConsultaGarantias\.aspx\?[^"']+)["']/i);
-  if (mUrlGlobal && mUrlGlobal[1]) {
-    var u = mUrlGlobal[1].replace(/&amp;/g, "&").trim();
-    if (u.indexOf("http") !== 0) {
-      u = u.indexOf("/") === 0 ? (baseHost + u) : (baseHost + "/rgm/Garantias/" + u.replace(/^\.\//, ""));
+function extraerAccionesTablaGarantias(html, baseHost) {
+  var lista = [];
+  if (!html) return lista;
+
+  var uDir = extraerUrlRedireccionRgm(html, baseHost);
+  if (uDir) {
+    lista.push({ type: "url", url: uDir });
+  }
+
+  // Buscar todas las filas <tr> que tengan Folio Electrónico (20...) o Formulario Registral
+  var filas = [];
+  var reTr = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
+  var mTr;
+  while ((mTr = reTr.exec(html)) !== null) {
+    var trHtml = mTr[1];
+    if (/\b20\d{14,18}\b/i.test(trHtml) || /Formulario\s+Registral/i.test(trHtml)) {
+      filas.push(trHtml);
     }
-    return { type: "url", url: u };
   }
 
-  // 2. Recortar desde la tabla "Detalle de la Garantía" o desde el primer Folio de 17 dígitos para NO tocar enlaces de la cabecera
-  var idxTabla = html.search(/Detalle\s+de\s+la\s+Garant|Folio\s+Electr|\b20\d{14,18}\b/i);
-  var sub = idxTabla !== -1 ? html.substring(idxTabla) : html;
+  // Ordenar filas priorizando "Formulario Registral de Ejecución" y la más reciente
+  filas.sort(function(a, b) {
+    var aEjec = /Ejecuci/i.test(a) ? 1 : 0;
+    var bEjec = /Ejecuci/i.test(b) ? 1 : 0;
+    return bEjec - aEjec;
+  });
 
-  // En la tabla, "Formulario Registral de Ejecución" (columna 6) está ANTES de la columna "Acciones" (columna 7)
-  var idxForm = sub.search(/Formulario\s+Registral\s+de\s+(?:Ejecuci|Inscripci|Modificaci)/i);
-  var zonaAcciones = idxForm !== -1 ? sub.substring(idxForm, idxForm + 2600) : sub.substring(0, 4500);
-
-  // 2A. __doPostBack en la columna Acciones (después de Formulario Registral)
-  var mPb = zonaAcciones.match(/__doPostBack\(\s*(?:'|&#39;|")([^'"&]+)(?:'|&#39;|")\s*,\s*(?:'|&#39;|")([^'"&]*)(?:'|&#39;|")\s*\)/i);
-  if (mPb && mPb[1]) {
-    return { type: "postback", target: mPb[1], argument: mPb[2] || "" };
+  if (filas.length === 0) {
+    var idxTabla = html.search(/Detalle\s+de\s+la\s+Garant|Folio\s+Electr|\b20\d{14,18}\b/i);
+    var sub = idxTabla !== -1 ? html.substring(idxTabla) : html;
+    var idxForm = sub.search(/Formulario\s+Registral/i);
+    filas.push(idxForm !== -1 ? sub.substring(idxForm, idxForm + 2500) : sub.substring(0, 3500));
   }
 
-  // 2B. <input type="image" name="..."> en la columna Acciones
-  var mImg = zonaAcciones.match(/<input\b[^>]*type\s*=\s*["']?image["']?[^>]*name\s*=\s*["']([^"']+)["'][^>]*>/i) ||
-             zonaAcciones.match(/<input\b[^>]*name\s*=\s*["']([^"']+)["'][^>]*type\s*=\s*["']?image["']?[^>]*>/i);
-  if (mImg && mImg[1]) {
-    return { type: "image", name: mImg[1] };
+  for (var f = 0; f < filas.length; f++) {
+    var fila = filas[f];
+    var posForm = fila.search(/Formulario\s+Registral/i);
+    var zonaAcciones = posForm !== -1 ? fila.substring(posForm) : fila;
+
+    // Buscar TODOS los controles interactivos en zonaAcciones en el orden exacto en que aparecen
+    var candidatosFila = [];
+
+    var reImg = /<input\b[^>]*>/gi;
+    var mI;
+    while ((mI = reImg.exec(zonaAcciones)) !== null) {
+      var tag = mI[0];
+      var mTp = tag.match(/type\s*=\s*["']?([^"'\s>]+)/i);
+      var tp = mTp ? mTp[1].toLowerCase() : "";
+      var mNm = tag.match(/name\s*=\s*["']([^"']+)["']/i);
+      if (!mNm) continue;
+      var nm = mNm[1];
+      var mPbOnClick = tag.match(/__doPostBack\(\s*(?:'|&#39;|"|\\')([^'"&\\]+)(?:'|&#39;|"|\\')\s*,\s*(?:'|&#39;|"|\\')([^'"&\\]*)(?:'|&#39;|"|\\')\s*\)/i) ||
+                       tag.match(/WebForm_PostBackOptions\(\s*(?:'|&#39;|&quot;|")([^'"&]+)(?:'|&#39;|&quot;|")\s*,\s*(?:'|&#39;|&quot;|")([^'"&]*)(?:'|&#39;|&quot;|")/i);
+      if (tp === "image") {
+        candidatosFila.push({
+          idx: mI.index,
+          type: "image",
+          name: nm,
+          target: mPbOnClick ? mPbOnClick[1] : "",
+          argument: mPbOnClick ? (mPbOnClick[2] || "") : ""
+        });
+      } else if (tp === "submit" || tp === "button") {
+        var mVal = tag.match(/value\s*=\s*["']([^"']*)["']/i);
+        candidatosFila.push({
+          idx: mI.index,
+          type: "submit",
+          name: nm,
+          value: mVal ? mVal[1] : "",
+          target: mPbOnClick ? mPbOnClick[1] : "",
+          argument: mPbOnClick ? (mPbOnClick[2] || "") : ""
+        });
+      }
+    }
+
+    var rePb = /__doPostBack\(\s*(?:'|&#39;|&quot;|"|\\')([^'"&\\]+)(?:'|&#39;|&quot;|"|\\')\s*,\s*(?:'|&#39;|&quot;|"|\\')([^'"&\\]*)(?:'|&#39;|&quot;|"|\\')\s*\)/gi;
+    var mP;
+    while ((mP = rePb.exec(zonaAcciones)) !== null) {
+      candidatosFila.push({
+        idx: mP.index,
+        type: "postback",
+        target: mP[1],
+        argument: mP[2] || ""
+      });
+    }
+
+    // Ordenar por posición en el HTML para que el PRIMER icono de Acciones ("Consultar Detalle") vaya primero
+    candidatosFila.sort(function(x, y) { return x.idx - y.idx; });
+
+    for (var ci = 0; ci < candidatosFila.length; ci++) {
+      lista.push(candidatosFila[ci]);
+    }
   }
 
-  // 2C. <input type="submit" name="..."> en la columna Acciones
-  var mSub = zonaAcciones.match(/<input\b[^>]*type\s*=\s*["']?submit["']?[^>]*name\s*=\s*["']([^"']+)["'][^>]*>/i);
-  if (mSub && mSub[1]) {
-    var mVal = mSub[0].match(/value\s*=\s*["']([^"']*)["']/i);
-    return { type: "submit", name: mSub[1], value: mVal ? mVal[1] : "" };
-  }
+  return lista;
+}
 
-  return null;
+function decodificarEntidadesHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, function(_, d) { return String.fromCharCode(parseInt(d, 10)); });
 }
 
 function construirPayloadAspNet(html, eventTarget, eventArgument, extraFieldsMap) {
@@ -329,9 +475,20 @@ function construirPayloadAspNet(html, eventTarget, eventArgument, extraFieldsMap
       if (!/\bchecked\b/i.test(tag)) continue;
     }
     var mVal = tag.match(/value\s*=\s*["']([^"']*)["']/i);
-    var val = mVal ? mVal[1].replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'") : "";
-    campos[name] = val;
+    campos[name] = mVal ? decodificarEntidadesHtml(mVal[1]) : "";
   }
+
+  var reSelect = /<select\b[^>]*name\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi;
+  var mSel;
+  while ((mSel = reSelect.exec(html)) !== null) {
+    var selName = mSel[1];
+    var selBody = mSel[2];
+    var mOptSel = selBody.match(/<option\b[^>]*selected[^>]*value\s*=\s*["']([^"']*)["']/i) ||
+                  selBody.match(/<option\b[^>]*value\s*=\s*["']([^"']*)["'][^>]*selected/i) ||
+                  selBody.match(/<option\b[^>]*value\s*=\s*["']([^"']*)["']/i);
+    campos[selName] = mOptSel ? decodificarEntidadesHtml(mOptSel[1]) : "";
+  }
+
   campos["__EVENTTARGET"] = eventTarget || "";
   campos["__EVENTARGUMENT"] = eventArgument || "";
   if (extraFieldsMap) {
@@ -381,7 +538,7 @@ function parsearTextoGarantias(rawHtml, placaFallback) {
 
   var mMarcaVeh = limpio.match(/Veh[ií]culo\s*:\s*([A-Z0-9\-\s]{2,22}?)(?=\s*(?:Placa|Modelo|L[ií]nea|Chasis|Color|Servicio|Vin|Motor|Serie|$))/i);
   var mMarcaLin = limpio.match(/Marca\s*:?\s*([A-Z0-9\-\s]{2,22}?)(?=\s*(?:N[uú]mero\s+de\s+Serial|Fabricante|A[ñn]o\s+Correspondiente|Placa|L[ií]nea|Modelo|Color|Tipo|Descripci|Chasis|Motor|Serie|,|$))/i);
-  var mFab = limpio.match(/Fabricante\s*:?\s*([A-Z0-9\-\s]{2,22}?)(?=\s*(?:A[ñn]o\s+Correspondiente|Placa|Descripci|L[ií]nea|Modelo|Color|N[uú]mero)|,|$)/i);
+  var mFab = limpio.match(/Fabricante\s*:?\s*([A-Z0-9\-\s]{2,22}?)(?=\s*(?:A[ñn]o\s+Correspondiente|Placa|Descripci|L[ií]nea|Modelo|Color|N[uú]mero|,|$))/i);
 
   function validarMarca(cand) {
     if (!cand) return "";
@@ -464,11 +621,11 @@ function parsearTextoGarantias(rawHtml, placaFallback) {
     res.garante = mFolioRow[3].trim().toUpperCase();
     res.cedula = mFolioRow[4].trim();
   } else {
-    var mAcSec = limpio.match(/Acreedores\s+Garantizados[\s\S]{0,160}?Raz[oó]n\s+Social\s+o\s+Nombre\s*\.?\s*([A-ZÁÉÍÓÚÑ0-9\s\.]{3,65}?)(?=\s*(?:Tipo\s+Identificaci|N[uú]mero\s+de\s+Identificaci|NIT|Tel[eé]fono|$))/i);
+    var mAcSec = limpio.match(/Acreedores\s+Garantizados[\s\S]{0,200}?Raz[oó]n\s+Social\s+o\s+Nombre\s*\.?\s*([A-ZÁÉÍÓÚÑ0-9\s\.]{3,65}?)(?=\s*(?:Tipo\s+Identificaci|N[uú]mero\s+de\s+Identificaci|NIT|Tel[eé]fono|$))/i);
     if (mAcSec && mAcSec[1]) res.acreedor = mAcSec[1].trim().toUpperCase();
-    var mDeudSec = limpio.match(/(?:Deudores\s+y\s+Garantes|\bDEUDOR\b)[\s\S]{0,160}?Raz[oó]n\s+Social\s+o\s+Nombre\s*\.?\s*([A-ZÁÉÍÓÚÑ\s\.]{4,50}?)(?=\s*(?:Tel[eé]fono|Celular|Correo|Tipo\s+Identificaci|CEDULA|NIT|N[uú]mero|$))/i);
+    var mDeudSec = limpio.match(/(?:Deudores\s+y\s+Garantes|\bDEUDOR\b)[\s\S]{0,200}?Raz[oó]n\s+Social\s+o\s+Nombre\s*\.?\s*([A-ZÁÉÍÓÚÑ\s\.]{4,50}?)(?=\s*(?:Tel[eé]fono|Celular|Correo|Tipo\s+Identificaci|CEDULA|NIT|N[uú]mero|$))/i);
     if (mDeudSec && mDeudSec[1]) res.garante = mDeudSec[1].trim().toUpperCase();
-    var mCedSec = limpio.match(/(?:Deudores\s+y\s+Garantes|\bDEUDOR\b)[\s\S]{0,280}?N[uú]mero\s+de\s+Identificaci[oó]n\s*\.?\s*(\d{6,12})\b/i);
+    var mCedSec = limpio.match(/(?:Deudores\s+y\s+Garantes|\bDEUDOR\b)[\s\S]{0,300}?N[uú]mero\s+de\s+Identificaci[oó]n\s*\.?\s*(\d{6,12})\b/i);
     if (mCedSec && mCedSec[1]) res.cedula = mCedSec[1].trim();
   }
 
