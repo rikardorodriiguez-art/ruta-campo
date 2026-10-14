@@ -832,6 +832,46 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIGURACIÓN DEL PUENTE AUTOMÁTICO DE GARANTÍAS MOBILIARIAS (GOOGLE APPS SCRIPT) -->
+    <div id="modal-puente-garantias" onclick="if(event.target === this) cerrarModalPuenteGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.88); z-index:20000007; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
+        <div style="width:100%; max-width:460px; max-height:92vh; overflow-y:auto; background:#0f172a; border:2px solid #10b981; border-radius:14px; padding:14px; box-sizing:border-box; box-shadow:0 12px 35px rgba(0,0,0,0.8); color:#f8fafc;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-size:13.5px; font-weight:900; color:#34d399;">🤖 PUENTE AUTOMÁTICO GARANTÍAS (100% AUTO)</div>
+                <button type="button" onclick="cerrarModalPuenteGarantias()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+            </div>
+            <div style="font-size:11px; color:#cbd5e1; line-height:1.4; margin-bottom:10px; background:#1e293b; padding:8px 10px; border-radius:8px; border-left:3px solid #38bdf8;">
+                Este puente gratuito en tu cuenta de Google entra solo a <b>garantiasmobiliarias.com.co</b>, mantiene la sesión, abre <b>Formulario Registral de Ejecución → Bienes Garantizados</b> y rellena automáticamente <b>Marca, Línea, Modelo y Color</b> apenas pongas la placa:
+            </div>
+
+            <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:9px; margin-bottom:8px;">
+                <div style="font-size:11px; font-weight:800; color:#38bdf8; margin-bottom:5px;">PASO 1: Copia el código del robot (1 toque)</div>
+                <button type="button" onclick="copiarCodigoPuenteAppsScript()" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:white; border:none; border-radius:7px; padding:9px; font-size:11.5px; font-weight:900; cursor:pointer;">📋 1. Copiar Código Google Apps Script</button>
+            </div>
+
+            <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:9px; margin-bottom:8px;">
+                <div style="font-size:11px; font-weight:800; color:#facc15; margin-bottom:4px;">PASO 2: Pégalo en Google Apps Script (solo se hace 1 vez)</div>
+                <div style="font-size:10.5px; color:#e2e8f0; line-height:1.35; margin-bottom:6px;">
+                    1. Abre <b>script.google.com</b> → toca <b>"Nuevo proyecto"</b>.<br>
+                    2. Borra lo que haya, pega el código copiado y guarda (💾).<br>
+                    3. Toca <b>Implementar → Nueva implementación → Aplicación web</b>.<br>
+                    4. En <i>"Quién tiene acceso"</i> elige <b>"Cualquier persona"</b> y toca <b>Implementar</b>.<br>
+                    5. Copia la <b>URL de la aplicación web</b> (termina en <code>/exec</code>).
+                </div>
+                <button type="button" onclick="window.open('https://script.google.com/home/start', '_blank')" style="width:100%; background:#334155; color:#38bdf8; border:1px solid #38bdf8; border-radius:7px; padding:7px; font-size:11px; font-weight:800; cursor:pointer;">🌐 2. Abrir script.google.com ↗</button>
+            </div>
+
+            <div style="background:#1e293b; border:1.5px solid #10b981; border-radius:8px; padding:9px; margin-bottom:10px;">
+                <div style="font-size:11px; font-weight:800; color:#4ade80; margin-bottom:5px;">PASO 3: Pega aquí tu URL del Puente (/exec)</div>
+                <input type="text" id="input-url-puente-rgm" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; box-sizing:border-box; background:#0f172a; color:#fff; border:1px solid #475569; border-radius:6px; padding:8px; font-size:11.5px; margin-bottom:6px;">
+                <div id="estado-prueba-puente-rgm" style="display:none; font-size:11px; padding:6px 8px; border-radius:6px; margin-bottom:6px;"></div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" onclick="guardarYProbarPuenteGarantias()" style="flex:2; background:linear-gradient(135deg, #16a34a, #15803d); color:white; border:none; border-radius:7px; padding:10px; font-size:12px; font-weight:900; cursor:pointer;">💾 Guardar y Extraer Ahora</button>
+                    <button type="button" onclick="cerrarModalPuenteGarantias()" style="flex:1; background:#475569; color:white; border:none; border-radius:7px; padding:10px; font-size:11.5px; font-weight:800; cursor:pointer;">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-asistente">
         <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 6px;">✏️ Revisión Manual de Direcciones:</b>
         <span style="font-size: 11px; color:#555; display:block; margin-bottom:8px;">Corrige o selecciona las líneas de dirección:</span>
@@ -949,14 +989,20 @@
             <div style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:7px 8px; margin:6px 0;">
                 <div style="font-size:10.5px; font-weight:800; color:#1e40af; margin-bottom:5px; display:flex; align-items:center; justify-content:space-between;">
                     <span>🏛️ Garantías Mobiliarias (Marca, Línea, Modelo):</span>
-                    <span id="badge-estado-rgm" style="font-size:9.5px; background:#dbeafe; color:#1d4ed8; padding:1px 6px; border-radius:8px;">Listo</span>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <span id="badge-estado-rgm" style="font-size:9.5px; background:#dbeafe; color:#1d4ed8; padding:1px 6px; border-radius:8px;">Listo</span>
+                        <button type="button" onclick="abrirModalPuenteGarantias()" style="background:#0f172a; color:#34d399; border:1px solid #10b981; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;" title="Configurar Puente Automático Google Apps Script">⚙️ Puente</button>
+                    </div>
                 </div>
+                <button type="button" onclick="ejecutarExtraccionAutomaticaGarantias()" class="pop-btn" style="width:100%; margin:0 0 5px 0; padding:7px 6px; font-size:11px; font-weight:900; background:linear-gradient(135deg, #059669, #047857); color:white; border:none; border-radius:6px; box-shadow:0 2px 6px rgba(5,150,105,0.35);">
+                    ⚡ AUTO-EXTRAER MARCA, LÍNEA Y MODELO (PUENTE)
+                </button>
                 <div style="display:flex; gap:5px; margin-bottom:4px;">
-                    <button type="button" onclick="abrirConsultaGarantiasDirecta()" class="pop-btn pb-blue" style="flex:1; margin:0; padding:6px 4px; font-size:10.5px; background:#1d4ed8;">
-                        🔍 1. Abrir Placa en Garantías
+                    <button type="button" onclick="abrirConsultaGarantiasDirecta()" class="pop-btn pb-blue" style="flex:1; margin:0; padding:6px 4px; font-size:10px; background:#1d4ed8;">
+                        🔍 1. Abrir en Garantías
                     </button>
-                    <button type="button" onclick="pegarYExtraerDeGarantias()" class="pop-btn pb-teal" style="flex:1; margin:0; padding:6px 4px; font-size:10.5px; background:#0d9488;">
-                        📋 2. Pegar Bienes Garantizados
+                    <button type="button" onclick="pegarYExtraerDeGarantias()" class="pop-btn pb-teal" style="flex:1; margin:0; padding:6px 4px; font-size:10px; background:#0d9488;">
+                        📋 2. Pegar Texto
                     </button>
                 </div>
                 <label class="pop-btn" style="margin:0; padding:5px; font-size:10px; background:#0f172a; color:#38bdf8; border:1px solid #38bdf8; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
@@ -4550,6 +4596,133 @@
             return null;
         }
 
+        var CODIGO_APPS_SCRIPT_PUENTE_RGM = "/**\n * ============================================================================\n * PUENTE AUTOM\u00c1TICO DE GARANT\u00cdAS MOBILIARIAS PARA UBICA-RICK (v6.2)\n * ============================================================================\n * INSTRUCCIONES R\u00c1PIDAS (SOLO SE HACE 1 VEZ):\n * 1. Entra a https://script.google.com y toca en \"Nuevo proyecto\".\n * 2. Borra lo que haya en el editor y pega todo este c\u00f3digo.\n * 3. Arriba a la derecha toca en \"Implementar\" -> \"Nueva implementaci\u00f3n\".\n * 4. En \"Selecciona el tipo\" (icono de engranaje \u2699\ufe0f) elige \"Aplicaci\u00f3n web\".\n * 5. En \"Qui\u00e9n tiene acceso\" selecciona: \"Cualquier persona\" (Anyone).\n * 6. Toca \"Implementar\", copia la \"URL de la aplicaci\u00f3n web\" (termina en /exec)\n *    y p\u00e9gala en UBICA-RICK en el bot\u00f3n \"\u2699\ufe0f Configurar Puente\".\n * ============================================================================\n */\n\nfunction doGet(e) {\n  var params = (e && e.parameter) ? e.parameter : {};\n  var placa = (params.placa || params.NumeroBien || \"\").toString().toUpperCase().replace(/[^A-Z0-9]/g, \"\").trim();\n\n  if (!placa) {\n    return responderJson({\n      ok: false,\n      error: \"Debes enviar el par\u00e1metro ?placa=JYY140\"\n    });\n  }\n\n  try {\n    var resultado = consultarPlacaEnGarantiasMobiliarias(placa);\n    return responderJson(resultado);\n  } catch (err) {\n    return responderJson({\n      ok: false,\n      placa: placa,\n      error: err && err.message ? err.message : String(err)\n    });\n  }\n}\n\nfunction responderJson(obj) {\n  return ContentService\n    .createTextOutput(JSON.stringify(obj))\n    .setMimeType(ContentService.MimeType.JSON);\n}\n\nfunction consultarPlacaEnGarantiasMobiliarias(placa) {\n  var baseHost = \"https://www.garantiasmobiliarias.com.co\";\n  var urlConsulta = baseHost + \"/rgm/Garantias/ConsultaGarantia.aspx?NumeroBien=\" + encodeURIComponent(placa.toLowerCase()) + \"&ConsultaOficial=false\";\n  var ua = \"Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36\";\n\n  var cookiesMap = {};\n\n  function guardarCookiesDeRespuesta(resp) {\n    if (!resp) return;\n    var headers = resp.getAllHeaders();\n    if (!headers) return;\n    var setCookies = headers[\"Set-Cookie\"] || headers[\"set-cookie\"];\n    if (!setCookies) return;\n    var lista = Array.isArray(setCookies) ? setCookies : [setCookies];\n    for (var i = 0; i < lista.length; i++) {\n      var parte = String(lista[i]).split(\";\")[0].trim();\n      var eq = parte.indexOf(\"=\");\n      if (eq > 0) {\n        var k = parte.substring(0, eq).trim();\n        var v = parte.substring(eq + 1).trim();\n        cookiesMap[k] = v;\n      }\n    }\n  }\n\n  function obtenerCookieHeader() {\n    var pares = [];\n    for (var k in cookiesMap) {\n      if (cookiesMap.hasOwnProperty(k)) {\n        pares.push(k + \"=\" + cookiesMap[k]);\n      }\n    }\n    return pares.join(\"; \");\n  }\n\n  function fetchConSesion(url, opcionesExtra) {\n    var urlActual = url;\n    var opts = opcionesExtra || {};\n    for (var hop = 0; hop < 5; hop++) {\n      var reqHeaders = {\n        \"User-Agent\": ua,\n        \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\",\n        \"Accept-Language\": \"es-CO,es;q=0.9\"\n      };\n      var ck = obtenerCookieHeader();\n      if (ck) reqHeaders[\"Cookie\"] = ck;\n      if (opts.headers) {\n        for (var h in opts.headers) {\n          reqHeaders[h] = opts.headers[h];\n        }\n      }\n\n      var paramsFetch = {\n        method: opts.method || \"get\",\n        headers: reqHeaders,\n        followRedirects: false,\n        muteHttpExceptions: true\n      };\n      if (opts.payload) {\n        paramsFetch.payload = opts.payload;\n      }\n\n      var resp = UrlFetchApp.fetch(urlActual, paramsFetch);\n      guardarCookiesDeRespuesta(resp);\n      var code = resp.getResponseCode();\n\n      if (code === 301 || code === 302 || code === 303 || code === 307 || code === 308) {\n        var hAll = resp.getAllHeaders();\n        var loc = hAll[\"Location\"] || hAll[\"location\"];\n        if (!loc) return resp;\n        if (loc.indexOf(\"http\") !== 0) {\n          if (loc.indexOf(\"/\") === 0) loc = baseHost + loc;\n          else loc = baseHost + \"/rgm/Garantias/\" + loc.replace(/^\\.\\//, \"\");\n        }\n        urlActual = loc;\n        opts = { method: \"get\", headers: { \"Referer\": url } };\n        continue;\n      }\n      return resp;\n    }\n    return null;\n  }\n\n  // PASO 1: Abrir ConsultaGarantia.aspx con el NumeroBien (placa)\n  var resp1 = fetchConSesion(urlConsulta, { method: \"get\" });\n  if (!resp1) {\n    return { ok: false, placa: placa, error: \"Sin respuesta de Garant\u00edas Mobiliarias en Paso 1\" };\n  }\n\n  var html1 = resp1.getContentText(\"UTF-8\");\n  var datosFolio = parsearTextoGarantias(html1, placa);\n\n  // Si en el HTML 1 ya viniera Marca/L\u00ednea/Modelo completo, devolver de inmediato\n  if (datosFolio && (datosFolio.marca || datosFolio.linea || datosFolio.modelo)) {\n    datosFolio.ok = true;\n    return datosFolio;\n  }\n\n  // PASO 2A: Buscar enlace directo a ResultadoConsultaGarantias.aspx?CodigoGarantia=...\n  var urlDetalle = extraerEnlaceDetalle(html1, baseHost);\n  var html2 = \"\";\n\n  if (urlDetalle) {\n    var resp2 = fetchConSesion(urlDetalle, {\n      method: \"get\",\n      headers: { \"Referer\": urlConsulta }\n    });\n    if (resp2) {\n      html2 = resp2.getContentText(\"UTF-8\");\n    }\n  }\n\n  // PASO 2B: Si usa PostBack de ASP.NET (__doPostBack o bot\u00f3n de grilla), ejecutar POST con __VIEWSTATE y Cookie\n  if (!html2 || (!/Bienes\\s+Garantizados/i.test(html2) && !/A[\u00f1n]o\\s+Correspondiente/i.test(html2))) {\n    var postBackInfo = extraerPostBackFormularioEjecucion(html1);\n    if (postBackInfo) {\n      var payloadPaso2 = construirPayloadAspNet(html1, postBackInfo.target, postBackInfo.argument, postBackInfo.extraField);\n      var respPost = fetchConSesion(urlConsulta, {\n        method: \"post\",\n        headers: {\n          \"Content-Type\": \"application/x-www-form-urlencoded\",\n          \"Referer\": urlConsulta\n        },\n        payload: payloadPaso2\n      });\n      if (respPost) {\n        var txtPost = respPost.getContentText(\"UTF-8\");\n        // Verificar si ASP.NET devolvi\u00f3 un pageRedirect de ScriptManager\n        var mRedir = txtPost.match(/pageRedirect\\|\\|([^|]+)/i);\n        if (mRedir && mRedir[1]) {\n          var uRedir = decodeURIComponent(mRedir[1]);\n          if (uRedir.indexOf(\"http\") !== 0) {\n            uRedir = uRedir.indexOf(\"/\") === 0 ? (baseHost + uRedir) : (baseHost + \"/rgm/Garantias/\" + uRedir);\n          }\n          var respRedir = fetchConSesion(uRedir, { method: \"get\", headers: { \"Referer\": urlConsulta } });\n          if (respRedir) html2 = respRedir.getContentText(\"UTF-8\");\n        } else {\n          html2 = txtPost;\n          // Si despu\u00e9s del POST apareci\u00f3 el enlace a ResultadoConsultaGarantias.aspx, seguirlo\n          var urlDet2 = extraerEnlaceDetalle(html2, baseHost);\n          if (urlDet2 && !/A[\u00f1n]o\\s+Correspondiente/i.test(html2)) {\n            var respDet2 = fetchConSesion(urlDet2, { method: \"get\", headers: { \"Referer\": urlConsulta } });\n            if (respDet2) html2 = respDet2.getContentText(\"UTF-8\");\n          }\n        }\n      }\n    }\n  }\n\n  if (html2) {\n    var datosDetalle = parsearTextoGarantias(html2, placa);\n    if (datosDetalle) {\n      if (datosFolio) {\n        if (!datosDetalle.acreedor && datosFolio.acreedor) datosDetalle.acreedor = datosFolio.acreedor;\n        if (!datosDetalle.garante && datosFolio.garante) datosDetalle.garante = datosFolio.garante;\n        if (!datosDetalle.cedula && datosFolio.cedula) datosDetalle.cedula = datosFolio.cedula;\n      }\n      datosDetalle.ok = Boolean(datosDetalle.marca || datosDetalle.linea || datosDetalle.modelo || datosDetalle.garante);\n      return datosDetalle;\n    }\n  }\n\n  if (datosFolio && (datosFolio.acreedor || datosFolio.garante)) {\n    datosFolio.ok = true;\n    return datosFolio;\n  }\n\n  return {\n    ok: false,\n    placa: placa,\n    error: \"No se encontraron registros activos de Garant\u00edas Mobiliarias para la placa \" + placa\n  };\n}\n\nfunction extraerEnlaceDetalle(html, baseHost) {\n  if (!html) return null;\n  var re = /(?:href|window\\.open)\\s*=\\s*[\"']([^\"']*ResultadoConsultaGarantias\\.aspx\\?[^\"']+)[\"']/gi;\n  var m;\n  var candidatos = [];\n  while ((m = re.exec(html)) !== null) {\n    var u = m[1].replace(/&amp;/g, \"&\").trim();\n    if (u.indexOf(\"http\") !== 0) {\n      if (u.indexOf(\"/\") === 0) u = baseHost + u;\n      else u = baseHost + \"/rgm/Garantias/\" + u.replace(/^\\.\\//, \"\");\n    }\n    candidatos.push(u);\n  }\n  return candidatos.length > 0 ? candidatos[0] : null;\n}\n\nfunction extraerPostBackFormularioEjecucion(html) {\n  if (!html) return null;\n  // 1. Buscar __doPostBack en la fila de Formulario Registral de Ejecuci\u00f3n o Inscripci\u00f3n Inicial\n  var m1 = html.match(/__doPostBack\\(\\s*(?:'|&#39;|\")([^'\"&]+)(?:'|&#39;|\")\\s*,\\s*(?:'|&#39;|\")([^'\"&]*)(?:'|&#39;|\")\\s*\\)[\\s\\S]{0,180}?(?:Formulario\\s+Registral\\s+de\\s+Ejecuci|Formulario\\s+Registral\\s+de\\s+Inscripci|Detalle)/i);\n  if (m1) return { target: m1[1], argument: m1[2] || \"\" };\n\n  // 2. Buscar cualquier LinkButton dentro de la tabla de garant\u00edas (gvGarantias / gvResultados / lnk)\n  var m2 = html.match(/__doPostBack\\(\\s*(?:'|&#39;|\")([^'\"&]*(?:gv|Grid|Garantia|Resultado|lnk|ctl02)[^'\"&]*)(?:'|&#39;|\")\\s*,\\s*(?:'|&#39;|\")([^'\"&]*)(?:'|&#39;|\")\\s*\\)/i);\n  if (m2) return { target: m2[1], argument: m2[2] || \"\" };\n\n  return null;\n}\n\nfunction construirPayloadAspNet(html, eventTarget, eventArgument, extraField) {\n  var campos = {};\n  var reInput = /<input\\b[^>]*>/gi;\n  var m;\n  while ((m = reInput.exec(html)) !== null) {\n    var tag = m[0];\n    var mType = tag.match(/type\\s*=\\s*[\"']?([^\"'\\s>]+)/i);\n    var tipo = mType ? mType[1].toLowerCase() : \"text\";\n    if (tipo === \"submit\" || tipo === \"button\" || tipo === \"image\" || tipo === \"reset\") continue;\n    var mName = tag.match(/name\\s*=\\s*[\"']([^\"']+)[\"']/i);\n    if (!mName) continue;\n    var name = mName[1];\n    var mVal = tag.match(/value\\s*=\\s*[\"']([^\"']*)[\"']/i);\n    var val = mVal ? mVal[1].replace(/&amp;/g, \"&\").replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\") : \"\";\n    campos[name] = val;\n  }\n  campos[\"__EVENTTARGET\"] = eventTarget || \"\";\n  campos[\"__EVENTARGUMENT\"] = eventArgument || \"\";\n  if (extraField && extraField.name) {\n    campos[extraField.name] = extraField.value || \"\";\n  }\n  var partes = [];\n  for (var k in campos) {\n    if (campos.hasOwnProperty(k)) {\n      partes.push(encodeURIComponent(k) + \"=\" + encodeURIComponent(campos[k]));\n    }\n  }\n  return partes.join(\"&\");\n}\n\nfunction parsearTextoGarantias(rawHtml, placaFallback) {\n  if (!rawHtml) return null;\n  var limpio = rawHtml\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, \" \")\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, \" \")\n    .replace(/<[^>]+>/g, \" \")\n    .replace(/&nbsp;/gi, \" \")\n    .replace(/&#(\\d+);/g, function(_, d) { return String.fromCharCode(parseInt(d, 10)); })\n    .replace(/\\s+/g, \" \")\n    .trim();\n\n  var res = {\n    placa: placaFallback || \"\",\n    marca: \"\",\n    linea: \"\",\n    modelo: \"\",\n    color: \"\",\n    acreedor: \"\",\n    garante: \"\",\n    cedula: \"\"\n  };\n\n  var palabrasIgnorarMarca = [\"NUMERO\", \"N\u00daMERO\", \"DE\", \"SERIAL\", \"FABRICANTE\", \"A\u00d1O\", \"ANO\", \"MODELO\", \"PLACA\", \"TIPO\", \"BIEN\", \"VEHICULO\", \"VEH\u00cdCULO\", \"DESCRIPCION\", \"DESCRIPCI\u00d3N\", \"NO\", \"EXISTEN\", \"SERVICIO\", \"PARTICULAR\", \"PUBLICO\", \"P\u00daBLICO\"];\n\n  var mPlaca1 = limpio.match(/Placa\\s*:?\\s*([A-Z]{3}\\d{2}[0-9A-Z])/i);\n  var mPlaca2 = limpio.match(/A[\u00f1n]o\\s+Correspondiente\\s+al\\s+Modelo\\s*:?\\s*(?:19\\d{2}|20\\d{2})\\s+(?:Placa\\s*:?\\s*)?([A-Z]{3}\\d{2}[0-9A-Z])/i);\n  if (mPlaca1) res.placa = mPlaca1[1].toUpperCase();\n  else if (mPlaca2) res.placa = mPlaca2[1].toUpperCase();\n\n  var mMarcaVeh = limpio.match(/Veh[i\u00ed]culo\\s*:\\s*([A-Z0-9\\-\\s]{2,22}?)(?=\\s*(?:Placa|Modelo|L[i\u00ed]nea|Chasis|Color|Servicio|Vin|Motor|Serie|$))/i);\n  var mMarcaLin = limpio.match(/Marca\\s*:?\\s*([A-Z0-9\\-\\s]{2,22}?)(?=\\s*(?:N[u\u00fa]mero\\s+de\\s+Serial|Fabricante|A[\u00f1n]o\\s+Correspondiente|Placa|L[i\u00ed]nea|Modelo|Color|Tipo|Descripci|Chasis|Motor|Serie|,|$))/i);\n  var mFab = limpio.match(/Fabricante\\s*:?\\s*([A-Z0-9\\-\\s]{2,22}?)(?=\\s*(?:A[\u00f1n]o\\s+Correspondiente|Placa|Descripci|L[i\u00ed]nea|Modelo|Color|N[u\u00fa]mero)|,|$)/i);\n\n  function validarMarca(cand) {\n    if (!cand) return \"\";\n    var c = cand.trim().toUpperCase().replace(/[^A-Z0-9\\-\\s]/g, \"\").trim();\n    if (!c || c.length < 2 || c.length > 22) return \"\";\n    if (palabrasIgnorarMarca.indexOf(c) !== -1) return \"\";\n    if (/N[U\u00da]MERO\\s+DE\\s+SERIAL|FABRICANTE|A[\u00d1N]O\\s+CORRESPONDIENTE|DESCRIPCI|GARANTIA/i.test(c)) return \"\";\n    var tokens = c.split(/\\s+/).filter(function(t) {\n      return t.length < 13 && !/^\\d{4,}$/.test(t) && palabrasIgnorarMarca.indexOf(t) === -1;\n    });\n    return tokens.join(\" \").trim();\n  }\n\n  res.marca = validarMarca(mMarcaVeh && mMarcaVeh[1]) ||\n              validarMarca(mMarcaLin && mMarcaLin[1]) ||\n              validarMarca(mFab && mFab[1]);\n\n  var mMod1 = limpio.match(/A[\u00f1n]o\\s+Correspondiente\\s+al\\s+Modelo\\s*:?\\s*(19\\d{2}|20\\d{2})/i);\n  var mMod2 = limpio.match(/Modelo\\s*:?\\s*(19\\d{2}|20\\d{2})/i);\n  if (mMod1) res.modelo = mMod1[1];\n  else if (mMod2) res.modelo = mMod2[1];\n\n  var mCol = limpio.match(/Color\\s*:?\\s*([A-Z\u00c1\u00c9\u00cd\u00d3\u00da\u00d1\\s]{3,24}?)(?=\\s*(?:Tipo\\s+de\\s+Servicio|T\\.\\s*Servicio|Servicio|L[i\u00ed]nea|Chasis|Vin|Motor|Serie|Tipo|Modelo|Marca|Placa|No\\s+existen|,|\\.|$))/i);\n  if (mCol && mCol[1]) {\n    var colCand = mCol[1].trim().toUpperCase();\n    if (!/^(?:TIPO|SERVICIO|PARTICULAR|PUBLICO|P\u00daBLICO|CHASIS|MOTOR)$/.test(colCand)) {\n      res.color = colCand;\n    }\n  }\n\n  var mLinDirecta = limpio.match(/L[i\u00ed]nea\\s*:?\\s*([A-Z0-9\\-\\s\\.\\/]{1,30}?)(?=\\s*(?:Tipo\\s+de\\s+Servicio|T\\.\\s*Servicio|Servicio|Color|Chasis|Vin|Motor|Serie|Modelo|Marca|Placa|No\\s+existen|Informaci[o\u00f3]n\\s+General|,|\\.|$))/i);\n  if (mLinDirecta && mLinDirecta[1]) {\n    var linCand = mLinDirecta[1].trim().toUpperCase();\n    if (linCand && !/^(?:TIPO|DE|SERVICIO|NO|EXISTEN|PARTICULAR|PUBLICO)$/.test(linCand)) {\n      res.linea = linCand;\n    }\n  }\n\n  if (!res.linea) {\n    var mDesc = limpio.match(/Descripci[o\u00f3]n\\s+del\\s+Bien\\s*:?\\s*(.+?)(?=\\s*(?:Tipo\\s+de\\s+Servicio|No\\s+existen|Informaci[o\u00f3]n\\s+General|Bienes\\s+Garantizados|$))/i);\n    if (mDesc && mDesc[1]) {\n      var descStr = mDesc[1].trim();\n      var mLinInDesc = descStr.match(/L[i\u00ed]nea\\s*:?\\s*([A-Z0-9\\-\\s\\.\\/]{1,30}?)(?=\\s*(?:Tipo|Color|Chasis|Vin|Motor|Serie|Servicio|,|\\.|$))/i);\n      if (mLinInDesc && mLinInDesc[1]) {\n        res.linea = mLinInDesc[1].trim().toUpperCase();\n      } else if (!/^(?:GARANTIA|GARANT\u00cdA|CONTRATO|PAGARE|PAGAR\u00c9|PRENDA)\\b/i.test(descStr)) {\n        if (descStr.indexOf(\",\") !== -1) {\n          var partes = descStr.split(\",\").map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);\n          var coloresConocidos = [\"BLANCO\", \"NEGRO\", \"GRIS\", \"PLATA\", \"PLATEADO\", \"ROJO\", \"AZUL\", \"VERDE\", \"AMARILLO\", \"BEIGE\", \"CAFE\", \"MARRON\", \"DORADO\", \"NARANJA\", \"VINOTINTO\"];\n          var ignorarEnDesc = [\"PUBLICO\", \"P\u00daBLICO\", \"PARTICULAR\", \"OFICIAL\", \"VEHICULO\", \"VEH\u00cdCULO\", \"AUTOMOVIL\", \"AUTOM\u00d3VIL\", \"CAMIONETA\", \"CAMION\", \"CAMI\u00d3N\", \"FURGON\", \"FURG\u00d3N\", \"MOTOCICLETA\", \"CAMPERO\", \"PICKUP\", \"PICK-UP\"];\n          var partesLinea = [];\n          for (var pi = 0; pi < partes.length; pi++) {\n            var pt = partes[pi];\n            var esCol = false;\n            for (var ci = 0; ci < coloresConocidos.length; ci++) {\n              if (pt === coloresConocidos[ci] || pt.indexOf(coloresConocidos[ci] + \" \") === 0) {\n                esCol = true;\n                break;\n              }\n            }\n            if (esCol) {\n              if (!res.color) res.color = pt;\n            } else if (ignorarEnDesc.indexOf(pt) === -1 && pt !== res.marca && pt !== res.modelo && pt !== res.placa && !/^(?:GARANTIA|CHASIS|MOTOR|SERIE|VIN)/.test(pt)) {\n              partesLinea.push(pt);\n            }\n          }\n          if (partesLinea.length > 0) {\n            res.linea = partesLinea.slice(0, 2).join(\" \");\n          }\n        } else if (descStr.length >= 2 && descStr.length <= 35 && !/Veh[i\u00ed]culo|Chasis|Motor|Placa/i.test(descStr)) {\n          res.linea = descStr.toUpperCase();\n        }\n      }\n    }\n  }\n\n  var mFolioRow = limpio.match(/\\b(20\\d{14,18})\\s+([A-Z\\s\\.]+?(?:S\\.A\\.|S\\.A\\.S\\.|BIC|BANCAMIA|BANCO[A-Z\\s]*|FINANZAUTO[A-Z\\s]*|SUFI[A-Z\\s]*|GM\\s*FINANCIAL[A-Z\\s]*|RCI[A-Z\\s]*|MOBILIZE[A-Z\\s]*|OCCIDENTE[A-Z\\s]*|REPONER[A-Z\\s\\.]*))\\s+([A-Z\u00d1\u00c1\u00c9\u00cd\u00d3\u00da\\s]{5,40}?)\\s+(\\d{6,12})\\b/i);\n  if (mFolioRow) {\n    res.acreedor = mFolioRow[2].trim().toUpperCase();\n    res.garante = mFolioRow[3].trim().toUpperCase();\n    res.cedula = mFolioRow[4].trim();\n  } else {\n    var mAcSec = limpio.match(/Acreedores\\s+Garantizados[\\s\\S]{0,140}?Raz[o\u00f3]n\\s+Social\\s+o\\s+Nombre\\s*\\.?\\s*([A-Z\u00c1\u00c9\u00cd\u00d3\u00da\u00d10-9\\s\\.]{3,55}?)(?=\\s*(?:Tipo\\s+Identificaci|N[u\u00fa]mero\\s+de\\s+Identificaci|NIT|$))/i);\n    if (mAcSec && mAcSec[1]) res.acreedor = mAcSec[1].trim().toUpperCase();\n    var mDeudSec = limpio.match(/Deudores\\s+y\\s+Garantes[\\s\\S]{0,140}?Raz[o\u00f3]n\\s+Social\\s+o\\s+Nombre\\s*\\.?\\s*([A-Z\u00c1\u00c9\u00cd\u00d3\u00da\u00d1\\s\\.]{4,45}?)(?=\\s*(?:Tipo\\s+Identificaci|CEDULA|NIT|N[u\u00fa]mero|$))/i);\n    if (mDeudSec && mDeudSec[1]) res.garante = mDeudSec[1].trim().toUpperCase();\n    var mCedSec = limpio.match(/Deudores\\s+y\\s+Garantes[\\s\\S]{0,240}?N[u\u00fa]mero\\s+de\\s+Identificaci[o\u00f3]n\\s*\\.?\\s*(\\d{6,12})\\b/i);\n    if (mCedSec && mCedSec[1]) res.cedula = mCedSec[1].trim();\n  }\n\n  return res;\n}\n";
+
+        function obtenerUrlPuenteRgm() {
+            return (localStorage.getItem('ubica_rick_rgm_bridge_url') || (window.configApp && window.configApp.rgmBridgeUrl) || "").trim();
+        }
+
+        function abrirModalPuenteGarantias() {
+            var modal = document.getElementById('modal-puente-garantias');
+            var inp = document.getElementById('input-url-puente-rgm');
+            var est = document.getElementById('estado-prueba-puente-rgm');
+            if (!modal) return;
+            if (inp) inp.value = obtenerUrlPuenteRgm();
+            if (est) est.style.display = 'none';
+            modal.style.display = 'flex';
+        }
+
+        function cerrarModalPuenteGarantias() {
+            var modal = document.getElementById('modal-puente-garantias');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function copiarCodigoPuenteAppsScript() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(CODIGO_APPS_SCRIPT_PUENTE_RGM);
+                    mostrarToastNotificacion("✅ ¡Código del Puente copiado! Ahora abre script.google.com y pégalo.");
+                    return;
+                }
+            } catch(e) {}
+            var ta = document.createElement('textarea');
+            ta.value = CODIGO_APPS_SCRIPT_PUENTE_RGM;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            mostrarToastNotificacion("✅ ¡Código del Puente copiado al portapapeles!");
+        }
+
+        async function guardarYProbarPuenteGarantias() {
+            var inp = document.getElementById('input-url-puente-rgm');
+            var est = document.getElementById('estado-prueba-puente-rgm');
+            var url = inp ? inp.value.trim() : "";
+            if (!url || url.indexOf("http") !== 0) {
+                alert("⚠️ Pega la URL de tu aplicación web de Google Apps Script (empieza por https://script.google.com/macros/s/.../exec).");
+                return;
+            }
+            localStorage.setItem('ubica_rick_rgm_bridge_url', url);
+            if (window.configApp) window.configApp.rgmBridgeUrl = url;
+            // Sincronizar en Firebase para todos los dispositivos
+            try {
+                if (typeof db !== 'undefined' && db) {
+                    db.ref('config_global/rgmBridgeUrl').set(url);
+                }
+            } catch(eFb) {}
+
+            var placaPrueba = obtenerPlacaActivaEnFormulario() || "JYY140";
+            if (est) {
+                est.style.display = 'block';
+                est.style.background = '#0c4a6e';
+                est.style.color = '#bae6fd';
+                est.innerText = "⏳ Conectando con tu Puente Automático y consultando placa " + placaPrueba + "...";
+            }
+
+            try {
+                localStorage.removeItem('memoria_garantias_rgm_placas');
+                var info = await consultarGarantiasMobiliariasPorPlaca(placaPrueba);
+                if (info && (info.marca || info.linea || info.modelo || info.acreedor || info.garante)) {
+                    inyectarDatosGarantiasEnFormularios(info);
+                    if (est) {
+                        est.style.background = '#064e3b';
+                        est.style.color = '#6ee7b7';
+                        est.innerText = "✅ ¡Puente conectado! " + [info.marca, info.linea, info.modelo, info.color].filter(Boolean).join(" • ");
+                    }
+                    mostrarToastNotificacion("✅ ¡Puente activo y datos colocados en su lugar!");
+                    setTimeout(function() { cerrarModalPuenteGarantias(); }, 1100);
+                } else {
+                    if (est) {
+                        est.style.background = '#064e3b';
+                        est.style.color = '#6ee7b7';
+                        est.innerText = "✅ URL guardada. (Para la placa " + placaPrueba + " Garantías no reportó serial activo o requiere verificar placa).";
+                    }
+                    mostrarToastNotificacion("✅ Puente guardado correctamente.");
+                }
+            } catch(errP) {
+                if (est) {
+                    est.style.background = '#7f1d1d';
+                    est.style.color = '#fecaca';
+                    est.innerText = "⚠️ Error al conectar con el puente: verifica que en Acceso hayas elegido 'Cualquier persona'.";
+                }
+            }
+        }
+
+        async function ejecutarExtraccionAutomaticaGarantias(inputIdPreferido) {
+            var placa = obtenerPlacaActivaEnFormulario(inputIdPreferido);
+            if (!placa) {
+                var pIng = prompt("🤖 AUTO-EXTRAER DE GARANTÍAS MOBILIARIAS\n\nIngresa la placa del vehículo (ej: LRR512):", "");
+                if (!pIng || !pIng.trim()) return;
+                placa = pIng.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+            }
+            var bridgeUrl = obtenerUrlPuenteRgm();
+            var badgeRgm = document.getElementById('badge-estado-rgm');
+            if (badgeRgm) {
+                badgeRgm.style.background = '#fef3c7';
+                badgeRgm.style.color = '#b45309';
+                badgeRgm.innerText = '⏳ Consultando ' + placa + '...';
+            }
+            mostrarCargando("🤖 Entrando automáticamente a Garantías Mobiliarias para la placa " + placa + "...");
+            try {
+                var info = await consultarGarantiasMobiliariasPorPlaca(placa);
+                ocultarCargando();
+                if (info && (info.marca || info.linea || info.modelo)) {
+                    inyectarDatosGarantiasEnFormularios(info);
+                    mostrarToastNotificacion("✅ ¡Extraído y pegado en su lugar! " + [info.marca, info.linea, info.modelo, info.color].filter(Boolean).join(" • "));
+                    return;
+                }
+                if (!bridgeUrl) {
+                    abrirModalPuenteGarantias();
+                    mostrarToastNotificacion("⚙️ Configura el Puente Automático (1 sola vez) para saltar el bloqueo de Garantías.");
+                } else {
+                    alert("⚠️ Garantías Mobiliarias no devolvió Marca/Línea/Modelo para la placa " + placa + ".\n\nPuedes tocar '🔍 1. Abrir en Garantías' para verificar si la placa tiene inscripción activa.");
+                }
+            } catch(e) {
+                ocultarCargando();
+                if (!bridgeUrl) abrirModalPuenteGarantias();
+            }
+        }
+
         // Intenta consultar automáticamente Garantías Mobiliarias por placa en 2 pasos (ConsultaGarantia -> ResultadoConsultaGarantias)
         async function consultarGarantiasMobiliariasPorPlaca(placa) {
             if (!placa || placa === 'SIN_PLACA') return null;
@@ -4576,7 +4749,30 @@
                 };
             }
 
-            // 3. Consulta automática de 2 pasos vía proxies CORS (Paso 1: ConsultaGarantia.aspx -> Paso 2: ResultadoConsultaGarantias.aspx)
+            // 3A. PRIORIDAD 1: Consultar a través del Puente Propio de Google Apps Script (mantiene cookies ASP.NET_SessionId y __VIEWSTATE)
+            var urlPuente = obtenerUrlPuenteRgm();
+            if (urlPuente) {
+                try {
+                    var sep = urlPuente.indexOf("?") === -1 ? "?" : "&";
+                    var fullBridgeUrl = urlPuente + sep + "placa=" + encodeURIComponent(placa) + "&_t=" + Date.now();
+                    var ctrlBr = new AbortController();
+                    var tidBr = setTimeout(function() { ctrlBr.abort(); }, 14000);
+                    var respBr = await fetch(fullBridgeUrl, { signal: ctrlBr.signal });
+                    clearTimeout(tidBr);
+                    if (respBr.ok) {
+                        var dataBr = await respBr.json();
+                        if (dataBr && (dataBr.marca || dataBr.linea || dataBr.modelo || dataBr.acreedor || dataBr.garante)) {
+                            dataBr.placa = placa;
+                            guardarEnCacheGarantiasPlaca(placa, dataBr);
+                            return dataBr;
+                        }
+                    }
+                } catch(eBr) {
+                    console.warn("Aviso puente Garantías:", eBr);
+                }
+            }
+
+            // 3B. Respaldo vía proxies CORS
             var targetUrl = "https://www.garantiasmobiliarias.com.co/rgm/Garantias/ConsultaGarantia.aspx?NumeroBien=" + encodeURIComponent(placa.toLowerCase()) + "&ConsultaOficial=false";
             var constructoresProxy = [
                 function(u) { return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u); },
@@ -5066,30 +5262,52 @@
         async function procesarCapturaGarantiasMobiliarias(archivo) {
             if (!archivo) return;
             var apiKeyGemini = localStorage.getItem('ubica_rick_gemini_key') || (configApp && configApp.geminiApiKey) || "";
-            if (!apiKeyGemini) {
-                alert("⚠️ Configura primero tu clave de Gemini AI para leer capturas automáticamente, o usa el botón '📋 2. Pegar Bienes Garantizados' copiando el texto.");
-                return;
-            }
             var placaAct = obtenerPlacaActivaEnFormulario();
             mostrarCargando("🏛️ Extrayendo Marca, Línea y Modelo de la captura de Garantías...");
             try {
-                var datosGem = await procesarFotoConGemini(archivo, placaAct, apiKeyGemini);
-                ocultarCargando();
-                if (datosGem && (datosGem.marca || datosGem.linea || datosGem.modelo)) {
-                    inyectarDatosGarantiasEnFormularios({
-                        placa: datosGem.placa || placaAct,
-                        marca: (datosGem.marca || '').toUpperCase(),
-                        linea: (datosGem.linea || '').toUpperCase(),
-                        modelo: (datosGem.modelo || ''),
-                        color: (datosGem.color || '').toUpperCase(),
-                        acreedor: datosGem.acreedor || '',
-                        garante: datosGem.titular || '',
-                        cedula: datosGem.cedula || ''
-                    });
-                    mostrarToastNotificacion("✅ Marca, Línea y Modelo completados desde la captura.");
-                } else {
-                    alert("⚠️ No se encontraron datos de Marca, Línea o Modelo en esta imagen.");
+                if (apiKeyGemini) {
+                    try {
+                        var datosGem = await procesarFotoConGemini(archivo, placaAct, apiKeyGemini);
+                        if (datosGem && (datosGem.marca || datosGem.linea || datosGem.modelo)) {
+                            ocultarCargando();
+                            inyectarDatosGarantiasEnFormularios({
+                                placa: datosGem.placa || placaAct,
+                                marca: (datosGem.marca || '').toUpperCase(),
+                                linea: (datosGem.linea || '').toUpperCase(),
+                                modelo: (datosGem.modelo || ''),
+                                color: (datosGem.color || '').toUpperCase(),
+                                acreedor: datosGem.acreedor || '',
+                                garante: datosGem.titular || '',
+                                cedula: datosGem.cedula || ''
+                            });
+                            mostrarToastNotificacion("✅ Marca, Línea y Modelo colocados automáticamente en su lugar.");
+                            return;
+                        }
+                    } catch(eGemCap) {
+                        console.warn("Pasando captura de Garantías a OCR local:", eGemCap);
+                    }
                 }
+
+                // Motor OCR local (Tesseract) para leer la captura de Bienes Garantizados sin depender de clave externa
+                if (typeof Tesseract !== 'undefined') {
+                    var imgPre = archivo;
+                    try { imgPre = await preprocesarImagen(archivo); } catch(eP) {}
+                    var worker = null;
+                    try { worker = await Tesseract.createWorker('spa'); } catch(eS) { worker = await Tesseract.createWorker('eng'); }
+                    var ret = await worker.recognize(imgPre);
+                    await worker.terminate();
+                    var rawCap = (ret && ret.data && ret.data.text) ? ret.data.text : "";
+                    var parsedCap = parsearTextoGarantiasMobiliarias(rawCap);
+                    ocultarCargando();
+                    if (parsedCap && (parsedCap.marca || parsedCap.linea || parsedCap.modelo)) {
+                        if (!parsedCap.placa && placaAct) parsedCap.placa = placaAct;
+                        inyectarDatosGarantiasEnFormularios(parsedCap);
+                        mostrarToastNotificacion("✅ ¡Marca, Línea y Modelo extraídos y pegados en su lugar!");
+                        return;
+                    }
+                }
+                ocultarCargando();
+                alert("⚠️ No se detectaron campos de Marca, Línea o Modelo en esta captura.");
             } catch(e) {
                 ocultarCargando();
                 alert("⚠️ Error al analizar captura: " + (e.message || e));
