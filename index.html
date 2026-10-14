@@ -9701,6 +9701,35 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (elTxt) elTxt.textContent = textoFiltros;
             if (elBadge) elBadge.textContent = pool.length + " placas";
 
+            // Calcular vista previa del tiempo total del recorrido según la cantidad seleccionada
+            try {
+                var limPreview = parseInt(document.getElementById('rutaCercaniaCantidad') ? document.getElementById('rutaCercaniaCantidad').value : 15) || 15;
+                var origPrev = obtenerOrigenRutaBase();
+                var paradasPrev = ordenarPuntosPorCercania(origPrev, pool, limPreview, saltoVal, true);
+                var distPrevM = 0;
+                if (paradasPrev.length > 0) {
+                    distPrevM += calcularDistancia(origPrev.lat, origPrev.lng, paradasPrev[0].lat, paradasPrev[0].lng) * 1.28;
+                    for (var pi = 0; pi < paradasPrev.length - 1; pi++) {
+                        distPrevM += calcularDistancia(paradasPrev[pi].lat, paradasPrev[pi].lng, paradasPrev[pi + 1].lat, paradasPrev[pi + 1].lng) * 1.28;
+                    }
+                }
+                var distPrevKm = (distPrevM / 1000).toFixed(1);
+                var tPrev = calcularResumenTiempoRuta(distPrevKm, Math.round(distPrevM / 400), paradasPrev.length);
+                var elTMod = document.getElementById('txt-tiempo-estimado-modal-ruta');
+                var elSMod = document.getElementById('sub-tiempo-estimado-modal-ruta');
+                if (elTMod) {
+                    if (paradasPrev.length === 0) {
+                        elTMod.innerHTML = "0 placas disponibles con este filtro";
+                        if (elSMod) elSMod.innerHTML = "Ajusta los filtros para calcular el recorrido";
+                    } else {
+                        elTMod.innerHTML = "⏱️ <b>" + tPrev.textoTotal + " en total</b> &nbsp;•&nbsp; 🏁 Terminas <b>~" + tPrev.horaFin + "</b>";
+                        if (elSMod) {
+                            elSMod.innerHTML = "📍 <b>" + paradasPrev.length + " paradas</b> (" + distPrevKm + " km) = 🏍️ " + tPrev.textoManejo + " manejo + 🔍 " + tPrev.textoRevision + " revisando";
+                        }
+                    }
+                }
+            } catch(ePrv) {}
+
             // Sincronizar también el selector de municipio de la pestaña si ya eligió uno
             var selRutaMun = document.getElementById('rutaMunicipioSelect');
             if (selRutaMun && selMun !== 'TODOS' && selMun !== 'OTRO') {
@@ -10126,14 +10155,44 @@ async function procesarFotoTablaDirecta(usarGemini) {
             navOrigen = coordsPaso && coordsPaso.length > 0 ? coordsPaso[0] : obtenerOrigenRutaBase();
             navIndiceActual = 0;
 
+            // Calcular estimación inmediata desde el segundo 0 para que NUNCA diga "0 paradas • 0.0 km"
+            var distInicialM = 0;
+            if (coordsPaso && coordsPaso.length > 1) {
+                for (var ci = 0; ci < coordsPaso.length - 1; ci++) {
+                    distInicialM += calcularDistancia(coordsPaso[ci].lat, coordsPaso[ci].lng, coordsPaso[ci + 1].lat, coordsPaso[ci + 1].lng) * 1.28;
+                }
+            }
+            var distInicialKm = (distInicialM / 1000).toFixed(1);
+            var durInicialMin = Math.max(1, Math.round(distInicialM / 400));
+
+            function actualizarCartelesTiempoRutaGlobal(kmVal, minVal) {
+                var tInfo = calcularResumenTiempoRuta(kmVal, minVal, paradasItems.length);
+                var hudTit = document.getElementById('hud-ruta-titulo');
+                var hudStats = document.getElementById('hud-ruta-stats');
+                var hudBtnMaps = document.getElementById('hud-btn-abrir-maps');
+                if (hudTit) hudTit.innerText = tituloRuta || ("🛣️ Ruta Activa (" + paradasItems.length + " placas)");
+                if (hudStats) {
+                    hudStats.innerHTML = `<div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:3px;">📍 ${paradasItems.length} paradas • 📏 ${kmVal} km</div>` +
+                                         `<div style="background:rgba(16,185,129,0.2); border:1px solid #34d399; border-radius:6px; padding:4px 7px; color:#a7f3d0; font-size:11.5px; font-weight:900;">` +
+                                         `⏱️ Duración total: <span style="color:#ffea00;">${tInfo.textoTotal}</span> • 🏁 Fin: <span style="color:#ffffff;">~${tInfo.horaFin}</span>` +
+                                         `<div style="font-size:9.5px; color:#cbd5e1; font-weight:600; margin-top:1px;">(🏍️ ${tInfo.textoManejo} manejo + 🔍 ${tInfo.textoRevision} revisando puntos)</div></div>`;
+                }
+                if (hudBtnMaps && urlGoogleMaps) {
+                    hudBtnMaps.href = urlGoogleMaps;
+                }
+            }
+
+            actualizarCartelesTiempoRutaGlobal(distInicialKm, durInicialMin);
+
             mostrarCargando("🛣️ Consultando malla vial calle por calle (" + navParadas.length + " paradas)...");
 
             obtenerGeometriaVialReal(coordsPaso).then(function(resRuta) {
                 ocultarCargando();
                 navDatosViales = resRuta;
                 var puntosLinea = (resRuta && resRuta.puntos && resRuta.puntos.length > 0) ? resRuta.puntos : coordsPaso.map(function(c){ return [c.lat, c.lng]; });
-                var distKm = (resRuta && resRuta.distanciaKm) ? resRuta.distanciaKm : "--";
-                var durMin = (resRuta && resRuta.duracionMin) ? resRuta.duracionMin : "--";
+                var distKm = (resRuta && resRuta.distanciaKm) ? resRuta.distanciaKm : distInicialKm;
+                var durMin = (resRuta && resRuta.duracionMin) ? resRuta.duracionMin : durInicialMin;
+                actualizarCartelesTiempoRutaGlobal(distKm, durMin);
 
                 var lineaGlow = L.polyline(puntosLinea, {
                     color: '#00f0ff',
@@ -10182,21 +10241,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     try {
                         map.fitBounds(lineaPrincipal.getBounds(), { padding: [55, 55] });
                     } catch(efit) {}
-
                     var hud = document.getElementById('hud-ruta-activa');
-                    var hudTit = document.getElementById('hud-ruta-titulo');
-                    var hudStats = document.getElementById('hud-ruta-stats');
-                    var hudBtnMaps = document.getElementById('hud-btn-abrir-maps');
-
-                    var tInfo = calcularResumenTiempoRuta(distKm, durMin, paradasItems.length);
                     if (hud) hud.style.display = 'block';
-                    if (hudTit) hudTit.innerText = tituloRuta || "🛣️ Ruta Activa (Malla Vial)";
-                    if (hudStats) {
-                        hudStats.innerHTML = `📍 <b>${paradasItems.length} paradas</b> • 📏 <b>${distKm} km</b> • ⏱️ <b>${tInfo.textoTotal} total</b> <span style="color:#93c5fd; font-size:10px;">(${tInfo.textoManejo} moto + ${tInfo.textoRevision} en puntos)</span> • 🏁 <b>Fin ~${tInfo.horaFin}</b>`;
-                    }
-                    if (hudBtnMaps && urlGoogleMaps) {
-                        hudBtnMaps.href = urlGoogleMaps;
-                    }
                 }
                 var tToast = calcularResumenTiempoRuta(distKm, durMin, paradasItems.length);
                 mostrarToastNotificacion("⏱️ Ruta de " + paradasItems.length + " placas (" + distKm + " km): ~" + tToast.textoTotal + " • Terminas ~" + tToast.horaFin, 5000);
@@ -10474,8 +10520,17 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 distGiroTxt = dGiroM < 1000 ? (dGiroM + ' m') : ((dGiroM / 1000).toFixed(1) + ' km');
 
                 if (idxMejor + 1 < legActivo.pasos.length) {
-                    subGiroTxt = 'Luego: ' + legActivo.pasos[idxMejor + 1].texto;
+                    subGiroTxt = '⏱️ Restan ~' + tRest.textoTotal + ' (🏁 ' + tRest.horaFin + ') • Luego: ' + legActivo.pasos[idxMejor + 1].texto;
                 }
+            }
+
+            var elTiempoTotalCop = document.getElementById('nav-tiempo-total-txt');
+            var elHoraFinCop = document.getElementById('nav-hora-fin-txt');
+            if (elTiempoTotalCop) {
+                elTiempoTotalCop.innerHTML = '⏱️ Restan ' + paradasRestantes + ' placas (' + (distRestanteM / 1000).toFixed(1) + ' km): <b style="color:#fff;">~' + tRest.textoTotal + '</b>';
+            }
+            if (elHoraFinCop) {
+                elHoraFinCop.innerHTML = '🏁 Fin ~' + tRest.horaFin;
             }
 
             var elIcono = document.getElementById('nav-giro-icono');
@@ -10593,7 +10648,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
 
         // --- ORDENAMIENTO INTELIGENTE: CERCANÍA + MODO SENTIDO DEL RÍO + PICO Y PLACA + SALTO MÁXIMO (10 KM) ---
-        function ordenarPuntosPorCercania(origen, listaPuntos, limite, saltoMaxKmOverride) {
+        function ordenarPuntosPorCercania(origen, listaPuntos, limite, saltoMaxKmOverride, silenciosoPreview) {
             var pendientes = listaPuntos.slice();
             var rutaOrdenada = [];
             var puntoActual = origen;
@@ -10717,7 +10772,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }
             }
 
-            if (omitidasPorDistancia > 0 && typeof mostrarToastNotificacion === 'function') {
+            if (!silenciosoPreview && omitidasPorDistancia > 0 && typeof mostrarToastNotificacion === 'function') {
                 setTimeout(function() {
                     mostrarToastNotificacion("🛡️ Se omitieron " + omitidasPorDistancia + " placas a más de " + saltoMaxKm + " km de salto.");
                 }, 900);
@@ -12041,6 +12096,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
             <span id="badge-conteo-activos-ruta" style="background:#2563eb; color:white; font-size:10.5px; font-weight:900; padding:3px 8px; border-radius:12px; white-space:nowrap;">0 placas</span>
         </div>
 
+        <!-- CUADRO DE TIEMPO ESTIMADO TOTAL DEL RECORRIDO EN EL CENTRO DE RUTAS -->
+        <div id="caja-tiempo-estimado-modal-ruta" style="background:linear-gradient(135deg, #064e3b, #0f172a); border:2px solid #10b981; border-radius:10px; padding:8px 10px; margin-bottom:7px; color:white; box-shadow:0 4px 12px rgba(16,185,129,0.25);">
+            <div style="font-size:10px; color:#6ee7b7; font-weight:900; letter-spacing:0.5px; text-transform:uppercase;">⏱️ Duración Estimada del Recorrido:</div>
+            <div id="txt-tiempo-estimado-modal-ruta" style="font-size:12.5px; font-weight:900; color:#ffffff; margin-top:2px;">Calculando tiempo de ruta...</div>
+            <div id="sub-tiempo-estimado-modal-ruta" style="font-size:10.5px; color:#a7f3d0; margin-top:2px;">Incluye manejo en moto + revisión en cada dirección</div>
+        </div>
+
         <!-- SEMÁFORO HORARIO AUTOMÁTICO DE PICO Y PLACA (6:00 A.M. A 8:00 P.M.) -->
         <div id="semaforo-pico-horario-box" style="background:#fef2f2; border:1.5px solid #f87171; border-radius:8px; padding:6px 10px; margin-bottom:6px; font-size:10.5px; color:#991b1b; line-height:1.35;">
             🚦 <b>Semáforo Pico y Placa (6am–8pm):</b> Verificando horario activo...
@@ -12105,7 +12167,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             </div>
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de vehículos:</span>
-                <select id="rutaCercaniaCantidad" style="padding:5px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                <select id="rutaCercaniaCantidad" onchange="actualizarBadgeFiltrosRuta()" style="padding:5px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
                     <option value="6">6 placas más cercanas</option>
                     <option value="8">8 placas más cercanas</option>
                     <option value="15" selected>15 placas más cercanas</option>
@@ -12115,7 +12177,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 </select>
             </div>
             <label class="filter-option" style="margin-bottom:12px;">
-                <input type="checkbox" id="chkRutaCercaniaPendientes" checked> ⏳ Solo placas pendientes (sin visitar)
+                <input type="checkbox" id="chkRutaCercaniaPendientes" checked onchange="actualizarBadgeFiltrosRuta()"> ⏳ Solo placas pendientes (sin visitar)
             </label>
             <button type="button" onclick="ejecutarRutaCercania(true)" class="pop-btn pb-green" style="width:100%; padding:11px; font-size:13px; font-weight:900; margin-bottom:6px; background:linear-gradient(135deg, #059669, #047857); box-shadow:0 4px 14px rgba(5,150,105,0.35);">
                 🗺️ Navegar Aquí en Mi Mapa (Modo Copiloto GPS)
@@ -12188,7 +12250,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             </div>
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de paradas:</span>
-                <select id="rutaMunicipioCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                <select id="rutaMunicipioCantidad" onchange="actualizarBadgeFiltrosRuta()" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
                     <option value="8">8 paradas</option>
                     <option value="15">15 paradas</option>
                     <option value="25" selected>25 paradas</option>
@@ -12220,7 +12282,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             </div>
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de paradas:</span>
-                <select id="rutaTacticaCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                <select id="rutaTacticaCantidad" onchange="actualizarBadgeFiltrosRuta()" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
                     <option value="8">8 prioritarias</option>
                     <option value="15">15 prioritarias</option>
                     <option value="25" selected>25 prioritarias</option>
@@ -12247,7 +12309,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             </div>
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
                 <span style="font-size:11.5px; font-weight:bold; color:#334155;">Cantidad de paradas:</span>
-                <select id="rutaCircularCantidad" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
+                <select id="rutaCircularCantidad" onchange="actualizarBadgeFiltrosRuta()" style="padding:4px 8px; font-size:11.5px; font-weight:bold; border-radius:6px; border:1px solid #cbd5e1; background:white;">
                     <option value="6">6 placas + Regreso</option>
                     <option value="8">8 placas + Regreso</option>
                     <option value="15" selected>15 placas + Regreso</option>
@@ -12357,6 +12419,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
         <div id="nav-barra-inferior" style="position:fixed; bottom:10px; left:50%; transform:translateX(-50%); width:95vw; max-width:460px; z-index:1000001;
             background:rgba(15, 23, 42, 0.97); border:2px solid #00f0ff; border-radius:16px; padding:10px 12px;
             box-shadow:0 12px 35px rgba(0,0,0,0.85); color:white; box-sizing:border-box;">
+            <div id="nav-cinta-tiempo-recorrido" style="background:linear-gradient(90deg, #064e3b, #0f172a); border:1px solid #34d399; border-radius:8px; padding:4px 8px; margin-bottom:6px; font-size:11px; font-weight:900; color:#a7f3d0; display:flex; justify-content:space-between; align-items:center;">
+                <span id="nav-tiempo-total-txt">⏱️ Recorrido total: calculando...</span>
+                <span id="nav-hora-fin-txt" style="color:#ffea00;">🏁 --:--</span>
+            </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; gap:6px;">
                 <div style="display:flex; align-items:center; gap:6px;">
                     <span id="nav-parada-orden" style="background:#2563eb; color:white; font-size:10px; font-weight:900; padding:2px 7px; border-radius:10px; letter-spacing:0.4px;">PARADA 1 DE 1</span>
