@@ -810,6 +810,28 @@
         </div>
     </div>
 
+    <!-- MODAL MULTILÍNEA PARA PEGAR DATOS DE GARANTÍAS MOBILIARIAS CÓMODAMENTE EN CELULAR -->
+    <div id="modal-pegar-garantias" onclick="if(event.target === this) cerrarModalPegarGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.85); z-index:20000006; align-items:center; justify-content:center; padding:14px; box-sizing:border-box;">
+        <div style="width:100%; max-width:440px; background:#0f172a; border:2px solid #0284c7; border-radius:14px; padding:14px; box-sizing:border-box; box-shadow:0 12px 32px rgba(0,0,0,0.75); color:#f8fafc;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-size:14px; font-weight:900; color:#38bdf8;">🏛️ PEGAR BIENES GARANTIZADOS</div>
+                <button type="button" onclick="cerrarModalPegarGarantias()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+            </div>
+            <div style="font-size:11.5px; color:#cbd5e1; line-height:1.35; margin-bottom:8px;">
+                En la página de <b>Garantías Mobiliarias</b> abre <b>Bienes Garantizados (Por serial)</b>, copia el texto (o selecciona todo) y pégalo en este cuadro amplio:
+            </div>
+            <textarea id="txt-modal-garantias" rows="6" placeholder="Mantén presionado aquí y toca Pegar...&#10;Ejemplo:&#10;Marca: CHEVROLET&#10;Año Correspondiente al Modelo: 2023&#10;Descripción del Bien: ... Linea: N400" style="width:100%; box-sizing:border-box; background:#1e293b; color:#f8fafc; border:1.5px solid #475569; border-radius:8px; padding:10px; font-size:12.5px; font-family:monospace; resize:vertical; margin-bottom:8px;"></textarea>
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <button type="button" onclick="intentarPegarPortapapelesEnModalGarantias()" style="flex:1; background:#0369a1; color:white; border:none; border-radius:8px; padding:9px; font-size:11.5px; font-weight:800; cursor:pointer;">📋 Pegar Portapapeles</button>
+                <button type="button" onclick="document.getElementById('txt-modal-garantias').value=''; document.getElementById('txt-modal-garantias').focus();" style="background:#334155; color:#e2e8f0; border:none; border-radius:8px; padding:9px 12px; font-size:11.5px; font-weight:700; cursor:pointer;">🧹 Limpiar</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" onclick="confirmarModalPegarGarantias()" style="flex:2; background:linear-gradient(135deg, #16a34a, #15803d); color:white; border:none; border-radius:8px; padding:11px; font-size:13px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(22,163,74,0.4);">✅ EXTRAER MARCA, LÍNEA Y MODELO</button>
+                <button type="button" onclick="cerrarModalPegarGarantias()" style="flex:1; background:#475569; color:white; border:none; border-radius:8px; padding:11px; font-size:12px; font-weight:800; cursor:pointer;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-asistente">
         <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 6px;">✏️ Revisión Manual de Direcciones:</b>
         <span style="font-size: 11px; color:#555; display:block; margin-bottom:8px;">Corrige o selecciona las líneas de dirección:</span>
@@ -3990,10 +4012,10 @@
                                 console.warn("Aviso escaneo márgenes:", eScan);
                             }
 
-                            // 2. Escalado inteligente para OCR: las tablas necesitan al menos 1800 - 2400px de ancho
+                            // 2. Escalado inteligente para OCR: las tablas necesitan al menos 2350px de ancho (aprox 2.5x)
                             var targetW = cropW;
                             var targetH = cropH;
-                            var minWidth = 1800;
+                            var minWidth = 2350;
 
                             if (targetW < minWidth) {
                                 var factor = minWidth / targetW;
@@ -4015,16 +4037,23 @@
                             // Dibujar la zona de la tabla recortada y ampliada
                             finalCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
 
-                            // 3. Ajuste de contraste para máxima legibilidad de fuentes
+                            // 3. Limpieza de encabezados azules/celestes y estiramiento de contraste sin artefactos JPEG
                             try {
                                 var finalData = finalCtx.getImageData(0, 0, targetW, targetH);
                                 var d = finalData.data;
-                                var contrast = 1.30;
-                                var intercept = 128 * (1 - contrast);
                                 for (var i = 0; i < d.length; i += 4) {
-                                    var gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-                                    var cVal = gray * contrast + intercept;
-                                    cVal = cVal < 0 ? 0 : (cVal > 255 ? 255 : cVal);
+                                    var rP = d[i], gP = d[i + 1], bP = d[i + 2];
+                                    var gray = 0.299 * rP + 0.587 * gP + 0.114 * bP;
+                                    var cVal;
+                                    // Blanquear encabezados de color azul/turquesa para que no metan ruido al OCR
+                                    if ((bP - rP > 25) && gray < 190) {
+                                        cVal = 255;
+                                    } else if (gray > 214) {
+                                        cVal = 255;
+                                    } else {
+                                        cVal = ((gray - 95) * 255) / 119;
+                                        cVal = cVal < 0 ? 0 : (cVal > 255 ? 255 : Math.round(cVal));
+                                    }
                                     d[i] = cVal;
                                     d[i + 1] = cVal;
                                     d[i + 2] = cVal;
@@ -4032,7 +4061,7 @@
                                 finalCtx.putImageData(finalData, 0, 0);
                             } catch(eFilter) {}
 
-                            resolve(finalCanvas.toDataURL('image/jpeg', 0.92));
+                            resolve(finalCanvas.toDataURL('image/png'));
                         } catch(e) {
                             resolve(event.target.result);
                         }
@@ -4105,6 +4134,34 @@
             });
         }
 
+        function extraerJsonDeRespuestaGemini(resJson) {
+            if (!resJson || !resJson.candidates || !resJson.candidates[0] || !resJson.candidates[0].content) return null;
+            var parts = resJson.candidates[0].content.parts || [];
+            var textos = [];
+            for (var p = 0; p < parts.length; p++) {
+                // Ignorar partes de pensamiento interno (thinking) de Gemini 2.5
+                if (parts[p] && parts[p].thought === true) continue;
+                if (parts[p] && typeof parts[p].text === "string" && parts[p].text.trim()) {
+                    textos.push(parts[p].text.trim());
+                }
+            }
+            if (textos.length === 0 && parts[0] && typeof parts[0].text === "string") {
+                textos.push(parts[0].text.trim());
+            }
+            var unido = textos.join("\n").trim();
+            if (!unido) return null;
+            var limpio = unido.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+            try {
+                return JSON.parse(limpio);
+            } catch(e1) {
+                var mObj = limpio.match(/\{[\s\S]*\}/);
+                if (mObj) {
+                    try { return JSON.parse(mObj[0]); } catch(e2) {}
+                }
+            }
+            return null;
+        }
+
         async function procesarFotoConGemini(archivo, placaManual, apiKey) {
             var comp = await comprimirImagenParaGemini(archivo);
             var base64Data = comp.base64;
@@ -4129,14 +4186,14 @@
                 "}\n\n" +
                 "REGLAS OBLIGATORIAS DE EXTRACCIÓN:\n" +
                 "1. En la tabla de direcciones, toma ÚNICAMENTE las filas donde la segunda fecha (ÚLTIMO REPORTE) sea del año 2026 en adelante (>= 2026).\n" +
-                "2. La columna de estado (P. ACTIVO) debe decir \'SI\'. Si dice \'NO\', descarta la fila inmediatamente.\n" +
+                "2. La columna de estado (P. ACTIVO) debe decir 'SI'. Si dice 'NO', descarta la fila inmediatamente.\n" +
                 "3. Máximo 4 direcciones vigentes.\n" +
                 "4. Si la fecha es de 2025 o anterior (ej. 2015 a 2025), descarta la fila.\n" +
                 "5. Omitir teléfonos fijos completamente y tomar solo los dos primeros números celulares.\n" +
-                "6. Une cada dirección con su respectivo municipio (ej: \'KR 48 # 58 - 57, BELLO\' o \'TV 18 # 7 D - 127 AP 301, ZIPAQUIRA\').\n" +
+                "6. Une cada dirección con su respectivo municipio (ej: 'KR 48 # 58 - 57, BELLO' o 'CL 6 SUR # 43 A - 21, MEDELLIN').\n" +
                 "Responde ÚNICAMENTE con el bloque JSON.";
 
-            var payload = {
+            var payloadJsonMode = {
                 contents: [{
                     parts: [
                         { text: promptTexto },
@@ -4154,112 +4211,135 @@
                 }
             };
 
+            var payloadPlainMode = {
+                contents: payloadJsonMode.contents,
+                generationConfig: {
+                    temperature: 0.1
+                }
+            };
+
             var modeloCache = localStorage.getItem('ubica_rick_gemini_modelo_ok') || '';
             var listaBase = [
                 'gemini-2.5-flash',
-                'gemini-2.5-flash-lite',
                 'gemini-2.0-flash',
-                'gemini-2.0-flash-001',
-                'gemini-2.5-pro',
-                'gemini-1.5-flash-latest'
+                'gemini-2.5-flash-lite',
+                'gemini-2.0-flash-lite',
+                'gemini-1.5-flash',
+                'gemini-1.5-flash-latest',
+                'gemini-2.5-pro'
             ];
             var modelosAProbar = [];
             if (modeloCache) modelosAProbar.push(modeloCache);
-            listaBase.forEach(function(m) {
-                if (modelosAProbar.indexOf(m) === -1) modelosAProbar.push(m);
-            });
 
-            var ultimoError = null;
-
-            for (var i = 0; i < modelosAProbar.length; i++) {
-                var mod = modelosAProbar[i];
-                var url = "https://generativelanguage.googleapis.com/v1beta/models/" + mod + ":generateContent?key=" + encodeURIComponent(apiKey);
-
-                try {
-                    var ctrl = new AbortController();
-                    var timerId = setTimeout(function() { ctrl.abort(); }, 14000);
-
-                    var resp = await fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
-                        signal: ctrl.signal
-                    });
-                    clearTimeout(timerId);
-
-                    if (resp.ok) {
-                        var resJson = await resp.json();
-                        var txtRes = resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content && resJson.candidates[0].content.parts[0] && resJson.candidates[0].content.parts[0].text;
-                        if (txtRes) {
-                            localStorage.setItem('ubica_rick_gemini_modelo_ok', mod);
-                            var cleanJson = txtRes.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-                            return JSON.parse(cleanJson);
-                        }
-                    } else if (resp.status === 404) {
-                        console.warn("Modelo " + mod + " no disponible (404), probando siguiente...");
-                        continue;
-                    } else {
-                        var errTxt = await resp.text();
-                        ultimoError = new Error("HTTP " + resp.status + ": " + errTxt);
-                        break;
-                    }
-                } catch(eFetch) {
-                    ultimoError = eFetch;
-                    console.warn("Aviso modelo " + mod + ":", eFetch.message || eFetch);
-                }
-            }
-
-            // Si los nombres predeterminados dieron 404, consultar dinámicamente los modelos activos de la cuenta
+            // Descubrir dinámicamente los modelos activos de la API Key del usuario
             try {
                 var ctrlList = new AbortController();
-                var tidList = setTimeout(function() { ctrlList.abort(); }, 6000);
+                var tidList = setTimeout(function() { ctrlList.abort(); }, 5000);
                 var urlList = "https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(apiKey);
                 var respList = await fetch(urlList, { signal: ctrlList.signal });
                 clearTimeout(tidList);
                 if (respList.ok) {
                     var listData = await respList.json();
-                    if (listData && listData.models) {
-                        var modelosValidos = listData.models.filter(function(m) {
+                    if (listData && Array.isArray(listData.models)) {
+                        var modelosApi = listData.models.filter(function(m) {
                             var methods = m.supportedGenerationMethods || [];
-                            return methods.indexOf('generateContent') !== -1;
+                            var nm = (m.name || "").toLowerCase();
+                            if (methods.indexOf('generateContent') === -1) return false;
+                            if (/embedding|imagen|veo|aqa|tts|audio|bisheng|learnlm|thinking-exp/.test(nm)) return false;
+                            return nm.indexOf('gemini') !== -1;
                         });
-                        modelosValidos.sort(function(a, b) {
-                            var aF = a.name.indexOf('flash') !== -1 ? 1 : 0;
-                            var bF = b.name.indexOf('flash') !== -1 ? 1 : 0;
-                            return bF - aF;
+                        modelosApi.sort(function(a, b) {
+                            var na = a.name.toLowerCase(), nb = b.name.toLowerCase();
+                            var scoreA = (na.indexOf('2.5-flash') !== -1 ? 10 : (na.indexOf('2.0-flash') !== -1 ? 8 : (na.indexOf('flash') !== -1 ? 5 : 1)));
+                            var scoreB = (nb.indexOf('2.5-flash') !== -1 ? 10 : (nb.indexOf('2.0-flash') !== -1 ? 8 : (nb.indexOf('flash') !== -1 ? 5 : 1)));
+                            return scoreB - scoreA;
                         });
-                        var maxIntentosDin = Math.min(modelosValidos.length, 3);
-                        for (var j = 0; j < maxIntentosDin; j++) {
-                            var mNombre = modelosValidos[j].name.replace(/^models\//, '');
-                            if (modelosAProbar.indexOf(mNombre) !== -1) continue;
-                            var ctrlDin = new AbortController();
-                            var tidDin = setTimeout(function() { ctrlDin.abort(); }, 14000);
-                            var urlDin = "https://generativelanguage.googleapis.com/v1beta/models/" + mNombre + ":generateContent?key=" + encodeURIComponent(apiKey);
-                            var respDin = await fetch(urlDin, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(payload),
-                                signal: ctrlDin.signal
-                            });
-                            clearTimeout(tidDin);
-                            if (respDin.ok) {
-                                var dinJson = await respDin.json();
-                                var dinTxt = dinJson.candidates && dinJson.candidates[0] && dinJson.candidates[0].content && dinJson.candidates[0].content.parts[0] && dinJson.candidates[0].content.parts[0].text;
-                                if (dinTxt) {
-                                    localStorage.setItem('ubica_rick_gemini_modelo_ok', mNombre);
-                                    var cleanDin = dinTxt.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-                                    return JSON.parse(cleanDin);
-                                }
-                            }
-                        }
+                        modelosApi.forEach(function(mObj) {
+                            var mClean = mObj.name.replace(/^models\//, '');
+                            if (modelosAProbar.indexOf(mClean) === -1) modelosAProbar.push(mClean);
+                        });
+                    }
+                } else if (respList.status === 400 || respList.status === 403) {
+                    var errKeyTxt = await respList.text();
+                    if (/API_KEY_INVALID|invalid|key/i.test(errKeyTxt)) {
+                        localStorage.removeItem('ubica_rick_gemini_key');
+                        throw new Error("Tu API Key de Gemini es inválida o expiró. Por favor ingresa una nueva en Configuración.");
                     }
                 }
             } catch(eList) {
-                console.warn("Aviso lista dinámica de modelos:", eList);
+                if (eList && eList.message && eList.message.indexOf("API Key de Gemini es inválida") !== -1) {
+                    throw eList;
+                }
+                console.warn("Aviso consulta dinámica de modelos:", eList);
+            }
+
+            listaBase.forEach(function(m) {
+                if (modelosAProbar.indexOf(m) === -1) modelosAProbar.push(m);
+            });
+
+            var ultimoError = null;
+            var maxModelos = Math.min(modelosAProbar.length, 6);
+
+            for (var i = 0; i < maxModelos; i++) {
+                var mod = modelosAProbar[i];
+                var url = "https://generativelanguage.googleapis.com/v1beta/models/" + mod + ":generateContent?key=" + encodeURIComponent(apiKey);
+
+                try {
+                    var ctrl = new AbortController();
+                    var timerId = setTimeout(function() { ctrl.abort(); }, 15000);
+
+                    var resp = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payloadJsonMode),
+                        signal: ctrl.signal
+                    });
+                    clearTimeout(timerId);
+
+                    // Si el modelo no admite response_mime_type con imágenes (HTTP 400), reintentar en modo texto plano
+                    if (resp.status === 400) {
+                        var err400 = await resp.text();
+                        if (/API_KEY_INVALID/i.test(err400)) {
+                            localStorage.removeItem('ubica_rick_gemini_key');
+                            throw new Error("Tu API Key de Gemini no es válida.");
+                        }
+                        var ctrl2 = new AbortController();
+                        var timerId2 = setTimeout(function() { ctrl2.abort(); }, 15000);
+                        resp = await fetch(url, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payloadPlainMode),
+                            signal: ctrl2.signal
+                        });
+                        clearTimeout(timerId2);
+                    }
+
+                    if (resp.ok) {
+                        var resJson = await resp.json();
+                        var parsedObj = extraerJsonDeRespuestaGemini(resJson);
+                        if (parsedObj) {
+                            localStorage.setItem('ubica_rick_gemini_modelo_ok', mod);
+                            return parsedObj;
+                        }
+                    } else if (resp.status === 404 || resp.status === 429 || resp.status === 503) {
+                        var errBody = await resp.text();
+                        ultimoError = new Error("Modelo " + mod + " (" + resp.status + ")");
+                        console.warn("Modelo " + mod + " devolvió " + resp.status + ", probando siguiente...", errBody.slice(0, 120));
+                        continue;
+                    } else {
+                        var errTxt = await resp.text();
+                        ultimoError = new Error("HTTP " + resp.status + ": " + errTxt.slice(0, 140));
+                        continue;
+                    }
+                } catch(eFetch) {
+                    ultimoError = eFetch;
+                    if (eFetch && eFetch.message && eFetch.message.indexOf("API Key") !== -1) throw eFetch;
+                    console.warn("Aviso modelo " + mod + ":", eFetch.message || eFetch);
+                }
             }
 
             if (ultimoError) throw ultimoError;
-            throw new Error("No se encontró un modelo activo en tu API Key de Gemini.");
+            throw new Error("No se encontró respuesta válida en Gemini AI.");
         }
 
         // =========================================================================
@@ -4311,14 +4391,14 @@
                 cedula: ""
             };
 
-            // 1. Placa (ej: Placa JYY140 o Placa: JYY140Model...)
-            var mPlaca = limpio.match(/Placa\s*:?\s*([A-Z]{3}\d{2}[0-9A-Z])/i);
+            // 1. Placa (ej: Placa JYY140 o Placa: JYY140Model... o Número de Serial JYY140)
+            var mPlaca = limpio.match(/(?:Placa|N[uú]mero\s+de\s+Serial)\s*:?\s*([A-Z]{3}\d{2}[0-9A-Z])/i);
             if (mPlaca) res.placa = mPlaca[1].toUpperCase();
 
-            // 2. Marca (ej: Marca CHEVROLET Número de Serial... o Vehiculo: CHEVROLET)
-            var mMarcaDesc = limpio.match(/Veh[ií]culo\s*:\s*([A-Z0-9\-\s]{2,20}?)(?=\s*Placa\s*:|\s*Modelo\s*:|$)/i);
-            var mMarcaTabla = limpio.match(/\bMarca\s*:?\s*([A-Z0-9\-]{2,20})(?=\s+N[uú]mero|\s+Fabricante|\s+A[ñn]o|\s+Placa|$)/i);
-            var mFabTabla = limpio.match(/\bFabricante\s*:?\s*([A-Z0-9\-]{2,20})(?=\s+A[ñn]o|\s+Placa|\s+Descripci|$)/i);
+            // 2. Marca (ej: Marca CHEVROLET Número de Serial... o Vehiculo: CHEVROLET o Marca: KIA)
+            var mMarcaDesc = limpio.match(/Veh[ií]culo\s*:\s*([A-Z0-9\-\s]{2,22}?)(?=\s*(?:Placa|Modelo|L[ií]nea|Chasis|Color|Servicio|$))/i);
+            var mMarcaTabla = limpio.match(/\bMarca\s*:?\s*([A-Z0-9\-\s]{2,22}?)(?=\s+(?:N[uú]mero|Fabricante|A[ñn]o|Placa|L[ií]nea|Modelo|Color|Tipo|Descripci|Chasis|Motor|Serie)|,|$)/i);
+            var mFabTabla = limpio.match(/\bFabricante\s*:?\s*([A-Z0-9\-\s]{2,22}?)(?=\s+(?:A[ñn]o|Placa|Descripci|L[ií]nea|Modelo|Color)|,|$)/i);
 
             if (mMarcaDesc && mMarcaDesc[1]) res.marca = mMarcaDesc[1].trim().toUpperCase();
             else if (mMarcaTabla && mMarcaTabla[1]) res.marca = mMarcaTabla[1].trim().toUpperCase();
@@ -4326,19 +4406,19 @@
 
             // 3. Modelo / Año (ej: Año Correspondiente al Modelo 2023 o Modelo: 2023Chasis)
             var mMod1 = limpio.match(/A[ñn]o\s+Correspondiente\s+al\s+Modelo\s*:?\s*(19\d{2}|20\d{2})/i);
-            var mMod2 = limpio.match(/Modelo\s*:\s*(19\d{2}|20\d{2})/i);
+            var mMod2 = limpio.match(/\bModelo\s*:?\s*(19\d{2}|20\d{2})/i);
             if (mMod1) res.modelo = mMod1[1];
             else if (mMod2) res.modelo = mMod2[1];
 
             // 4. Línea (ej: Linea: N400 o Línea: ONIX o dentro de Descripción del Bien)
-            var mLin = limpio.match(/L[ií]nea\s*:\s*([A-Z0-9\-\s\.\/]{1,28}?)(?=\s*(?:Tipo\s+de\s+Servicio|Color\s*:|Chasis\s*:|Vin\s*:|Motor\s*:|Serie\s*:|No\s+existen|$))/i);
+            var mLin = limpio.match(/\bL[ií]nea\s*:?\s*([A-Z0-9\-\s\.\/]{1,28}?)(?=\s*(?:Tipo\s+de\s+Servicio|Color\s*:|Modelo\s*:|Marca\s*:|Chasis\s*:|Vin\s*:|Motor\s*:|Serie\s*:|No\s+existen|,|$))/i);
             if (mLin && mLin[1]) {
                 res.linea = mLin[1].trim().toUpperCase();
             } else {
-                var mDesc = limpio.match(/Descripci[oó]n\s+del\s+Bien\s*:?\s*(.+?)(?=\s*Tipo\s+de\s+Servicio|\s*No\s+existen|\s*Informaci[oó]n\s+General|$)/i);
+                var mDesc = limpio.match(/Descripci[oó]n\s+del\s+Bien\s*:?\s*(.+?)(?=\s*(?:Tipo\s+de\s+Servicio|No\s+existen|Informaci[oó]n\s+General|Bienes\s+Garantizados|$))/i);
                 if (mDesc && mDesc[1]) {
                     var descStr = mDesc[1].trim();
-                    var mLinInDesc = descStr.match(/L[ií]nea\s*:\s*([A-Z0-9\-\s\.]+)/i);
+                    var mLinInDesc = descStr.match(/L[ií]nea\s*:?\s*([A-Z0-9\-\s\.]+)/i);
                     if (mLinInDesc) {
                         res.linea = mLinInDesc[1].trim().toUpperCase();
                     } else if (descStr.includes(",")) {
@@ -4348,20 +4428,22 @@
                         partes.forEach(function(pt) {
                             if (coloresConocidos.some(function(c){ return pt.includes(c); })) {
                                 if (!res.color) res.color = pt;
-                            } else if (!["PUBLICO", "PÚBLICO", "PARTICULAR", "OFICIAL", "VEHICULO", "VEHÍCULO"].includes(pt)) {
+                            } else if (!["PUBLICO", "PÚBLICO", "PARTICULAR", "OFICIAL", "VEHICULO", "VEHÍCULO"].includes(pt) && pt !== res.marca && pt !== res.modelo && pt !== res.placa) {
                                 partesLinea.push(pt);
                             }
                         });
                         if (partesLinea.length > 0) {
                             res.linea = partesLinea.slice(0, 2).join(" ");
                         }
+                    } else if (descStr.length >= 2 && descStr.length <= 35 && !/Veh[ií]culo\s*:|Chasis\s*:/i.test(descStr)) {
+                        res.linea = descStr.toUpperCase();
                     }
                 }
             }
 
             // 5. Color si viene explícito (ej: Color: BLANCO NIEBLA)
             if (!res.color) {
-                var mCol = limpio.match(/Color\s*:\s*([A-Z\s]{3,22}?)(?=\s*(?:Servicio|L[ií]nea|Chasis|Vin|Motor|Serie|Tipo|$))/i);
+                var mCol = limpio.match(/\bColor\s*:?\s*([A-Z\s]{3,22}?)(?=\s*(?:Tipo\s+de\s+Servicio|Servicio|L[ií]nea|Chasis|Vin|Motor|Serie|Tipo|Modelo|Marca|,|$))/i);
                 if (mCol && mCol[1]) res.color = mCol[1].trim().toUpperCase();
             }
 
@@ -4528,26 +4610,52 @@
             }
         }
 
-        async function pegarYExtraerDeGarantias() {
-            var textoPegado = "";
+        function abrirModalPegarGarantias(textoInicial) {
+            var modal = document.getElementById('modal-pegar-garantias');
+            var txtEl = document.getElementById('txt-modal-garantias');
+            if (!modal || !txtEl) return;
+            if (typeof textoInicial === 'string' && textoInicial.trim()) {
+                txtEl.value = textoInicial;
+            }
+            modal.style.display = 'flex';
+            setTimeout(function() {
+                try { txtEl.focus(); } catch(e) {}
+            }, 80);
+        }
+
+        function cerrarModalPegarGarantias() {
+            var modal = document.getElementById('modal-pegar-garantias');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function intentarPegarPortapapelesEnModalGarantias() {
+            var txtEl = document.getElementById('txt-modal-garantias');
+            if (!txtEl) return;
             try {
                 if (navigator.clipboard && navigator.clipboard.readText) {
-                    textoPegado = await navigator.clipboard.readText();
+                    var clip = await navigator.clipboard.readText();
+                    if (clip && clip.trim()) {
+                        txtEl.value = clip;
+                        mostrarToastNotificacion("📋 Texto pegado desde el portapapeles.");
+                        return;
+                    }
                 }
-            } catch(eClip) {}
+            } catch(e) {}
+            txtEl.focus();
+            mostrarToastNotificacion("👆 Mantén presionado dentro del cuadro grande y toca 'Pegar'.");
+        }
 
-            var parsed = parsearTextoGarantiasMobiliarias(textoPegado);
-            if (!parsed || (!parsed.marca && !parsed.linea && !parsed.modelo)) {
-                textoPegado = prompt(
-                    "🏛️ PEGAR DATOS DE GARANTÍAS MOBILIARIAS\n\n" +
-                    "Copia en la página de Garantías Mobiliarias el bloque de 'Bienes Garantizados (Por serial)' y pégalo aquí:",
-                    ""
-                );
-                if (!textoPegado || !textoPegado.trim()) return;
-                parsed = parsearTextoGarantiasMobiliarias(textoPegado);
+        function confirmarModalPegarGarantias() {
+            var txtEl = document.getElementById('txt-modal-garantias');
+            var textoPegado = txtEl ? txtEl.value : "";
+            if (!textoPegado || !textoPegado.trim()) {
+                mostrarToastNotificacion("⚠️ Primero pega el texto de Garantías Mobiliarias en el cuadro.");
+                if (txtEl) txtEl.focus();
+                return;
             }
-
+            var parsed = parsearTextoGarantiasMobiliarias(textoPegado);
             if (parsed && (parsed.marca || parsed.linea || parsed.modelo)) {
+                cerrarModalPegarGarantias();
                 inyectarDatosGarantiasEnFormularios(parsed);
                 mostrarToastNotificacion("✅ Garantías: " + [parsed.marca, parsed.linea, parsed.modelo].filter(Boolean).join(" • "));
                 alert(
@@ -4560,8 +4668,36 @@
                     (parsed.acreedor ? ("🏦 Acreedor: " + parsed.acreedor + "\n") : "")
                 );
             } else {
-                alert("⚠️ No se detectaron los campos Marca, Línea o Modelo en el texto pegado.\n\nAsegúrate de copiar la sección 'Bienes Garantizados (Por serial)' donde aparece Marca, Año Correspondiente al Modelo y Descripción del Bien.");
+                alert("⚠️ No se detectaron los campos Marca, Línea o Modelo en el texto pegado.\n\nAsegúrate de copiar el bloque 'Bienes Garantizados (Por serial)' donde aparece Marca, Año Correspondiente al Modelo y Descripción del Bien.");
             }
+        }
+
+        async function pegarYExtraerDeGarantias() {
+            var textoPegado = "";
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    textoPegado = await navigator.clipboard.readText();
+                }
+            } catch(eClip) {}
+
+            var parsed = parsearTextoGarantiasMobiliarias(textoPegado);
+            if (parsed && (parsed.marca || parsed.linea || parsed.modelo)) {
+                inyectarDatosGarantiasEnFormularios(parsed);
+                mostrarToastNotificacion("✅ Garantías: " + [parsed.marca, parsed.linea, parsed.modelo].filter(Boolean).join(" • "));
+                alert(
+                    "✅ ¡DATOS DE GARANTÍAS MOBILIARIAS APLICADOS AUTOMÁTICAMENTE!\n\n" +
+                    (parsed.placa ? ("🚗 Placa: " + parsed.placa + "\n") : "") +
+                    "🏷️ Marca: " + (parsed.marca || '-') + "\n" +
+                    "🚘 Línea: " + (parsed.linea || '-') + "\n" +
+                    "📅 Modelo: " + (parsed.modelo || '-') + "\n" +
+                    (parsed.color ? ("🎨 Color: " + parsed.color + "\n") : "") +
+                    (parsed.acreedor ? ("🏦 Acreedor: " + parsed.acreedor + "\n") : "")
+                );
+                return;
+            }
+
+            // Abrir el modal multilínea cómodo en lugar del prompt() de una sola línea del navegador
+            abrirModalPegarGarantias(textoPegado);
         }
 
         async function procesarCapturaGarantiasMobiliarias(archivo) {
@@ -4751,7 +4887,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 // 1. INTENTAR PRIMERO CON GEMINI AI SI ESTÁ DISPONIBLE O SOLICITADO
                 if (usarGemini !== false) {
                     if (!apiKeyGemini) {
-                        var solicitada = prompt("🤖 LECTURA INTELIGENTE CON GOOGLE GEMINI AI\n\nIngresa tu clave API gratuita de Google Gemini (puedes obtenerla gratis en https://aistudio.google.com/app/apikey):", "");
+                        var solicitada = prompt("🤖 LECTURA INTELIGENTE CON GOOGLE GEMINI AI\n\nIngresa tu clave API gratuita de Google Gemini (o deja en blanco para usar el motor OCR local):", "");
                         if (solicitada && solicitada.trim() !== '') {
                             apiKeyGemini = solicitada.trim();
                             localStorage.setItem('ubica_rick_gemini_key', apiKeyGemini);
@@ -4762,7 +4898,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     }
 
                     if (apiKeyGemini) {
-                        mostrarCargando("🤖 Leyendo tabla con Inteligencia Artificial Gemini Vision (100% Preciso)...");
+                        mostrarCargando("🤖 Leyendo tabla con Inteligencia Artificial Gemini Vision...");
                         try {
                             var datosGemini = await procesarFotoConGemini(archivo, placa, apiKeyGemini);
                             if (datosGemini && (datosGemini.direcciones || datosGemini.celulares || datosGemini.titular || datosGemini.marca || datosGemini.linea || datosGemini.modelo)) {
@@ -4771,10 +4907,9 @@ async function procesarFotoTablaDirecta(usarGemini) {
                                 return;
                             }
                         } catch(errGem) {
-                            console.warn("Fallo Gemini API:", errGem);
-                            ocultarCargando();
-                            alert("⚠️ No se pudo procesar con Gemini AI (" + (errGem.message || errGem) + ").\n\nContinuando con el motor OCR local...");
-                            mostrarCargando("🔍 Leyendo texto con OCR local...");
+                            console.warn("Fallo Gemini API, pasando a OCR local:", errGem);
+                            mostrarToastNotificacion("⚡ Continuando automáticamente con el motor OCR local...");
+                            mostrarCargando("🔍 Leyendo tabla con el motor OCR local de alta precisión...");
                         }
                     }
                 }
@@ -4783,7 +4918,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     throw new Error("El motor de lectura aún se está inicializando. Espera 3 segundos e intenta de nuevo.");
                 }
 
-                var archivo = fileInput.files[0];
                 var imgParaOcr = archivo;
                 try {
                     imgParaOcr = await preprocesarImagen(archivo);
@@ -4791,7 +4925,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     imgParaOcr = archivo;
                 }
 
-                if (loadingTexto) loadingTexto.innerText = "🔍 Leyendo texto, placa y direcciones...";
+                if (loadingTexto) loadingTexto.innerText = "🔍 Leyendo texto, titular, celulares y direcciones...";
                 var worker = null;
                 try {
                     worker = await Tesseract.createWorker('spa');
@@ -4808,68 +4942,30 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 await worker.terminate();
 
                 var rawText = ret.data.text || "";
-                var lineas = rawText.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
+                var lineas = rawText.split(/[\r\n]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
 
-                // Extraer nombre del cliente y cédula si proviene de consulta de centrales de riesgo
+                // Extraer nombre del cliente y cédula si proviene de consulta de centrales de riesgo (DataCrédito/CIFIN)
                 var titularOcr = "";
-                var mNom = rawText.match(/NOMBRES\s*APELLIDOS[\s\S]*?[:\-]\s*([A-Z\s]{4,35})/i) ||
-                           rawText.match(/(?:RAZ[OÓ]N\s*SOCIAL|CLIENTE)[\s\S]*?[:\-]\s*([A-Z\s]{4,35})/i);
-                var mCed = rawText.match(/(?:NO\.?\s*IDENTIFICACI[OÓ]N|C[EÉ]DULA)[\s\S]*?[:\-]\s*(\d{6,12})/i);
-                if (mNom || mCed) {
-                    var nTxt = mNom ? mNom[1].replace(/[\r\n]+/g, ' ').trim() : "";
-                    var cTxt = mCed ? mCed[1].trim() : "";
-                    if (nTxt && cTxt) titularOcr = nTxt + " (C.C. " + cTxt + ")";
-                    else if (nTxt) titularOcr = nTxt;
-                    else if (cTxt) titularOcr = "C.C. " + cTxt;
+                var cedulaOcr = "";
+                var mCed = rawText.match(/(?:IDENTIFICACI[OÓ]N|C[EÉ]DULA)[^\d\r\n]{0,20}(\d{6,12})/i);
+                if (mCed) {
+                    cedulaOcr = mCed[1].trim();
+                }
+                var mNom = rawText.match(/(?:NOMBRES\s*APELLIDOS|RAZ[OÓ]N\s*SOCIAL|MAUD|CLIENTE)[^A-Z\r\n]{0,18}([A-ZÁÉÍÓÚÑ\s]{5,40}?)(?=\s+(?:LUGAR|LUSAA|FECHA|USUARIO|GENERO|\r|\n|$))/i) ||
+                           rawText.match(/NOMBRES\s*APELLIDOS[\s\S]*?[:\-]\s*([A-Z\s]{4,35})/i);
+                if (mNom && mNom[1]) {
+                    titularOcr = mNom[1].replace(/\bRECTRERO\b/i, "RESTREPO").replace(/[\r\n\s]+/g, ' ').trim();
+                    var mSoc = rawText.match(/SOCIA[L]?\s+([A-ZÁÉÍÓÚÑ]{3,20})\b/i);
+                    if (mSoc && mSoc[1] && !titularOcr.toUpperCase().includes(mSoc[1].toUpperCase())) {
+                        titularOcr += " " + mSoc[1].toUpperCase();
+                    }
                 }
 
-                // Detectar placa si no se escribió manualmente (ej: FQX434, LRW993, UDS22G)
+                // Detectar placa si viene en la imagen
                 if (!placa) {
                     var mPlaca = rawText.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
-                    if (mPlaca) {
+                    if (mPlaca && !["RES", "LAB", "COR", "SUR", "MED", "ANT", "ENV"].includes(mPlaca[1].toUpperCase())) {
                         placa = (mPlaca[1] + mPlaca[2]).toUpperCase();
-                    } else {
-                        // En reportes de personas (DataCrédito/CIFIN) no viene placa en la foto: solicitarla
-                        var promptMsg = titularOcr 
-                            ? ("👤 Titular detectado: " + titularOcr + "\n🚗 Escribe la placa del vehículo asignada a este titular (ej: UDS22G):")
-                            : ("🚗 No se detectó la placa en la imagen.\nPor favor ingresa la placa del vehículo (ej: UDS22G):");
-                        var pIngresada = prompt(promptMsg, "");
-                        if (pIngresada && pIngresada.trim() !== "") {
-                            placa = pIngresada.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
-                            if (inputPlacaEl) inputPlacaEl.value = placa;
-                        } else {
-                            placa = "SIN_PLACA";
-                        }
-                    }
-                }
-
-                // Comprobar si la placa ya se encuentra activa en el sistema
-                if (placa && placa !== "SIN_PLACA") {
-                    var yaActivaOcr = puntosData.some(function(pd) {
-                        return pd.placa && pd.placa.toUpperCase().trim() === placa;
-                    });
-                    if (yaActivaOcr) {
-                        if (loadingOverlay) loadingOverlay.style.display = 'none';
-                        alert("⚠️ La placa " + placa + " ya está activa en el sistema.");
-                        mostrarToastNotificacion("⚠️ La placa " + placa + " ya está activa en el sistema.");
-                        return;
-                    }
-                }
-
-                // Verificación si la placa detectada ya fue eliminada anteriormente
-                if (placa && placa !== "SIN_PLACA") {
-                    var infoElim = consultarPlacaEliminada(placa);
-                    if (infoElim) {
-                        var deseaVolver = confirm("⚠️ ESTA PLACA YA FUE ELIMINADA ANTERIORMENTE:\n\n" +
-                            "Placa: " + placa + "\n" +
-                            "Fecha y hora de eliminación: " + infoElim.fechaHora + "\n\n" +
-                            "¿Deseas volver a agregarla?");
-                        if (!deseaVolver) {
-                            mostrarToastNotificacion("🚫 Placa " + placa + " no fue agregada.");
-                            if (loadingOverlay) loadingOverlay.style.display = 'none';
-                            return;
-                        }
-                        removerDeHistorialEliminadas(placa);
                     }
                 }
 
@@ -4880,139 +4976,193 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 mCels.forEach(function(c) { if (!celsUnicos.includes(c)) celsUnicos.push(c); });
                 var telsTexto = celsUnicos.slice(0, 2).join(' - ') || '-';
 
-                // Lista de términos prohibidos de documentos de identidad, cédulas y licencias
-                var terminosProhibidosDoc = [
-                    'IDENTIFICACI', 'EXPEDICI', 'CEDULA', 'CÉDULA', 'FECHA', 'CÓDIGO', 'CODIGO',
-                    'LICENCIA', 'DOCUMENTO', 'NACIMIENTO', 'VENCE', 'VENCIMIENTO', 'RH', 'ESTATURA',
-                    'REPUBLICA', 'MINISTERIO', 'SECRETARIA', 'TRANSITO', 'CATEGORIA', 'DEPARTAMENTO',
-                    'CIUDADANO', 'HUELLA', 'FIRMA', 'REGISTRO', 'APELLIDOS', 'NOMBRES', 'NACIONALIDAD',
-                    'SEXO', 'RESTRICCION', 'ORGANISMO'
-                ];
-
                 var direccionesDetectadas = [];
-                lineas.forEach(function(l) {
-                    var lTrim = l.trim();
-                    var up = lTrim.toUpperCase();
 
-                    // Descartar si contiene términos de documentos de identidad
-                    if (terminosProhibidosDoc.some(p => up.includes(p))) {
-                        return;
+                // A. Detector de tablas multilínea partidas (DataCrédito/CIFIN donde el departamento cierra en otra línea tipo "ANTIOQUIA )")
+                var patronFinDepto = /\b(?:ANT[I1L][O0CQ]{1,3}U[I1LT]A|PTIOOUIA|ANIOOUTA|CUNDINAMARCA|VALLE|SANTANDER|ATLANTICO|BOLIVAR|CALDAS|RISARALDA|QUINDIO|TOLIMA|HUILA|META|BOYACA|NARIÑO|CAUCA|CORDOBA|MAGDALENA|CESAR)\b/i;
+                var tieneFilasPartidas = lineas.some(function(l) {
+                    return patronFinDepto.test(l) && !/\b\d{1,2}\s*[\/\-]\s*\d{1,2}\s*[\/\-]\s*\d{2,4}\b/.test(l);
+                });
+
+                if (tieneFilasPartidas) {
+                    var bloques = [];
+                    var buffer = [];
+                    var enSeccionDir = false;
+
+                    for (var bi = 0; bi < lineas.length; bi++) {
+                        var linB = lineas[bi];
+                        var upLin = linB.toUpperCase();
+
+                        if (/DIRE[CO]CION|HISTORICOS\s*DE\s*DIRE|OREACDON|CREECION|MPORTE\s+ACTING/i.test(upLin)) {
+                            enSeccionDir = true;
+                            buffer = [];
+                            continue;
+                        }
+                        if (/TELEF[OÓE]N|CELULAR|CORREO|ELECTR[OÓ]N|N[UÚI]MEROS|NIMARES|TELERIRIM/i.test(upLin) || /\b60[1245678]\s+\d{7}\b/.test(upLin)) {
+                            if (buffer.length > 0) {
+                                bloques.push(buffer.join(" || "));
+                                buffer = [];
+                            }
+                            enSeccionDir = false;
+                            continue;
+                        }
+                        if (!enSeccionDir && /\b(?:CL|CLO|KR|CR|TV|DG|AV|KM)\s*\d*/i.test(upLin) && /MEDELLIN|ENVIGADO|BELLO|ITAGUI|BOGOTA/i.test(upLin) && !/\b60[1245678]\s+\d{7}\b/.test(upLin)) {
+                            enSeccionDir = true;
+                        }
+                        if (enSeccionDir) {
+                            buffer.push(linB);
+                            var nextUp = (lineas[bi + 1] || "").toUpperCase();
+                            var nextStartsRow = /^(?:\d+\s+(?:RES|LAB|UB)|RES\-?\s+(?:CL|KR|CR|TV|DG)|(?:KR|CL)\s+\d+|(?:ENVIGADO|MEDELLIN)\s*\()/i.test(nextUp);
+                            if (patronFinDepto.test(upLin) || (buffer.length >= 2 && nextStartsRow && /\d{2}[\/\-]\d{2}|\b0[58]\d{6,7}\b/.test(buffer.join(" ")))) {
+                                bloques.push(buffer.join(" || "));
+                                buffer = [];
+                            }
+                        }
                     }
+                    if (buffer.length > 0) bloques.push(buffer.join(" || "));
 
-                    // REGLAS PRECISAS DE EXTRACCIÓN DE TABLAS VEHICULARES:
-                    // 1. Normalizar OCR de tipos de vía (ej: 1V -> TV, IV -> TV, C1 -> CL, %* -> #).
-                    // 2. Analizar fechas (con 2 slashes, 1 slash o separadores alternativos).
-                    // 3. Aceptar ÚNICAMENTE si el año es >= 2026. Descartar si el año es 15..25 (< 2026).
-                    // 4. Descartar de inmediato si dice 'NO'.
-                    // 5. Extraer dirección completa con ciudad (ej: TV 18 # 7 D - 127 AP 301, ZIPAQUIRA).
+                    bloques.forEach(function(b) {
+                        var upB = b.toUpperCase();
+                        if (/\bNO\b/.test(upB)) return;
+                        var tiene2026 = /\b\d{1,2}\s*[\/vVyY]\s*\d{1,2}\s*[\/vVyY]\s*(?:20)?2[6-9]\b/.test(upB) ||
+                                        (/\b3[01]\s*\/\s*\d{2}\s*\/\s*2[0-5]\b/.test(upB) && /\b2[6-9]\s+(?:SI|SL|S1|ST)\b/i.test(upB));
+                        if (!tiene2026) return;
 
-                    // Normalizaciones de OCR
-                    up = up.replace(/\b(?:1V|IV|TY)\b/g, 'TV')
-                           .replace(/\b1V(\d+)\b/g, 'TV $1')
-                           .replace(/\bIV(\d+)\b/g, 'TV $1')
-                           .replace(/\bC1(\d+)\b/g, 'CL $1')
-                           .replace(/[%*]+/g, ' # ');
+                        var mMun = upB.match(/\b(MEDELLIN|ENVIGADO|BELLO|ITAGUI|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ZIPAQUIRA|NEMOCON|CHIA|SOACHA)\b/);
+                        var ciudad = mMun ? mMun[1] : "";
 
-                    // Extracción flexible de fechas (ej: 31/05/26, 31/05/2026, 31/0819 con 1 barra)
-                    var pDates1 = /\b(\d{1,2})\s*[\/\-\.\–]\s*(\d{1,2})\s*[\/\-\.\–]\s*(\d{2,4})\b/g;
-                    var pDates2 = /\b(\d{1,2})\s*[\/\-\.\–]\s*(\d{2})(\d{2,4})\b/g;
+                        var norm = upB
+                            .replace(/\bCLO\s+SUR\b/g, "CL 6 SUR")
+                            .replace(/\bCLZTSURW\b/g, "CL 27 SUR #")
+                            .replace(/\bCL\s*Z7\s*SUR\b/g, "CL 27 SUR")
+                            .replace(/\bKR\s*ALAA\b/g, "KR 41 AA")
+                            .replace(/\bKR\s*4LAA\b/g, "KR 41 AA")
+                            .replace(/#I8/g, " # 18 ")
+                            .replace(/#18/g, " # 18 ")
+                            .replace(/\-O7\s*SUR\s*E?BL/g, " - 07 SUR BL")
+                            .replace(/SUR\-O78L/g, "SUR - 07 BL")
+                            .replace(/SUR\-078L/g, "SUR - 07 BL")
+                            .replace(/\bSAP\.?\s*906\b/g, "3 AP 906")
+                            .replace(/\bZAP\.?\s*906\b/g, "3 AP 906")
+                            .replace(/43A\-\s*21/g, "43 A - 21")
+                            .replace(/(\d+)\s*\-\s*(\d+)/g, "$1 - $2");
 
-                    var mFechas1 = [...up.matchAll(pDates1)] || [];
-                    var mFechas2 = (mFechas1.length === 0) ? ([...up.matchAll(pDates2)] || []) : [];
-                    var todasFechas = (mFechas1.length > 0) ? mFechas1 : mFechas2;
+                        var sublineas = norm.split("||").map(function(s) { return s.trim(); });
+                        var viaPrincipal = "";
+                        var complemento = "";
 
-                    if (todasFechas.length >= 2) {
-                        // Segunda fecha: Último Reporte
-                        var yStr = todasFechas[1][3];
-                        var ano = (yStr.length === 2) ? parseInt('20' + yStr) : parseInt(yStr);
-                        if (ano < 2026) {
-                            console.log("Omitida dirección por año < 2026 (" + ano + "):", lTrim);
-                            return; // Descartar por año anterior al 2026
+                        sublineas.forEach(function(sl) {
+                            if (/\b(?:CL|KR|CR|TV|DG|AV|KM)\s+\d+/i.test(sl)) {
+                                var s = sl.replace(/^[\s,\d]*(?:RES\-?LAB|RES\-?|LAB|UB|RE)\s+/i, "");
+                                var cutM = s.match(/\b(?:MEDELLIN|ENVIGADO|BELLO|ITAGUI|SABANETA|BOGOTA|ANT[I1L][O0CQ]{1,3}U[I1LT]A|\d{1,2}\s*\/\s*\d{1,2})\b/);
+                                if (cutM && cutM.index > 0) s = s.substring(0, cutM.index).trim();
+                                viaPrincipal = s.replace(/\s*#\s*/g, " # ").replace(/\s+/g, " ").trim();
+                            } else if (/\b(?:\d+\s*AP\s*\d+|AP\s*\d+|INT\s*\d+|BL\s*\d+|TORRE\s*\d+)\b/.test(sl)) {
+                                var mComp = sl.match(/\b(\d*\s*AP\s*\d+|\bINT\s*\d+|\bTORRE\s*\d+\s*AP\s*\d+)\b/);
+                                if (mComp) complemento = mComp[1].replace(/\s+/g, " ").trim();
+                            }
+                        });
+
+                        if (viaPrincipal) {
+                            var dirCompleta = viaPrincipal + (complemento && !viaPrincipal.includes(complemento) ? (" " + complemento) : "");
+                            if (ciudad && !dirCompleta.includes(ciudad)) dirCompleta += ", " + ciudad;
+                            direccionesDetectadas.push({ dir: dirCompleta, prioridad: 6 });
+                        }
+                    });
+                }
+
+                // B. Respaldo fila por fila para tablas de 1 sola línea por fila
+                if (direccionesDetectadas.length === 0) {
+                    var terminosProhibidosDoc = [
+                        'IDENTIFICACI', 'EXPEDICI', 'CEDULA', 'CÉDULA', 'FECHA', 'CÓDIGO', 'CODIGO',
+                        'LICENCIA', 'DOCUMENTO', 'NACIMIENTO', 'VENCE', 'VENCIMIENTO', 'RH', 'ESTATURA',
+                        'REPUBLICA', 'MINISTERIO', 'SECRETARIA', 'TRANSITO', 'CATEGORIA', 'DEPARTAMENTO',
+                        'CIUDADANO', 'HUELLA', 'FIRMA', 'REGISTRO', 'APELLIDOS', 'NOMBRES', 'NACIONALIDAD',
+                        'SEXO', 'RESTRICCION', 'ORGANISMO'
+                    ];
+
+                    lineas.forEach(function(l) {
+                        var lTrim = l.trim();
+                        var up = lTrim.toUpperCase();
+                        if (terminosProhibidosDoc.some(function(p) { return up.includes(p); })) return;
+
+                        up = up.replace(/\b(?:1V|IV|TY)\b/g, 'TV')
+                               .replace(/\b1V(\d+)\b/g, 'TV $1')
+                               .replace(/\bIV(\d+)\b/g, 'TV $1')
+                               .replace(/\bC1(\d+)\b/g, 'CL $1')
+                               .replace(/\bCLO\s+SUR\b/g, 'CL 6 SUR')
+                               .replace(/[%*]+/g, ' # ');
+
+                        var pDates1 = /\b(\d{1,2})\s*[\/\-\.\–]\s*(\d{1,2})\s*[\/\-\.\–]\s*(\d{2,4})\b/g;
+                        var pDates2 = /\b(\d{1,2})\s*[\/\-\.\–]\s*(\d{2})(\d{2,4})\b/g;
+
+                        var mFechas1 = [...up.matchAll(pDates1)] || [];
+                        var mFechas2 = (mFechas1.length === 0) ? ([...up.matchAll(pDates2)] || []) : [];
+                        var todasFechas = (mFechas1.length > 0) ? mFechas1 : mFechas2;
+
+                        if (todasFechas.length >= 2) {
+                            var yStr = todasFechas[1][3];
+                            var ano = (yStr.length === 2) ? parseInt('20' + yStr) : parseInt(yStr);
+                            if (ano < 2026) return;
+                            var posSegunda = todasFechas[1].index + todasFechas[1][0].length;
+                            var textoDesp = up.substring(posSegunda);
+                            var tieneNo = /\bNO\b/.test(textoDesp);
+                            var tieneSi = /\b(?:SI|S1|SL)\b/.test(textoDesp);
+                            if (tieneNo && !tieneSi) return;
+                        } else if (todasFechas.length === 1) {
+                            var ySolo = todasFechas[0][3];
+                            var anoS = (ySolo.length === 2) ? parseInt('20' + ySolo) : parseInt(ySolo);
+                            if (anoS < 2026) return;
+                            if (/\bNO\b/.test(up) && !/\b(?:SI|S1|SL)\b/.test(up)) return;
+                        } else {
+                            if (/[\/\-\s](1[5-9]|2[0-5])\b/.test(up) || /\bNO\b/.test(up)) return;
                         }
 
-                        // Verificar que en P. ACTIVO diga SI y no diga NO
-                        var posSegunda = todasFechas[1].index + todasFechas[1][0].length;
-                        var textoDesp = up.substring(posSegunda);
-                        var tieneNo = /\bNO\b/.test(textoDesp);
-                        var tieneSi = /\b(?:SI|S1|SL)\b/.test(textoDesp);
-                        if (tieneNo && !tieneSi) {
-                            console.log("Omitida dirección por estado NO:", lTrim);
+                        var mCoord = lTrim.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+                        if (mCoord) {
+                            direccionesDetectadas.push({ dir: lTrim, prioridad: 10 });
                             return;
                         }
-                    } else if (todasFechas.length === 1) {
-                        var ySolo = todasFechas[0][3];
-                        var anoS = (ySolo.length === 2) ? parseInt('20' + ySolo) : parseInt(ySolo);
-                        if (anoS < 2026) return;
-                        if (/\bNO\b/.test(up) && !/\b(?:SI|S1|SL)\b/.test(up)) return;
-                    } else {
-                        // Si no hay fechas detectadas pero contiene números de año vencido tipo /19, /20, /22, /25 o dice NO
-                        if (/[\/\-\s](1[5-9]|2[0-5])\b/.test(up) || /\bNO\b/.test(up)) {
-                            console.log("Omitida por año vencido o NO en texto sin fecha formal:", lTrim);
-                            return;
-                        }
-                    }
 
-                    // Coordenadas válidas directas en la foto
-                    var mCoord = lTrim.match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
-                    if (mCoord) {
-                        direccionesDetectadas.push({ dir: lTrim, prioridad: 10 });
-                        return;
-                    }
+                        var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|CIRC|AUTOPISTA|KM|KILOMETRO)\b/i;
+                        var tieneVia = patronVia.test(up);
+                        var tieneNum = up.includes('#') || /\bKM\s*\d+\b/i.test(up) || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up) || /\bLOTE\s*\d+\b/i.test(up);
+                        var esEtiquetaDir = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(lTrim);
+                        var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ZIPAQUIRA|CUNDINAMARCA|NEMOCON|CHIA|SOACHA|FACATATIVA|MOSQUERA|MADRID|FUNZA|ANTIOQUIA)/i.test(up);
 
-                    // Vías colombianas (incluyendo KM rural y TV normalizada)
-                    var patronVia = /\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR|CIRC|AUTOPISTA|KM|KILOMETRO)\b/i;
-                    var tieneVia = patronVia.test(up);
-                    var tieneNum = up.includes('#') || /\bKM\s*\d+\b/i.test(up) || /\bN[RO°]?\.?\s*\d+/i.test(up) || /\d+\s*[-–]\s*\d+/.test(up) || /\bLOTE\s*\d+\b/i.test(up);
-                    var esEtiquetaDir = /^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]/i.test(lTrim);
-                    var tieneMun = /(?:MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ZIPAQUIRA|CUNDINAMARCA|NEMOCON|CHIA|SOACHA|FACATATIVA|MOSQUERA|MADRID|FUNZA|ANTIOQUIA)/i.test(up);
+                        if ((esEtiquetaDir || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 5) {
+                            var noEsRuido = !['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(function(k) { return up.includes(k); });
+                            if (noEsRuido) {
+                                var dirLimpia = up.replace(/^\s*\d+\s*(?:RES-LAB|RES|LAB|COM|DIR|DOM|RO)?\s*/i, '')
+                                                  .replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '');
+                                if (todasFechas.length > 0) {
+                                    var idxCorte = todasFechas[0].index;
+                                    if (idxCorte > 0) dirLimpia = dirLimpia.substring(0, idxCorte).trim();
+                                } else {
+                                    var mCorte = dirLimpia.match(/\b\d{1,2}[\/\-\.]\d{2,4}\b/);
+                                    if (mCorte && mCorte.index > 0) dirLimpia = dirLimpia.substring(0, mCorte.index).trim();
+                                }
+                                dirLimpia = dirLimpia.replace(/\(\s*[A-Z\s]+\s*\)/gi, '')
+                                                     .replace(/\b(?:OO|PO|MI|SI|S1|SL|NO)\b/gi, '')
+                                                     .replace(/\b050\d+\b.*$/i, '')
+                                                     .replace(/\b111\d+\b.*$/i, '')
+                                                     .replace(/\b250\d+\b.*$/i, '')
+                                                     .replace(/\s+/g, ' ')
+                                                     .trim();
 
-                    if ((esEtiquetaDir || (tieneVia && tieneNum) || (tieneMun && tieneVia)) && up.length > 5) {
-                        var noEsRuido = !['SOAT', 'TECNO', 'MODELO', 'CELULAR', 'TELEFONO', 'PLACA'].some(k => up.includes(k));
-                        if (noEsRuido) {
-                            // Limpiar fila de tabla:
-                            // 1. Quitar número inicial de fila y etiqueta RES/LAB/RES-LAB/RO
-                            var dirLimpia = up.replace(/^\s*\d+\s*(?:RES-LAB|RES|LAB|COM|DIR|DOM|RO)?\s*/i, '')
-                                              .replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '');
+                                var mMunMatch = dirLimpia.match(/\s+(MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ZIPAQUIRA|NEMOCON|CHIA|SOACHA)$/i);
+                                if (mMunMatch && !dirLimpia.includes(',')) {
+                                    var idxMun = mMunMatch.index;
+                                    dirLimpia = dirLimpia.substring(0, idxMun) + ', ' + dirLimpia.substring(idxMun).trim();
+                                }
 
-                            // 2. Cortar ANTES de la primera fecha (evita que números tipo 31/0819 entren a la dirección)
-                            if (todasFechas.length > 0) {
-                                var idxCorte = todasFechas[0].index;
-                                if (idxCorte > 0) dirLimpia = dirLimpia.substring(0, idxCorte).trim();
-                            } else {
-                                var mCorte = dirLimpia.match(/\b\d{1,2}[\/\-\.]\d{2,4}\b/);
-                                if (mCorte && mCorte.index > 0) dirLimpia = dirLimpia.substring(0, mCorte.index).trim();
-                            }
-
-                            // 3. Quitar departamento entre paréntesis (ej: ( CUNDINAMARCA ), ( ANTIOQUIA ))
-                            dirLimpia = dirLimpia.replace(/\(\s*[A-Z\s]+\s*\)/gi, '');
-
-                            // 4. Limpiar ruidos residuales de OCR (ej: oo po mi, números sueltos finales, etc.)
-                            dirLimpia = dirLimpia.replace(/\b(?:OO|PO|MI|SI|S1|SL|NO)\b/gi, '')
-                                                 .replace(/\b050\d+\b.*$/i, '')
-                                                 .replace(/\b111\d+\b.*$/i, '')
-                                                 .replace(/\b250\d+\b.*$/i, '')
-                                                 .replace(/\s+/g, ' ')
-                                                 .trim();
-
-                            // Formatear ciudad con coma si termina con municipio conocido
-                            var mMunMatch = dirLimpia.match(/\s+(MEDELLIN|BELLO|ITAGUI|ENVIGADO|SABANETA|LA ESTRELLA|COPACABANA|CALDAS|LA DORADA|RIONEGRO|GIRARDOTA|BARBOSA|BOGOTA|CALI|BUCARAMANGA|VILLAVICENCIO|ZIPAQUIRA|NEMOCON|CHIA|SOACHA)$/i);
-                            if (mMunMatch && !dirLimpia.includes(',')) {
-                                var idxMun = mMunMatch.index;
-                                dirLimpia = dirLimpia.substring(0, idxMun) + ', ' + dirLimpia.substring(idxMun).trim();
-                            }
-
-                            if (dirLimpia.length > 5) {
-                                var kNueva = normalizarClaveAprendizaje(dirLimpia, '');
-                                var yaExiste = direccionesDetectadas.some(function(dExistente) {
-                                    return normalizarClaveAprendizaje(dExistente.dir, '') === kNueva;
-                                });
-                                if (!yaExiste) {
+                                if (dirLimpia.length > 5) {
                                     direccionesDetectadas.push({ dir: dirLimpia, prioridad: 5 });
                                 }
                             }
                         }
-                    }
-                });
+                    });
+                }
 
                 // Mantener el orden original de la tabla y limitar a MÁXIMO 4 DIRECCIONES
                 var dirsFinales = [];
@@ -5025,58 +5175,35 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     }
                 });
 
-                // Extraer marca, modelo y color si aparecen en la imagen
+                // Extraer marca, línea, modelo y color si aparecen en la imagen (incluyendo formato Garantías)
                 var marcaOcr = "-", lineaOcr = "-", modeloOcr = "-", colorOcr = "-";
+                var parsedRgmOcr = parsearTextoGarantiasMobiliarias(rawText);
+                if (parsedRgmOcr) {
+                    if (!placa && parsedRgmOcr.placa) placa = parsedRgmOcr.placa;
+                    if (parsedRgmOcr.marca) marcaOcr = parsedRgmOcr.marca;
+                    if (parsedRgmOcr.linea) lineaOcr = parsedRgmOcr.linea;
+                    if (parsedRgmOcr.modelo) modeloOcr = parsedRgmOcr.modelo;
+                    if (parsedRgmOcr.color) colorOcr = parsedRgmOcr.color;
+                }
                 lineas.forEach(function(l) {
-                    if (/MARCA\s*[:\-]/i.test(l)) marcaOcr = l.replace(/^MARCA\s*[:\-]\s*/i, '').trim();
-                    if (/L[IÍ]NEA\s*[:\-]/i.test(l)) lineaOcr = l.replace(/^L[IÍ]NEA\s*[:\-]\s*/i, '').trim();
-                    if (/MODELO\s*[:\-]/i.test(l)) modeloOcr = l.replace(/^MODELO\s*[:\-]\s*/i, '').trim();
-                    if (/COLOR\s*[:\-]/i.test(l)) colorOcr = l.replace(/^COLOR\s*[:\-]\s*/i, '').trim();
+                    if (marcaOcr === "-" && /^MARCA\s*[:\-]/i.test(l)) marcaOcr = l.replace(/^MARCA\s*[:\-]\s*/i, '').trim();
+                    if (lineaOcr === "-" && /^L[IÍ]NEA\s*[:\-]/i.test(l)) lineaOcr = l.replace(/^L[IÍ]NEA\s*[:\-]\s*/i, '').trim();
+                    if (modeloOcr === "-" && /^MODELO\s*[:\-]/i.test(l)) modeloOcr = l.replace(/^MODELO\s*[:\-]\s*/i, '').trim();
+                    if (colorOcr === "-" && /^COLOR\s*[:\-]/i.test(l)) colorOcr = l.replace(/^COLOR\s*[:\-]\s*/i, '').trim();
                 });
 
-                // Formatear exactamente para la Opción 5 (Pegar Extracción IA)
-                var formatoIA = "PLACA: " + placa + "\n" +
-                                "MARCA: " + marcaOcr + "\n" +
-                                "LÍNEA: " + lineaOcr + "\n" +
-                                "MODELO: " + modeloOcr + "\n" +
-                                "COLOR: " + colorOcr + "\n" +
-                                "SOAT: SI | TECNO: SI\n" +
-                                "CELULARES: " + telsTexto + "\n" +
-                                (titularOcr ? ("NOTAS: Titular: " + titularOcr + "\n") : "");
-
-                if (dirsFinales.length > 0) {
-                    dirsFinales.forEach(function(d, idx) {
-                        formatoIA += "DIRECCIÓN " + (idx + 1) + ": " + d + "\n";
-                    });
-                } else {
-                    formatoIA += "DIRECCIÓN 1: (Ingresa la dirección de la placa aquí)\n";
-                }
-
-                // Inyectar en el textarea unificado de texto (txtWhatsapp)
-                if (document.getElementById('txtWhatsapp')) document.getElementById('txtWhatsapp').value = formatoIA;
-
-                // Auto-llenar también los campos de Ingreso Manual para conveniencia
-                if (document.getElementById('manPlaca')) document.getElementById('manPlaca').value = (placa !== 'SIN_PLACA') ? placa : '';
-                if (document.getElementById('manTel')) document.getElementById('manTel').value = (telsTexto !== '-') ? telsTexto : '';
-                if (document.getElementById('manDir')) document.getElementById('manDir').value = dirsFinales[0] || '';
-                if (document.getElementById('manDir2')) document.getElementById('manDir2').value = dirsFinales[1] || '';
-                if (document.getElementById('manDir3')) document.getElementById('manDir3').value = dirsFinales[2] || '';
-                if (document.getElementById('manDir4')) document.getElementById('manDir4').value = dirsFinales[3] || '';
-
-                if (dirsFinales.length > 0) {
-                    var dirsListado = dirsFinales.map(function(d, i){ return (i + 1) + ". " + d; }).join("\n");
-                    alert("✅ ¡INFORMACIÓN EXTRAÍDA CON ÉXITO!\n\n" +
-                          "🚗 Placa: " + placa + "\n" +
-                          "📱 Celulares: " + telsTexto + "\n" +
-                          "📍 Direcciones vigentes (≥ 2026 y SI):\n" + dirsListado + "\n\n" +
-                          "Se transfirió a la Opción 1. Pulsa '🚀 Procesar y Agregar' para mapear.");
-                    mostrarToastNotificacion("📸 " + placa + ": " + dirsFinales.length + " direcciones y celulares extraídos.");
-                } else {
-                    alert("⚠️ Placa: " + placa + "\nNo se detectaron direcciones válidas con fecha ≥ 2026 y estado SI.\n\nCONSEJO PARA FOTOS DE WHATSAPP O CELULAR:\n1. Recorta la foto antes de subirla para que la tabla ocupe toda la pantalla (sin franjas negras grandes arriba o abajo).\n2. Asegúrate de que las letras se vean nítidas y escribe la placa en el campo.\n\nPuedes ingresar los datos manualmente en la Opción 3.");
-                }
-
-                // Abrir automáticamente la sección de texto
-                abrirSeccion('whatsapp');
+                ocultarCargando();
+                await aplicarResultadoExtraccion({
+                    placa: placa,
+                    marca: marcaOcr,
+                    linea: lineaOcr,
+                    modelo: modeloOcr,
+                    color: colorOcr,
+                    titular: titularOcr,
+                    cedula: cedulaOcr,
+                    celulares: telsTexto,
+                    direcciones: dirsFinales
+                }, "OCR Local");
 
             } catch (err) {
                 console.error(err);
