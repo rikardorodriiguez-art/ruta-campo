@@ -8371,9 +8371,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
         var navIndiceActual = 0;
         var navDatosViales = null;
         var navAutoFollow = true;
-        var navVozActiva = true;
+        var navModoVoz = localStorage.getItem('ubica_rick_modo_voz_nav') || 'todo'; // 'todo' | 'alertas' | 'silencio'
+        var navVozActiva = (navModoVoz !== 'silencio');
         var navUltimoTextoVoz = "";
         var navUltimaAlertaPlacaIdx = -1;
+        var navUltimoPasoHabladoKey = "";
         var navCapaTramoActivo = null;
         var navLineaGuiaGps = null;
         var navUltimoGpsPos = null;
@@ -8572,32 +8574,104 @@ async function procesarFotoTablaDirecta(usarGemini) {
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🗺️ Hacia " + item.placa, true);
         }
 
-        function hablarInstruccionCopiloto(texto) {
-            if (!navVozActiva || !('speechSynthesis' in window) || !texto) return;
-            if (texto === navUltimoTextoVoz) return;
+        function obtenerNombreUsuarioParaSaludo() {
+            if (typeof usuarioOperadorActual !== 'undefined' && usuarioOperadorActual && usuarioOperadorActual.nombre) {
+                return usuarioOperadorActual.nombre;
+            }
+            var guardado = localStorage.getItem('nombre_gestor_actual');
+            if (guardado && guardado.trim() !== '') return guardado.trim();
+            if (typeof usuarioActual !== 'undefined' && usuarioActual && usuarioActual.email) {
+                return usuarioActual.email.split('@')[0];
+            }
+            return "Operador";
+        }
+
+        function construirSaludoBendicionInicio(primerVehiculo, totalParadas) {
+            var nombreUser = obtenerNombreUsuarioParaSaludo();
+            var saludo = "Hola " + nombreUser + ". Que Dios bendiga cada paso de su camino y le regale una excelente ruta de principio a fin. ¡Buen viaje! ";
+            if (primerVehiculo) {
+                if (totalParadas && totalParadas > 1) {
+                    saludo += "Iniciando ruta con " + totalParadas + " paradas. Primera parada: " + describirVehiculoParaVoz(primerVehiculo);
+                } else {
+                    saludo += "Dirigiéndote hacia " + describirVehiculoParaVoz(primerVehiculo);
+                }
+            }
+            return saludo;
+        }
+
+        // tipo: 'inicio' | 'alerta' | 'giro'
+        function hablarInstruccionCopiloto(texto, tipo) {
+            tipo = tipo || 'alerta';
+            if (navModoVoz === 'silencio' || !('speechSynthesis' in window) || !texto) return;
+            // Si el usuario eligió "Solo alertas", omitir las instrucciones calle por calle ('giro')
+            if (navModoVoz === 'alertas' && tipo === 'giro') return;
+
+            if (texto === navUltimoTextoVoz && tipo !== 'inicio') return;
             navUltimoTextoVoz = texto;
             try {
                 window.speechSynthesis.cancel();
                 var utter = new SpeechSynthesisUtterance(texto);
                 utter.lang = 'es-CO';
-                utter.rate = 1.03;
+                utter.rate = 1.02;
                 utter.pitch = 1.0;
                 window.speechSynthesis.speak(utter);
             } catch(eVoz) {}
         }
 
-        function toggleVozCopiloto() {
-            navVozActiva = !navVozActiva;
+        function actualizarUIModoVoz() {
             var btn = document.getElementById('btn-nav-voz');
-            if (btn) {
-                btn.innerHTML = navVozActiva ? '🔊' : '🔇';
-                btn.style.background = navVozActiva ? '#059669' : '#334155';
+            var sel = document.getElementById('selectModoVozRuta');
+            if (sel && sel.value !== navModoVoz) {
+                sel.value = navModoVoz;
             }
-            if (navVozActiva) {
-                navUltimoTextoVoz = "";
-                hablarInstruccionCopiloto("Voz de copiloto activada.");
-            } else if ('speechSynthesis' in window) {
-                try { window.speechSynthesis.cancel(); } catch(e){}
+            if (btn) {
+                if (navModoVoz === 'todo') {
+                    btn.innerHTML = '🗣️ Todo';
+                    btn.style.background = '#059669';
+                    btn.style.borderColor = '#6ee7b7';
+                } else if (navModoVoz === 'alertas') {
+                    btn.innerHTML = '🚨 Alertas';
+                    btn.style.background = '#d97706';
+                    btn.style.borderColor = '#fde047';
+                } else {
+                    btn.innerHTML = '🔇 Mudo';
+                    btn.style.background = '#334155';
+                    btn.style.borderColor = '#64748b';
+                }
+            }
+        }
+
+        function cambiarModoVozDesdeSelect(nuevoModo) {
+            navModoVoz = nuevoModo || 'todo';
+            navVozActiva = (navModoVoz !== 'silencio');
+            localStorage.setItem('ubica_rick_modo_voz_nav', navModoVoz);
+            actualizarUIModoVoz();
+        }
+
+        function toggleVozCopiloto() {
+            if (navModoVoz === 'todo') {
+                navModoVoz = 'alertas';
+            } else if (navModoVoz === 'alertas') {
+                navModoVoz = 'silencio';
+            } else {
+                navModoVoz = 'todo';
+            }
+            navVozActiva = (navModoVoz !== 'silencio');
+            localStorage.setItem('ubica_rick_modo_voz_nav', navModoVoz);
+            actualizarUIModoVoz();
+
+            navUltimoTextoVoz = "";
+            if (navModoVoz === 'todo') {
+                mostrarToastNotificacion("🗣️ Voz: Instrucciones de giros + Alertas de placas.");
+                hablarInstruccionCopiloto("Modo voz completo: instrucciones y alertas activadas.", 'alerta');
+            } else if (navModoVoz === 'alertas') {
+                mostrarToastNotificacion("🚨 Voz: Solo alertas de placas cercanas.");
+                hablarInstruccionCopiloto("Modo solo alertas de placas activado.", 'alerta');
+            } else {
+                mostrarToastNotificacion("🔇 Voz de navegación en silencio.");
+                if ('speechSynthesis' in window) {
+                    try { window.speechSynthesis.cancel(); } catch(e){}
+                }
             }
         }
 
@@ -8732,16 +8806,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var topBar = document.getElementById('top-bar-container');
             if (topBar) topBar.style.display = 'none';
 
+            navUltimoPasoHabladoKey = "";
+            actualizarUIModoVoz();
             actualizarBotonAutoFollowUI();
             renderizarParadaCopilotoActual(true);
 
             var pAct = navParadas[navIndiceActual];
             if (pAct) {
-                if (navParadas.length === 1) {
-                    hablarInstruccionCopiloto("Navegando en mi mapa hacia " + describirVehiculoParaVoz(pAct));
-                } else {
-                    hablarInstruccionCopiloto("Iniciando patrullaje en mi mapa con " + navParadas.length + " paradas. Parada 1: " + describirVehiculoParaVoz(pAct));
-                }
+                hablarInstruccionCopiloto(construirSaludoBendicionInicio(pAct, navParadas.length), 'inicio');
             }
         }
 
@@ -8986,10 +9058,19 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (elGiroTxt) elGiroTxt.innerText = textoGiro;
             if (elGiroSub) elGiroSub.innerText = subGiroTxt;
 
-            // Alerta por voz cuando el motorizado está a menos de 180 metros de la placa objetivo
+            // Si el modo de voz es 'todo' (instrucciones completas), cantar los giros viales cuando falten <= 160m
+            if (navModoVoz === 'todo' && legActivo && legActivo.pasos && legActivo.pasos.length > 0 && distObjetivoM > 180) {
+                var pasoClave = navIndiceActual + "_" + textoGiro;
+                if (pasoClave !== navUltimoPasoHabladoKey && textoGiro) {
+                    navUltimoPasoHabladoKey = pasoClave;
+                    hablarInstruccionCopiloto("En " + distGiroTxt + ", " + textoGiro, 'giro');
+                }
+            }
+
+            // Alerta por voz cuando el motorizado está a menos de 180 metros de la placa objetivo (suena en 'todo' y en 'alertas')
             if (distObjetivoM > 0 && distObjetivoM <= 180 && navUltimaAlertaPlacaIdx !== navIndiceActual) {
                 navUltimaAlertaPlacaIdx = navIndiceActual;
-                hablarInstruccionCopiloto("Atención, estás a " + distObjetivoM + " metros de la " + describirVehiculoParaVoz(p));
+                hablarInstruccionCopiloto("Atención, estás a " + distObjetivoM + " metros de la " + describirVehiculoParaVoz(p), 'alerta');
             }
         }
 
@@ -9170,6 +9251,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             trazarRutaVialEnMapa(coordsPaso, paradasOrdenadas, urlMaps, "🎯 Ronda de Cercanía (" + paradasOrdenadas.length + " placas)", !!enMapaPropio);
 
             if (!enMapaPropio) {
+                if (paradasOrdenadas.length > 0) hablarInstruccionCopiloto(construirSaludoBendicionInicio(paradasOrdenadas[0], paradasOrdenadas.length), 'inicio');
                 mostrarToastNotificacion("🚀 Abriendo primeras paradas en Google Maps...");
                 window.open(urlMaps, '_blank');
             }
@@ -9248,6 +9330,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 trazarRutaVialEnMapa(coordsPaso, todasLasParadas, urlMaps, "🧭 Corredor hacia " + destTexto, !!enMapaPropio);
 
                 if (!enMapaPropio) {
+                    if (todasLasParadas.length > 0) hablarInstruccionCopiloto(construirSaludoBendicionInicio(todasLasParadas[0], todasLasParadas.length), 'inicio');
                     mostrarToastNotificacion("🚀 Corredor trazado con " + paradas.length + " placas.");
                     window.open(urlMaps, '_blank');
                 }
@@ -9284,6 +9367,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "🏙️ Barrido en " + mun + " (" + paradas.length + " placas)", !!enMapaPropio);
 
             if (!enMapaPropio) {
+                if (paradas.length > 0) hablarInstruccionCopiloto(construirSaludoBendicionInicio(paradas[0], paradas.length), 'inicio');
                 mostrarToastNotificacion("🚀 Barrido en " + mun + " iniciado (" + paradas.length + " placas).");
                 window.open(urlMaps, '_blank');
             }
@@ -9315,6 +9399,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             trazarRutaVialEnMapa(coordsPaso, paradas, urlMaps, "⚠️ Ruta Táctica Prioritaria (" + paradas.length + " placas)", !!enMapaPropio);
 
             if (!enMapaPropio) {
+                if (paradas.length > 0) hablarInstruccionCopiloto(construirSaludoBendicionInicio(paradas[0], paradas.length), 'inicio');
                 mostrarToastNotificacion("⚠️ Ruta táctica generada (" + paradas.length + " placas).");
                 window.open(urlMaps, '_blank');
             }
@@ -9358,6 +9443,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             trazarRutaVialEnMapa(coordsPaso, paradasConRetorno, urlMaps, "🔁 Circuito Circular (" + paradas.length + " placas + Retorno)", !!enMapaPropio);
 
             if (!enMapaPropio) {
+                if (paradasConRetorno.length > 0) hablarInstruccionCopiloto(construirSaludoBendicionInicio(paradasConRetorno[0], paradasConRetorno.length), 'inicio');
                 mostrarToastNotificacion("🔁 Circuito circular trazado.");
                 window.open(urlMaps, '_blank');
             }
@@ -10413,12 +10499,22 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </div>
 
         <!-- INDICADOR VISUAL EN VIVO DE FILTROS RESPETADOS -->
-        <div id="caja-filtros-activos-ruta" style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:11px; color:#1e40af; display:flex; justify-content:space-between; align-items:center;">
+        <div id="caja-filtros-activos-ruta" style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:6px 10px; margin-bottom:8px; font-size:11px; color:#1e40af; display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <b>🔍 Filtros aplicados a la ruta:</b>
                 <div id="txt-filtros-activos-ruta" style="font-weight:700; color:#1d4ed8; margin-top:2px;">Todos los Municipios • Ver todas</div>
             </div>
             <span id="badge-conteo-activos-ruta" style="background:#2563eb; color:white; font-size:10.5px; font-weight:900; padding:3px 8px; border-radius:12px; white-space:nowrap;">0 placas</span>
+        </div>
+
+        <!-- SELECTOR DE MODO DE VOZ DURANTE LA NAVEGACIÓN -->
+        <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:6px 10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <span style="font-size:11px; font-weight:800; color:#166534; white-space:nowrap;">🔊 Voz en Ruta:</span>
+            <select id="selectModoVozRuta" onchange="cambiarModoVozDesdeSelect(this.value)" style="flex:1; padding:4px 6px; font-size:11px; font-weight:800; color:#0f172a; border-radius:6px; border:1px solid #4ade80; background:white;">
+                <option value="todo">🗣️ Todas las instrucciones + Alertas</option>
+                <option value="alertas">🚨 Solo alertas de placas cercanas</option>
+                <option value="silencio">🔇 Silencio (Sin voz)</option>
+            </select>
         </div>
 
         <!-- PESTAÑAS DE TIPOS DE RUTAS (CUADRÍCULA 3x2 100% VISIBLE) -->
@@ -10679,7 +10775,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                             <span id="nav-velocidad-val" style="font-size:13px; font-weight:900; color:#38bdf8;">0</span>
                             <span style="font-size:8.5px; color:#94a3b8; font-weight:bold; display:block; line-height:0.9;">km/h</span>
                         </div>
-                        <button type="button" id="btn-nav-voz" onclick="toggleVozCopiloto()" style="background:#059669; color:white; border:1px solid #6ee7b7; border-radius:8px; width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Activar/Silenciar voz de navegación">🔊</button>
+                        <button type="button" id="btn-nav-voz" onclick="toggleVozCopiloto()" style="background:#059669; color:white; border:1px solid #6ee7b7; border-radius:8px; height:34px; padding:0 8px; font-size:11px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; white-space:nowrap;" title="Cambiar modo de voz: Todo / Solo Alertas / Mudo">🗣️ Todo</button>
                         <button type="button" onclick="detenerModoCopilotoEnMapa()" style="background:#dc2626; color:white; border:1px solid #fca5a5; border-radius:8px; width:34px; height:34px; font-size:14px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Salir del modo copiloto">✖</button>
                     </div>
                 </div>
