@@ -7422,9 +7422,53 @@ async function procesarFotoTablaDirecta(usarGemini) {
             return true;
         }
 
+        // Verifica que la placa esté dentro del Valle de Aburrá y NO en Rionegro, Bogotá, Bucaramanga u otras ciudades
+        function esPuntoDentroDeValleAburra(item) {
+            if (!item || !item.lat || !item.lng) return false;
+            var lat = parseFloat(item.lat);
+            var lng = parseFloat(item.lng);
+            if (isNaN(lat) || isNaN(lng)) return false;
+
+            // Geocerca estricta del Valle de Aburrá (Caldas a Barbosa, Occidente hasta antes de Santa Elena/Rionegro)
+            if (lat < 6.02 || lat > 6.46 || lng < -75.69 || lng > -75.46) {
+                return false;
+            }
+
+            var txt = ((item.dirOriginal || '') + ' ' + (item.dir || '') + ' ' + (item.municipio || '') + ' ' + (item.notas || '')).toUpperCase();
+            var ciudadesExcluidas = [
+                'RIONEGRO', 'GUARNE', 'MARINILLA', 'LA CEJA', 'EL RETIRO', 'CARMEN DE VIBORAL', 'SANTUARIO',
+                'BOGOTA', 'BOGOTÁ', 'BUCARAMANGA', 'FLORIDABLANCA', 'GIRON', 'GIRÓN', 'PIEDECUESTA',
+                'CALI', 'BARRANQUILLA', 'CARTAGENA', 'SANTA MARTA', 'PEREIRA', 'MANIZALES', 'ARMENIA',
+                'IBAGUE', 'IBAGUÉ', 'CUCUTA', 'CÚCUTA', 'VILLAVICENCIO', 'MONTERIA', 'MONTERÍA',
+                'SINCELEJO', 'VALLEDUPAR', 'PASTO', 'POPAYAN', 'POPAYÁN', 'NEIVA', 'TUNJA', 'SOACHA',
+                'CHIA', 'CHÍA', 'APARTADO', 'APARTADÓ', 'TURBO', 'CAUCASIA', 'SANTA FE DE ANTIOQUIA', 'YARUMAL'
+            ];
+            for (var i = 0; i < ciudadesExcluidas.length; i++) {
+                if (txt.indexOf(ciudadesExcluidas[i]) !== -1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         function obtenerPuntosFiltradosParaRuta(opciones) {
+            opciones = opciones || {};
+            var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
+            var munEffectivo = opciones.municipioOverride || selMun;
+            var chkAburra = document.getElementById('chkRutaSoloValleAburra');
+            var soloValleAburra = (typeof opciones.soloValleAburra === 'boolean')
+                ? opciones.soloValleAburra
+                : (chkAburra ? chkAburra.checked : true);
+
+            // Si el usuario eligió explícitamente RIONEGRO u OTRO, permitir esa ciudad puntual
+            if (munEffectivo === 'RIONEGRO' || munEffectivo === 'OTRO') {
+                soloValleAburra = false;
+            }
+
             return puntosData.filter(function(p) {
-                return pasaFiltrosActivos(p, opciones);
+                if (!pasaFiltrosActivos(p, opciones)) return false;
+                if (soloValleAburra && !esPuntoDentroDeValleAburra(p)) return false;
+                return true;
             });
         }
 
@@ -9596,6 +9640,16 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
             if (ocultarVis) partes.push("⏳ Solo pendientes");
 
+            var chkAburraEl = document.getElementById('chkRutaSoloValleAburra');
+            if (chkAburraEl && chkAburraEl.checked && selMun === 'TODOS') {
+                partes.push("🛡️ Solo Valle de Aburrá");
+            }
+            var saltoKmEl = document.getElementById('selectSaltoMaxKmRuta');
+            var saltoVal = saltoKmEl ? parseFloat(saltoKmEl.value) : 10;
+            if (saltoVal && saltoVal < 900) {
+                partes.push("📏 Máx " + saltoVal + " km entre placas");
+            }
+
             var textoFiltros = partes.join(" • ");
             var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: ocultarVis });
 
@@ -9980,6 +10034,45 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
+        function formatearMinutosAHorasTexto(minTotales) {
+            var m = Math.max(1, Math.round(minTotales || 0));
+            if (m < 60) return m + " min";
+            var h = Math.floor(m / 60);
+            var r = m % 60;
+            return r > 0 ? (h + "h " + r + "m") : (h + "h");
+        }
+
+        function calcularResumenTiempoRuta(distanciaKmNum, duracionVialMinNum, cantidadParadas) {
+            var dist = Math.max(0, parseFloat(distanciaKmNum) || 0);
+            var nParadas = Math.max(0, parseInt(cantidadParadas) || 0);
+            // Velocidad promedio urbana realista en moto en Medellín (~24 km/h en ciudad con semáforos)
+            var minPorDistanciaMoto = Math.round((dist / 24) * 60);
+            var minManejo = Math.max(minPorDistanciaMoto, Math.round((parseFloat(duracionVialMinNum) || 0) * 0.9));
+            if (dist > 0 && minManejo < 1) minManejo = 1;
+            // 2.5 minutos promedio por parada para ubicar nomenclatura, verificar y marcar
+            var minRevision = Math.round(nParadas * 2.5);
+            var minTotal = minManejo + minRevision;
+
+            var etaDate = new Date(Date.now() + minTotal * 60000);
+            var hh = etaDate.getHours();
+            var mm = etaDate.getMinutes();
+            var ampm = hh >= 12 ? "p.m." : "a.m.";
+            var hh12 = hh % 12;
+            if (hh12 === 0) hh12 = 12;
+            var mmStr = mm < 10 ? ("0" + mm) : String(mm);
+            var horaFin = hh12 + ":" + mmStr + " " + ampm;
+
+            return {
+                minManejo: minManejo,
+                minRevision: minRevision,
+                minTotal: minTotal,
+                textoTotal: formatearMinutosAHorasTexto(minTotal),
+                textoManejo: formatearMinutosAHorasTexto(minManejo),
+                textoRevision: formatearMinutosAHorasTexto(minRevision),
+                horaFin: horaFin
+            };
+        }
+
         function trazarRutaVialEnMapa(coordsPaso, paradasItems, urlGoogleMaps, tituloRuta, iniciarCopilotoDirecto) {
             if (capaRutaActiva && map.hasLayer(capaRutaActiva)) {
                 map.removeLayer(capaRutaActiva);
@@ -10052,15 +10145,18 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     var hudStats = document.getElementById('hud-ruta-stats');
                     var hudBtnMaps = document.getElementById('hud-btn-abrir-maps');
 
+                    var tInfo = calcularResumenTiempoRuta(distKm, durMin, paradasItems.length);
                     if (hud) hud.style.display = 'block';
                     if (hudTit) hudTit.innerText = tituloRuta || "🛣️ Ruta Activa (Malla Vial)";
                     if (hudStats) {
-                        hudStats.innerHTML = `📍 <b>${paradasItems.length} paradas</b> • 📏 <b>${distKm} km</b> • ⏱️ <b>~${durMin} min</b>`;
+                        hudStats.innerHTML = `📍 <b>${paradasItems.length} paradas</b> • 📏 <b>${distKm} km</b> • ⏱️ <b>${tInfo.textoTotal} total</b> <span style="color:#93c5fd; font-size:10px;">(${tInfo.textoManejo} moto + ${tInfo.textoRevision} en puntos)</span> • 🏁 <b>Fin ~${tInfo.horaFin}</b>`;
                     }
                     if (hudBtnMaps && urlGoogleMaps) {
                         hudBtnMaps.href = urlGoogleMaps;
                     }
                 }
+                var tToast = calcularResumenTiempoRuta(distKm, durMin, paradasItems.length);
+                mostrarToastNotificacion("⏱️ Ruta de " + paradasItems.length + " placas (" + distKm + " km): ~" + tToast.textoTotal + " • Terminas ~" + tToast.horaFin, 5000);
             }).catch(function(errR) {
                 ocultarCargando();
                 console.warn("Error trazando ruta:", errR);
@@ -10293,7 +10389,18 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var iconoGiro = '⬆️';
             var textoGiro = 'Dirígete hacia ' + p.placa + ' (' + (p.dirOriginal || p.dir || '') + ')';
             var distGiroTxt = distObjetivoM < 1000 ? (distObjetivoM + ' m') : ((distObjetivoM / 1000).toFixed(1) + ' km');
-            var subGiroTxt = 'Objetivo #' + (navIndiceActual + 1) + ' de ' + navParadas.length + ' • Restan ' + (navParadas.length - navIndiceActual) + ' placas';
+            var paradasRestantes = Math.max(1, navParadas.length - navIndiceActual);
+            var distRestanteM = distObjetivoM;
+            for (var rIdx = navIndiceActual; rIdx < navParadas.length - 1; rIdx++) {
+                distRestanteM += calcularDistancia(navParadas[rIdx].lat, navParadas[rIdx].lng, navParadas[rIdx + 1].lat, navParadas[rIdx + 1].lng) * 1.28;
+            }
+            var tRest = calcularResumenTiempoRuta((distRestanteM / 1000).toFixed(1), Math.round(distRestanteM / 400), paradasRestantes);
+            var avisoCercaSig = '';
+            if (navIndiceActual + 1 < navParadas.length) {
+                var dSig = Math.round(calcularDistancia(p.lat, p.lng, navParadas[navIndiceActual + 1].lat, navParadas[navIndiceActual + 1].lng));
+                if (dSig <= 90) avisoCercaSig = ' ⚡ ¡Sig. a ' + dSig + 'm!';
+            }
+            var subGiroTxt = 'Restan ' + paradasRestantes + ' placas (~' + tRest.textoTotal + ' • 🏁 ' + tRest.horaFin + ')' + avisoCercaSig;
 
             if (legActivo && legActivo.pasos && legActivo.pasos.length > 0 && orig) {
                 var mejorPaso = legActivo.pasos[0];
@@ -10413,14 +10520,21 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
-        // --- ORDENAMIENTO POR CERCANÍA CONTINUA + OPTIMIZACIÓN 2-OPT ANTI ZIG-ZAG ---
-        function ordenarPuntosPorCercania(origen, listaPuntos, limite) {
+        // --- ORDENAMIENTO POR CERCANÍA CONTINUA + CONTROL DE SALTO MÁXIMO (10 KM) + 2-OPT ---
+        function ordenarPuntosPorCercania(origen, listaPuntos, limite, saltoMaxKmOverride) {
             var pendientes = listaPuntos.slice();
             var rutaOrdenada = [];
             var puntoActual = origen;
 
+            var selSaltoEl = document.getElementById('selectSaltoMaxKmRuta');
+            var saltoMaxKm = (typeof saltoMaxKmOverride === 'number')
+                ? saltoMaxKmOverride
+                : (selSaltoEl ? (parseFloat(selSaltoEl.value) || 10) : 10);
+            var saltoMaxMetros = (saltoMaxKm >= 900) ? Infinity : (saltoMaxKm * 1000);
+
             var limNum = parseInt(limite) || 8;
             var maxParadas = (limNum >= 999) ? pendientes.length : Math.min(pendientes.length, limNum);
+            var omitidasPorDistancia = 0;
 
             for (var i = 0; i < maxParadas; i++) {
                 var mejorDist = Infinity;
@@ -10436,13 +10550,18 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }
 
                 if (mejorIdx !== -1) {
+                    // A partir de la primera parada enlazada, exigir que el salto del punto actual al siguiente NO supere saltoMaxMetros (ej. 10 km)
+                    if (rutaOrdenada.length > 0 && mejorDist > saltoMaxMetros) {
+                        omitidasPorDistancia = pendientes.length;
+                        break;
+                    }
                     var seleccionado = pendientes.splice(mejorIdx, 1)[0];
                     rutaOrdenada.push(seleccionado);
                     puntoActual = { lat: seleccionado.lat, lng: seleccionado.lng };
                 }
             }
 
-            // Optimización 2-Opt ligera para descruzar tramos cuando hay muchas paradas
+            // Optimización 2-Opt ligera para descruzar tramos respetando el salto máximo entre paradas
             if (rutaOrdenada.length >= 4 && rutaOrdenada.length <= 80) {
                 var mejorado = true;
                 var iter = 0;
@@ -10455,10 +10574,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
                         for (var b = a + 1; b < rutaOrdenada.length - 1; b++) {
                             var pB = rutaOrdenada[b];
                             var pNext = rutaOrdenada[b + 1];
+                            var dPrevB = calcularDistancia(pPrev.lat, pPrev.lng, pB.lat, pB.lng);
+                            var dANext = calcularDistancia(pA.lat, pA.lng, pNext.lat, pNext.lng);
+                            if (a > 0 && dPrevB > saltoMaxMetros) continue;
+                            if (dANext > saltoMaxMetros) continue;
                             var distActual = calcularDistancia(pPrev.lat, pPrev.lng, pA.lat, pA.lng) +
                                              calcularDistancia(pB.lat, pB.lng, pNext.lat, pNext.lng);
-                            var distNueva = calcularDistancia(pPrev.lat, pPrev.lng, pB.lat, pB.lng) +
-                                            calcularDistancia(pA.lat, pA.lng, pNext.lat, pNext.lng);
+                            var distNueva = dPrevB + dANext;
                             if (distNueva + 5 < distActual) {
                                 var subRev = rutaOrdenada.slice(a, b + 1).reverse();
                                 rutaOrdenada.splice.apply(rutaOrdenada, [a, b - a + 1].concat(subRev));
@@ -10467,6 +10589,12 @@ async function procesarFotoTablaDirecta(usarGemini) {
                         }
                     }
                 }
+            }
+
+            if (omitidasPorDistancia > 0 && typeof mostrarToastNotificacion === 'function') {
+                setTimeout(function() {
+                    mostrarToastNotificacion("🛡️ Se omitieron " + omitidasPorDistancia + " placas a más de " + saltoMaxKm + " km de salto.");
+                }, 900);
             }
 
             return rutaOrdenada;
@@ -11785,6 +11913,25 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 <div id="txt-filtros-activos-ruta" style="font-weight:700; color:#1d4ed8; margin-top:2px;">Todos los Municipios • Ver todas</div>
             </div>
             <span id="badge-conteo-activos-ruta" style="background:#2563eb; color:white; font-size:10.5px; font-weight:900; padding:3px 8px; border-radius:12px; white-space:nowrap;">0 placas</span>
+        </div>
+
+        <!-- ESCUDO DE CIUDAD Y LÍMITE DE SALTO ENTRE PLACA Y PLACA -->
+        <div style="background:#fffbeb; border:1.5px solid #fcd34d; border-radius:8px; padding:7px 10px; margin-bottom:8px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; color:#92400e; cursor:pointer; margin-bottom:6px;">
+                <input type="checkbox" id="chkRutaSoloValleAburra" checked onchange="actualizarBadgeFiltrosRuta()">
+                🛡️ Solo Valle de Aburrá (Excluir Rionegro, Bogotá, Bucaramanga, etc.)
+            </label>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <span style="font-size:11px; font-weight:800; color:#78350f; white-space:nowrap;">📏 Salto máx. 1 a otro:</span>
+                <select id="selectSaltoMaxKmRuta" onchange="actualizarBadgeFiltrosRuta()" style="flex:1; padding:4px 6px; font-size:11px; font-weight:800; color:#0f172a; border-radius:6px; border:1px solid #f59e0b; background:white;">
+                    <option value="3">Máx. 3 km (Mismo sector)</option>
+                    <option value="5">Máx. 5 km (Zona corta)</option>
+                    <option value="8">Máx. 8 km (Urbano)</option>
+                    <option value="10" selected>Máx. 10 km (Recomendado)</option>
+                    <option value="15">Máx. 15 km (Aburrá amplio)</option>
+                    <option value="999">Sin límite de distancia</option>
+                </select>
+            </div>
         </div>
 
         <!-- SELECTOR DE MODO DE VOZ DURANTE LA NAVEGACIÓN -->
