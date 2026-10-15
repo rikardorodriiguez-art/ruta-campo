@@ -2641,5 +2641,881 @@
         };
     })();
     </script>
+    <!-- MODALES COMPLEMENTARIOS Y PANTALLA DE ACCESO COMPLETA -->
+    <div id="modal-recuperacion" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:16px; z-index:10000000; width:92%; max-width:420px; padding:18px; box-shadow:0 12px 35px rgba(0,0,0,0.5); max-height:85vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b>🛡️ Centro de Recuperación y Respaldos</b>
+            <button onclick="cerrarCentroRecuperacion()" style="border:none; background:none; font-size:16px; cursor:pointer;">✖</button>
+        </div>
+        <button onclick="restaurarDesdeNubeFirestore()" class="pop-btn pb-teal" style="margin-bottom:8px;">☁️ 1. Descargar y Restaurar desde la Nube (Firebase)</button>
+        <div id="lista-copias-locales" style="margin-bottom:10px; font-size:11px;"></div>
+        <div class="backup-section">
+            <button type="button" class="btn-export" onclick="exportarRespaldo()">💾 Exportar Copia (.json)</button>
+            <label class="btn-import" style="text-align:center; display:inline-block;">
+                📂 Importar Copia (.json)
+                <input type="file" accept=".json" onchange="importarRespaldo(event)" style="display:none;">
+            </label>
+        </div>
+        <button type="button" onclick="abrirModalImportarExcel()" class="pop-btn pb-blue" style="margin-top:8px;">📊 Importar Masivo desde Excel (.xlsx / .csv)</button>
+    </div>
+
+    <!-- MODAL DE IMPORTACIÓN MASIVA DESDE EXCEL (.XLSX / .CSV) -->
+    <div id="modal-importar-excel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:18px; z-index:10000006; width:94%; max-width:440px; padding:18px; box-shadow:0 12px 35px rgba(0,0,0,0.6);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="color:#0f172a; font-size:14px;">📊 Importar Placas desde Excel / CSV</b>
+            <button onclick="cerrarModalImportarExcel()" style="border:none; background:none; font-size:18px; cursor:pointer;">✖</button>
+        </div>
+        <div style="font-size:11.5px; color:#475569; margin-bottom:10px;">
+            Selecciona un archivo <b>.xlsx, .xls o .csv</b> que tenga columnas como <b>PLACA</b>, <b>DIRECCION</b>, <b>MUNICIPIO</b>, <b>MARCA</b>, <b>LINEA</b>, <b>COLOR</b>:
+        </div>
+        <input type="file" accept=".xlsx,.xls,.csv" onchange="procesarArchivoExcelSeleccionado(this.files[0])" style="width:100%; padding:8px; border:1.5px dashed #3b82f6; border-radius:8px; font-size:11.5px; margin-bottom:10px; background:#eff6ff;">
+        <div id="resultado-preview-excel" style="display:none; background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; font-size:11.5px; margin-bottom:10px;"></div>
+        <div id="progreso-importacion-excel" style="display:none; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; margin-bottom:4px;">
+                <span id="excel-progreso-txt">Procesando...</span>
+                <span id="excel-progreso-pct">0%</span>
+            </div>
+            <div style="width:100%; height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                <div id="excel-progreso-barra" style="width:0%; height:100%; background:#16a34a; transition:width 0.2s;"></div>
+            </div>
+        </div>
+        <button id="btn-confirmar-importacion-excel" type="button" onclick="ejecutarImportacionMasivaExcel()" class="pop-btn pb-green" style="display:none; padding:10px; font-size:12.5px;">🚀 Geocodificar y Subir Todas al Mapa</button>
+    </div>
+
+    <div id="modal-borrado-masivo" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:18px; z-index:10000000; width:92%; max-width:420px; padding:18px; box-shadow:0 12px 35px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="color:#b91c1c;">🗑️ Borrado Masivo de Placas</b>
+            <button onclick="cerrarModalBorradoMasivo()" style="border:none; background:none; font-size:16px; cursor:pointer;">✖</button>
+        </div>
+        <textarea id="txtPlacasBorradoMasivo" rows="4" style="width:100%; margin-bottom:10px; padding:8px;" placeholder="Pega las placas separadas por coma, espacio o salto de línea..."></textarea>
+        <button onclick="ejecutarBorradoMasivo()" class="pop-btn pb-red">❌ Eliminar Placas del Mapa y la Nube</button>
+    </div>
+
+    <!-- CENTRO DE RUTAS INTELIGENTES CON SUS 6 PESTAÑAS ORIGINALES -->
+    <div id="modal-ruta-corredor" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:18px; z-index:10000000; width:95%; max-width:460px; max-height:90vh; overflow-y:auto; padding:15px; box-shadow:0 12px 35px rgba(0,0,0,0.6);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <b style="font-size:14px; color:#0f172a;">🧭 Centro de Rutas y Patrullaje v6.3 PRO</b>
+            <button onclick="cerrarModalRutaCorredor()" style="border:none; background:none; font-size:18px; cursor:pointer; color:#c0392b;">✖</button>
+        </div>
+        <div style="background:#eff6ff; border:1px solid #93c5fd; border-radius:8px; padding:6px 10px; margin-bottom:8px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+            <span>Placas disponibles en filtro activo:</span>
+            <b id="badge-conteo-activos-ruta" style="color:#1d4ed8;">0 placas</b>
+        </div>
+
+        <!-- ESCUDO VALLE DE ABURRÁ, SALTO MÁXIMO Y COSTADO DEL RÍO -->
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:7px 9px; margin-bottom:8px; font-size:11px;">
+            <label style="display:flex; align-items:center; gap:6px; font-weight:bold; margin-bottom:4px; cursor:pointer;">
+                <input type="checkbox" id="chkRutaSoloValleAburra" checked onchange="actualizarBadgeFiltrosRuta()"> 🛡️ Escudo Valle de Aburrá (Excluir otras ciudades)
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-weight:bold; margin-bottom:6px; color:#0369a1; cursor:pointer;">
+                <input type="checkbox" id="chkRutaMismoCostadoRio"> 🌊 Respetar costado del Río Medellín (Evitar cruces de puentes)
+            </label>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:bold; color:#334155;">📏 Salto máx. entre paradas:</span>
+                <select id="rutaSaltoMaxKm" style="padding:3px 6px; border-radius:5px; font-size:11px;">
+                    <option value="5">Máx. 5 km</option>
+                    <option value="10" selected>Máx. 10 km (Recomendado)</option>
+                    <option value="25">Máx. 25 km</option>
+                    <option value="999">Sin límite</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- CUADRÍCULA 3x2 DE LAS 6 PESTAÑAS DE RUTAS -->
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; margin-bottom:10px;">
+            <button type="button" id="tab-btn-ruta-cercania" onclick="cambiarTabRuta('cercania')" class="pop-btn pb-blue" style="margin:0; padding:6px 3px; font-size:10.5px;">🎯 1. Cercanía</button>
+            <button type="button" id="tab-btn-ruta-destino" onclick="cambiarTabRuta('destino')" class="pop-btn pb-teal" style="margin:0; padding:6px 3px; font-size:10.5px;">🛣️ 2. En Camino</button>
+            <button type="button" id="tab-btn-ruta-municipio" onclick="cambiarTabRuta('municipio')" class="pop-btn pb-teal" style="margin:0; padding:6px 3px; font-size:10.5px;">🏙️ 3. Municipio</button>
+            <button type="button" id="tab-btn-ruta-tactica" onclick="cambiarTabRuta('tactica')" class="pop-btn pb-teal" style="margin:0; padding:6px 3px; font-size:10.5px;">⚡ 4. Táctica</button>
+            <button type="button" id="tab-btn-ruta-circular" onclick="cambiarTabRuta('circular')" class="pop-btn pb-teal" style="margin:0; padding:6px 3px; font-size:10.5px;">🔄 5. Circular</button>
+            <button type="button" id="tab-btn-ruta-siguiente" onclick="cambiarTabRuta('siguiente'); actualizarObjetivo1a1();" class="pop-btn pb-teal" style="margin:0; padding:6px 3px; font-size:10.5px;">🏍️ 6. 1 a 1 Moto</button>
+        </div>
+
+        <!-- TAB 1: RONDA DE CERCANÍA -->
+        <div id="tab-contenido-ruta-cercania" style="display:block;">
+            <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11.5px; font-weight:bold;">Cantidad de paradas:</span>
+                <select id="rutaCercaniaCantidad" style="padding:5px; border-radius:6px;">
+                    <option value="8">8 más cercanas</option>
+                    <option value="15" selected>15 más cercanas</option>
+                    <option value="25">25 más cercanas</option>
+                    <option value="50">50 más cercanas</option>
+                    <option value="999">🔥 TODAS las placas</option>
+                </select>
+            </div>
+            <button type="button" onclick="ejecutarRutaCercania(true)" class="pop-btn pb-green" style="padding:10px; font-size:12.5px;">🗺️ Navegar Aquí en Mi Mapa (Copiloto GPS)</button>
+            <button type="button" onclick="ejecutarRutaCercania(false)" class="pop-btn pb-blue" style="padding:8px; font-size:11.5px; margin:0;">↗️ Abrir en Google Maps Externo</button>
+        </div>
+
+        <!-- TAB 2: RUTA HACIA DESTINO (CORREDOR VIAL) -->
+        <div id="tab-contenido-ruta-destino" style="display:none;">
+            <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px;">🏁 ¿Hacia dónde vas? (Barrio, Municipio o Dirección):</label>
+            <input type="text" id="inputDestinoCorredor" class="edit-input" placeholder="Ej: Sabaneta, Bello, Calle 10 # 43A...">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px;">
+                <span>Ancho del corredor de desvío:</span>
+                <select id="selectAnchoCorredor" style="padding:4px; border-radius:5px;">
+                    <option value="800">800 metros a cada lado</option>
+                    <option value="1500" selected>1.5 km a cada lado</option>
+                    <option value="3000">3 km a cada lado</option>
+                </select>
+            </div>
+            <button type="button" onclick="calcularYAbrirRutaCorredor(true)" class="pop-btn pb-green" style="padding:10px; font-size:12px;">🗺️ Trazar Ruta en Camino en Mi Mapa</button>
+            <button type="button" onclick="calcularYAbrirRutaCorredor(false)" class="pop-btn pb-blue" style="padding:8px; font-size:11.5px; margin:0;">↗️ Abrir Corredor en Google Maps</button>
+        </div>
+
+        <!-- TAB 3: BARRIDO POR MUNICIPIO -->
+        <div id="tab-contenido-ruta-municipio" style="display:none;">
+            <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px;">🏙️ Selecciona el Municipio a barrer:</label>
+            <select id="selectRutaMunicipio" class="edit-input" style="padding:7px;">
+                <option value="MEDELLIN">Medellín</option>
+                <option value="BELLO">Bello</option>
+                <option value="ITAGUI">Itagüí</option>
+                <option value="ENVIGADO">Envigado</option>
+                <option value="SABANETA">Sabaneta</option>
+                <option value="LA ESTRELLA">La Estrella</option>
+                <option value="COPACABANA">Copacabana</option>
+                <option value="CALDAS">Caldas</option>
+                <option value="RIONEGRO">Rionegro</option>
+            </select>
+            <button type="button" onclick="ejecutarRutaMunicipio(true)" class="pop-btn pb-green" style="padding:10px; font-size:12px;">🗺️ Barrer Municipio en Mi Mapa</button>
+            <button type="button" onclick="ejecutarRutaMunicipio(false)" class="pop-btn pb-blue" style="padding:8px; font-size:11.5px; margin:0;">↗️ Abrir en Google Maps</button>
+        </div>
+
+        <!-- TAB 4: RUTA TÁCTICA -->
+        <div id="tab-contenido-ruta-tactica" style="display:none;">
+            <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:4px;">⚡ Criterio de Prioridad Táctica:</label>
+            <select id="selectCriterioTactico" class="edit-input" style="padding:7px;">
+                <option value="prioritarias">🔥 Todas las Prioritarias (Foto + Pico + Hoy)</option>
+                <option value="pico">⚠️ Solo con Pico y Placa Hoy</option>
+                <option value="foto">📸 Solo Vehículos con Foto</option>
+                <option value="hoy">📅 Solo Subidas Hoy</option>
+            </select>
+            <button type="button" onclick="ejecutarRutaTactica(true)" class="pop-btn pb-green" style="padding:10px; font-size:12px;">🗺️ Iniciar Ruta Táctica en Mi Mapa</button>
+            <button type="button" onclick="ejecutarRutaTactica(false)" class="pop-btn pb-blue" style="padding:8px; font-size:11.5px; margin:0;">↗️ Abrir en Google Maps</button>
+        </div>
+
+        <!-- TAB 5: CIRCUITO CIRCULAR (RETORNO A BASE) -->
+        <div id="tab-contenido-ruta-circular" style="display:none;">
+            <div style="font-size:11px; color:#475569; margin-bottom:8px;">
+                Traza un circuito saliendo desde tu ubicación actual, recorriendo las placas más cercanas y cerrando el anillo de regreso a tu punto de partida:
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11.5px; font-weight:bold;">
+                <span>Tamaño del circuito:</span>
+                <select id="selectCantidadCircular" style="padding:5px; border-radius:6px;">
+                    <option value="8">8 paradas + Retorno</option>
+                    <option value="12" selected>12 paradas + Retorno</option>
+                    <option value="20">20 paradas + Retorno</option>
+                </select>
+            </div>
+            <button type="button" onclick="ejecutarRutaCircular(true)" class="pop-btn pb-green" style="padding:10px; font-size:12px;">🔄 Iniciar Circuito Circular en Mi Mapa</button>
+            <button type="button" onclick="ejecutarRutaCircular(false)" class="pop-btn pb-blue" style="padding:8px; font-size:11.5px; margin:0;">↗️ Abrir Circuito en Google Maps</button>
+        </div>
+
+        <!-- TAB 6: MODO SIGUIENTE OBJETIVO (1 A 1 PARA MOTO) -->
+        <div id="tab-contenido-ruta-siguiente" style="display:none;">
+            <div id="card-objetivo-1a1" style="background:#0f172a; color:white; padding:12px; border-radius:12px; margin-bottom:8px; text-align:center;">
+                <div style="font-size:10px; color:#38bdf8; font-weight:bold;">OBJETIVO PENDIENTE MÁS CERCANO</div>
+                <div id="obj1a1-placa" style="font-size:24px; font-weight:900; color:#ffea00; margin:4px 0;">---</div>
+                <div id="obj1a1-carro" style="font-size:12px; font-weight:bold; color:#f8fafc;">-</div>
+                <div id="obj1a1-dir" style="font-size:11px; color:#94a3b8; margin-top:4px;">-</div>
+                <div id="obj1a1-dist" style="font-size:13px; font-weight:900; color:#4ade80; margin-top:4px;">-- m</div>
+            </div>
+            <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <button type="button" onclick="if(objetivo1a1Actual) navegarPuntoEnMiMapa(objetivo1a1Actual.id);" class="pop-btn pb-green" style="flex:1; margin:0; padding:9px;">🗺️ Mi Mapa</button>
+                <button type="button" onclick="iniciarNavegacionMapsObjetivo()" class="pop-btn pb-blue" style="flex:1; margin:0; padding:9px;">🧭 Google Maps</button>
+                <button type="button" onclick="iniciarNavegacionWazeObjetivo()" class="pop-btn pb-purple" style="flex:1; margin:0; padding:9px;">🚗 Waze</button>
+            </div>
+            <button type="button" onclick="marcarObjetivoActualVisitado()" class="pop-btn pb-teal" style="margin:0; padding:10px;">✅ Marcar Visitado y Cargar Siguiente</button>
+        </div>
+    </div>
+
+    <div id="hud-ruta-activa" style="display:none; position:fixed; top:55px; left:50%; transform:translateX(-50%); z-index:999999; background:rgba(15, 23, 42, 0.95); border:1.5px solid #00f0ff; border-radius:14px; padding:8px 12px; color:white; width:340px; max-width:94vw;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <b id="hud-ruta-titulo" style="font-size:12px; color:#38bdf8;">🛣️ Ruta Activa</b>
+            <button onclick="limpiarRutaActiva()" style="background:#ef4444; border:none; color:white; border-radius:4px; font-size:10px; padding:2px 6px;">✖ Quitar</button>
+        </div>
+        <button onclick="iniciarModoCopilotoEnMapa()" class="pop-btn pb-green" style="margin:0;">🗺️ Iniciar Modo Copiloto</button>
+    </div>
+
+    <!-- NAVEGADOR COPILOTO GPS EN VIVO DENTRO DEL MAPA -->
+    <div id="hud-navegador-copiloto" style="display:none; user-select:none;">
+        <div id="nav-banner-superior" style="position:fixed; top:8px; left:50%; transform:translateX(-50%); width:95vw; max-width:460px; z-index:1000001; background:linear-gradient(145deg, #064e3b, #022c22); border:2px solid #10b981; border-radius:16px; padding:10px 12px; color:white;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                    <div style="background:rgba(16,185,129,0.22); border:1.5px solid #34d399; border-radius:12px; min-width:50px; height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <span id="nav-giro-icono" style="font-size:20px;">⬆️</span>
+                        <span id="nav-giro-dist" style="font-size:10px; font-weight:900; color:#a7f3d0;">-- m</span>
+                    </div>
+                    <div style="flex:1;">
+                        <div id="nav-giro-texto" style="font-size:13.5px; font-weight:900;">Calculando vía...</div>
+                        <div id="nav-giro-sub" style="font-size:10.5px; color:#a7f3d0;">Modo Copiloto v6.3 PRO activo</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <div style="background:#0f172a; border:1px solid #38bdf8; border-radius:8px; padding:2px 6px; text-align:center;">
+                        <span id="nav-velocidad-val" style="font-size:12px; font-weight:900; color:#38bdf8;">0</span>
+                        <span style="font-size:8px; color:#94a3b8; display:block;">km/h</span>
+                    </div>
+                    <button type="button" id="btn-nav-voz" onclick="toggleVozCopiloto()" style="background:#059669; color:white; border:1px solid #6ee7b7; border-radius:8px; height:32px; padding:0 7px; font-size:10.5px; font-weight:900;">🗣️ Todo</button>
+                    <button type="button" onclick="detenerModoCopilotoEnMapa()" style="background:#dc2626; color:white; border:none; border-radius:8px; width:32px; height:32px; font-weight:bold;">✖</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="nav-barra-inferior" style="position:fixed; bottom:10px; left:50%; transform:translateX(-50%); width:95vw; max-width:460px; z-index:1000001; background:rgba(15, 23, 42, 0.97); border:2px solid #00f0ff; border-radius:16px; padding:10px 12px; color:white;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span id="nav-parada-orden" style="background:#2563eb; color:white; font-size:10px; font-weight:900; padding:2px 7px; border-radius:10px;">PARADA 1</span>
+                    <span id="nav-parada-placa" style="background:#000; color:#ffea00; border:1.5px solid #ffea00; font-size:16px; font-weight:900; padding:1px 8px; border-radius:5px;">---</span>
+                </div>
+                <span id="nav-parada-dist" style="font-size:12px; font-weight:900; color:#00ff87;">🎯 -- m</span>
+            </div>
+            <div id="nav-parada-carro" style="font-size:11.5px; font-weight:800; color:#f8fafc; margin-bottom:2px;">🚗 VEHÍCULO</div>
+            <div id="nav-parada-dir" style="font-size:11px; color:#93c5fd; margin-bottom:8px;">📍 Dirección</div>
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button type="button" onclick="cambiarParadaCopiloto(-1)" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:8px; padding:8px;">⏮️</button>
+                <button type="button" id="btn-nav-ver-foto" onclick="if(navParadas[navIndiceActual]) abrirVisorFotoCarro(navParadas[navIndiceActual].id);" style="display:none; background:#f59e0b; color:white; border:none; border-radius:8px; padding:8px; font-size:11px; font-weight:900;">📸 Foto</button>
+                <button type="button" id="btn-nav-rumbo" onclick="toggleModoVistaFrenteCopiloto()" style="background:#0d9488; color:white; border:1px solid #5eead4; border-radius:8px; padding:8px 7px; font-size:10.5px; font-weight:900;">🧭 Frente</button>
+                <button type="button" id="btn-nav-autofollow" onclick="activarAutoFollowCopiloto()" style="background:#0284c7; color:white; border:1px solid #38bdf8; border-radius:8px; padding:8px 7px; font-size:10.5px; font-weight:800;">🎯 Centrar</button>
+                <button type="button" onclick="marcarParadaActualVisitadaYSiguiente()" style="flex:1; background:#16a34a; color:white; border:none; border-radius:8px; padding:8px 6px; font-size:11.5px; font-weight:900;">✅ Visitado ➔ Sig.</button>
+                <button type="button" onclick="cambiarParadaCopiloto(1)" style="background:#334155; color:#fff; border:none; border-radius:8px; padding:8px;">⏭️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BANNER DE LLEGADA AUTOMÁTICA CON FOTO -->
+    <div id="banner-llegada-geocerca" style="display:none; position:fixed; bottom:82px; left:50%; transform:translateX(-50%); z-index:9999999; background:rgba(15, 23, 42, 0.98); border:2.5px solid #22c55e; border-radius:18px; padding:12px 14px; color:white; width:94%; max-width:410px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:11.5px; font-weight:900; color:#86efac;">📍 ¡LLEGASTE AL OBJETIVO! (✅ VISITADO AUTO)</span>
+            <button type="button" onclick="posponerAlertaGeocerca()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:26px; height:26px;">✖</button>
+        </div>
+        <div id="geocerca-foto-box" style="display:none; width:100%; background:#050811; border:2px solid #f59e0b; border-radius:12px; overflow:hidden; margin:6px 0;">
+            <img id="geocerca-foto-img" src="" alt="Foto" onclick="if(placaEnGeocercaActual) abrirVisorFotoCarro(placaEnGeocercaActual.id);" style="width:100%; max-height:190px; object-fit:contain; display:block; margin:0 auto;">
+            <div style="display:flex; gap:6px; padding:6px; background:rgba(15,23,42,0.95);">
+                <button type="button" onclick="if(placaEnGeocercaActual) abrirVisorFotoCarro(placaEnGeocercaActual.id);" style="flex:1; background:#0284c7; color:white; border:none; border-radius:6px; padding:6px; font-size:11px; font-weight:800;">🔍 Ampliar Foto</button>
+                <button type="button" onclick="cerrarSoloFotoLlegada()" style="flex:1; background:#dc2626; color:white; border:none; border-radius:6px; padding:6px; font-size:11px; font-weight:900;">✖ Cerrar Foto</button>
+            </div>
+        </div>
+        <button type="button" id="geocerca-btn-reabrir-foto" onclick="reabrirFotoLlegada()" style="display:none; width:100%; background:#f59e0b; color:white; border:none; border-radius:8px; padding:6px; font-size:11px; font-weight:900; margin:4px 0;">📸 Ver Foto del Vehículo</button>
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:4px 0;">
+            <div id="geocerca-placa-txt" style="background:#000; color:#ffea00; border:2px solid #ffea00; border-radius:7px; padding:2px 10px; font-size:20px; font-weight:900;">---</div>
+            <div id="geocerca-color-badge" style="background:#1e293b; color:#38bdf8; border:1px solid #38bdf8; border-radius:7px; padding:4px 8px; font-size:11px; font-weight:900;">🎨 COLOR</div>
+        </div>
+        <div id="geocerca-vehiculo-txt" style="font-size:12px; font-weight:800; margin-bottom:2px;">VEHÍCULO</div>
+        <div id="geocerca-dir-txt" style="font-size:11px; color:#93c5fd; margin-bottom:8px;">📍 Dirección — Al alejarte >30m inicia la siguiente</div>
+        <div style="display:flex; gap:6px;">
+            <button type="button" onclick="confirmarVisitaGeocerca()" class="pop-btn pb-green" style="margin:0; flex:1.6;">⏭️ Siguiente Objetivo Ahora</button>
+            <button type="button" onclick="posponerAlertaGeocerca()" class="pop-btn pb-red" style="margin:0; flex:1;">✖ Cerrar</button>
+        </div>
+    </div>
+
+    <!-- BANNER ALERTA SOS RECIBIDA -->
+    <div id="banner-alerta-sos-recibida" style="display:none; position:fixed; top:55px; left:50%; transform:translateX(-50%); z-index:10000004; background:rgba(153, 27, 27, 0.98); border:2px solid #f87171; border-radius:14px; padding:10px 14px; color:white; width:94%; max-width:400px; box-shadow:0 10px 30px rgba(0,0,0,0.7);">
+        <div id="sos-info-txt" style="font-size:12px; margin-bottom:4px;"></div>
+        <div id="sos-coord-txt" style="font-size:11px; color:#fecaca; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:6px;">
+            <button type="button" onclick="verSosEnMapa()" class="pop-btn pb-blue" style="flex:1; margin:0; padding:6px; font-size:11px;">🎯 Ver en Mapa</button>
+            <a id="sos-btn-maps" href="#" target="_blank" class="pop-btn pb-green" style="flex:1; margin:0; padding:6px; font-size:11px;">🧭 Ir en Maps</a>
+            <button type="button" onclick="resolverAlertaSos()" class="pop-btn pb-teal" style="flex:1; margin:0; padding:6px; font-size:11px;">✔️ Atendida</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE GESTIÓN DE USUARIOS Y OPERADORES EN VIVO -->
+    <div id="modal-usuarios" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:18px; z-index:10000005; width:94%; max-width:450px; max-height:88vh; overflow-y:auto; padding:16px; box-shadow:0 15px 40px rgba(0,0,0,0.65);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="font-size:14px; color:#0f172a;">👥 Gestión de Operadores y Accesos</b>
+            <button onclick="cerrarModalGestionUsuarios()" style="border:none; background:none; font-size:18px; cursor:pointer; color:#c0392b;">✖</button>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:10px;">
+            <button type="button" id="btn-tab-usr-vivo" onclick="cambiarTabUsuarios('vivo')" class="pop-btn pb-blue" style="flex:1; margin:0; padding:7px; font-size:11px;">🟢 Conectados en Vivo</button>
+            <button type="button" id="btn-tab-usr-admin" onclick="cambiarTabUsuarios('admin')" class="pop-btn pb-teal" style="flex:1; margin:0; padding:7px; font-size:11px;">🔐 Crear / Administrar</button>
+        </div>
+        <div id="tab-usuarios-vivo" style="display:block;">
+            <div id="lista-conectados-en-vivo" style="font-size:11.5px; color:#334155; max-height:280px; overflow-y:auto;"></div>
+        </div>
+        <div id="tab-usuarios-admin" style="display:none;">
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:10px; margin-bottom:10px;">
+                <b style="font-size:11.5px; color:#0f172a; display:block; margin-bottom:6px;">➕ Registrar Nuevo Operador:</b>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="nuevoUsrNombre" class="edit-input" placeholder="Nombre (ej. Carlos)" style="flex:1;">
+                    <input type="text" id="nuevoUsrLogin" class="edit-input" placeholder="Usuario / Correo" style="flex:1;">
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="nuevoUsrPin" class="edit-input" placeholder="PIN o Clave" style="flex:1;">
+                    <select id="nuevoUsrRol" class="edit-input" style="flex:1;">
+                        <option value="lector">Operador (Ruta)</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="button" onclick="guardarNuevoUsuario()" class="pop-btn pb-green" style="margin:4px 0 0 0; padding:7px; font-size:11.5px;">💾 Crear Operador</button>
+            </div>
+            <div id="lista-usuarios-registrados-admin" style="max-height:220px; overflow-y:auto; font-size:11.5px;"></div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR USUARIO -->
+    <div id="modal-editar-usuario" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:14px; z-index:10000007; width:90%; max-width:340px; padding:16px; box-shadow:0 15px 40px rgba(0,0,0,0.7);">
+        <b style="font-size:13px; display:block; margin-bottom:8px;">✏️ Editar Operador</b>
+        <input type="hidden" id="editUsrId">
+        <label style="font-size:10.5px; font-weight:bold;">Nombre:</label>
+        <input type="text" id="editUsrNombre" class="edit-input">
+        <label style="font-size:10.5px; font-weight:bold;">Usuario / Login:</label>
+        <input type="text" id="editUsrLogin" class="edit-input">
+        <label style="font-size:10.5px; font-weight:bold;">PIN / Contraseña:</label>
+        <input type="text" id="editUsrPin" class="edit-input">
+        <label style="font-size:10.5px; font-weight:bold;">Rol:</label>
+        <select id="editUsrRol" class="edit-input">
+            <option value="lector">Operador (Ruta)</option>
+            <option value="admin">Administrador</option>
+        </select>
+        <div style="display:flex; gap:6px; margin-top:8px;">
+            <button type="button" onclick="guardarEdicionUsuario()" class="pop-btn pb-green" style="flex:1; margin:0;">💾 Guardar</button>
+            <button type="button" onclick="cerrarModalEditarUsuario()" class="pop-btn pb-red" style="flex:1; margin:0;">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modal-cierre-turno" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:18px; z-index:10000005; width:94%; max-width:450px; padding:18px; box-shadow:0 12px 35px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b>📑 Cierre de Turno / Reporte</b>
+            <button onclick="cerrarModalCierreTurno()" style="border:none; background:none; font-size:18px; cursor:pointer;">✖</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:10px; text-align:center;">
+            <div style="flex:1; background:#f8fafc; padding:8px; border-radius:8px;">Total: <b id="rep-total-placas">0</b></div>
+            <div style="flex:1; background:#f0fdf4; padding:8px; border-radius:8px;">Visitadas: <b id="rep-visitadas-placas">0</b></div>
+            <div style="flex:1; background:#eff6ff; padding:8px; border-radius:8px;"><b id="rep-efectividad-pct">0%</b></div>
+        </div>
+        <div id="rep-desglose-operadores" style="font-size:11.5px; margin-bottom:8px;"></div>
+        <div id="rep-lista-visitadas-tabla" style="max-height:130px; overflow-y:auto; font-size:11px; margin-bottom:10px;"></div>
+        <button onclick="exportarInformeExcel()" class="pop-btn pb-green">📥 Descargar Excel (.xlsx)</button>
+        <button onclick="copiarReporteWhatsApp()" class="pop-btn pb-blue">📋 Copiar para WhatsApp</button>
+    </div>
+
+    <div id="modal-perfil-usuario" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:18px; z-index:10000003; width:90%; max-width:340px; padding:18px; text-align:center; box-shadow:0 12px 35px rgba(0,0,0,0.5);">
+        <h3 style="margin-top:0; margin-bottom:6px;">👤 Sesión Activa</h3>
+        <div id="perfil-activo-detalles" style="font-size:12px; color:#334155; margin-bottom:12px;"></div>
+        <button onclick="cerrarModalPerfilUsuario(); abrirModalCambiarUsuario();" class="pop-btn pb-blue">🔄 Cambiar de Operador</button>
+        <button onclick="cerrarModalPerfilUsuario(); cerrarSesionYBloquear();" class="pop-btn pb-red">🚪 Cerrar Sesión / Salir</button>
+        <button onclick="cerrarModalPerfilUsuario()" class="pop-btn pb-teal" style="margin:0;">Cerrar Ventana</button>
+    </div>
+
+    <!-- MODAL CAMBIO RÁPIDO DE USUARIO -->
+    <div id="modal-cambiar-usuario" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#ffffff; padding:18px; border-radius:14px; box-shadow:0 15px 40px rgba(0,0,0,0.65); width:310px; max-width:90vw; z-index:10000006; font-size:12px; border:2px solid #0284c7;">
+        <div class="header-menu" style="border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+            <b style="color:#0f172a; font-size:13.5px;">🔐 Cambiar Operador Activo</b>
+            <button onclick="cerrarModalCambiarUsuario()">✖</button>
+        </div>
+        <label style="font-size:11px; font-weight:bold; color:#334155;">Usuario / Correo:</label>
+        <input type="text" id="login-op-usuario" class="edit-input" placeholder="Ej: admin, pcrick o sergio">
+        <label style="font-size:11px; font-weight:bold; color:#334155;">PIN o Contraseña:</label>
+        <input type="password" id="login-op-pin" class="edit-input" placeholder="Ingresa tu clave o PIN">
+        <button type="button" onclick="confirmarIngresoSesionOperador()" class="pop-btn pb-green" style="margin-top:6px;">🚀 Entrar</button>
+        <button type="button" onclick="cerrarModalCambiarUsuario()" class="pop-btn pb-teal" style="margin:0;">Cancelar</button>
+    </div>
+
+    <!-- PANTALLA DE LOGIN -->
+    <div id="pantalla-login-acceso" style="display:flex; position:fixed; top:0; left:0; width:100%; height:100%; z-index:999999999; background:radial-gradient(circle at center, #0a192f 0%, #042143 60%, #020f20 100%); color:white; flex-direction:column; justify-content:center; align-items:center; padding:20px;">
+        <div style="background:rgba(15, 23, 42, 0.96); border:1.5px solid #00f0ff; border-radius:24px; padding:24px 20px; width:100%; max-width:350px; text-align:center;">
+            <h2 style="margin:0 0 4px 0; color:#ffffff; font-size:22px; font-weight:900;">UBICA-RICK v6.3 PRO</h2>
+            <div style="color:#38bdf8; font-size:11px; font-weight:bold; margin-bottom:14px;">CONTROL DE RUTA Y RASTREO</div>
+            <div id="alerta-bloqueo-login" style="display:none; background:rgba(239,68,68,0.2); border:1px solid #ef4444; border-radius:8px; padding:8px; margin-bottom:10px; font-size:11.5px; color:#fca5a5;"></div>
+            <div style="text-align:left; margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:bold; color:#cbd5e1;">👤 Usuario:</label>
+                <input type="text" id="loginAccesoUsuario" placeholder="Usuario (ej. pcrick o sergio)" style="width:100%; padding:9px 12px; margin-top:4px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:white; font-size:13px;">
+            </div>
+            <div style="text-align:left; margin-bottom:16px;">
+                <label style="font-size:11px; font-weight:bold; color:#cbd5e1;">🔑 Contraseña o PIN:</label>
+                <div style="position:relative;">
+                    <input type="password" id="loginAccesoPin" placeholder="••••••••" style="width:100%; padding:9px 36px 9px 12px; margin-top:4px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:white; font-size:13px;" onkeydown="if(event.key==='Enter') ejecutarIngresoLoginAcceso();">
+                    <button type="button" onclick="toggleVerPinLogin()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; font-size:15px; cursor:pointer;">👁️</button>
+                </div>
+            </div>
+            <button type="button" onclick="ejecutarIngresoLoginAcceso()" class="pop-btn pb-blue" style="padding:11px; font-size:13px;">🚀 Ingresar al Sistema</button>
+        </div>
+    </div>
+
+    <!-- MÓDULO MODO CAZADOR v6.3 CORREGIDO (SIN DESBORDAMIENTO EN CELULAR) -->
+    <div id="modal-cazador-placas" onclick="if(event.target === this) cerrarModoCazadorPlacas();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.88); z-index:20000008; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
+        <div style="width:100%; max-width:340px; background:#0f172a; border:2px solid #ffea00; border-radius:16px; padding:12px; box-sizing:border-box; box-shadow:0 12px 35px rgba(0,0,0,0.85); color:#f8fafc; overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #334155; padding-bottom:6px;">
+                <div style="font-size:13px; font-weight:900; color:#ffea00;">🦅 MODO CAZADOR EN RUTA</div>
+                <button type="button" onclick="cerrarModoCazadorPlacas()" style="background:#dc2626; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer; flex-shrink:0;">✖</button>
+            </div>
+            <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Escribe o dicta por voz la placa vista en vía:</div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px; width:100%; box-sizing:border-box;">
+                <input type="text" id="input-cazador-placa" maxlength="7" placeholder="ABC123" oninput="verificarPlacaModoCazador(this.value)" style="flex:1 1 auto; min-width:0; width:100%; height:44px; background:#000; color:#ffea00; border:2px solid #ffea00; border-radius:8px; font-size:20px; font-weight:900; text-align:center; letter-spacing:2px; text-transform:uppercase; outline:none; box-sizing:border-box; margin:0; padding:0 4px;">
+                <button type="button" id="btn-voz-cazador" onclick="iniciarDictadoVozCazador()" style="flex:0 0 46px; width:46px; height:44px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:white; border:1px solid #60a5fa; border-radius:8px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; margin:0; padding:0;" title="Dictar placa por micrófono">🎙️</button>
+            </div>
+            <div id="resultado-cazador-box" style="min-height:60px; max-height:40vh; overflow-y:auto; background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; font-size:11.5px; color:#94a3b8; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; box-sizing:border-box; word-break:break-word;">
+                Ingresa o dicta los 6 caracteres de la placa...
+            </div>
+            <div style="display:flex; gap:6px; margin-top:10px; width:100%;">
+                <button type="button" onclick="document.getElementById('input-cazador-placa').value=''; verificarPlacaModoCazador(''); document.getElementById('input-cazador-placa').focus();" style="flex:1; background:#334155; color:white; border:none; border-radius:8px; padding:9px; font-size:11.5px; font-weight:800; cursor:pointer;">🧹 Limpiar</button>
+                <button type="button" onclick="cerrarModoCazadorPlacas()" style="flex:1; background:#475569; color:white; border:none; border-radius:8px; padding:9px; font-size:11.5px; font-weight:800; cursor:pointer;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // =========================================================================
+    // FUNCIONES COMPLETAS DE RUTAS (6 PESTAÑAS), USUARIOS, EXCEL Y CAZADOR v6.3
+    // =========================================================================
+    function obtenerLongitudEjeRioMedellin(lat) {
+        if (lat <= 6.15) return -75.630;
+        if (lat <= 6.20) return -75.582;
+        if (lat <= 6.25) return -75.575;
+        if (lat <= 6.30) return -75.562;
+        return -75.550;
+    }
+
+    function obtenerCostadoRioMedellin(lat, lng) {
+        return (lng < obtenerLongitudEjeRioMedellin(lat)) ? 'OCCIDENTE' : 'ORIENTE';
+    }
+
+    // Mejorar ordenarPuntosPorCercania para respetar Salto Máximo y Costado del Río Medellín
+    window.ordenarPuntosPorCercania = function(origen, listaPuntos, limite, saltoMaxKmOverride) {
+        var pendientes = listaPuntos.slice();
+        var rutaOrdenada = [];
+        var actual = origen;
+        var maxP = Math.min(pendientes.length, parseInt(limite) || 15);
+        var saltoMaxM = (parseFloat(saltoMaxKmOverride || (document.getElementById('rutaSaltoMaxKm') ? document.getElementById('rutaSaltoMaxKm').value : 10)) || 10) * 1000;
+        var respetarRio = document.getElementById('chkRutaMismoCostadoRio') ? document.getElementById('chkRutaMismoCostadoRio').checked : false;
+        var costadoOrigen = obtenerCostadoRioMedellin(origen.lat, origen.lng);
+
+        for (var i = 0; i < maxP; i++) {
+            var mejorIdx = -1, mejorPeso = Infinity;
+            for (var j = 0; j < pendientes.length; j++) {
+                var cand = pendientes[j];
+                var d = calcularDistancia(actual.lat, actual.lng, cand.lat, cand.lng);
+                if (i > 0 && d > saltoMaxM && saltoMaxM < 500000) continue;
+                var peso = d;
+                if (respetarRio && obtenerCostadoRioMedellin(cand.lat, cand.lng) !== costadoOrigen) {
+                    peso += 6500; // Penalizar cruce de puente si hay opciones del mismo lado
+                }
+                if (peso < mejorPeso) { mejorPeso = peso; mejorIdx = j; }
+            }
+            if (mejorIdx !== -1) {
+                var sel = pendientes.splice(mejorIdx, 1)[0];
+                rutaOrdenada.push(sel);
+                actual = { lat: sel.lat, lng: sel.lng };
+                costadoOrigen = obtenerCostadoRioMedellin(actual.lat, actual.lng);
+            }
+        }
+        return rutaOrdenada;
+    };
+
+    window.calcularYAbrirRutaCorredor = async function(enMapaPropio) {
+        var txtDest = (document.getElementById('inputDestinoCorredor').value || '').trim();
+        if (!txtDest) { alert("Ingresa el destino hacia donde te diriges."); return; }
+        var anchoM = parseFloat(document.getElementById('selectAnchoCorredor').value) || 1500;
+        mostrarCargando("🛣️ Calculando corredor vial hacia " + txtDest + "...");
+        var orig = obtenerOrigenRutaBase();
+        var coordsDest = await obtenerCoordenadasExactasLimpias(txtDest);
+        ocultarCargando();
+        var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
+        var enCorredor = [];
+        pool.forEach(function(p) {
+            var proy = distanciaPuntoASegmentoMetros(p.lat, p.lng, orig.lat, orig.lng, coordsDest.lat, coordsDest.lng);
+            if (proy.dist <= anchoM) enCorredor.push({ item: p, t: proy.t });
+        });
+        enCorredor.sort(function(a, b) { return a.t - b.t; });
+        var paradas = enCorredor.map(function(x) { return x.item; }).slice(0, 18);
+        if (paradas.length === 0) { alert("No se encontraron placas dentro de " + anchoM + "m de tu camino hacia " + txtDest); return; }
+        var coordsPaso = [orig].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; })).concat([coordsDest]);
+        var url = construirUrlGoogleMapsMultiParadas(orig, paradas);
+        cerrarModalRutaCorredor();
+        trazarRutaVialEnMapa(coordsPaso, paradas, url, "🛣️ En Camino (" + paradas.length + ")", !!enMapaPropio);
+        if (!enMapaPropio) window.open(url, '_blank');
+    };
+
+    window.ejecutarRutaMunicipio = function(enMapaPropio) {
+        var mun = document.getElementById('selectRutaMunicipio').value;
+        var orig = obtenerOrigenRutaBase();
+        var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: true, municipioOverride: mun, soloValleAburra: (mun !== 'RIONEGRO') });
+        if (pool.length === 0) { alert("No hay placas pendientes en " + mun); return; }
+        var paradas = ordenarPuntosPorCercania(orig, pool, 25);
+        var coords = [orig].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; }));
+        var url = construirUrlGoogleMapsMultiParadas(orig, paradas);
+        cerrarModalRutaCorredor();
+        trazarRutaVialEnMapa(coords, paradas, url, "🏙️ Barrido " + mun, !!enMapaPropio);
+        if (!enMapaPropio) window.open(url, '_blank');
+    };
+
+    window.ejecutarRutaTactica = function(enMapaPropio) {
+        var crit = document.getElementById('selectCriterioTactico').value;
+        var orig = obtenerOrigenRutaBase();
+        var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: true }).filter(function(p) {
+            if (crit === 'pico') return !!p.pico;
+            if (crit === 'foto') return !!p.foto;
+            if (crit === 'hoy') return !!p.esHoy;
+            return !!(p.pico || p.foto || p.esHoy);
+        });
+        if (pool.length === 0) { alert("No hay placas que cumplan ese criterio táctico hoy."); return; }
+        var paradas = ordenarPuntosPorCercania(orig, pool, 20);
+        var coords = [orig].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; }));
+        var url = construirUrlGoogleMapsMultiParadas(orig, paradas);
+        cerrarModalRutaCorredor();
+        trazarRutaVialEnMapa(coords, paradas, url, "⚡ Ruta Táctica", !!enMapaPropio);
+        if (!enMapaPropio) window.open(url, '_blank');
+    };
+
+    window.ejecutarRutaCircular = function(enMapaPropio) {
+        var cant = parseInt(document.getElementById('selectCantidadCircular').value) || 12;
+        var orig = obtenerOrigenRutaBase();
+        var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
+        if (pool.length === 0) { alert("No hay placas pendientes."); return; }
+        var paradas = ordenarPuntosPorCercania(orig, pool, cant);
+        var coords = [orig].concat(paradas.map(function(p){ return { lat: p.lat, lng: p.lng }; })).concat([orig]);
+        var url = construirUrlGoogleMapsMultiParadas(orig, paradas);
+        cerrarModalRutaCorredor();
+        trazarRutaVialEnMapa(coords, paradas, url, "🔄 Circuito Circular", !!enMapaPropio);
+        if (!enMapaPropio) window.open(url, '_blank');
+    };
+
+    window.actualizarObjetivo1a1 = function() {
+        var orig = obtenerOrigenRutaBase();
+        var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: true });
+        if (pool.length === 0) {
+            objetivo1a1Actual = null;
+            document.getElementById('obj1a1-placa').textContent = 'SIN PENDIENTES';
+            return;
+        }
+        var ordenados = ordenarPuntosPorCercania(orig, pool, 1);
+        objetivo1a1Actual = ordenados[0];
+        var d = Math.round(calcularDistancia(orig.lat, orig.lng, objetivo1a1Actual.lat, objetivo1a1Actual.lng));
+        document.getElementById('obj1a1-placa').textContent = objetivo1a1Actual.placa;
+        document.getElementById('obj1a1-carro').textContent = [objetivo1a1Actual.marca, objetivo1a1Actual.linea, objetivo1a1Actual.color].filter(Boolean).join(' • ');
+        document.getElementById('obj1a1-dir').textContent = objetivo1a1Actual.dirOriginal || objetivo1a1Actual.dir || '-';
+        document.getElementById('obj1a1-dist').textContent = '🎯 A ' + (d < 1000 ? d + ' metros' : (d / 1000).toFixed(1) + ' km');
+    };
+
+    window.iniciarNavegacionMapsObjetivo = function() {
+        if (objetivo1a1Actual) window.open("https://www.google.com/maps/dir/?api=1&destination=" + objetivo1a1Actual.lat + "," + objetivo1a1Actual.lng + "&travelmode=driving", "_blank");
+    };
+    window.iniciarNavegacionWazeObjetivo = function() {
+        if (objetivo1a1Actual) window.open("https://waze.com/ul?ll=" + objetivo1a1Actual.lat + "," + objetivo1a1Actual.lng + "&navigate=yes", "_blank");
+    };
+    window.marcarObjetivoActualVisitado = function() {
+        if (!objetivo1a1Actual) return;
+        marcarVisitada(objetivo1a1Actual.placa, objetivo1a1Actual.id, true, false);
+        actualizarObjetivo1a1();
+    };
+
+    // GESTIÓN COMPLETA DE USUARIOS Y CONECTADOS EN VIVO
+    window.guardarUsuariosRegistrados = function(lista) {
+        localStorage.setItem('usuarios_extra_ubica_rick', JSON.stringify(lista));
+    };
+
+    window.cambiarTabUsuarios = function(tab) {
+        var esVivo = (tab === 'vivo');
+        document.getElementById('tab-usuarios-vivo').style.display = esVivo ? 'block' : 'none';
+        document.getElementById('tab-usuarios-admin').style.display = esVivo ? 'none' : 'block';
+        document.getElementById('btn-tab-usr-vivo').className = esVivo ? 'pop-btn pb-blue' : 'pop-btn pb-teal';
+        document.getElementById('btn-tab-usr-admin').className = esVivo ? 'pop-btn pb-teal' : 'pop-btn pb-blue';
+        if (esVivo) renderizarConectadosEnVivo();
+        else renderizarListaUsuariosAdmin();
+    };
+
+    window.renderizarConectadosEnVivo = function() {
+        var cont = document.getElementById('lista-conectados-en-vivo');
+        if (!cont) return;
+        var lista = obtenerUsuariosRegistrados();
+        var ahora = Date.now();
+        cont.innerHTML = lista.map(function(u) {
+            var pres = presenciaOperadoresCache[u.id];
+            var enLinea = pres && pres.ultimoLatido && ((ahora - pres.ultimoLatido) < 240000);
+            var dot = enLinea ? '🟢 En línea' : '⚪ Desconectado';
+            var coordsBtn = (pres && pres.lat && pres.lng)
+                ? '<button onclick="cerrarModalGestionUsuarios(); map.setView([' + pres.lat + ',' + pres.lng + '], 17);" style="background:#0284c7; color:white; border:none; border-radius:5px; padding:3px 7px; font-size:10px; cursor:pointer;">📍 Ver en Mapa</button>'
+                : '';
+            return '<div style="display:flex; justify-content:space-between; align-items:center; padding:7px; border-bottom:1px solid #e2e8f0;">' +
+                '<div><b>' + u.nombre + '</b> (@' + u.login + ')<br><span style="font-size:10px; color:#64748b;">' + dot + (pres && pres.horaStr ? ' • ' + pres.horaStr : '') + '</span></div>' +
+                '<div>' + coordsBtn + '</div></div>';
+        }).join('');
+    };
+
+    window.renderizarListaUsuariosAdmin = function() {
+        var cont = document.getElementById('lista-usuarios-registrados-admin');
+        if (!cont) return;
+        var lista = obtenerUsuariosRegistrados();
+        cont.innerHTML = lista.map(function(u) {
+            var estadoBtn = (u.activo !== false) ? '🟢 Activo' : '🔴 Bloqueado';
+            return '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid #e2e8f0;">' +
+                '<div><b>' + u.nombre + '</b> (' + u.rol + ')<br><span style="font-size:10px; color:#64748b;">Login: ' + u.login + ' | PIN: ' + u.pin + '</span></div>' +
+                '<div style="display:flex; gap:4px;">' +
+                    '<button onclick="abrirEditarUsuario(\'' + u.id + '\')" style="background:#8e44ad; color:white; border:none; border-radius:4px; padding:4px 6px; font-size:10px; cursor:pointer;">✏️</button>' +
+                    '<button onclick="toggleAccesoUsuario(\'' + u.id + '\')" style="background:#d35400; color:white; border:none; border-radius:4px; padding:4px 6px; font-size:10px; cursor:pointer;">' + estadoBtn + '</button>' +
+                    '<button onclick="eliminarUsuario(\'' + u.id + '\')" style="background:#c0392b; color:white; border:none; border-radius:4px; padding:4px 6px; font-size:10px; cursor:pointer;">🗑️</button>' +
+                '</div></div>';
+        }).join('');
+    };
+
+    window.guardarNuevoUsuario = function() {
+        var nom = (document.getElementById('nuevoUsrNombre').value || '').trim();
+        var log = (document.getElementById('nuevoUsrLogin').value || '').trim();
+        var pin = (document.getElementById('nuevoUsrPin').value || '').trim();
+        var rol = document.getElementById('nuevoUsrRol').value;
+        if (!nom || !log || !pin) { alert("Completa nombre, usuario y PIN."); return; }
+        var lista = obtenerUsuariosRegistrados();
+        lista.push({ id: 'usr_' + Date.now(), nombre: nom, login: log, pin: pin, rol: rol, activo: true });
+        guardarUsuariosRegistrados(lista);
+        document.getElementById('nuevoUsrNombre').value = '';
+        document.getElementById('nuevoUsrLogin').value = '';
+        document.getElementById('nuevoUsrPin').value = '';
+        renderizarListaUsuariosAdmin();
+        mostrarToastNotificacion("✅ Operador " + nom + " creado.");
+    };
+
+    window.abrirEditarUsuario = function(userId) {
+        var u = obtenerUsuariosRegistrados().find(function(x){ return x.id === userId; });
+        if (!u) return;
+        document.getElementById('editUsrId').value = u.id;
+        document.getElementById('editUsrNombre').value = u.nombre;
+        document.getElementById('editUsrLogin').value = u.login;
+        document.getElementById('editUsrPin').value = u.pin;
+        document.getElementById('editUsrRol').value = u.rol;
+        document.getElementById('modal-editar-usuario').style.display = 'block';
+    };
+    window.cerrarModalEditarUsuario = function() { document.getElementById('modal-editar-usuario').style.display = 'none'; };
+
+    window.guardarEdicionUsuario = function() {
+        var id = document.getElementById('editUsrId').value;
+        var lista = obtenerUsuariosRegistrados();
+        var u = lista.find(function(x){ return x.id === id; });
+        if (u) {
+            u.nombre = document.getElementById('editUsrNombre').value.trim();
+            u.login = document.getElementById('editUsrLogin').value.trim();
+            u.pin = document.getElementById('editUsrPin').value.trim();
+            u.rol = document.getElementById('editUsrRol').value;
+            guardarUsuariosRegistrados(lista);
+            renderizarListaUsuariosAdmin();
+            mostrarToastNotificacion("✅ Usuario actualizado.");
+        }
+        cerrarModalEditarUsuario();
+    };
+
+    window.toggleAccesoUsuario = function(userId) {
+        var lista = obtenerUsuariosRegistrados();
+        var u = lista.find(function(x){ return x.id === userId; });
+        if (u) {
+            u.activo = (u.activo === false) ? true : false;
+            guardarUsuariosRegistrados(lista);
+            renderizarListaUsuariosAdmin();
+        }
+    };
+
+    window.eliminarUsuario = function(userId) {
+        if (!confirm("¿Eliminar este operador?")) return;
+        var lista = obtenerUsuariosRegistrados().filter(function(x){ return x.id !== userId; });
+        guardarUsuariosRegistrados(lista);
+        renderizarListaUsuariosAdmin();
+    };
+
+    window.abrirModalGestionUsuarios = function() {
+        document.getElementById('modal-usuarios').style.display = 'block';
+        document.getElementById('backdrop-modal').style.display = 'block';
+        renderizarConectadosEnVivo();
+    };
+
+    window.abrirModalCambiarUsuario = function() {
+        document.getElementById('modal-cambiar-usuario').style.display = 'block';
+        document.getElementById('backdrop-modal').style.display = 'block';
+    };
+    window.cerrarModalCambiarUsuario = function() {
+        document.getElementById('modal-cambiar-usuario').style.display = 'none';
+        document.getElementById('backdrop-modal').style.display = 'none';
+    };
+    window.confirmarIngresoSesionOperador = function() {
+        var u = (document.getElementById('login-op-usuario').value || '').trim();
+        var p = (document.getElementById('login-op-pin').value || '').trim();
+        document.getElementById('loginAccesoUsuario').value = u;
+        document.getElementById('loginAccesoPin').value = p;
+        ejecutarIngresoLoginAcceso();
+        cerrarModalCambiarUsuario();
+    };
+
+    // IMPORTADOR EXCEL Y RESPALDOS JSON
+    window.abrirModalImportarExcel = function() {
+        cerrarCentroRecuperacion();
+        document.getElementById('modal-importar-excel').style.display = 'block';
+        document.getElementById('backdrop-modal').style.display = 'block';
+    };
+    window.cerrarModalImportarExcel = function() {
+        document.getElementById('modal-importar-excel').style.display = 'none';
+        document.getElementById('backdrop-modal').style.display = 'none';
+    };
+
+    window.procesarArchivoExcelSeleccionado = function(file) {
+        if (!file || typeof XLSX === 'undefined') return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            var rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+            if (!rows || rows.length < 2) return;
+            var headers = rows[0].map(function(h){ return String(h || '').toUpperCase(); });
+            var iP = headers.findIndex(function(h){ return h.includes('PLACA'); });
+            var iD = headers.findIndex(function(h){ return h.includes('DIR') || h.includes('UBICACION'); });
+            var iM = headers.findIndex(function(h){ return h.includes('MUN') || h.includes('CIUDAD'); });
+            var iMa = headers.findIndex(function(h){ return h.includes('MARCA'); });
+            var iLi = headers.findIndex(function(h){ return h.includes('LINEA') || h.includes('MODELO'); });
+            var iCo = headers.findIndex(function(h){ return h.includes('COLOR'); });
+            if (iP === -1) { alert("No se encontró columna PLACA."); return; }
+            filasExcelParsed = [];
+            for (var r = 1; r < rows.length; r++) {
+                var row = rows[r];
+                if (!row || !row[iP]) continue;
+                var pl = String(row[iP]).toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+                if (pl.length >= 5) {
+                    filasExcelParsed.push({
+                        placa: pl,
+                        dir: (iD !== -1 && row[iD]) ? String(row[iD]).trim() : '',
+                        municipio: (iM !== -1 && row[iM]) ? String(row[iM]).trim() : 'MEDELLIN',
+                        marca: (iMa !== -1 && row[iMa]) ? String(row[iMa]).trim() : '-',
+                        linea: (iLi !== -1 && row[iLi]) ? String(row[iLi]).trim() : '-',
+                        color: (iCo !== -1 && row[iCo]) ? String(row[iCo]).trim() : '-'
+                    });
+                }
+            }
+            var prev = document.getElementById('resultado-preview-excel');
+            prev.style.display = 'block';
+            prev.innerHTML = '✅ <b>' + filasExcelParsed.length + ' vehículos</b> listos para geocodificar.';
+            document.getElementById('btn-confirmar-importacion-excel').style.display = 'block';
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    window.ejecutarImportacionMasivaExcel = async function() {
+        if (!filasExcelParsed.length) return;
+        document.getElementById('progreso-importacion-excel').style.display = 'block';
+        for (var i = 0; i < filasExcelParsed.length; i++) {
+            var f = filasExcelParsed[i];
+            var pct = Math.round(((i + 1) / filasExcelParsed.length) * 100);
+            document.getElementById('excel-progreso-txt').textContent = 'Ubicando ' + f.placa + '...';
+            document.getElementById('excel-progreso-pct').textContent = pct + '%';
+            document.getElementById('excel-progreso-barra').style.width = pct + '%';
+            var coords = await obtenerCoordenadasExactasLimpias((f.dir || '') + ', ' + f.municipio);
+            agregarMarcadorAlMapa({
+                placa: f.placa, marca: f.marca, linea: f.linea, modelo: '-', color: f.color,
+                soat: 'SI', tecnomecanica: 'SI', telefonos: '-',
+                lat: coords.lat, lng: coords.lng, dir: f.dir || f.municipio, dirOriginal: f.dir || f.municipio,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(), visitada: false, visitas: 0, foto: null
+            }, puntosData.length + 1, false);
+        }
+        guardarPuntosStorage();
+        cerrarModalImportarExcel();
+        mostrarToastNotificacion("✅ " + filasExcelParsed.length + " placas importadas.");
+    };
+
+    window.exportarRespaldo = function() {
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(localStorage.getItem('puntos_ubica_rick_guardados') || '[]');
+        var a = document.createElement('a');
+        a.href = dataStr;
+        a.download = "respaldo_ubica_rick_" + new Date().toISOString().split('T')[0] + ".json";
+        document.body.appendChild(a); a.click(); a.remove();
+    };
+
+    window.importarRespaldo = function(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                var arr = JSON.parse(e.target.result);
+                if (Array.isArray(arr)) {
+                    actualizarPuntosDesdeNube(arr);
+                    guardarPuntosStorage();
+                    cerrarCentroRecuperacion();
+                    mostrarToastNotificacion("✅ Respaldo restaurado (" + arr.length + " puntos).");
+                }
+            } catch(err) { alert("Archivo JSON inválido."); }
+        };
+        reader.readAsText(file);
+    };
+
+    // INICIALIZACIÓN INTERFAZ v6.3 Y MODO CAZADOR
+    (function() {
+        function montarInterfazV63() {
+            var topActions = document.getElementById('top-actions');
+            if (topActions && !document.getElementById('btn-top-cazador')) {
+                var btnCazador = document.createElement('button');
+                btnCazador.id = 'btn-top-cazador';
+                btnCazador.className = 'btn-top-action';
+                btnCazador.style.background = 'linear-gradient(145deg, #ca8a04, #a16207)';
+                btnCazador.style.borderColor = '#facc15';
+                btnCazador.innerHTML = '🦅 Cazador';
+                btnCazador.onclick = abrirModoCazadorPlacas;
+                topActions.insertBefore(btnCazador, topActions.children[2] || null);
+            }
+            var selMun = document.getElementById('filtroMunicipio');
+            if (selMun && selMun.parentNode && !document.getElementById('filtroAcreedor')) {
+                var divAc = document.createElement('div');
+                divAc.style.margin = '8px 0 6px 0';
+                divAc.innerHTML = '<label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🏦 Filtrar por Acreedor / Entidad:</label>' +
+                    '<select id="filtroAcreedor" class="filter-search" onchange="actualizarFiltros()">' +
+                    '<option value="TODOS">Todos los Acreedores</option><option value="GM FINANCIAL">GM Financial</option><option value="FINANZAUTO">Finanzauto</option><option value="SUFI">Sufi / Bancolombia</option><option value="RCI">RCI / Mobilize</option><option value="OCCIDENTE">Banco de Occidente</option><option value="BANCAMIA">Bancamía</option><option value="BOGOTA">Banco de Bogotá</option></select>' +
+                    '<label class="filter-option" style="margin-top:6px; color:#b45309;"><input type="checkbox" id="chkDirDudosa" onchange="actualizarFiltros()"> ❓ Solo Direcciones Aproximadas (Auditar)</label>';
+                selMun.parentNode.insertAdjacentElement('afterend', divAc);
+            }
+        }
+        montarInterfazV63();
+        window.addEventListener('DOMContentLoaded', montarInterfazV63);
+
+        window.abrirModoCazadorPlacas = function() {
+            var m = document.getElementById('modal-cazador-placas');
+            if (m) {
+                m.style.display = 'flex';
+                var inp = document.getElementById('input-cazador-placa');
+                if (inp) { inp.value = ''; verificarPlacaModoCazador(''); setTimeout(function() { inp.focus(); }, 100); }
+            }
+        };
+        window.cerrarModoCazadorPlacas = function() {
+            var m = document.getElementById('modal-cazador-placas');
+            if (m) m.style.display = 'none';
+        };
+        window.verificarPlacaModoCazador = function(val) {
+            var limpia = (val || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+            var box = document.getElementById('resultado-cazador-box');
+            if (!box) return;
+            if (limpia.length < 3) {
+                box.style.background = '#1e293b';
+                box.innerHTML = '<span style="color:#94a3b8;">Ingresa al menos 3 caracteres...</span>';
+                return;
+            }
+            var co = puntosData.filter(function(p) { return p.placa && p.placa.toUpperCase().includes(limpia); });
+            if (co.length > 0) {
+                var p = co[0];
+                emitirAlertaSonoraProximidad();
+                box.style.background = 'rgba(22, 163, 74, 0.22)';
+                box.innerHTML = '<div style="font-size:13px; font-weight:900; color:#4ade80;">🚨 ¡OBJETIVO ACTIVO! (' + co.length + ' dir.)</div>' +
+                    '<div style="font-size:12px; font-weight:800; color:#fff; margin-top:2px;">🚗 ' + p.placa + ' — ' + (p.marca || '') + ' ' + (p.linea || '') + '</div>' +
+                    '<div style="font-size:11px; color:#38bdf8; font-weight:bold;">🎨 Color: ' + (p.color || '-') + '</div>' +
+                    '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">📍 ' + (p.dirOriginal || p.dir || '-') + '</div>' +
+                    '<div style="display:flex; gap:6px; margin-top:6px; width:100%;">' +
+                    '<button type="button" onclick="cerrarModoCazadorPlacas(); seleccionarPlacaYAcercar(\'' + p.placa + '\');" class="pop-btn pb-green" style="flex:1; margin:0; padding:7px; font-size:11px;">🎯 Ver en Mapa</button>' +
+                    '<button type="button" onclick="reportarPositivoHallazgo(\'' + p.id + '\');" class="pop-btn pb-red" style="flex:1; margin:0; padding:7px; font-size:11px;">📲 Positivo</button>' +
+                    '</div>';
+            } else {
+                box.style.background = 'rgba(220, 38, 38, 0.15)';
+                box.innerHTML = '<span style="color:#fca5a5; font-weight:bold;">❌ Sin coincidencias para "' + limpia + '"</span>';
+            }
+        };
+        window.iniciarDictadoVozCazador = function() {
+            var Sr = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!Sr) { alert("Usa el micrófono de tu teclado."); return; }
+            var r = new Sr(); r.lang = 'es-CO';
+            var btn = document.getElementById('btn-voz-cazador');
+            if (btn) btn.innerHTML = '🔴';
+            r.onresult = function(e) {
+                if (btn) btn.innerHTML = '🎙️';
+                var t = e.results[0][0].transcript.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+                var i = document.getElementById('input-cazador-placa');
+                if (i) i.value = t;
+                verificarPlacaModoCazador(t);
+            };
+            r.onerror = function() { if (btn) btn.innerHTML = '🎙️'; };
+            r.onend = function() { if (btn) btn.innerHTML = '🎙️'; };
+            r.start();
+        };
+    })();
+    </script>
 </body>
 </html>
