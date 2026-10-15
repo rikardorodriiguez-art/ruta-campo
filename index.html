@@ -1400,11 +1400,31 @@
         var userLng = null;
         var placaMasCercanaObj = null;
 
-        map.on('locationfound', function(e) {
-            userLat = e.latlng.lat;
-            userLng = e.latlng.lng;
-            actualizarPanelCercano();
-            verificarGeocercaLlegada(userLat, userLng);
+        <!-- HUD SUPERIOR: PRÓXIMA MANIOBRA -->
+<div id="waze-hud-top" class="waze-hud-top">
+    <div id="waze-turn-icon" class="waze-turn-icon">⬆️</div>
+    <div class="waze-turn-info">
+        <div id="waze-turn-dist" class="waze-turn-dist">0 m</div>
+        <div id="waze-turn-street" class="waze-turn-street">Calculando ruta...</div>
+    </div>
+</div>
+
+<!-- HUD INFERIOR: VELOCIDAD, ETA Y CONTROLES -->
+<div id="waze-hud-bottom" class="waze-hud-bottom">
+    <div class="waze-speed-box">
+        <span id="waze-speed-val" class="waze-speed-val">0</span>
+        <span class="waze-speed-unit">km/h</span>
+    </div>
+    <div class="waze-eta-stats">
+        <div id="waze-eta-main" class="waze-eta-main">-- min • -- km</div>
+        <div id="waze-eta-sub" class="waze-eta-sub">Llegada: --:--</div>
+    </div>
+    <div class="waze-actions">
+        <button id="waze-btn-lock" class="waze-btn activo" onclick="WazeNav.toggleAutoCenter()" title="Centrar cámara en vehículo">🎯</button>
+        <button id="waze-btn-voice" class="waze-btn activo" onclick="WazeNav.toggleVoice()" title="Guía por voz">🔊</button>
+        <button class="waze-btn waze-btn-stop" onclick="WazeNav.detenerNavegacion()" title="Detener navegación">✖</button>
+    </div>
+</div>
         });
 
         function calcularDistancia(lat1, lon1, lat2, lon2) {
