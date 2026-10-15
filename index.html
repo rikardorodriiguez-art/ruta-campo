@@ -12902,19 +12902,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </button>
     </div>
  <script>
-    async function apiFetch(url, options = {}, timeoutMs = 5500) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-     try {
-        const response = await fetch(url, { ...options, signal: controller.signal });
-        clearTimeout(timer);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.warn(`Error en petición a ${url}:`, error.message);
-        throw error;
-   <script>
-    async function apiFetch(url, options = {}, timeoutMs = 5500) {
+async function apiFetch(url, options = {}, timeoutMs = 5500) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
@@ -12929,7 +12917,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
     }
 
     // =========================================================================
-    // RESTAURACIÓN DE MODALES Y MENÚS DE GESTIÓN
+    // RESTAURACIÓN DE MODALES Y MENÚS DE GESTIÓN (CENTRO DE RUTAS Y CIERRE)
     // =========================================================================
     function abrirModalRutaCorredor() {
         cerrarFiltros();
