@@ -708,29 +708,24 @@
             <button type="button" onclick="ejecutarLoginFirebase()" class="pop-btn pb-blue" style="margin:0 0 8px 0; padding:10px; font-size:12px;">🚀 Iniciar Sesión</button>
             <button type="button" onclick="cerrarModalAuth()" style="background:none; border:1px solid #475569; color:#94a3b8; width:100%; padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">Continuar sin cuenta (Modo Local)</button>
         </div>
-
         <div id="auth-seccion-perfil" style="display:none;">
             <div style="background:rgba(255,255,255,0.06); padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.1);">
                 <div style="font-size:10.5px; color:#94a3b8;">Usuario conectado:</div>
                 <div id="auth-user-email" style="font-size:13px; font-weight:bold; color:#f8fafc; margin-top:2px;"></div>
                 <div id="auth-user-badge" style="font-size:11px; margin-top:4px; font-weight:bold;"></div>
             </div>
-
             <div style="font-size:11px; color:#94a3b8; margin-bottom:12px; line-height:1.4;">
                 <span id="auth-rol-explicacion"></span>
             </div>
-
             <button type="button" onclick="sincronizarTodoManualAFirebase()" id="btn-sync-manual" class="pop-btn pb-green" style="margin:0 0 6px 0; padding:8px; font-size:11.5px;">☁️ Subir Puntos Locales a la Nube</button>
             <button type="button" onclick="ejecutarLogoutFirebase()" class="pop-btn pb-red" style="margin:0; padding:8px; font-size:11.5px;">🚪 Cerrar Sesión</button>
         </div>
     </div>
-
     <div id="loading-overlay">
         <div style="font-size: 32px;">⏳</div>
         <span id="loading-texto">Procesando...</span>
         <button type="button" onclick="cancelarCarga()" style="margin-top:14px; background:#ef4444; color:white; border:none; padding:7px 16px; border-radius:8px; font-weight:bold; font-size:12.5px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.3);">✖ Cancelar / Desbloquear</button>
     </div>
-
     <!-- VISOR DE FOTO DE PANTALLA COMPLETA PARA MOTO (1 TOQUE + ZOOM FÁCIL) -->
     <div id="modal-visor-foto-moto" onclick="if(event.target === this) cerrarVisorFotoCarro();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.96); z-index:20000005; flex-direction:column; justify-content:space-between; align-items:center; padding:12px; box-sizing:border-box; user-select:none; -webkit-user-select:none; touch-action:none;">
         <!-- Cabecera con placa y datos del carro -->
@@ -744,12 +739,10 @@
             </div>
             <button type="button" onclick="cerrarVisorFotoCarro()" style="background:#dc2626; color:white; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; font-weight:bold; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(220,38,38,0.5);">✖</button>
         </div>
-
         <!-- Área central de la imagen con soporte de zoom táctil y arrastre -->
         <div id="visor-foto-stage" style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; margin:8px 0;">
             <img id="visor-foto-img" src="" alt="Foto del Vehículo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; transform:translate(0px, 0px) scale(1); transition:transform 0.12s ease-out; transform-origin:center center; pointer-events:auto; -webkit-user-drag:none;">
         </div>
-
         <!-- Barra inferior de controles grandes para usar con guantes / en moto -->
         <div style="width:100%; max-width:500px; display:flex; flex-direction:column; gap:8px; box-sizing:border-box;">
             <div style="display:flex; justify-content:center; align-items:center; gap:6px; background:#0f172a; padding:6px; border-radius:10px; border:1px solid #334155;">
@@ -762,7 +755,6 @@
             <button type="button" onclick="cerrarVisorFotoCarro()" style="width:100%; background:linear-gradient(135deg, #ef4444, #b91c1c); color:white; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:900; letter-spacing:0.5px; cursor:pointer; box-shadow:0 4px 15px rgba(239,68,68,0.4);">✖ CERRAR FOTO Y VOLVER AL MAPA</button>
         </div>
     </div>
-
     <!-- MODAL MULTILÍNEA PARA PEGAR DATOS DE GARANTÍAS MOBILIARIAS CÓMODAMENTE EN CELULAR -->
     <div id="modal-pegar-garantias" onclick="if(event.target === this) cerrarModalPegarGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.85); z-index:20000006; align-items:center; justify-content:center; padding:14px; box-sizing:border-box;">
         <div style="width:100%; max-width:440px; background:#0f172a; border:2px solid #0284c7; border-radius:14px; padding:14px; box-sizing:border-box; box-shadow:0 12px 32px rgba(0,0,0,0.75); color:#f8fafc;">
@@ -784,7 +776,6 @@
             </div>
         </div>
     </div>
-
     <!-- MODAL DE CONFIGURACIÓN DEL PUENTE AUTOMÁTICO DE GARANTÍAS MOBILIARIAS (GOOGLE APPS SCRIPT) -->
     <div id="modal-puente-garantias" onclick="if(event.target === this) cerrarModalPuenteGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.88); z-index:20000007; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
         <div style="width:100%; max-width:460px; max-height:92vh; overflow-y:auto; background:#0f172a; border:2px solid #10b981; border-radius:14px; padding:14px; box-sizing:border-box; box-shadow:0 12px 35px rgba(0,0,0,0.8); color:#f8fafc;">
@@ -795,12 +786,10 @@
             <div style="font-size:11px; color:#cbd5e1; line-height:1.4; margin-bottom:10px; background:#1e293b; padding:8px 10px; border-radius:8px; border-left:3px solid #38bdf8;">
                 Este puente gratuito en tu cuenta de Google entra solo a <b>garantiasmobiliarias.com.co</b>, mantiene la sesión, abre <b>Formulario Registral de Ejecución → Bienes Garantizados</b> y rellena automáticamente <b>Marca, Línea, Modelo y Color</b> apenas pongas la placa:
             </div>
-
             <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:9px; margin-bottom:8px;">
                 <div style="font-size:11px; font-weight:800; color:#38bdf8; margin-bottom:5px;">PASO 1: Copia el código del robot (1 toque)</div>
                 <button type="button" onclick="copiarCodigoPuenteAppsScript()" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:white; border:none; border-radius:7px; padding:9px; font-size:11.5px; font-weight:900; cursor:pointer;">📋 1. Copiar Código Google Apps Script</button>
             </div>
-
             <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:9px; margin-bottom:8px;">
                 <div style="font-size:11px; font-weight:800; color:#facc15; margin-bottom:4px;">PASO 2: Pégalo en Google Apps Script (solo se hace 1 vez)</div>
                 <div style="font-size:10.5px; color:#e2e8f0; line-height:1.35; margin-bottom:6px;">
@@ -812,7 +801,6 @@
                 </div>
                 <button type="button" onclick="window.open('https://script.google.com/home/start', '_blank')" style="width:100%; background:#334155; color:#38bdf8; border:1px solid #38bdf8; border-radius:7px; padding:7px; font-size:11px; font-weight:800; cursor:pointer;">🌐 2. Abrir script.google.com ↗</button>
             </div>
-
             <div style="background:#1e293b; border:1.5px solid #10b981; border-radius:8px; padding:9px; margin-bottom:10px;">
                 <div style="font-size:11px; font-weight:800; color:#4ade80; margin-bottom:5px;">PASO 3: Pega aquí tu URL del Puente (/exec)</div>
                 <input type="text" id="input-url-puente-rgm" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; box-sizing:border-box; background:#0f172a; color:#fff; border:1px solid #475569; border-radius:6px; padding:8px; font-size:11.5px; margin-bottom:6px;">
@@ -824,7 +812,6 @@
             </div>
         </div>
     </div>
-
     <div id="modal-asistente">
         <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 6px;">✏️ Revisión Manual de Direcciones:</b>
         <span style="font-size: 11px; color:#555; display:block; margin-bottom:8px;">Corrige o selecciona las líneas de dirección:</span>
@@ -834,7 +821,6 @@
             <button onclick="cerrarAsistente()" class="act-gray" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">❌ Cancelar</button>
         </div>
     </div>
-
     <!-- MODAL DE CONFIGURACIÓN -->
     <div id="modal-config">
         <div class="header-menu">
@@ -844,26 +830,22 @@
         <div id="cfg-info-operador" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; font-size:11.5px; color:#334155; margin:6px 0;">
             👤 Conectado como: <b>Usuario</b>
         </div>
-
         <div id="cfg-seccion-apikey">
             <label style="display:block; font-size:11px; font-weight:bold; margin-top:6px;">Clave Google Maps Geocoding (Opcional):</label>
             <input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
             <span style="font-size:10px; color:#7f8c8d; display:block; margin-top:3px;">Si se deja vacía, se usan automáticamente Photon + OpenStreetMap (Gratuitos).</span>
         </div>
-
         <div id="cfg-seccion-gemini" style="margin-top:8px; background:#f0fdf4; border:1.5px solid #86efac; padding:8px 10px; border-radius:8px;">
             <label style="display:block; font-size:11px; font-weight:bold; color:#166534;">🤖 Clave Google Gemini AI API (Lectura de Fotos 100% Precisa):</label>
             <input type="password" id="cfg-gemini-key" placeholder="Pega tu API Key de Gemini (Gratis en aistudio.google.com)" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #86efac; border-radius:4px; box-sizing:border-box;">
             <span style="font-size:10px; color:#15803d; display:block; margin-top:3px;">Permite que la app lea capturas de WhatsApp y fotos de tablas directamente con Inteligencia Artificial sin errores.</span>
         </div>
-
         <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:12px;">
             <input type="checkbox" id="cfg-sonido" checked> 🔊 Alerta sonora de proximidad (&lt; 200m)
         </label>
         <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:8px;">
             <input type="checkbox" id="cfg-vibrar" checked> 📳 Vibración táctil en proximidad
         </label>
-        
         <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
             <button id="btn-filtro-instalar-app" type="button" onclick="ejecutarInstalacionNativaPWA()" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold; background:linear-gradient(135deg, #7c3aed, #5b21b6);" title="Instalar UBICA-RICK como App nativa en Android">📲 Instalar como App en el Celular</button>
             <button id="btn-config-cierre-turno" type="button" onclick="cerrarConfig(); abrirModalCierreTurno();" class="pop-btn pb-green" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
@@ -876,14 +858,12 @@
             <button onclick="cerrarConfig()" class="act-gray" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Cerrar</button>
         </div>
     </div>
-
     <!-- PANEL INFERIOR PARA REUBICAR / MOVER PUNTO (NO SE TAPA NI SE CORTA) -->
     <div id="panel-reubicar-punto">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <b style="color:#2c3e50; font-size:13.5px;">📍 Moviendo: <span id="reubicar-placa-label" style="color:#2980b9; font-weight:900;"></span></b>
             <button onclick="cancelarReubicacionPunto()" style="border:none; background:none; font-size:18px; font-weight:bold; cursor:pointer; color:#7f8c8d; padding:2px 8px;">✖</button>
-        </div>
-        
+        </div> 
         <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Dirección Real Registrada:</div>
@@ -891,26 +871,22 @@
             </div>
             <div id="reubicar-dir-real-label" style="font-size:12px; font-weight:700; color:#0f172a; line-height:1.4; word-break:break-word; margin-top:2px;">-</div>
         </div>
-
         <div style="font-size:11px; color:#0369a1; margin-bottom:8px; line-height:1.4; background:#e0f2fe; padding:6px 10px; border-radius:6px; border-left:3px solid #0284c7;">
             💡 <b>Cómo colocar el carro:</b><br>
             • <b>Toca en el mapa</b> exactamente en la calle donde quieres ponerlo.<br>
             • O arrastra el marcador con el dedo.<br>
             • O pega abajo coordenadas / enlace y pulsa Recalcular:
         </div>
-
         <div style="display:flex; gap:6px; margin-bottom:8px;">
             <input type="text" id="reubicar-input-texto" placeholder="Coordenadas (lat, lng), dirección o link de Maps..." style="flex:1; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:12px;">
             <button id="btn-reubicar-recalcular" onclick="buscarNuevaUbicacionManual()" class="pop-btn pb-blue" style="margin:0; width:auto; padding:0 12px; font-size:11.5px; white-space:nowrap;">🔄 Recalcular</button>
         </div>
-
         <div style="display:flex; gap:6px;">
             <button onclick="fijarPuntoEnMiUbicacion()" class="pop-btn pb-teal" style="margin:0; flex:1; padding:9px 4px; font-size:11.5px; font-weight:bold;">📍 En Mi GPS</button>
             <button onclick="confirmarReubicacionPunto()" class="pop-btn pb-green" style="margin:0; flex:1.2; padding:9px 4px; font-size:11.5px; font-weight:bold;">✅ Confirmar</button>
             <button onclick="cancelarReubicacionPunto()" class="pop-btn pb-red" style="margin:0; flex:0.7; padding:9px 4px; font-size:11.5px;">Cancelar</button>
         </div>
     </div>
-
     <!-- BOTÓN FLOTANTE CENTRAR EN MI GPS -->
     <button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:155px; left:12px; z-index:999; background:linear-gradient(145deg, #1e293b, #0f172a); color:#38bdf8; border:2px solid #38bdf8; border-radius:50%; width:38px; height:38px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.4); outline:none; -webkit-tap-highlight-color:transparent; overflow:hidden;" title="Centrar en Mi Ubicación GPS">🎯</button>
 
@@ -928,17 +904,15 @@
             <button class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:10px 12px; background:linear-gradient(135deg, #0284c7, #0369a1); border-radius:8px;" onclick="forzarSincronizacionNubePuntos(); cerrarMenuAdd();" title="Descargar o sincronizar todas las placas del equipo">☁️ Sincronizar Placas con la Nube</button>
             <button id="btn-carga-borrado-masivo" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:10px 12px; border-radius:8px;" onclick="abrirModalBorradoMasivo(); cerrarMenuAdd();">🗑️ Borrado Masivo de Placas</button>
         </div>
-
         <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #cbd5e1; text-align:center;">
             <span style="font-size:10.5px; color:#64748b; display:block; margin-bottom:5px;">🛡️ ¿Necesitas restaurar una copia de seguridad?</span>
             <button type="button" onclick="abrirCentroRecuperacion()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; color:#0369a1; font-size:11px; font-weight:bold; padding:5px 12px; cursor:pointer;">Abrir Centro de Recuperación</button>
         </div>
-
         <!-- SECCIÓN 1: WHATSAPP / MULTI-REPORTE -->
         <div id="seccion-whatsapp" class="sub-panel">
             <b style="color:#2c3e50; font-size:11px;">Pega los reportes o revisa la extracción antes de mapear:</b>
             <textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ... &#10;&#10;[6:04 p. m.] UBICAR &#10;LRW993 ..." style="height: 140px; font-size: 11px;"></textarea>
-            
+   
             <!-- BARRA RÁPIDA DE GARANTÍAS MOBILIARIAS (MARCA, LÍNEA Y MODELO) -->
             <div style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:7px 8px; margin:6px 0;">
                 <div style="font-size:10.5px; font-weight:800; color:#1e40af; margin-bottom:5px; display:flex; align-items:center; justify-content:space-between;">
@@ -971,7 +945,6 @@
             <button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar al Mapa</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
-
         <!-- SECCIÓN 2: INGRESO MANUAL CON HASTA 4 DIRECCIONES -->
         <div id="seccion-manual" class="sub-panel">
             <b style="font-size: 11.5px; color:#8e44ad;">✍️ Ingreso Manual de Vehículo:</b>
@@ -992,15 +965,13 @@
                 <input type="text" id="manTecno" placeholder="Tecno (SI/NO)" style="flex:1;">
             </div>
             <input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
-
             <div style="margin-top:6px; border-top:1px dashed #cbd5e1; padding-top:6px;">
                 <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">📍 Direcciones del Vehículo (Hasta 4):</label>
                 <input type="text" id="manDir" placeholder="Dirección 1 (Principal o Coordenadas)">
                 <input type="text" id="manDir2" placeholder="Dirección 2 (Opcional)">
                 <input type="text" id="manDir3" placeholder="Dirección 3 (Opcional)">
                 <input type="text" id="manDir4" placeholder="Dirección 4 (Opcional)">
-            </div>
-            
+            </div> 
             <div style="margin-bottom:8px; margin-top:6px; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
                 <label style="font-size:11px; font-weight:bold; color:#2c3e50; display:block; margin-bottom:4px;">📸 Adjuntar Foto del Vehículo (Cámara / Galería):</label>
                 <div id="manFotoInfoExistente" style="display:none; font-size:10.5px; color:#15803d; font-weight:bold; margin-bottom:4px;">
@@ -1008,11 +979,9 @@
                 </div>
                 <input type="file" id="manFoto" accept="image/*" style="font-size:11px; width:100%;">
             </div>
-
             <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
-
         <!-- SECCIÓN 3: LINK DE GOOGLE MAPS -->
         <div id="seccion-link-maps" class="sub-panel">
             <b style="color:#2980b9; font-size:12px;">🧭 AGREGAR POR LINK DE GOOGLE MAPS</b><br>
@@ -1021,12 +990,10 @@
             <input type="text" id="linkMapsPlaca" placeholder="Placa del vehículo (Obligatorio)">
             <input type="text" id="linkMapsUrl" placeholder="Link de Google Maps (https://maps.app.goo.gl/...)">
             <input type="text" id="linkMapsDir" placeholder="Dirección opcional (ej: Calle 33 # 76 - 82, Medellín)">
-            <input type="text" id="linkMapsCel" placeholder="Celulares (opcional, hasta 2)">
-            
+            <input type="text" id="linkMapsCel" placeholder="Celulares (opcional, hasta 2)">  
             <button class="action act-blue" onclick="procesarLinkGoogleMaps()">🧭 Ubicar y Agregar al Mapa</button>
             <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
         </div>
-
         <!-- SECCIÓN 4: FOTO TABLA DIRECTA SIN COPIAR NI PEGAR -->
         <div id="seccion-tabla-foto" class="sub-panel">
             <b style="color:#d35400; font-size:12px;">📸 ESCANEO AUTOMÁTICO DE TABLA</b><br>
