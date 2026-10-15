@@ -2467,9 +2467,172 @@
             }
         }
 
+       // =========================================================================
+        // MOTOR DE NAVEGACIÓN WAZE 3D, VOZ TURN-BY-TURN (TTS) Y SEGUNDO PLANO
+        // =========================================================================
+        var modoNavegacionWaze = false;
+        var rumboActualGrados = 0;
+        var ultimaPosNavegacion = null;
+        var pasosRutaActiva = [];
+        var indicePasoActual = 0;
+        var objetivoNavegacionActual = null;
+        var wakeLockNav = null;
+
+        function calcularRumboGrados(lat1, lng1, lat2, lng2) {
+            var dLon = (lng2 - lng1) * Math.PI / 180;
+            var y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+            var x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                    Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+            var brng = Math.atan2(y, x) * 180 / Math.PI;
+            return (brng + 360) % 360;
+        }
+
+        function centrarCamaraWazeEnVivo(lat, lng, rumboGrados) {
+            if (!modoNavegacionWaze) return;
+            var rad = rumboGrados * Math.PI / 180;
+            var offsetAdelanto = 0.00068;
+            var latFrente = lat + Math.cos(rad) * offsetAdelanto;
+            var lngFrente = lng + Math.sin(rad) * offsetAdelanto;
+
+            map.panTo([latFrente, lngFrente], { animate: true, duration: 0.35 });
+
+            var mapEl = document.getElementById('map');
+            if (mapEl) {
+                mapEl.style.transform = 'rotateX(48deg) scale(1.38) rotateZ(' + (-rumboGrados) + 'deg)';
+            }
+        }
+
+        function hablarInstruccionNavegacion(texto) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                var u = new SpeechSynthesisUtterance(texto);
+                u.lang = 'es-CO';
+                u.rate = 1.05;
+                u.pitch = 1.0;
+                u.volume = 1.0;
+                window.speechSynthesis.speak(u);
+            } catch (e) {}
+        }
+
+        function traducirManiobraEsp(step) {
+            var tipo = (step.maneuver && step.maneuver.type) || '';
+            var mod = (step.maneuver && step.maneuver.modifier) || '';
+            var calle = step.name ? (' en ' + step.name) : '';
+
+            var giros = {
+                'left': 'Gire a la izquierda',
+                'sharp left': 'Gire cerrado a la izquierda',
+                'slight left': 'Manténgase a la izquierda',
+                'right': 'Gire a la derecha',
+                'sharp right': 'Gire cerrado a la derecha',
+                'slight right': 'Manténgase a la derecha',
+                'uturn': 'Haga retorno en U',
+                'straight': 'Continúe derecho'
+            };
+
+            if (tipo === 'depart') return 'Inicie la ruta' + calle;
+            if (tipo === 'arrive') return 'Está llegando al objetivo';
+            if (tipo === 'roundabout' || tipo === 'rotary') return 'En la glorieta tome la salida' + calle;
+            return (giros[mod] || 'Continúe') + calle;
+        }
+
+        async function asegurarSegundoPlanoActivo() {
+            if ('wakeLock' in navigator && !wakeLockNav) {
+                try { wakeLockNav = await navigator.wakeLock.request('screen'); } catch (e) {}
+            }
+            if (typeof prepararPipVideo === 'function') {
+                prepararPipVideo(false);
+            }
+        }
+
+        async function iniciarModoWazeConVoz(puntoDestino) {
+            if (!puntoDestino || !puntoDestino.lat || !puntoDestino.lng) return;
+            if (!userLat || !userLng) {
+                mostrarToastNotificacion("🛰️ Conectando con el GPS para iniciar la ruta...");
+                centrarEnMiGPS();
+                return;
+            }
+
+            objetivoNavegacionActual = puntoDestino;
+            modoNavegacionWaze = true;
+            document.body.classList.add('mapa-modo-conduccion-3d');
+            map.setZoom(18);
+            asegurarSegundoPlanoActivo();
+
+            var urlOsrm = 'https://router.project-osrm.org/route/v1/driving/' +
+                userLng + ',' + userLat + ';' + puntoDestino.lng + ',' + puntoDestino.lat +
+                '?overview=full&geometries=geojson&steps=true';
+
+            try {
+                var r = await fetch(urlOsrm);
+                var data = await r.json();
+                if (data && data.routes && data.routes.length > 0) {
+                    var ruta = data.routes[0];
+                    var coordsLinea = ruta.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+
+                    if (polylineRuta && map.hasLayer(polylineRuta)) map.removeLayer(polylineRuta);
+                    polylineRuta = L.polyline(coordsLinea, {
+                        color: '#00f0ff',
+                        weight: 7,
+                        opacity: 0.92
+                    }).addTo(map);
+
+                    pasosRutaActiva = ruta.legs[0].steps.map(function(st) {
+                        return {
+                            lat: st.maneuver.location[1],
+                            lng: st.maneuver.location[0],
+                            textoVoz: traducirManiobraEsp(st),
+                            avisado50m: false
+                        };
+                    });
+                    indicePasoActual = 0;
+
+                    var infoCarro = [puntoDestino.marca, puntoDestino.linea, puntoDestino.color].filter(function(x){ return x && x !== '-'; }).join(' ');
+                    var primerPaso = pasosRutaActiva.length > 0 ? pasosRutaActiva[0].textoVoz : '';
+                    hablarInstruccionNavegacion("Ruta iniciada hacia " + puntoDestino.placa + ", " + infoCarro + ". " + primerPaso);
+                }
+            } catch (err) {
+                console.warn("Error OSRM:", err);
+                if (typeof navegarPuntoEnMiMapa === 'function') {
+                    navegarPuntoEnMiMapa(puntoDestino.id);
+                }
+            }
+        }
+
+        function verificarProximoGiroPorVoz(latActual, lngActual) {
+            if (!pasosRutaActiva || indicePasoActual >= pasosRutaActiva.length) return;
+
+            var paso = pasosRutaActiva[indicePasoActual];
+            var dGiro = calcularDistancia(latActual, lngActual, paso.lat, paso.lng);
+
+            if (dGiro <= 55 && !paso.avisado50m) {
+                paso.avisado50m = true;
+                var mRed = Math.max(10, Math.round(dGiro / 10) * 10);
+                hablarInstruccionNavegacion("A " + mRed + " metros, " + paso.textoVoz);
+            }
+
+            if (dGiro <= 15) {
+                indicePasoActual++;
+            }
+        }
+
+        function detenerModoWaze() {
+            modoNavegacionWaze = false;
+            document.body.classList.remove('mapa-modo-conduccion-3d');
+            var mapEl = document.getElementById('map');
+            if (mapEl) mapEl.style.transform = '';
+            if (polylineRuta && map.hasLayer(polylineRuta)) {
+                map.removeLayer(polylineRuta);
+                polylineRuta = null;
+            }
+            pasosRutaActiva = [];
+            objetivoNavegacionActual = null;
+        }
+
         function irCercanoMaps() {
             if (placaMasCercanaObj && placaMasCercanaObj.id) {
-                navegarPuntoEnMiMapa(placaMasCercanaObj.id);
+                iniciarModoWazeConVoz(placaMasCercanaObj);
             }
         }
 
