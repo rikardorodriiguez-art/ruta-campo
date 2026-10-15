@@ -1672,68 +1672,106 @@
         // -------------------------------------------------------------------------
         // 1. AUTO-DETECCIÓN DE LLEGADA POR GEOCERCA (≤ 35 METROS)
         // -------------------------------------------------------------------------
-        function verificarGeocercaLlegada(latActual, lngActual) {
-            if (!latActual || !lngActual || puntosData.length === 0) return;
+       // -------------------------------------------------------------------------
+        // 1. AUTOMATIZACIÓN DE OBJETIVOS: GEOCERCA (≤ 20M), FOTO Y AUTO-SIGUIENTE
+        // -------------------------------------------------------------------------
+        var procesandoLlegadaAuto = false;
 
-            var ahora = Date.now();
+        function verificarGeocercaLlegada(latActual, lngActual) {
+            if (!latActual || !lngActual || puntosData.length === 0 || procesandoLlegadaAuto) return;
+
             var mejorItem = null;
             var menorDist = Infinity;
 
             puntosData.forEach(function(p) {
                 if (!p.lat || !p.lng || p.visitada) return;
-                // Si fue pospuesta recientemente (menos de 8 minutos), omitir
-                if (geocercasPospuestas[p.id] && (ahora - geocercasPospuestas[p.id]) < 480000) return;
-
                 var d = calcularDistancia(latActual, lngActual, p.lat, p.lng);
-                if (d <= 35.0 && d < menorDist) {
+                if (d <= 20.0 && d < menorDist) {
                     menorDist = d;
                     mejorItem = p;
                 }
             });
 
-            var banner = document.getElementById('banner-llegada-geocerca');
             if (mejorItem) {
-                if (placaEnGeocercaActual && placaEnGeocercaActual.id === mejorItem.id) return;
+                procesandoLlegadaAuto = true;
                 placaEnGeocercaActual = mejorItem;
 
-                var elPlaca = document.getElementById('geocerca-placa-txt');
-                var elVeh = document.getElementById('geocerca-vehiculo-txt');
-                if (elPlaca) elPlaca.innerText = mejorItem.placa;
-                if (elVeh) elVeh.innerText = (mejorItem.vehiculo || mejorItem.marca || 'Vehículo') + " • " + (mejorItem.dirOriginal || mejorItem.dir || 'Medellín');
-                if (banner) banner.style.display = 'block';
-
-                // Vibración táctica de llegada (patrón de confirmación)
-                try {
-                    if (navigator.vibrate) navigator.vibrate([250, 100, 250, 100, 450]);
-                } catch(evib) {}
-                emitirAlertaSonoraProximidad();
-            } else {
-                if (menorDist > 60 && banner && banner.style.display === 'block') {
-                    banner.style.display = 'none';
-                    placaEnGeocercaActual = null;
+                // 1. Marcar automáticamente como 'Visitado' al entrar en los 20 metros
+                if (typeof marcarVisitada === 'function') {
+                    try {
+                        marcarVisitada(mejorItem.placa, mejorItem.id);
+                    } catch (e) {
+                        marcarVisitada(mejorItem.id);
+                    }
+                } else {
+                    mejorItem.visitada = true;
+                    mejorItem.timestampVisita = Date.now();
                 }
+
+                // Alerta sonora, vibración y aviso por voz
+                emitirAlertaSonoraProximidad();
+                var descVeh = [mejorItem.marca, mejorItem.linea, mejorItem.color].filter(function(x){ return x && x !== '-'; }).join(' ');
+                hablarInstruccionNavegacion("Llegaste al objetivo " + mejorItem.placa + ". " + descVeh + ". Marcado como visitado.");
+                mostrarToastNotificacion("✅ ¡Objetivo " + mejorItem.placa + " visitado automáticamente (<20m)!");
+
+                // 2. Si el destino tiene foto asociada, abrir el modal de foto automáticamente
+                var tieneFoto = Boolean(mejorItem.foto);
+                if (tieneFoto && typeof abrirVisorFotoCarro === 'function') {
+                    abrirVisorFotoCarro(mejorItem.id);
+                    hablarInstruccionNavegacion("Mostrando foto del vehículo en pantalla.");
+                }
+
+                // 3. Limpiar ruta vieja y cargar automáticamente el siguiente objetivo pendiente más cercano
+                var esperaCambioMs = tieneFoto ? 8000 : 2500;
+                setTimeout(function() {
+                    if (polylineRuta && map.hasLayer(polylineRuta)) {
+                        map.removeLayer(polylineRuta);
+                        polylineRuta = null;
+                    }
+                    pasosRutaActiva = [];
+                    objetivoNavegacionActual = null;
+
+                    // Buscar próximo objetivo pendiente más cercano
+                    var pendientes = puntosData.filter(function(pt) {
+                        return pt && pt.lat && pt.lng && !pt.visitada && pt.id !== mejorItem.id;
+                    });
+
+                    var siguienteObj = null;
+                    var distMin = Infinity;
+                    pendientes.forEach(function(pt) {
+                        var distP = calcularDistancia(latActual, lngActual, pt.lat, pt.lng);
+                        if (distP < distMin) {
+                            distMin = distP;
+                            siguienteObj = pt;
+                        }
+                    });
+
+                    if (siguienteObj) {
+                        placaMasCercanaObj = siguienteObj;
+                        mostrarToastNotificacion("🧭 Nuevo objetivo automático: " + siguienteObj.placa);
+                        iniciarModoWazeConVoz(siguienteObj);
+                    } else {
+                        detenerModoWaze();
+                        hablarInstruccionNavegacion("Has completado todos los objetivos pendientes de la ruta.");
+                        mostrarToastNotificacion("🏁 ¡Todos los objetivos pendientes fueron visitados!");
+                    }
+
+                    procesandoLlegadaAuto = false;
+                }, esperaCambioMs);
             }
         }
 
         function confirmarVisitaGeocerca() {
             if (!placaEnGeocercaActual) return;
-            var pId = placaEnGeocercaActual.id;
-            var pPlaca = placaEnGeocercaActual.placa;
-            marcarVisitada(pId);
-            var banner = document.getElementById('banner-llegada-geocerca');
-            if (banner) banner.style.display = 'none';
+            marcarVisitada(placaEnGeocercaActual.placa, placaEnGeocercaActual.id);
             placaEnGeocercaActual = null;
-            mostrarToastNotificacion("✅ ¡Visita registrada para " + pPlaca + "!");
         }
 
         function posponerAlertaGeocerca() {
             if (placaEnGeocercaActual) {
                 geocercasPospuestas[placaEnGeocercaActual.id] = Date.now();
             }
-            var banner = document.getElementById('banner-llegada-geocerca');
-            if (banner) banner.style.display = 'none';
             placaEnGeocercaActual = null;
-            mostrarToastNotificacion("⏳ Alerta de objetivo pospuesta.");
         }
 
         // -------------------------------------------------------------------------
