@@ -12917,32 +12917,133 @@ async function apiFetch(url, options = {}, timeoutMs = 5500) {
     }
 
     // =========================================================================
-    // RESTAURACIÓN DE MODALES Y MENÚS DE GESTIÓN (CENTRO DE RUTAS Y CIERRE)
+    // VENTANAS MODALES AUTO-CONSTRUIBLES (EVITA PANTALLA BORROSA VACÍA)
     // =========================================================================
+    function asegurarModalesEnDOM() {
+        // 1. Modal Cierre de Turno
+        if (!document.getElementById('modal-cierre-turno')) {
+            var divCierre = document.createElement('div');
+            divCierre.id = 'modal-cierre-turno';
+            divCierre.style.cssText = 'display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#ffffff; padding:18px; border-radius:14px; width:350px; max-width:94vw; max-height:85vh; overflow-y:auto; z-index:10000001; box-shadow:0 15px 40px rgba(0,0,0,0.6); font-size:12px; color:#1e293b;';
+            divCierre.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+                    <b style="font-size:14px; color:#0f172a;">📑 Cierre de Turno / Reporte Diario</b>
+                    <button onclick="cerrarModalCierreTurno()" style="background:none; border:none; font-size:18px; font-weight:bold; color:#dc2626; cursor:pointer;">✖</button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center; margin-bottom:10px;">
+                    <div style="background:#f1f5f9; padding:8px; border-radius:8px;">
+                        <div style="font-size:10px; color:#64748b; font-weight:bold;">TOTAL</div>
+                        <div id="rep-total-placas" style="font-size:16px; font-weight:900; color:#0f172a;">0</div>
+                    </div>
+                    <div style="background:#dcfce7; padding:8px; border-radius:8px;">
+                        <div style="font-size:10px; color:#166534; font-weight:bold;">VISITADAS</div>
+                        <div id="rep-visitadas-placas" style="font-size:16px; font-weight:900; color:#15803d;">0</div>
+                    </div>
+                    <div style="background:#dbeafe; padding:8px; border-radius:8px;">
+                        <div style="font-size:10px; color:#1e40af; font-weight:bold;">EFECTIVIDAD</div>
+                        <div id="rep-efectividad-pct" style="font-size:16px; font-weight:900; color:#1d4ed8;">0%</div>
+                    </div>
+                </div>
+                <div id="rep-desglose-operadores" style="background:#f8fafc; padding:8px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:8px; font-size:11px;"></div>
+                <div style="font-weight:bold; margin-bottom:4px; color:#334155;">Detalle de Placas Visitadas:</div>
+                <div id="rep-lista-visitadas-tabla" style="max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; padding:6px; margin-bottom:12px;"></div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <button onclick="exportarInformeExcel()" class="pop-btn pb-green" style="margin:0;">📥 Descargar Excel (.xlsx)</button>
+                    <button onclick="copiarReporteWhatsApp()" class="pop-btn pb-blue" style="margin:0;">📋 Copiar Resumen para WhatsApp</button>
+                    <button onclick="cerrarModalCierreTurno()" class="pop-btn" style="margin:0; background:#64748b;">Cerrar</button>
+                </div>
+            `;
+            document.body.appendChild(divCierre);
+        }
+
+        // 2. Modal Centro de Rutas y Patrullaje Inteligente
+        if (!document.getElementById('modal-ruta-corredor')) {
+            var divRuta = document.createElement('div');
+            divRuta.id = 'modal-ruta-corredor';
+            divRuta.style.cssText = 'display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#0f172a; padding:18px; border-radius:16px; width:350px; max-width:94vw; z-index:10000001; border:1.5px solid #00f0ff; box-shadow:0 15px 40px rgba(0,0,0,0.8); font-size:12px; color:#f8fafc;';
+            divRuta.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,240,255,0.25); padding-bottom:8px; margin-bottom:10px;">
+                    <b style="font-size:13.5px; color:#00f0ff;">🧭 Centro de Rutas y Patrullaje Waze</b>
+                    <button onclick="cerrarModalRutaCorredor()" style="background:none; border:none; font-size:18px; font-weight:bold; color:#f43f5e; cursor:pointer;">✖</button>
+                </div>
+                <div style="font-size:11.5px; color:#cbd5e1; margin-bottom:12px; line-height:1.4;">
+                    Inicia el barrido automático en moto. El sistema te guiará por voz calle por calle al objetivo más cercano y al entrar a <b>20 metros</b> lo marcará como visitado, mostrará la foto y pasará al siguiente.
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <button onclick="cerrarModalRutaCorredor(); irCercanoMaps();" class="pop-btn pb-teal" style="margin:0; padding:11px; font-size:13px;">🚀 Iniciar Ruta Waze 3D al Más Cercano</button>
+                    <button onclick="cerrarModalRutaCorredor(); detenerModoWaze();" class="pop-btn pb-red" style="margin:0;">🛑 Detener Navegación Activa</button>
+                    <button onclick="cerrarModalRutaCorredor()" class="pop-btn" style="margin:0; background:#334155;">Volver al Mapa</button>
+                </div>
+            `;
+            document.body.appendChild(divRuta);
+        }
+
+        // 3. Modal Gestión de Usuarios
+        if (!document.getElementById('modal-gestion-usuarios')) {
+            var divUsu = document.createElement('div');
+            divUsu.id = 'modal-gestion-usuarios';
+            divUsu.style.cssText = 'display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#ffffff; padding:18px; border-radius:14px; width:340px; max-width:94vw; z-index:10000001; box-shadow:0 15px 40px rgba(0,0,0,0.6); font-size:12px; color:#1e293b;';
+            divUsu.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+                    <b style="font-size:14px; color:#0f172a;">👥 Gestión de Usuarios y Operadores</b>
+                    <button onclick="cerrarModalGestionUsuarios()" style="background:none; border:none; font-size:18px; font-weight:bold; color:#dc2626; cursor:pointer;">✖</button>
+                </div>
+                <div id="lista-usuarios-gestion-box" style="max-height:200px; overflow-y:auto; margin-bottom:10px; border:1px solid #cbd5e1; border-radius:8px; padding:8px; background:#f8fafc;"></div>
+                <button onclick="cerrarModalGestionUsuarios()" class="pop-btn" style="margin:0; background:#64748b;">Cerrar</button>
+            `;
+            document.body.appendChild(divUsu);
+        }
+    }
+
     function abrirModalRutaCorredor() {
-        cerrarFiltros();
+        asegurarModalesEnDOM();
+        if (typeof cerrarFiltros === 'function') cerrarFiltros();
         var modal = document.getElementById('modal-ruta-corredor');
         var backdrop = document.getElementById('backdrop-modal');
         if (modal) modal.style.display = 'block';
         if (backdrop) backdrop.style.display = 'block';
     }
 
-    function abrirModalCierreTurno() {
-        cerrarFiltros();
-        cerrarConfig();
-        var modal = document.getElementById('modal-cierre-turno');
+    function cerrarModalRutaCorredor() {
+        var modal = document.getElementById('modal-ruta-corredor');
         var backdrop = document.getElementById('backdrop-modal');
-        if (modal) modal.style.display = 'block';
-        if (backdrop) backdrop.style.display = 'block';
+        if (modal) modal.style.display = 'none';
+        if (backdrop) backdrop.style.display = 'none';
     }
 
     function abrirModalGestionUsuarios() {
-        cerrarConfig();
+        asegurarModalesEnDOM();
+        if (typeof cerrarConfig === 'function') cerrarConfig();
+        var box = document.getElementById('lista-usuarios-gestion-box');
+        if (box) {
+            var usus = (typeof obtenerUsuariosRegistrados === 'function') ? obtenerUsuariosRegistrados() : [];
+            if (usus && usus.length > 0) {
+                box.innerHTML = usus.map(function(u) {
+                    return '<div style="padding:6px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between;"><b>👤 ' + (u.nombre || u.login) + '</b> <span style="color:#0284c7;">' + (u.rol || 'Operador') + '</span></div>';
+                }).join('');
+            } else {
+                box.innerHTML = '<div style="color:#64748b; text-align:center; padding:10px;">Operador local activo.</div>';
+            }
+        }
         var modal = document.getElementById('modal-gestion-usuarios');
         var backdrop = document.getElementById('backdrop-modal');
         if (modal) modal.style.display = 'block';
         if (backdrop) backdrop.style.display = 'block';
     }
+
+    function cerrarModalGestionUsuarios() {
+        var modal = document.getElementById('modal-gestion-usuarios');
+        var backdrop = document.getElementById('backdrop-modal');
+        if (modal) modal.style.display = 'none';
+        if (backdrop) backdrop.style.display = 'none';
+    }
+
+    // Asegurar que al abrir Cierre de Turno el modal exista en el DOM
+    var _origAbrirCierre = abrirModalCierreTurno;
+    abrirModalCierreTurno = function() {
+        asegurarModalesEnDOM();
+        _origAbrirCierre();
+    };
 </script>
 </body>
 </html>
