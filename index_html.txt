@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>UBICA-RICK v6.3 PRO - Sistema de Ruta y Rastreo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.5, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="UBICA-RICK">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#042143">
+    <meta name="application-name" content="UBICA-RICK">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+
+    <!-- LEAFLET & CONTROLES -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
+
+    <!-- ESTILOS EXTERNOS Y RESPALDO INTEGRADO -->
+    <link rel="stylesheet" href="./style.css?v=6.3" />
+
+    <!-- LIBRERÍA DE OCR PARA IMÁGENES -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        .leaflet-top.leaflet-left { margin-top: 55px; }
+        #top-bar-container {
+            position: fixed; top: 6px; left: 4px; right: 4px; z-index: 9999;
+            display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center;
+            pointer-events: none; gap: 4px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+        }
+        #top-bar-container::-webkit-scrollbar { display: none; }
+        #barra-kpi {
+            pointer-events: auto; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+            padding: 4px 7px; border-radius: 18px; color: white; font-size: 10px; font-weight: bold;
+            display: inline-flex; gap: 3px; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.18); cursor: pointer; flex-shrink: 0; white-space: nowrap;
+        }
+        .kpi-item { display: flex; align-items: center; gap: 2px; }
+        .kpi-sep { color: rgba(255,255,255,0.3); font-size: 9px; }
+        .text-pend { color: #ff6b6b; }
+        .text-vis { color: #51cf66; }
+        .text-pico { color: #fcc419; }
+        #top-actions { pointer-events: auto; display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0; }
+        .btn-top-action {
+            background: linear-gradient(145deg, #1e293b, #0f172a); color: white; border: none;
+            padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.18);
+            display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-top-action:active { transform: translateY(2px); }
+        .btn-radar-active { background: linear-gradient(145deg, #00b894, #00ff87) !important; color: #1a252f !important; border-color: #00ff87 !important; }
+        #backdrop-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55); z-index: 99998; display: none; backdrop-filter: blur(3px);
+        }
+        .floating-btn-add {
+            position: fixed; bottom: 20px; left: 20px; z-index: 99999; width: 58px; height: 58px;
+            background: linear-gradient(145deg, #1e293b, #0f172a); color: #ffffff; border: 2.5px solid #38bdf8;
+            padding: 0; border-radius: 50%; font-size: 26px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 14px rgba(56,189,248,0.4);
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; outline: none;
+        }
+        .floating-btn-add:active { transform: translateY(2px) scale(0.95); }
+        .floating-menu {
+            position: fixed; bottom: 80px; left: 20px; z-index: 99999; background: white; padding: 16px;
+            border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); width: 330px; max-width: 90vw;
+            display: none; font-size: 12px; max-height: 75vh; overflow-y: auto;
+        }
+        .floating-filter-panel {
+            position: fixed; top: 55px; right: 10px; z-index: 99999; background: white; padding: 16px;
+            border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); width: 300px; max-width: 92vw;
+            display: none; font-size: 12px; max-height: 80vh; overflow-y: auto;
+        }
+        .floating-menu button.main-opt { 
+            color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-bottom: 8px;
+            font-weight: bold; font-size: 13px; cursor: pointer; text-align: left; box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .mo-1 { background: linear-gradient(145deg, #34495e, #2c3e50); }
+        .mo-2 { background: linear-gradient(145deg, #8e44ad, #7d3c98); }
+        .mo-3 { background: linear-gradient(145deg, #27ae60, #219150); }
+        .mo-maps { background: linear-gradient(145deg, #2980b9, #1f618d); }
+        .mo-foto { background: linear-gradient(145deg, #e67e22, #d35400); }
+        .sub-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0; }
+        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 6px; font-size: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        .sub-panel button.action { 
+            color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px;
+            font-weight: bold; cursor: pointer; font-size: 12px; text-transform: uppercase;
+        }
+        .act-blue { background: linear-gradient(145deg, #2980b9, #1f618d); }
+        .act-purple { background: linear-gradient(145deg, #8e44ad, #71368a); }
+        .act-green { background: linear-gradient(145deg, #27ae60, #1e8449); }
+        .act-orange { background: linear-gradient(145deg, #e67e22, #d35400); }
+        .act-red { background: linear-gradient(145deg, #c0392b, #962d22); }
+        .act-gray { background: linear-gradient(145deg, #7f8c8d, #626567); }
+        .sub-panel button.close-sub { background: #95a5a6; color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; margin-top: 6px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 18px; }
+        .filter-option { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
+        .filter-search { width: 100%; padding: 8px; font-size: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        #panel-reubicar-punto {
+            position: fixed; bottom: 0; left: 0; right: 0; width: 100%; background: #ffffff;
+            padding: 12px 14px 20px 14px; border-radius: 20px 20px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,0.45);
+            z-index: 9999999; display: none; font-size: 12px; border-top: 3px solid #2980b9; max-height: 52vh; overflow-y: auto;
+        }
+        body.copiloto-rumbo-frente #map {
+            width: 146vw !important; height: 146vh !important; left: -23vw !important; top: -23vh !important;
+            transform: rotate(var(--map-rot-deg, 0deg)); transform-origin: 50% 50%; transition: transform 0.35s ease-out;
+        }
+        body.copiloto-rumbo-frente .leaflet-marker-icon > div,
+        body.copiloto-rumbo-frente .waypoint-marker-icon > div {
+            transform: rotate(var(--map-counter-rot-deg, 0deg)); transition: transform 0.35s ease-out;
+        }
+        @keyframes pulse-pico-activo {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.85), 0 4px 12px rgba(0,0,0,0.35); }
+            70% { box-shadow: 0 0 0 9px rgba(220, 38, 38, 0), 0 4px 12px rgba(0,0,0,0.35); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0), 0 4px 12px rgba(0,0,0,0.35); }
+        }
+        @keyframes pulse-gps {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(41, 128, 185, 0.7); }
+            70% { transform: scale(1.15); box-shadow: 0 0 0 14px rgba(41, 128, 185, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(41, 128, 185, 0); }
+        }
+        .custom-gps-icon { display: flex; justify-content: center; align-items: center; }
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white;
+            font-size: 16px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column; gap: 10px;
+        }
+        #modal-asistente, #modal-config {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white;
+            padding: 20px; border-radius: 14px; box-shadow: 0 12px 35px rgba(0,0,0,0.5); width: 340px;
+            max-width: 92vw; z-index: 9999999; display: none; font-size: 12px;
+        }
+        .leaflet-popup-content { margin: 7px 8px; line-height: 1.35; max-width: none !important; }
+        .car-photo-box {
+            position: relative; width: 100%; background: #0f172a; border-radius: 8px; margin-bottom: 6px;
+            border: 1.5px solid #334155; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .car-thumbnail { width: 100%; max-height: 135px; object-fit: contain; display: block; cursor: pointer; }
+        .car-photo-Hint {
+            position: absolute; bottom: 5px; right: 6px; background: rgba(15, 23, 42, 0.88); color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: 800; pointer-events: none;
+        }
+        .specs-table { width: 100%; font-size: 0.92em; border-collapse: collapse; margin-bottom: 8px; }
+        .specs-table td { padding: 2px 0; vertical-align: top; }
+        .specs-label { color: #7f8c8d; font-weight: bold; width: 28%; }
+        .specs-val { color: #2c3e50; font-weight: 600; }
+        .badge-status-soat { font-weight: bold; font-size: 0.88em; padding: 1px 6px; border-radius: 4px; }
+        .badge-si { background: #d4efdf; color: #1e8449; }
+        .badge-no { background: #fadbd8; color: #922b21; }
+        .edit-input { width: 100%; margin-bottom: 5px; padding: 6px; font-size: 0.92em; border: 1px solid #aaa; border-radius: 4px; }
+        .pop-btn {
+            color: white; border: none; padding: 0.6em 0.8em; width: 100%; border-radius: 6px; cursor: pointer;
+            margin-bottom: 6px; font-weight: bold; font-size: 0.92em; text-align: center; text-decoration: none; display: block;
+        }
+        .pb-blue { background: #2980b9; }
+        .pb-green { background: #27ae60; }
+        .pb-purple { background: #8e44ad; }
+        .pb-orange { background: #d35400; }
+        .pb-teal { background: #16a085; }
+        .pb-red { background: #c0392b; }
+        .pb-darkred { background: #7b241c; }
+        .leaflet-div-icon { background: transparent; border: none; }
+        #toast-notif {
+            position: fixed; top: 75px; left: 50%; transform: translateX(-50%); background: rgba(33, 43, 54, 0.95);
+            color: white; padding: 10px 20px; border-radius: 25px; font-size: 13px; font-weight: bold;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4); z-index: 10000000; display: none; pointer-events: none; text-align: center; max-width: 90vw;
+        }
+        .btn-zoom-pop {
+            background: #1e293b; border: 1px solid #475569; color: #f8fafc; border-radius: 6px; width: 26px; height: 26px;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; cursor: pointer;
+        }
+        .btn-min-pop {
+            background: #1e293b; border: 1px solid #475569; color: #f8fafc; border-radius: 6px; height: 26px; padding: 0 8px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; font-weight: bold; cursor: pointer;
+        }
+        @keyframes radar-sweep { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes neon-pulse-cyan {
+            0%, 100% { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 240, 255, 0.45); border-color: #00f0ff; }
+            50% { box-shadow: 0 8px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 255, 135, 0.75); border-color: #00ff87; }
+        }
+        @keyframes neon-pulse-alert {
+            0%, 100% { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 0, 85, 0.6); border-color: #ff0055; }
+            50% { box-shadow: 0 8px 40px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 0, 85, 0.95); border-color: #ff3377; }
+        }
+        @keyframes blip-pulse { 0% { transform: scale(0.85); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.85); opacity: 0.8; } }
+        .radar-hud-flotante {
+            position: fixed; bottom: 85px; right: 12px; z-index: 999999; max-width: 94vw;
+            user-select: none; -webkit-user-select: none; touch-action: none;
+        }
+        .hud-capsula {
+            background: linear-gradient(135deg, rgba(8, 14, 26, 0.95), rgba(15, 23, 42, 0.97));
+            border: 1.5px solid #00f0ff; border-radius: 30px; padding: 6px 12px 6px 8px;
+            display: flex; align-items: center; gap: 8px; cursor: grab; animation: neon-pulse-cyan 3s infinite;
+        }
+        .hud-capsula.alerta-rango { border-color: #ff0055; animation: neon-pulse-alert 1.2s infinite; }
+        .hud-radar-disc {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 135, 0.25) 0%, rgba(10, 20, 35, 0.95) 70%);
+            border: 1px solid rgba(0, 240, 255, 0.6); position: relative; overflow: hidden; flex-shrink: 0;
+        }
+        .hud-radar-sweep {
+            position: absolute; top: 50%; left: 50%; width: 17px; height: 17px; transform-origin: 0 0;
+            background: conic-gradient(from 0deg, rgba(0, 255, 135, 0.85) 0deg, rgba(0, 255, 135, 0) 60deg);
+            animation: radar-sweep 2s linear infinite;
+        }
+        .hud-radar-dot {
+            position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #00ff87;
+            box-shadow: 0 0 7px #00ff87; top: 32%; left: 58%; animation: blip-pulse 1s infinite;
+        }
+        .hud-capsula-datos { display: flex; flex-direction: column; line-height: 1.2; cursor: pointer; }
+        .hud-capsula-placa-row { display: flex; align-items: center; gap: 6px; }
+        .hud-tag-placa {
+            font-size: 14.5px; font-weight: 900; letter-spacing: 1.2px; color: #ffea00;
+            background: rgba(0, 0, 0, 0.6); padding: 1px 7px; border-radius: 5px; border: 1px solid rgba(255, 234, 0, 0.45);
+        }
+        .hud-tag-dist { font-size: 11px; font-weight: 800; color: #00ff87; }
+        .hud-capsula-vehiculo { font-size: 10.5px; color: #94a3b8; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px; }
+        .hud-capsula-vehiculo b { color: #f1f5f9; }
+        .hud-capsula-color { color: #38bdf8; font-weight: bold; font-size: 10px; text-transform: uppercase; }
+        .hud-btn-mini {
+            background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: white;
+            border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 13px;
+        }
+        .hud-panel-expandido {
+            width: 295px; background: linear-gradient(145deg, rgba(8, 14, 26, 0.97), rgba(15, 23, 42, 0.98));
+            border: 1.5px solid #00f0ff; border-radius: 18px; padding: 12px 14px; animation: neon-pulse-cyan 3s infinite;
+        }
+        .hud-header-futurista { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(0, 240, 255, 0.25); padding-bottom: 6px; }
+        .hud-title-futurista { font-size: 10.5px; font-weight: 900; letter-spacing: 1.2px; color: #00f0ff; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+        .hud-status-badge { font-size: 9px; background: rgba(0, 255, 135, 0.15); color: #00ff87; border: 1px solid #00ff87; padding: 1px 6px; border-radius: 4px; font-weight: bold; }
+        .hud-placa-box { background: rgba(0, 0, 0, 0.65); border: 1px solid rgba(255, 234, 0, 0.5); border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .hud-placa-grande { font-size: 22px; font-weight: 900; color: #ffea00; letter-spacing: 1.5px; }
+        .hud-dist-grande { font-size: 14px; font-weight: 900; color: #00ff87; }
+        .hud-specs-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 6px; margin-bottom: 8px; font-size: 11px; }
+        .hud-spec-card { background: rgba(255, 255, 255, 0.05); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.08); }
+        .hud-spec-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 2px; }
+        .hud-spec-val { font-size: 11.5px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .hud-actions-row { display: flex; gap: 5px; margin-top: 6px; }
+        .hud-btn-action { flex: 1; border: none; padding: 8px 4px; border-radius: 6px; font-size: 10.5px; font-weight: bold; cursor: pointer; color: white; display: flex; justify-content: center; align-items: center; gap: 3px; }
+        .hud-btn-maps { background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; }
+        .hud-btn-visitar { background: linear-gradient(135deg, #16a34a, #15803d); border: 1px solid #4ade80; }
+        .hud-btn-pip { background: linear-gradient(135deg, #7c3aed, #6d28d9); border: 1px solid #a78bfa; }
+    </style>
+</head>
+<body>
+    <div id="toast-notif"></div>
+    <div id="map"></div>
+    <div id="backdrop-modal" onclick="cerrarTodosLosModales()"></div>
+
+    <!-- BARRA SUPERIOR FIJA RESPONSIVE -->
+    <div id="top-bar-container" style="display:none;">
+        <div id="barra-kpi" onclick="toggleMenuFilter()" title="Toca para abrir Menú y Filtros">
+            <span class="kpi-item">📌 <span id="kpi-total">0</span></span>
+            <span class="kpi-sep">|</span>
+            <span class="kpi-item">⏳ <span id="kpi-pend" class="text-pend">0</span></span>
+            <span class="kpi-sep">|</span>
+            <span class="kpi-item">✅ <span id="kpi-vis" class="text-vis">0</span></span>
+            <span class="kpi-sep">|</span>
+            <span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
+            <span class="kpi-sep">|</span>
+            <span class="kpi-item" title="Vehículos con Foto Adjunta">📸 <span id="kpi-foto" style="color:#f59e0b;">0</span></span>
+            <span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
+            <span style="background:linear-gradient(135deg, #8b5cf6, #6d28d9); color:#fff; font-size:8.5px; font-weight:900; padding:1px 6px; border-radius:4px; margin-left:3px; letter-spacing:0.3px; border:1px solid #c4b5fd;" title="Versión v6.3 PRO optimizada">v6.3 PRO</span>
+        </div>
+        <div id="top-actions">
+            <div id="badge-perfil-activo" onclick="abrirModalPerfilUsuario()" style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:16px; background:linear-gradient(135deg, #0c4a6e, #0f172a); border:1.5px solid #38bdf8; color:white; font-size:11px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.35); white-space:nowrap; flex-shrink:0;" title="Toca para ver tu perfil o cerrar sesión">
+                <span id="badge-perfil-icono">👤</span>
+                <span id="badge-perfil-nombre">Operador</span>
+            </div>
+            <button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
+            <button id="btn-modo-seguro" class="btn-top-action" onclick="toggleModoOperadorSeguro()" style="background: linear-gradient(145deg, #16a34a, #15803d); border-color: #22c55e;" title="Encendido: Manipular/Subir/Borrar | Apagado: Modo Operador Seguro para moto">🟢 Edición</button>
+            <button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
+            <button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Ingresar / Sincronizar cuenta Nube">☁️ Nube</button>
+            <button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background: linear-gradient(145deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
+            <button id="btn-top-sos" class="btn-top-action" onclick="activarBotonPanicoSOS()" style="background: linear-gradient(145deg, #dc2626, #991b1b); border-color: #ef4444; font-weight:900;" title="Alerta de Emergencia / SOS a la base">🚨 SOS</button>
+            <button id="btn-top-calor" class="btn-top-action" onclick="toggleMapaCalor()" style="background: linear-gradient(145deg, #ea580c, #c2410c); border-color: #fb923c;" title="Ver Mapa de Calor / Concentración de Placas">🔥 Calor</button>
+        </div>
+    </div>
+
+    <!-- WIDGET FLOTANTE RADAR FUTURISTA -->
+    <div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
+        <div id="hud-capsula-view" class="hud-capsula" onclick="toggleExpandirHud(event)" title="Toca para expandir el Radar">
+            <div class="hud-radar-disc">
+                <div class="hud-radar-sweep"></div>
+                <div class="hud-radar-dot"></div>
+            </div>
+            <div class="hud-capsula-datos">
+                <div class="hud-capsula-placa-row">
+                    <span id="hud-cap-placa" class="hud-tag-placa">---</span>
+                    <span id="hud-cap-dist" class="hud-tag-dist">-- m</span>
+                </div>
+                <div id="hud-cap-vehiculo" class="hud-capsula-vehiculo">
+                    <b id="hud-cap-carro-txt">CARRO</b> • <span id="hud-cap-color-txt" class="hud-capsula-color">COLOR</span>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
+                <button type="button" id="hud-cap-btn-foto" onclick="event.stopPropagation(); if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-mini" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border-color:#fde047;" title="Ver foto del vehículo en pantalla completa">📸</button>
+                <button type="button" onclick="event.stopPropagation(); iniciarPipRadar();" class="hud-btn-mini" style="background:linear-gradient(135deg, #7c3aed, #6d28d9); border-color:#a78bfa;" title="Flotar sobre WhatsApp y otras apps">🪟</button>
+                <button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Mi Mapa">🗺️</button>
+                <button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3);" title="Expandir Radar HUD">➕</button>
+            </div>
+        </div>
+
+        <div id="hud-panel-view" class="hud-panel-expandido" style="display:none;">
+            <div class="hud-header-futurista">
+                <div class="hud-title-futurista">
+                    <span class="hud-radar-dot" style="position:static; display:inline-block;"></span>
+                    <span>RADAR TÁCTICO UBICA-RICK</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span id="hud-status-badge" class="hud-status-badge">TRACKING</span>
+                    <button type="button" onclick="toggleExpandirHud(event)" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;" title="Minimizar a botón">➖</button>
+                    <button type="button" onclick="toggleRadar()" style="background:none; border:none; color:#f43f5e; font-size:16px; cursor:pointer;" title="Apagar radar">✖</button>
+                </div>
+            </div>
+            <div class="hud-placa-box">
+                <div>
+                    <div style="font-size:9px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">OBJETIVO MÁS CERCANO</div>
+                    <div id="hud-exp-placa" class="hud-placa-grande">---</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:9px; color:#94a3b8; font-weight:bold;">DISTANCIA</div>
+                    <div id="hud-exp-dist" class="hud-dist-grande">-- m</div>
+                </div>
+            </div>
+            <div class="hud-specs-grid">
+                <div class="hud-spec-card">
+                    <span class="hud-spec-label">🚗 Vehículo</span>
+                    <span id="hud-exp-carro" class="hud-spec-val">---</span>
+                </div>
+                <div class="hud-spec-card">
+                    <span class="hud-spec-label">🎨 Color</span>
+                    <span id="hud-exp-color" class="hud-spec-val" style="color:#38bdf8;">---</span>
+                </div>
+            </div>
+            <div style="background:rgba(0,0,0,0.4); padding:5px 8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.06);">
+                <span class="hud-spec-label">📍 Dirección</span>
+                <span id="hud-exp-dir" style="font-size:10.5px; color:#e2e8f0; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">---</span>
+            </div>
+            <div class="hud-actions-row">
+                <button type="button" id="hud-exp-btn-foto" onclick="if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-action" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fde047; color:#fff;" title="Ver foto del carro en pantalla completa">📸 Foto</button>
+                <button type="button" onclick="irCercanoMaps()" class="hud-btn-action hud-btn-maps" title="Navegar hacia este objetivo en Mi Mapa">🗺️ Mi Mapa</button>
+                <button type="button" onclick="visitarCercanoDesdeRadar()" class="hud-btn-action hud-btn-visitar" title="Marcar como visitada">✅ Visitada</button>
+                <button type="button" onclick="centrarEnVehiculoCercano()" class="hud-btn-action" style="background:#334155; border:1px solid #64748b;" title="Ver en el mapa">🎯 Ver</button>
+                <button type="button" onclick="iniciarPipRadar()" class="hud-btn-action hud-btn-pip" title="Flotar sobre Google Maps / Celular">🪟 Flotar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE AUTENTICACIÓN / NUBE EN VIVO -->
+    <div id="modal-auth" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#0f172a; border:1.5px solid #00f0ff; border-radius:16px; padding:18px 20px; width:330px; max-width:92vw; z-index:99999999; color:white; box-shadow:0 12px 40px rgba(0,0,0,0.85);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(0,240,255,0.25); padding-bottom:8px;">
+            <div style="font-size:13px; font-weight:900; color:#00f0ff; letter-spacing:1px;">🛰️ UBICA-RICK CLOUD</div>
+            <button onclick="cerrarModalAuth()" style="background:none; border:none; color:#f43f5e; font-size:16px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+        <div id="auth-seccion-login">
+            <span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:10px;">Inicia sesión con tu cuenta para sincronizar el mapa en vivo entre tu PC y celulares:</span>
+            <label style="font-size:10.5px; color:#cbd5e1; font-weight:bold;">Correo Electrónico:</label>
+            <input type="email" id="auth-email" placeholder="ejemplo@correo.com" style="width:100%; padding:8px 10px; margin-top:3px; margin-bottom:10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:white; font-size:12px;">
+            <label style="font-size:10.5px; color:#cbd5e1; font-weight:bold;">Contraseña:</label>
+            <input type="password" id="auth-pass" placeholder="••••••••" style="width:100%; padding:8px 10px; margin-top:3px; margin-bottom:12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:white; font-size:12px;">
+            <button type="button" onclick="ejecutarLoginFirebase()" class="pop-btn pb-blue" style="margin:0 0 8px 0; padding:10px; font-size:12px;">🚀 Iniciar Sesión</button>
+            <button type="button" onclick="cerrarModalAuth()" style="background:none; border:1px solid #475569; color:#94a3b8; width:100%; padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">Continuar sin cuenta (Modo Local)</button>
+        </div>
+        <div id="auth-seccion-perfil" style="display:none;">
+            <div style="background:rgba(255,255,255,0.06); padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.1);">
+                <div style="font-size:10.5px; color:#94a3b8;">Usuario conectado:</div>
+                <div id="auth-user-email" style="font-size:13px; font-weight:bold; color:#f8fafc; margin-top:2px;"></div>
+                <div id="auth-user-badge" style="font-size:11px; margin-top:4px; font-weight:bold;"></div>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:12px; line-height:1.4;"><span id="auth-rol-explicacion"></span></div>
+            <button type="button" onclick="sincronizarTodoManualAFirebase()" id="btn-sync-manual" class="pop-btn pb-green" style="margin:0 0 6px 0; padding:8px; font-size:11.5px;">☁️ Subir Puntos Locales a la Nube</button>
+            <button type="button" onclick="ejecutarLogoutFirebase()" class="pop-btn pb-red" style="margin:0; padding:8px; font-size:11.5px;">🚪 Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div style="font-size: 32px;">⏳</div>
+        <span id="loading-texto">Procesando...</span>
+        <button type="button" onclick="cancelarCarga()" style="margin-top:14px; background:#ef4444; color:white; border:none; padding:7px 16px; border-radius:8px; font-weight:bold; font-size:12.5px; cursor:pointer;">✖ Cancelar / Desbloquear</button>
+    </div>
+
+    <!-- VISOR DE FOTO DE PANTALLA COMPLETA PARA MOTO -->
+    <div id="modal-visor-foto-moto" onclick="if(event.target === this) cerrarVisorFotoCarro();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.96); z-index:20000005; flex-direction:column; justify-content:space-between; align-items:center; padding:12px; box-sizing:border-box; user-select:none; touch-action:none;">
+        <div style="width:100%; max-width:500px; background:#0f172a; border:1.5px solid #334155; border-radius:12px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+                <span id="visor-foto-placa" style="background:#000; color:#ffea00; border:2px solid #ffea00; border-radius:6px; padding:3px 9px; font-size:18px; font-weight:900; letter-spacing:1px; flex-shrink:0;">---</span>
+                <div style="overflow:hidden;">
+                    <div id="visor-foto-carro" style="color:#ffffff; font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">VEHÍCULO</div>
+                    <div id="visor-foto-color" style="color:#38bdf8; font-size:11.5px; font-weight:700;">COLOR</div>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarVisorFotoCarro()" style="background:#dc2626; color:white; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+        <div id="visor-foto-stage" style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; margin:8px 0;">
+            <img id="visor-foto-img" src="" alt="Foto del Vehículo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; transform:translate(0px, 0px) scale(1); transition:transform 0.12s ease-out;">
+        </div>
+        <div style="width:100%; max-width:500px; display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:center; align-items:center; gap:6px; background:#0f172a; padding:6px; border-radius:10px; border:1px solid #334155;">
+                <button type="button" onclick="cambiarZoomVisorFoto(-0.5)" style="flex:1; background:#1e293b; color:white; border:1px solid #475569; border-radius:8px; padding:9px 0; font-size:14px; font-weight:900; cursor:pointer;">➖ Alejar</button>
+                <button type="button" onclick="fijarZoomVisorFoto(1)" id="btn-visor-1x" style="background:#2563eb; color:white; border:none; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">1x</button>
+                <button type="button" onclick="fijarZoomVisorFoto(2)" id="btn-visor-2x" style="background:#1e293b; color:#38bdf8; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">2x</button>
+                <button type="button" onclick="fijarZoomVisorFoto(3)" id="btn-visor-3x" style="background:#1e293b; color:#38bdf8; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">3x</button>
+                <button type="button" onclick="cambiarZoomVisorFoto(0.5)" style="flex:1; background:#1e293b; color:white; border:1px solid #475569; border-radius:8px; padding:9px 0; font-size:14px; font-weight:900; cursor:pointer;">➕ Acercar</button>
+            </div>
+            <button type="button" onclick="cerrarVisorFotoCarro()" style="width:100%; background:linear-gradient(135deg, #ef4444, #b91c1c); color:white; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:900; cursor:pointer;">✖ CERRAR FOTO Y VOLVER AL MAPA</button>
+        </div>
+    </div>
+
+    <!-- MODAL PEGAR GARANTÍAS MOBILIARIAS -->
+    <div id="modal-pegar-garantias" onclick="if(event.target === this) cerrarModalPegarGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.85); z-index:20000006; align-items:center; justify-content:center; padding:14px;">
+        <div style="width:100%; max-width:440px; background:#0f172a; border:2px solid #0284c7; border-radius:14px; padding:14px; color:#f8fafc;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-size:14px; font-weight:900; color:#38bdf8;">🏛️ PEGAR BIENES GARANTIZADOS</div>
+                <button type="button" onclick="cerrarModalPegarGarantias()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+            </div>
+            <textarea id="txt-modal-garantias" rows="5" oninput="autoProcesarInputModalGarantias(this.value)" placeholder="Pega aquí el texto de Bienes Garantizados (Por serial)..." style="width:100%; background:#1e293b; color:#f8fafc; border:1.5px solid #38bdf8; border-radius:8px; padding:10px; font-size:12.5px; font-family:monospace; margin-bottom:8px;"></textarea>
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <button type="button" onclick="intentarPegarPortapapelesEnModalGarantias()" style="flex:1; background:#0369a1; color:white; border:none; border-radius:8px; padding:9px; font-size:11.5px; font-weight:800; cursor:pointer;">📋 Pegar Portapapeles</button>
+                <button type="button" onclick="document.getElementById('txt-modal-garantias').value='';" style="background:#334155; color:#e2e8f0; border:none; border-radius:8px; padding:9px 12px; font-size:11.5px; font-weight:700; cursor:pointer;">🧹 Limpiar</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" onclick="confirmarModalPegarGarantias()" style="flex:2; background:linear-gradient(135deg, #16a34a, #15803d); color:white; border:none; border-radius:8px; padding:11px; font-size:13px; font-weight:900; cursor:pointer;">✅ EXTRAER MARCA, LÍNEA Y MODELO</button>
+                <button type="button" onclick="cerrarModalPegarGarantias()" style="flex:1; background:#475569; color:white; border:none; border-radius:8px; padding:11px; font-size:12px; font-weight:800; cursor:pointer;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PUENTE GARANTÍAS -->
+    <div id="modal-puente-garantias" onclick="if(event.target === this) cerrarModalPuenteGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.88); z-index:20000007; align-items:center; justify-content:center; padding:12px;">
+        <div style="width:100%; max-width:460px; max-height:92vh; overflow-y:auto; background:#0f172a; border:2px solid #10b981; border-radius:14px; padding:14px; color:#f8fafc;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-size:13.5px; font-weight:900; color:#34d399;">🤖 PUENTE AUTOMÁTICO GARANTÍAS</div>
+                <button type="button" onclick="cerrarModalPuenteGarantias()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:bold; cursor:pointer;">✖</button>
+            </div>
+            <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:9px; margin-bottom:8px;">
+                <button type="button" onclick="copiarCodigoPuenteAppsScript()" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:white; border:none; border-radius:7px; padding:9px; font-size:11.5px; font-weight:900; cursor:pointer;">📋 1. Copiar Código Google Apps Script</button>
+            </div>
+            <div style="background:#1e293b; border:1.5px solid #10b981; border-radius:8px; padding:9px;">
+                <input type="text" id="input-url-puente-rgm" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; background:#0f172a; color:#fff; border:1px solid #475569; border-radius:6px; padding:8px; font-size:11.5px; margin-bottom:6px;">
+                <div id="estado-prueba-puente-rgm" style="display:none; font-size:11px; padding:6px 8px; border-radius:6px; margin-bottom:6px;"></div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" onclick="guardarYProbarPuenteGarantias()" style="flex:2; background:linear-gradient(135deg, #16a34a, #15803d); color:white; border:none; border-radius:7px; padding:10px; font-size:12px; font-weight:900; cursor:pointer;">💾 Guardar y Extraer Ahora</button>
+                    <button type="button" onclick="cerrarModalPuenteGarantias()" style="flex:1; background:#475569; color:white; border:none; border-radius:7px; padding:10px; font-size:11.5px; font-weight:800; cursor:pointer;">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-asistente">
+        <b style="color: #c0392b; font-size: 14px; display: block; margin-bottom: 6px;">✏️ Revisión Manual de Direcciones:</b>
+        <textarea id="asistente-texto" style="width:100%; height:120px; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:6px; resize:none;"></textarea>
+        <div style="display:flex; gap:6px; margin-top:12px;">
+            <button onclick="procesarModalRescate()" class="act-green" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">✅ Mapear</button>
+            <button onclick="cerrarAsistente()" class="act-gray" style="color:white; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIGURACIÓN -->
+    <div id="modal-config">
+        <div class="header-menu">
+            <b style="color: #2c3e50; font-size: 14px;">⚙️ Configuración del Sistema</b>
+            <button onclick="cerrarConfig()">✖</button>
+        </div>
+        <div id="cfg-info-operador" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; font-size:11.5px; color:#334155; margin:6px 0;">👤 Conectado como: <b>Usuario</b></div>
+        <div id="cfg-seccion-apikey">
+            <label style="display:block; font-size:11px; font-weight:bold; margin-top:6px;">Clave Google Maps Geocoding (Opcional):</label>
+            <input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div id="cfg-seccion-gemini" style="margin-top:8px; background:#f0fdf4; border:1.5px solid #86efac; padding:8px 10px; border-radius:8px;">
+            <label style="display:block; font-size:11px; font-weight:bold; color:#166534;">🤖 Clave Google Gemini AI API:</label>
+            <input type="password" id="cfg-gemini-key" placeholder="Pega tu API Key de Gemini" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #86efac; border-radius:4px;">
+        </div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:12px;">
+            <input type="checkbox" id="cfg-sonido" checked> 🔊 Alerta sonora de proximidad (&lt; 200m)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:bold; margin-top:8px;">
+            <input type="checkbox" id="cfg-vibrar" checked> 📳 Vibración táctil en proximidad
+        </label>
+        <div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
+            <button id="btn-filtro-instalar-app" type="button" onclick="ejecutarInstalacionNativaPWA()" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold;">📲 Instalar como App en el Celular</button>
+            <button id="btn-config-cierre-turno" type="button" onclick="cerrarConfig(); abrirModalCierreTurno();" class="pop-btn pb-green" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold;">📑 Cierre de Turno / Reporte Diario</button>
+            <button id="btn-config-gestion-usuarios" type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:bold;">👥 Gestión de Usuarios</button>
+            <button id="btn-config-sync-nube" type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
+            <button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Salir</button>
+        </div>
+        <div style="margin-top:15px; display:flex; gap:6px;">
+            <button onclick="guardarConfig()" class="act-green" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Guardar</button>
+            <button onclick="cerrarConfig()" class="act-gray" style="color:white; border:none; padding:9px; border-radius:6px; font-weight:bold; flex:1; cursor:pointer;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- PANEL INFERIOR PARA REUBICAR / MOVER PUNTO -->
+    <div id="panel-reubicar-punto">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <b style="color:#2c3e50; font-size:13.5px;">📍 Moviendo: <span id="reubicar-placa-label" style="color:#2980b9; font-weight:900;"></span></b>
+            <button onclick="cancelarReubicacionPunto()" style="border:none; background:none; font-size:18px; font-weight:bold; cursor:pointer; color:#7f8c8d;">✖</button>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:10px; font-weight:bold; color:#64748b;">DIRECCIÓN REAL REGISTRADA:</div>
+                <a id="btn-reubicar-maps-link" href="#" target="_blank" style="font-size:10.5px; font-weight:bold; color:#0284c7; text-decoration:none;">🧭 Abrir en Google Maps ↗</a>
+            </div>
+            <div id="reubicar-dir-real-label" style="font-size:12px; font-weight:700; color:#0f172a; margin-top:2px;">-</div>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <input type="text" id="reubicar-input-texto" placeholder="Coordenadas (lat, lng), dirección o link de Maps..." style="flex:1; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:12px;">
+            <button id="btn-reubicar-recalcular" onclick="buscarNuevaUbicacionManual()" class="pop-btn pb-blue" style="margin:0; width:auto; padding:0 12px; font-size:11.5px;">🔄 Recalcular</button>
+        </div>
+        <div style="display:flex; gap:6px;">
+            <button onclick="fijarPuntoEnMiUbicacion()" class="pop-btn pb-teal" style="margin:0; flex:1; padding:9px 4px; font-size:11.5px;">📍 En Mi GPS</button>
+            <button onclick="confirmarReubicacionPunto()" class="pop-btn pb-green" style="margin:0; flex:1.2; padding:9px 4px; font-size:11.5px;">✅ Confirmar</button>
+            <button onclick="cancelarReubicacionPunto()" class="pop-btn pb-red" style="margin:0; flex:0.7; padding:9px 4px; font-size:11.5px;">Cancelar</button>
+        </div>
+    </div>
+
+    <button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:155px; left:12px; z-index:999; background:linear-gradient(145deg, #1e293b, #0f172a); color:#38bdf8; border:2px solid #38bdf8; border-radius:50%; width:38px; height:38px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.4);" title="Centrar en Mi Ubicación GPS">🎯</button>
+
+    <!-- BOTÓN AGREGAR Y MENÚ -->
+    <button class="floating-btn-add" onclick="toggleMenuAdd()" title="Agregar nuevo vehículo">➕</button>
+    <div id="menuOpciones" class="floating-menu">
+        <div class="header-menu">
+            <b style="color: #0f172a; font-size: 14px;">➕ Opciones de Carga:</b>
+            <button onclick="cerrarMenuAdd()">✖</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="main-opt mo-1" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('whatsapp')">📋 1. Pegar Reporte / Texto (WhatsApp o IA)</button>
+            <button class="main-opt mo-foto" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('tabla-foto')">📸 2. Subir Foto de Tabla (Auto / OCR)</button>
+            <button class="main-opt mo-2" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('manual')">✍️ 3. Ingreso Manual de Vehículo</button>
+            <button class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:10px 12px;" onclick="forzarSincronizacionNubePuntos(); cerrarMenuAdd();">☁️ Sincronizar Placas con la Nube</button>
+            <button id="btn-carga-borrado-masivo" class="pop-btn pb-red" style="margin:0; font-weight:bold; font-size:12px; padding:10px 12px;" onclick="abrirModalBorradoMasivo(); cerrarMenuAdd();">🗑️ Borrado Masivo de Placas</button>
+        </div>
+        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #cbd5e1; text-align:center;">
+            <button type="button" onclick="abrirCentroRecuperacion()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; color:#0369a1; font-size:11px; font-weight:bold; padding:5px 12px; cursor:pointer;">🛡️ Abrir Centro de Recuperación</button>
+        </div>
+
+        <div id="seccion-whatsapp" class="sub-panel">
+            <b style="color:#2c3e50; font-size:11px;">Pega los reportes o revisa la extracción antes de mapear:</b>
+            <textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ..." style="height: 140px; font-size: 11px;"></textarea>
+            <div style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:7px 8px; margin:6px 0;">
+                <div style="font-size:10.5px; font-weight:800; color:#1e40af; margin-bottom:5px; display:flex; align-items:center; justify-content:space-between;">
+                    <span>🏛️ Garantías Mobiliarias:</span>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <span id="badge-estado-rgm" style="font-size:9.5px; background:#dcfce7; color:#15803d; padding:1px 6px; border-radius:8px;">🤖 Listo</span>
+                        <button type="button" onclick="abrirModalPuenteGarantias()" style="background:#0f172a; color:#34d399; border:1px solid #10b981; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;">⚙️ Puente</button>
+                    </div>
+                </div>
+                <div id="banner-autopegar-rgm" onclick="pegarYExtraerDeGarantias()" style="display:none; background:linear-gradient(135deg, #16a34a, #15803d); color:#fff; font-size:11px; font-weight:900; padding:8px; border-radius:6px; margin-bottom:5px; text-align:center; cursor:pointer;">📋 ¡Toca AQUÍ para pegar los datos de Garantías!</div>
+                <div style="display:flex; gap:5px; margin-bottom:5px;">
+                    <button type="button" onclick="abrirConsultaGarantiasDirecta()" class="pop-btn pb-blue" style="flex:1; margin:0; padding:7px 4px; font-size:10.5px;">🔍 1. Abrir en Garantías</button>
+                    <button type="button" onclick="pegarYExtraerDeGarantias()" class="pop-btn pb-teal" style="flex:1; margin:0; padding:7px 4px; font-size:10.5px;">📋 2. Pegar / Auto-Colocar</button>
+                </div>
+                <button type="button" onclick="ejecutarExtraccionAutomaticaGarantias()" class="pop-btn" style="width:100%; margin:0 0 4px 0; padding:6px; font-size:10.5px; background:#0d9488; color:white;">⚡ Auto-Extraer Marca, Línea y Modelo</button>
+                <label class="pop-btn" style="margin:0; padding:5px; font-size:10px; background:#0f172a; color:#38bdf8; border:1px solid #38bdf8; cursor:pointer;">
+                    📸 O subir captura de "Bienes Garantizados"
+                    <input type="file" accept="image/*" onchange="procesarCapturaGarantiasMobiliarias(this.files[0]); this.value='';" style="display:none;">
+                </label>
+            </div>
+            <button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar al Mapa</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <div id="seccion-manual" class="sub-panel">
+            <b style="font-size: 11.5px; color:#8e44ad;">✍️ Ingreso Manual de Vehículo:</b>
+            <div id="manAvisoExistente" style="display:none; background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:6px 8px; font-size:11px; color:#92400e; margin:6px 0;"></div>
+            <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
+                <input type="text" id="manPlaca" placeholder="Placa (ej: JYY140)" oninput="autoCompletarVehiculoManual(this.value)" style="flex:1; margin:0;">
+                <button type="button" onclick="abrirConsultaGarantiasDirecta('manPlaca')" style="background:#1d4ed8; color:white; border:none; border-radius:6px; padding:7px 8px; font-size:10.5px; font-weight:bold; cursor:pointer;">🏛️ Garantías</button>
+                <button type="button" onclick="pegarYExtraerDeGarantias()" style="background:#0d9488; color:white; border:none; border-radius:6px; padding:7px 8px; font-size:10.5px; font-weight:bold; cursor:pointer;">📋 Pegar</button>
+            </div>
+            <input type="text" id="manMarca" placeholder="Marca (ej: CHEVROLET, RENAULT)">
+            <input type="text" id="manLinea" placeholder="Línea (ej: SWIFT, LOGAN)">
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="manModelo" placeholder="Modelo (ej: 2023)" style="flex:1;">
+                <input type="text" id="manColor" placeholder="Color (ej: GRIS)" style="flex:1;">
+            </div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="manSoat" placeholder="SOAT (SI/NO)" style="flex:1;">
+                <input type="text" id="manTecno" placeholder="Tecno (SI/NO)" style="flex:1;">
+            </div>
+            <input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
+            <div style="margin-top:6px; border-top:1px dashed #cbd5e1; padding-top:6px;">
+                <label style="font-size:11px; font-weight:bold; color:#334155;">📍 Direcciones del Vehículo (Hasta 4):</label>
+                <input type="text" id="manDir" placeholder="Dirección 1 (Principal o Coordenadas)">
+                <input type="text" id="manDir2" placeholder="Dirección 2 (Opcional)">
+                <input type="text" id="manDir3" placeholder="Dirección 3 (Opcional)">
+                <input type="text" id="manDir4" placeholder="Dirección 4 (Opcional)">
+            </div>
+            <div style="margin-bottom:8px; margin-top:6px; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                <label style="font-size:11px; font-weight:bold; color:#2c3e50; display:block; margin-bottom:4px;">📸 Adjuntar Foto del Vehículo:</label>
+                <div id="manFotoInfoExistente" style="display:none; font-size:10.5px; color:#15803d; font-weight:bold; margin-bottom:4px;">✅ Foto previa copiada automáticamente.</div>
+                <input type="file" id="manFoto" accept="image/*" style="font-size:11px; width:100%;">
+            </div>
+            <button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <div id="seccion-link-maps" class="sub-panel">
+            <b style="color:#2980b9; font-size:12px;">🧭 AGREGAR POR LINK DE GOOGLE MAPS</b>
+            <input type="text" id="linkMapsPlaca" placeholder="Placa del vehículo (Obligatorio)">
+            <input type="text" id="linkMapsUrl" placeholder="Link de Google Maps">
+            <input type="text" id="linkMapsDir" placeholder="Dirección opcional">
+            <input type="text" id="linkMapsCel" placeholder="Celulares (opcional)">
+            <button class="action act-blue" onclick="procesarLinkGoogleMaps()">🧭 Ubicar y Agregar al Mapa</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <div id="seccion-tabla-foto" class="sub-panel">
+            <b style="color:#d35400; font-size:12px;">📸 ESCANEO AUTOMÁTICO DE TABLA</b>
+            <div style="display:flex; gap:5px; align-items:center; margin-top:6px;">
+                <input type="text" id="fotoTablaPlaca" placeholder="Placa del vehículo (ej: JYY140)" oninput="autoConsultarGarantiasAlDigitarPlaca(this.value)" style="flex:1; margin:0;">
+                <button type="button" onclick="abrirConsultaGarantiasDirecta('fotoTablaPlaca')" style="background:#1d4ed8; color:white; border:none; border-radius:6px; padding:8px 7px; font-size:10px; font-weight:bold; cursor:pointer;">🏛️ Garantías</button>
+                <button type="button" onclick="pegarYExtraerDeGarantias()" style="background:#059669; color:white; border:none; border-radius:6px; padding:8px 7px; font-size:10px; font-weight:bold; cursor:pointer;">📋 Pegar</button>
+            </div>
+            <div id="info-rgm-autodetectado" style="display:none; background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:5px 8px; margin-top:5px; font-size:10.5px; color:#166534; font-weight:bold;"></div>
+            <div style="margin-top:6px;">
+                <input type="file" id="fotoTablaInput" accept="image/*" style="font-size:11px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; width:100%;">
+            </div>
+            <button class="action act-green" onclick="procesarFotoTablaDirecta(true)" style="margin-bottom:6px; font-weight:900;">🤖 1. Extraer con Gemini AI (100% Preciso)</button>
+            <button class="action act-orange" onclick="procesarFotoTablaDirecta(false)" style="margin-bottom:6px;">📷 2. Extraer con OCR Local (Tesseract)</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <div id="seccion-gemini" class="sub-panel">
+            <b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b>
+            <textarea id="txtGemini" style="height: 140px; font-size: 11px;"></textarea>
+            <button class="action act-green" onclick="procesarTextoUniversal('txtGemini')">🚀 Mapear Ubicaciones</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+    </div>
+
+    <!-- PANEL FLOTANTE DE FILTROS Y OPCIONES -->
+    <div id="panelFiltros" class="floating-filter-panel">
+        <div class="header-menu">
+            <b style="color: #2c3e50; font-size: 14px;">Filtrar y Opciones:</b>
+            <button onclick="cerrarFiltros()">✖</button>
+        </div>
+        <div style="background:#eff6ff; border:1.5px solid #3b82f6; border-radius:10px; padding:10px 12px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <label style="font-size:12px; font-weight:800; color:#1e40af;">🎯 Consultar Placa:</label>
+                <span id="indicador-placas-filtro" style="font-size:10px; font-weight:bold; color:#2563eb; background:#dbeafe; padding:1px 6px; border-radius:10px;">Placas activas</span>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <div style="position:relative; flex:1;">
+                    <input type="text" id="inputBuscarPlaca" style="width:100%; height:40px; padding:0 30px 0 10px; font-size:16px; font-weight:900; text-transform:uppercase; border:2px solid #2563eb; border-radius:8px;" placeholder="EJ: ABC123" oninput="alDigitarPlacaConsulta(this.value)" onkeydown="onKeyDownBuscarPlaca(event)">
+                    <button type="button" id="btn-limpiar-busqueda" onclick="limpiarBusquedaPlaca()" style="position:absolute; right:7px; top:50%; transform:translateY(-50%); background:#e2e8f0; border:none; border-radius:50%; width:20px; height:20px; font-size:11px; font-weight:bold; cursor:pointer; display:none;">✖</button>
+                </div>
+                <button type="button" onclick="ejecutarConsultaPlaca()" style="height:40px; padding:0 14px; font-size:13px; font-weight:900; border-radius:8px; border:none; background:#2563eb; color:white; cursor:pointer;">🔍 Consultar</button>
+            </div>
+            <div id="resultado-busqueda-live" style="margin-top:8px; display:none;"></div>
+        </div>
+        <div style="margin: 8px 0 6px 0;">
+            <label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🏙️ Filtrar por Municipio:</label>
+            <select id="filtroMunicipio" class="filter-search" onchange="actualizarFiltros()">
+                <option value="TODOS">Todos los Municipios</option>
+                <option value="MEDELLIN">Medellín</option>
+                <option value="BELLO">Bello</option>
+                <option value="ITAGUI">Itagüí</option>
+                <option value="ENVIGADO">Envigado</option>
+                <option value="SABANETA">Sabaneta</option>
+                <option value="LA ESTRELLA">La Estrella</option>
+                <option value="COPACABANA">Copacabana</option>
+                <option value="CALDAS">Caldas</option>
+                <option value="RIONEGRO">Rionegro</option>
+                <option value="OTRO">Otros / Nacional</option>
+            </select>
+        </div>
+        <label class="filter-option"><input type="checkbox" id="chkPico" onchange="alCambiarFiltroCheckbox('pico')"> ⚠️ Con Pico y Placa</label>
+        <label class="filter-option"><input type="checkbox" id="chkHoy" onchange="alCambiarFiltroCheckbox('hoy')"> 📅 Subidas hoy</label>
+        <label class="filter-option"><input type="checkbox" id="chkFoto" onchange="alCambiarFiltroCheckbox('foto')"> 📸 Con Foto (Prioritarias)</label>
+        <label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="alCambiarFiltroCheckbox('todas')"> 👁️ Ver todas</label>
+        <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
+            <button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
+            <button id="btn-filtro-reporte" onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px;">📑 Cierre de Turno / Reporte Diario</button>
+            <button id="btn-filtro-motos" onclick="toggleCapaMotosEnVivo()" class="pop-btn pb-blue" style="margin:0; font-weight:bold; font-size:12px; padding:9px 6px;">🏍️ Motos en Vivo</button>
+            <button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:12px; padding:9px 6px;">🗺️ Ver Todas en Pantalla</button>
+            <button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:12px; padding:9px 6px;">⚙️ Configuración</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
