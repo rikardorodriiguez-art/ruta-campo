@@ -12901,7 +12901,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             Cancelar
         </button>
     </div>
- {script}
+ <script>
     async function apiFetch(url, options = {}, timeoutMs = 5500) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -12913,7 +12913,48 @@ async function procesarFotoTablaDirecta(usarGemini) {
     } catch (error) {
         console.warn(`Error en petición a ${url}:`, error.message);
         throw error;
-    {/script}
-}
+   <script>
+    async function apiFetch(url, options = {}, timeoutMs = 5500) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(timer);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.warn(`Error en petición a ${url}:`, error.message);
+            throw error;
+        }
+    }
+
+    // =========================================================================
+    // RESTAURACIÓN DE MODALES Y MENÚS DE GESTIÓN
+    // =========================================================================
+    function abrirModalRutaCorredor() {
+        cerrarFiltros();
+        var modal = document.getElementById('modal-ruta-corredor');
+        var backdrop = document.getElementById('backdrop-modal');
+        if (modal) modal.style.display = 'block';
+        if (backdrop) backdrop.style.display = 'block';
+    }
+
+    function abrirModalCierreTurno() {
+        cerrarFiltros();
+        cerrarConfig();
+        var modal = document.getElementById('modal-cierre-turno');
+        var backdrop = document.getElementById('backdrop-modal');
+        if (modal) modal.style.display = 'block';
+        if (backdrop) backdrop.style.display = 'block';
+    }
+
+    function abrirModalGestionUsuarios() {
+        cerrarConfig();
+        var modal = document.getElementById('modal-gestion-usuarios');
+        var backdrop = document.getElementById('backdrop-modal');
+        if (modal) modal.style.display = 'block';
+        if (backdrop) backdrop.style.display = 'block';
+    }
+</script>
 </body>
 </html>
