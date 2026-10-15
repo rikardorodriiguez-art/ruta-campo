@@ -616,7 +616,26 @@
         .hud-btn-maps { background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; }
         .hud-btn-visitar { background: linear-gradient(135deg, #16a34a, #15803d); border: 1px solid #4ade80; }
         .hud-btn-pip { background: linear-gradient(135deg, #7c3aed, #6d28d9); border: 1px solid #a78bfa; }
-
+/* ESTILOS MODO NAVEGACIÓN WAZE 3D Y MOTO ROTATORIA */
+        .mapa-modo-conduccion-3d {
+            perspective: 900px;
+            overflow: hidden;
+            background: #050811;
+        }
+        .mapa-modo-conduccion-3d #map {
+            transform-origin: 50% 72%;
+            transition: transform 0.35s linear;
+        }
+        .icono-moto-rotatorio {
+            transition: transform 0.25s linear;
+            transform-origin: center center;
+            filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.75));
+        }
+        .custom-moto-nav-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+    </style>
     </style>
 </head>
 <body>
