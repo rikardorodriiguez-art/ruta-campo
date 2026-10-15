@@ -1387,20 +1387,6 @@
 
         // Iniciar GPS automáticamente al arrancar
         iniciarSeguimientoGPSReal();
-const WazeNav = {
-    activo: false,
-    autoCenter: true,
-    vozActiva: true,
-    destino: null, // { lat, lng, placa }
-    pasosRuta: [],
-    pasoActualIdx: 0,
-    ultimoPasoCantadoIdx: -1,
-    ultimoRecalculoTs: 0,
-    posAnterior: null,
-    rumboActual: 0,
-    marcadorVehiculo: null,
-    lineaBordeRuta: null,
-
     // 1. Inicializar rastreo GPS continuo de alta precisión
     iniciarGPS() {
         map.locate({
