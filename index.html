@@ -23,7 +23,6 @@
     <!-- LEAFLET & CONTROLES -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
-    
     <!-- LIBRERÍA DE OCR PARA IMÁGENES -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -61,7 +60,6 @@
             pointer-events: auto;
             display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0;
         }
-
         .btn-top-action {
             background: linear-gradient(145deg, #1e293b, #0f172a); color: white; border: none;
             padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer;
@@ -70,13 +68,10 @@
         }
         .btn-top-action:active { transform: translateY(2px); }
         .btn-radar-active { background: linear-gradient(145deg, #00b894, #00ff87) !important; color: #1a252f !important; border-color: #00ff87 !important; }
-
         /* TELÓN DE FONDO PARA MODALES */
         #backdrop-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.55); z-index: 99998; display: none; backdrop-filter: blur(3px);
-        }
-
         /* BOTONES FLOTANTES INFERIORES */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
@@ -647,7 +642,6 @@
                 <button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3);" title="Expandir Radar HUD">➕</button>
             </div>
         </div>
-
         <!-- MODO PANEL TÁCTICO EXPANDIDO -->
         <div id="hud-panel-view" class="hud-panel-expandido" style="display:none;">
             <div class="hud-header-futurista">
@@ -661,7 +655,6 @@
                     <button type="button" onclick="toggleRadar()" style="background:none; border:none; color:#f43f5e; font-size:16px; cursor:pointer;" title="Apagar radar">✖</button>
                 </div>
             </div>
-
             <div class="hud-placa-box">
                 <div>
                     <div style="font-size:9px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">OBJETIVO MÁS CERCANO</div>
@@ -672,7 +665,6 @@
                     <div id="hud-exp-dist" class="hud-dist-grande">-- m</div>
                 </div>
             </div>
-
             <div class="hud-specs-grid">
                 <div class="hud-spec-card">
                     <span class="hud-spec-label">🚗 Vehículo</span>
@@ -696,8 +688,7 @@
             </div>
         </div>
     </div>
-    <!-- OVERLAYS & MODALES -->
-    
+    <!-- OVERLAYS & MODALES --> 
     <!-- MODAL DE AUTENTICACIÓN / NUBE EN VIVO -->
     <div id="modal-auth" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#0f172a; border:1.5px solid #00f0ff; border-radius:16px; padding:18px 20px; width:330px; max-width:92vw; z-index:99999999; color:white; box-shadow:0 12px 40px rgba(0,0,0,0.85); font-family:-apple-system, BlinkMacSystemFont, sans-serif;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(0,240,255,0.25); padding-bottom:8px;">
