@@ -2502,18 +2502,26 @@
             }
         }
 
-        function hablarInstruccionNavegacion(texto) {
-            if (!('speechSynthesis' in window)) return;
-            try {
-                window.speechSynthesis.cancel();
-                var u = new SpeechSynthesisUtterance(texto);
-                u.lang = 'es-CO';
-                u.rate = 1.05;
-                u.pitch = 1.0;
-                u.volume = 1.0;
-                window.speechSynthesis.speak(u);
-            } catch (e) {}
-        }
+       function hablarInstruccionNavegacion(texto) {
+              if (!('speechSynthesis' in window)) return;
+              try {
+                  // Forzar reactivación si el navegador pausó la voz al cambiar de app o minimizar
+                  if (window.speechSynthesis.paused) {
+                      window.speechSynthesis.resume();
+                  }
+                  window.speechSynthesis.cancel();
+                  
+                  var u = new SpeechSynthesisUtterance(texto);
+                  u.lang = 'es-CO';
+                  u.rate = 1.05;
+                  u.pitch = 1.0;
+                  u.volume = 1.0;
+                  
+                  window.speechSynthesis.speak(u);
+              } catch (e) {
+                  console.warn("Error de voz en segundo plano:", e);
+              }
+          }
 
         function traducirManiobraEsp(step) {
             var tipo = (step.maneuver && step.maneuver.type) || '';
