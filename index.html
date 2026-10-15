@@ -13091,6 +13091,155 @@ async function procesarFotoTablaDirecta(usarGemini) {
         rec.start();
     };
 })();
+</script><div id="modal-cazador-placas" onclick="if(event.target === this) cerrarModoCazadorPlacas();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5, 8, 17, 0.88); z-index:20000008; align-items:center; justify-content:center; padding:14px; box-sizing:border-box;">
+    <div style="width:100%; max-width:410px; background:#0f172a; border:2px solid #ffea00; border-radius:16px; padding:16px; box-sizing:border-box; box-shadow:0 12px 35px rgba(0,0,0,0.85); color:#f8fafc;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #334155; padding-bottom:8px;">
+            <div style="font-size:14px; font-weight:900; color:#ffea00; letter-spacing:0.8px;">🦅 MODO CAZADOR DE PLACAS EN RUTA</div>
+            <button type="button" onclick="cerrarModoCazadorPlacas()" style="background:#dc2626; color:#fff; border:none; border-radius:50%; width:30px; height:30px; font-weight:bold; cursor:pointer;">✖</button>
+        </div>
+        <div style="font-size:11.5px; color:#cbd5e1; margin-bottom:10px;">
+            Escribe o dicta por voz una placa vista en vía para cruzarla al instante contra el mapa y Garantías:
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <input type="text" id="input-cazador-placa" maxlength="7" placeholder="ABC123" oninput="verificarPlacaModoCazador(this.value)" style="flex:1; height:50px; background:#000; color:#ffea00; border:2px solid #ffea00; border-radius:10px; font-size:26px; font-weight:900; text-align:center; letter-spacing:3px; text-transform:uppercase; outline:none;">
+            <button type="button" id="btn-voz-cazador" onclick="iniciarDictadoVozCazador()" style="width:54px; height:50px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:white; border:1px solid #60a5fa; border-radius:10px; font-size:22px; cursor:pointer;" title="Dictar placa por micrófono">🎙️</button>
+        </div>
+        <div id="resultado-cazador-box" style="min-height:70px; background:#1e293b; border:1px solid #334155; border-radius:10px; padding:12px; font-size:12px; color:#94a3b8; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+            Ingresa o dicta los 6 caracteres de la placa...
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <button type="button" onclick="document.getElementById('input-cazador-placa').value=''; verificarPlacaModoCazador(''); document.getElementById('input-cazador-placa').focus();" style="flex:1; background:#334155; color:white; border:none; border-radius:8px; padding:11px; font-size:12px; font-weight:800; cursor:pointer;">🧹 Limpiar</button>
+            <button type="button" onclick="cerrarModoCazadorPlacas()" style="flex:1; background:#475569; color:white; border:none; border-radius:8px; padding:11px; font-size:12px; font-weight:800; cursor:pointer;">Cerrar</button>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    function montarV63() {
+        var topActions = document.getElementById('top-actions');
+        if (topActions && !document.getElementById('btn-top-cazador')) {
+            var btnCazador = document.createElement('button');
+            btnCazador.id = 'btn-top-cazador';
+            btnCazador.className = 'btn-top-action';
+            btnCazador.style.background = 'linear-gradient(145deg, #ca8a04, #a16207)';
+            btnCazador.style.borderColor = '#facc15';
+            btnCazador.innerHTML = '🦅 Cazador';
+            btnCazador.onclick = abrirModoCazadorPlacas;
+            topActions.insertBefore(btnCazador, topActions.children[2] || null);
+        }
+        var selMun = document.getElementById('filtroMunicipio');
+        if (selMun && selMun.parentNode && !document.getElementById('filtroAcreedor')) {
+            var divAcreedor = document.createElement('div');
+            divAcreedor.style.margin = '8px 0 6px 0';
+            divAcreedor.innerHTML = '<label style="font-size:11px; font-weight:bold; color:#334155; display:block; margin-bottom:3px;">🏦 Filtrar por Acreedor / Entidad:</label>' +
+                '<select id="filtroAcreedor" class="filter-search" style="padding:5px 8px; font-size:11.5px; font-weight:600; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;" onchange="actualizarFiltros()">' +
+                '<option value="TODOS">Todos los Acreedores</option><option value="GM FINANCIAL">GM Financial</option><option value="FINANZAUTO">Finanzauto</option><option value="SUFI">Sufi / Bancolombia</option><option value="RCI">RCI / Mobilize</option><option value="OCCIDENTE">Banco de Occidente</option><option value="BANCAMIA">Bancamía</option><option value="BOGOTA">Banco de Bogotá</option></select>' +
+                '<label class="filter-option" style="margin-top:6px; color:#b45309;"><input type="checkbox" id="chkDirDudosa" onchange="actualizarFiltros()"> ❓ Solo Direcciones Aproximadas (Auditar)</label>';
+            selMun.parentNode.insertAdjacentElement('afterend', divAcreedor);
+        }
+    }
+    window.addEventListener('DOMContentLoaded', montarV63);
+    setTimeout(montarV63, 500);
+
+    window.esDireccionCentroideDudoso = function(item) {
+        if (!item || !item.lat || !item.lng || item.dirAjustada) return false;
+        if (typeof CENTROS_MUNICIPIOS === 'object') {
+            for (var k in CENTROS_MUNICIPIOS) {
+                var c = CENTROS_MUNICIPIOS[k];
+                if (Math.abs(c.lat - item.lat) < 0.0004 && Math.abs(c.lng - item.lng) < 0.0004) return true;
+            }
+        }
+        return false;
+    };
+
+    var origPasaFiltros = window.pasaFiltrosActivos;
+    if (typeof origPasaFiltros === 'function') {
+        window.pasaFiltrosActivos = function(item, opciones) {
+            if (!origPasaFiltros(item, opciones)) return false;
+            var selAc = document.getElementById('filtroAcreedor') ? document.getElementById('filtroAcreedor').value : 'TODOS';
+            if (selAc && selAc !== 'TODOS') {
+                var cacheRgm = (typeof obtenerCacheGarantiasPlacas === 'function') ? obtenerCacheGarantiasPlacas() : {};
+                var infoRgm = (item.placa && cacheRgm[item.placa]) ? cacheRgm[item.placa] : {};
+                var txtAc = ((item.acreedor || '') + ' ' + (item.comentarios || '') + ' ' + (infoRgm.acreedor || '')).toUpperCase();
+                if (!txtAc.includes(selAc)) return false;
+            }
+            if (document.getElementById('chkDirDudosa') && document.getElementById('chkDirDudosa').checked && !window.esDireccionCentroideDudoso(item)) return false;
+            return true;
+        };
+    }
+
+    var origMarcarVisitada = window.marcarVisitada;
+    if (typeof origMarcarVisitada === 'function') {
+        window.marcarVisitada = function(arg1, arg2) {
+            var markerId = arg2 || arg1;
+            var item = puntosData.find(function(d) { return d.id === markerId || d.placa === arg1 || d.id === arg1; });
+            var vPrev = item ? (item.visitas || 0) : 0;
+            origMarcarVisitada(arg1, arg2);
+            if (item && (item.visitas || 0) > vPrev) {
+                var nota = prompt("📝 Bitácora de visita para " + item.placa + " (Opcional: ej. 'Garaje cerrado', 'No reside'):", "") || "Visita realizada sin novedad";
+                var hist = [];
+                try { hist = JSON.parse(localStorage.getItem('bitacora_visitas_' + item.id) || '[]'); } catch(e) {}
+                hist.unshift({ fecha: new Date().toLocaleString('es-CO'), gestor: item.gestor || 'Operador', nota: nota.trim() });
+                localStorage.setItem('bitacora_visitas_' + item.id, JSON.stringify(hist.slice(0, 10)));
+                item.historialVisitas = hist.slice(0, 10);
+                if (item.marker && typeof generarContenidoPopup === 'function') item.marker.setPopupContent(generarContenidoPopup(item, item.id));
+            }
+        };
+    }
+
+    window.reportarPositivoHallazgo = function(markerId) {
+        var item = puntosData.find(function(d) { return d.id === markerId; });
+        if (!item) return;
+        var latRep = (typeof userLat === 'number' && userLat) ? userLat : item.lat;
+        var lngRep = (typeof userLng === 'number' && userLng) ? userLng : item.lng;
+        var mapsLink = "https://www.google.com/maps?q=" + latRep.toFixed(6) + "," + lngRep.toFixed(6);
+        var cacheRgm = (typeof obtenerCacheGarantiasPlacas === 'function') ? obtenerCacheGarantiasPlacas() : {};
+        var rgm = cacheRgm[item.placa] || {};
+        var mensaje = "🚨 *REPORTE DE POSITIVO / HALLAZGO UBICA-RICK* 🚨\n\n🚗 *PLACA:* " + item.placa + "\n🏷️ *VEHÍCULO:* " + [item.marca, item.linea, item.modelo].filter(function(x){ return x && x !== '-'; }).join(' ') + "\n🎨 *COLOR:* " + (item.color || '-') + "\n🏦 *ACREEDOR:* " + (item.acreedor || rgm.acreedor || 'Por verificar') + "\n📍 *DIRECCIÓN:* " + (item.dirOriginal || item.dir || '-') + "\n🛰️ *GPS:* " + latRep.toFixed(6) + ", " + lngRep.toFixed(6) + "\n🧭 *MAPS:* " + mapsLink + "\n⏱️ *HORA:* " + new Date().toLocaleString('es-CO');
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(mensaje).catch(function(){});
+        mostrarToastNotificacion("🎯 Reporte copiado. Abriendo WhatsApp...");
+        window.open("https://wa.me/?text=" + encodeURIComponent(mensaje), "_blank");
+    };
+
+    var origGenPopup = window.generarContenidoPopup;
+    if (typeof origGenPopup === 'function') {
+        window.generarContenidoPopup = function(p, markerId) {
+            var htmlBase = origGenPopup(p, markerId);
+            var hist = [];
+            try { hist = p.historialVisitas || JSON.parse(localStorage.getItem('bitacora_visitas_' + markerId) || '[]'); } catch(e) {}
+            var alertaCen = window.esDireccionCentroideDudoso(p) ? '<div style="background:#fef3c7; border:1px solid #f59e0b; color:#92400e; padding:4px; border-radius:6px; font-size:10px; font-weight:bold; margin-bottom:5px;">⚠️ Dirección aproximada (Centro municipal).</div>' : '';
+            var bitHtml = hist.length > 0 ? '<div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:5px; margin-bottom:5px; max-height:70px; overflow-y:auto; font-size:10px; color:#1e293b;"><b style="color:#0f172a;">📋 Bitácora:</b>' + hist.map(function(h) { return '<div>• <b>' + h.gestor + '</b>: ' + h.nota + '</div>'; }).join('') + '</div>' : '';
+            var btnPos = alertaCen + '<button type="button" onclick="event.stopPropagation(); reportarPositivoHallazgo(\'' + markerId + '\')" class="pop-btn" style="width:100%; margin:0 0 5px 0; padding:7px; font-size:11px; background:linear-gradient(135deg, #dc2626, #991b1b); border:1px solid #f87171; color:#ffffff; border-radius:6px; font-weight:900;">🎯 Reportar Positivo / Hallazgo (WhatsApp)</button>' + bitHtml;
+            var pos = htmlBase.indexOf('<button type="button" id="btn-mas-detalles-');
+            return pos !== -1 ? (htmlBase.substring(0, pos) + btnPos + htmlBase.substring(pos)) : htmlBase;
+        };
+    }
+
+    window.abrirModoCazadorPlacas = function() { var m = document.getElementById('modal-cazador-placas'); if (m) { m.style.display = 'flex'; var i = document.getElementById('input-cazador-placa'); if (i) { i.value = ''; verificarPlacaModoCazador(''); setTimeout(function(){ i.focus(); }, 100); } } };
+    window.cerrarModoCazadorPlacas = function() { var m = document.getElementById('modal-cazador-placas'); if (m) m.style.display = 'none'; };
+    window.verificarPlacaModoCazador = function(val) {
+        var l = (val || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+        var b = document.getElementById('resultado-cazador-box');
+        if (!b) return;
+        if (l.length < 3) { b.innerHTML = '<span style="color:#94a3b8;">Ingresa al menos 3 caracteres...</span>'; return; }
+        var co = puntosData.filter(function(p) { return p.placa && p.placa.toUpperCase().includes(l); });
+        if (co.length > 0) {
+            var p = co[0];
+            b.style.background = 'rgba(22, 163, 74, 0.22)';
+            b.innerHTML = '<div style="font-size:13px; font-weight:900; color:#4ade80;">🚨 ¡OBJETIVO ACTIVO! (' + co.length + ' dir.)</div><div style="font-size:12px; font-weight:800; color:#fff;">🚗 ' + p.placa + ' — ' + (p.marca || '') + '</div><div style="display:flex; gap:6px; margin-top:6px;"><button onclick="cerrarModoCazadorPlacas(); seleccionarPlacaYAcercar(\'' + p.placa + '\');" class="pop-btn pb-green" style="flex:1; margin:0; padding:6px; font-size:11px;">🎯 Ver en Mapa</button><button onclick="reportarPositivoHallazgo(\'' + p.id + '\');" class="pop-btn pb-red" style="flex:1; margin:0; padding:6px; font-size:11px;">📲 Positivo</button></div>';
+        } else {
+            b.style.background = 'rgba(220, 38, 38, 0.15)';
+            b.innerHTML = '<span style="color:#fca5a5; font-weight:bold;">❌ Sin coincidencias para "' + l + '"</span>';
+        }
+    };
+    window.iniciarDictadoVozCazador = function() {
+        var Sr = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Sr) { alert("Usa el micrófono de tu teclado."); return; }
+        var r = new Sr(); r.lang = 'es-CO';
+        r.onresult = function(e) { var t = e.results[0][0].transcript.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); var i = document.getElementById('input-cazador-placa'); if (i) i.value = t; verificarPlacaModoCazador(t); };
+        r.start();
+    };
+})();
 </script>
 </body>
 </html>
