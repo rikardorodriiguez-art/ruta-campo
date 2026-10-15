@@ -1356,25 +1356,63 @@
             userLng = pos.coords.longitude;
             var acc = pos.coords.accuracy || 20;
 
+            // 1. Calcular el rumbo (Bearing/Heading) hacia donde se mueve la moto
+            if (pos.coords.heading !== null && !isNaN(pos.coords.heading) && pos.coords.speed && pos.coords.speed > 1.0) {
+                rumboActualGrados = pos.coords.heading;
+                ultimaPosNavegacion = { lat: userLat, lng: userLng };
+            } else if (ultimaPosNavegacion) {
+                var distMov = calcularDistancia(ultimaPosNavegacion.lat, ultimaPosNavegacion.lng, userLat, userLng);
+                if (distMov > 2.5) {
+                    rumboActualGrados = calcularRumboGrados(ultimaPosNavegacion.lat, ultimaPosNavegacion.lng, userLat, userLng);
+                    ultimaPosNavegacion = { lat: userLat, lng: userLng };
+                }
+            } else {
+                ultimaPosNavegacion = { lat: userLat, lng: userLng };
+            }
+
+            // 2. Ícono de Motocicleta personalizado que rota sobre su propio eje
+            var svgMoto = '<div id="moto-vector-rot" class="icono-moto-rotatorio" style="transform: rotate(' + rumboActualGrados + 'deg); width:46px; height:46px; display:flex; align-items:center; justify-content:center;">' +
+                '<svg viewBox="0 0 64 64" width="44" height="44">' +
+                '<polygon points="32,2 14,28 50,28" fill="rgba(0, 240, 255, 0.35)" />' +
+                '<rect x="28" y="7" width="8" height="14" rx="4" fill="#0f172a" stroke="#00f0ff" stroke-width="1.5"/>' +
+                '<rect x="27" y="43" width="10" height="14" rx="4" fill="#0f172a" stroke="#00f0ff" stroke-width="1.5"/>' +
+                '<line x1="16" y1="20" x2="48" y2="20" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>' +
+                '<path d="M23,20 L41,20 L38,46 L26,46 Z" fill="#0284c7" stroke="#ffffff" stroke-width="2"/>' +
+                '<circle cx="32" cy="32" r="7.5" fill="#ffea00" stroke="#0f172a" stroke-width="2"/>' +
+                '</svg></div>';
+
+            var motoIcon = L.divIcon({
+                className: 'custom-moto-nav-icon',
+                html: svgMoto,
+                iconSize: [46, 46],
+                iconAnchor: [23, 23]
+            });
+
             if (!userMarker) {
-                var gpsIcon = L.divIcon({
-                    className: 'custom-gps-icon',
-                    html: '<div style="width:18px; height:18px; background:#2980b9; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 10px rgba(41,128,185,0.8); animation:pulse-gps 2s infinite;"></div>',
-                    iconSize: [18, 18],
-                    iconAnchor: [9, 9]
-                });
-                userMarker = L.marker([userLat, userLng], { icon: gpsIcon, zIndexOffset: 2000 }).addTo(map);
-                userMarker.bindPopup("<b>📍 Mi Ubicación Actual (GPS)</b><br>Precisión: " + Math.round(acc) + " m");
+                userMarker = L.marker([userLat, userLng], { icon: motoIcon, zIndexOffset: 3000 }).addTo(map);
+                userMarker.bindPopup("<b>🏍️ Mi Ubicación Actual (GPS)</b><br>Precisión: " + Math.round(acc) + " m");
 
                 userAccuracyCircle = L.circle([userLat, userLng], {
-                    radius: acc, color: '#2980b9', fillColor: '#3498db', fillOpacity: 0.15, weight: 1
+                    radius: acc, color: '#00f0ff', fillColor: '#0284c7', fillOpacity: 0.12, weight: 1
                 }).addTo(map);
             } else {
                 userMarker.setLatLng([userLat, userLng]);
+                var elRot = document.getElementById('moto-vector-rot');
+                if (elRot) {
+                    elRot.style.transform = 'rotate(' + rumboActualGrados + 'deg)';
+                } else {
+                    userMarker.setIcon(motoIcon);
+                }
                 if (userAccuracyCircle) {
                     userAccuracyCircle.setLatLng([userLat, userLng]);
                     userAccuracyCircle.setRadius(acc);
                 }
+            }
+
+            // 3. Si el modo navegación Waze está activo: rotar mapa al frente, centrar y cantar calles por voz
+            if (modoNavegacionWaze) {
+                centrarCamaraWazeEnVivo(userLat, userLng, rumboActualGrados);
+                verificarProximoGiroPorVoz(userLat, userLng);
             }
 
             actualizarPanelCercano();
