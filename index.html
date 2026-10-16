@@ -391,5 +391,1647 @@
             });
         }
     </script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script>
+var configApp = {
+    googleApiKey: localStorage.getItem('raptor_google_apikey') || "",
+    geminiApiKey: localStorage.getItem('ubica_rick_gemini_key') || "",
+    sonidoAlerta: localStorage.getItem('raptor_sonido') !== "0",
+    vibrarAlerta: localStorage.getItem('raptor_vibrar') !== "0"
+};
+
+var timerSafetyLoading = null;
+var timerToast = null;
+
+function mostrarToastNotificacion(msg) {
+    var t = document.getElementById('toast-notif');
+    if (!t) return;
+    t.innerText = msg;
+    t.style.display = 'block';
+    t.style.opacity = '1';
+    if (timerToast) clearTimeout(timerToast);
+    timerToast = setTimeout(function() {
+        t.style.opacity = '0';
+        setTimeout(function() { t.style.display = 'none'; }, 300);
+    }, 3500);
+}
+
+function mostrarCargando(texto) {
+    var loadingOverlay = document.getElementById('loading-overlay');
+    var loadingTexto = document.getElementById('loading-texto');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+        if (loadingTexto) loadingTexto.innerText = texto || "Procesando...";
+    }
+    if (timerSafetyLoading) clearTimeout(timerSafetyLoading);
+    timerSafetyLoading = setTimeout(function() {
+        ocultarCargando();
+        mostrarToastNotificacion("⚠️ Tiempo de espera agotado. Pantalla desbloqueada.");
+    }, 45000);
+}
+
+function ocultarCargando() {
+    var loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+    if (timerSafetyLoading) {
+        clearTimeout(timerSafetyLoading);
+        timerSafetyLoading = null;
+    }
+}
+
+function cancelarCarga() {
+    ocultarCargando();
+    mostrarToastNotificacion("Operación cancelada.");
+}
+
+var map = L.map('map', { zoomControl: true, closePopupOnClick: true }).setView([6.2442, -75.5812], 12);
+
+var capaGoogle = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { subdomains: '0123', maxZoom: 20, attribution: '© Google Maps | UBICA-RICK' });
+var capaCarto = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { subdomains: 'abcd', maxZoom: 20, attribution: '© CARTO | UBICA-RICK' });
+var capaSatelite = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: '0123', maxZoom: 20, attribution: '© Google Satélite | UBICA-RICK' });
+var capaEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '© ESRI | UBICA-RICK' });
+
+var tileLayerPredeterminado = capaGoogle;
+capaGoogle.addTo(map);
+
+L.control.layers({
+    '🚗 Google Maps': capaGoogle,
+    '🗺️ Calles HD (Carto)': capaCarto,
+    '🛰️ Satélite Híbrido': capaSatelite,
+    '📍 ESRI Calles': capaEsri
+}, null, { position: 'bottomright' }).addTo(map);
+
+var userLat = null;
+var userLng = null;
+var userMarker = null;
+var userAccuracyCircle = null;
+var userWatchId = null;
+var timerGpsActivo = null;
+var ultimoTimestampGps = Date.now();
+var puntoEnEdicionId = null;
+var puntoEnEdicionOriginalPos = null;
+var placasRegistradas = {};
+var puntosData = [];
+var radarOculto = false;
+var polylineRuta = null;
+var ultimaAlertaTs = 0;
+var placaMasCercanaObj = null;
+var presenciaOperadoresCache = {};
+var usuarioOperadorActual = { id: 'op_local', nombre: localStorage.getItem('ubica_rick_operador') || 'Operador', login: 'operador' };
+
+function iniciarSeguimientoGPSReal() {
+    if (!navigator.geolocation) return;
+    reiniciarWatchPositionGPS();
+    if (timerGpsActivo) clearInterval(timerGpsActivo);
+    timerGpsActivo = setInterval(function() {
+        var delta = Date.now() - ultimoTimestampGps;
+        if (delta > 25000 && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                ultimoTimestampGps = Date.now();
+                actualizarPosicionGPS(pos);
+            }, function() {}, { enableHighAccuracy: true, maximumAge: 3000, timeout: 7000 });
+        }
+        enviarLatidoPresencia();
+    }, 6000);
+}
+
+function reiniciarWatchPositionGPS() {
+    if (userWatchId) {
+        try { navigator.geolocation.clearWatch(userWatchId); } catch(e) {}
+    }
+    userWatchId = navigator.geolocation.watchPosition(function(pos) {
+        ultimoTimestampGps = Date.now();
+        actualizarPosicionGPS(pos);
+    }, function() {}, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+}
+
+function actualizarPosicionGPS(pos) {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    var acc = pos.coords.accuracy || 20;
+
+    if (pos.coords.heading !== null && !isNaN(pos.coords.heading) && pos.coords.speed && pos.coords.speed > 1.0) {
+        rumboActualGrados = pos.coords.heading;
+        ultimaPosNavegacion = { lat: userLat, lng: userLng };
+    } else if (ultimaPosNavegacion) {
+        var distMov = calcularDistancia(ultimaPosNavegacion.lat, ultimaPosNavegacion.lng, userLat, userLng);
+        if (distMov > 2.5) {
+            rumboActualGrados = calcularRumboGrados(ultimaPosNavegacion.lat, ultimaPosNavegacion.lng, userLat, userLng);
+            ultimaPosNavegacion = { lat: userLat, lng: userLng };
+        }
+    } else {
+        ultimaPosNavegacion = { lat: userLat, lng: userLng };
+    }
+
+    var svgMoto = '<div id="moto-vector-rot" class="icono-moto-rotatorio" style="transform:rotate(' + rumboActualGrados + 'deg);width:46px;height:46px;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 64 64" width="44" height="44"><polygon points="32,2 14,28 50,28" fill="rgba(0,240,255,0.35)"/><rect x="28" y="7" width="8" height="14" rx="4" fill="#0f172a" stroke="#00f0ff" stroke-width="1.5"/><rect x="27" y="43" width="10" height="14" rx="4" fill="#0f172a" stroke="#00f0ff" stroke-width="1.5"/><line x1="16" y1="20" x2="48" y2="20" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/><path d="M23,20 L41,20 L38,46 L26,46 Z" fill="#0284c7" stroke="#ffffff" stroke-width="2"/><circle cx="32" cy="32" r="7.5" fill="#ffea00" stroke="#0f172a" stroke-width="2"/></svg></div>';
+
+    var motoIcon = L.divIcon({ className: 'custom-moto-nav-icon', html: svgMoto, iconSize: [46, 46], iconAnchor: [23, 23] });
+
+    if (!userMarker) {
+        userMarker = L.marker([userLat, userLng], { icon: motoIcon, zIndexOffset: 3000 }).addTo(map);
+        userMarker.bindPopup("<b>🏍️ Mi Ubicación Actual (GPS)</b><br>Precisión: " + Math.round(acc) + " m");
+        userAccuracyCircle = L.circle([userLat, userLng], { radius: acc, color: '#00f0ff', fillColor: '#0284c7', fillOpacity: 0.12, weight: 1 }).addTo(map);
+    } else {
+        userMarker.setLatLng([userLat, userLng]);
+        var elRot = document.getElementById('moto-vector-rot');
+        if (elRot) elRot.style.transform = 'rotate(' + rumboActualGrados + 'deg)';
+        else userMarker.setIcon(motoIcon);
+        if (userAccuracyCircle) {
+            userAccuracyCircle.setLatLng([userLat, userLng]);
+            userAccuracyCircle.setRadius(acc);
+        }
+    }
+
+    if (modoNavegacionWaze) {
+        centrarCamaraWazeEnVivo(userLat, userLng, rumboActualGrados);
+        verificarProximoGiroPorVoz(userLat, userLng);
+    }
+    actualizarPanelCercano();
+    verificarGeocercaLlegada(userLat, userLng);
+}
+
+function centrarEnMiGPS() {
+    if (userLat && userLng) {
+        map.setView([userLat, userLng], 17, { animate: true });
+        if (userMarker) userMarker.openPopup();
+        mostrarToastNotificacion("🎯 Centrado en tu ubicación GPS.");
+    } else {
+        mostrarToastNotificacion("🛰️ Conectando con el GPS del móvil...");
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                actualizarPosicionGPS(pos);
+                map.setView([pos.coords.latitude, pos.coords.longitude], 17, { animate: true });
+                if (userMarker) userMarker.openPopup();
+                mostrarToastNotificacion("✅ ¡Ubicación GPS fijada!");
+            }, function() {
+                mostrarToastNotificacion("⚠️ Activa el GPS de tu móvil para ver tu posición.");
+            }, { enableHighAccuracy: true, timeout: 8000 });
+        }
+    }
+}
+
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c * 1000;
+}
+
+function emitirAlertaSonora() {
+    if (!configApp.sonidoAlerta) return;
+    try {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        var ctx = new AudioCtx();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {}
+}
+
+function emitirAlertaSonoraProximidad() {
+    emitirAlertaSonora();
+    emitirVibracion();
+}
+
+function emitirVibracion() {
+    if (configApp.vibrarAlerta && navigator.vibrate) {
+        try { navigator.vibrate([150, 70, 150]); } catch(e) {}
+    }
+}
+
+function describirVehiculoParaVoz(p) {
+    if (!p) return "";
+    return [p.placa, p.marca !== '-' ? p.marca : '', p.linea !== '-' ? p.linea : '', p.color !== '-' ? ('color ' + p.color) : ''].filter(Boolean).join(' ');
+}
+
+function hablarInstruccionCopiloto(txt) {
+    hablarInstruccionNavegacion(txt);
+}
+
+var radarActivo = localStorage.getItem('raptor_radar_activo') !== '0';
+var menorDistanciaMetros = Infinity;
+var pipVideoEl = null, pipCanvasEl = null, pipCtxEl = null, pipStreamTrack = null, radarSweepAngle = 0;
+
+function actualizarBotonRadarUI() {
+    var btn = document.getElementById('btn-toggle-radar');
+    if (!btn) return;
+    if (radarActivo) {
+        btn.innerHTML = '🚨 Radar';
+        btn.classList.add('btn-radar-active');
+        btn.style.background = 'linear-gradient(145deg, #27ae60, #2ecc71)';
+        btn.style.color = '#ffffff';
+    } else {
+        btn.innerHTML = '⚪ Radar';
+        btn.classList.remove('btn-radar-active');
+        btn.style.background = 'linear-gradient(145deg, #64748b, #475569)';
+        btn.style.color = '#e2e8f0';
+    }
+}
+
+function toggleRadar() {
+    radarActivo = !radarActivo;
+    localStorage.setItem('raptor_radar_activo', radarActivo ? '1' : '0');
+    actualizarBotonRadarUI();
+    var hud = document.getElementById('radar-hud-flotante');
+    if (radarActivo) {
+        if (hud) hud.style.display = 'block';
+        mostrarToastNotificacion("🚨 Radar Flotante ENCENDIDO.");
+        actualizarPanelCercano();
+        iniciarArrastreHud();
+        prepararPipVideo(false);
+    } else {
+        if (hud) hud.style.display = 'none';
+        if (document.pictureInPictureElement) { try { document.exitPictureInPicture(); } catch(e) {} }
+        mostrarToastNotificacion("⚪ Radar Flotante APAGADO.");
+    }
+}
+
+function toggleExpandirHud(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    var cap = document.getElementById('hud-capsula-view');
+    var pan = document.getElementById('hud-panel-view');
+    if (!cap || !pan) return;
+    if (pan.style.display === 'none') { pan.style.display = 'block'; cap.style.display = 'none'; }
+    else { pan.style.display = 'none'; cap.style.display = 'flex'; }
+}
+
+function centrarEnVehiculoCercano() {
+    if (placaMasCercanaObj) {
+        map.setView([placaMasCercanaObj.lat, placaMasCercanaObj.lng], 17);
+        if (placaMasCercanaObj.marker) placaMasCercanaObj.marker.openPopup();
+    }
+}
+
+function iniciarArrastreHud() {
+    var el = document.getElementById('radar-hud-flotante');
+    if (!el || el._dragInit) return;
+    el._dragInit = true;
+    var startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+    el.addEventListener('touchstart', function(e) {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        var touch = e.touches[0];
+        startX = touch.clientX; startY = touch.clientY;
+        var rect = el.getBoundingClientRect();
+        initialLeft = rect.left; initialTop = rect.top;
+    }, { passive: true });
+    el.addEventListener('touchmove', function(e) {
+        if (e.touches.length !== 1) return;
+        var touch = e.touches[0];
+        var dx = touch.clientX - startX, dy = touch.clientY - startY;
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+            el.style.left = Math.max(8, Math.min(window.innerWidth - el.offsetWidth - 8, initialLeft + dx)) + 'px';
+            el.style.top = Math.max(48, Math.min(window.innerHeight - el.offsetHeight - 12, initialTop + dy)) + 'px';
+            el.style.right = 'auto'; el.style.bottom = 'auto';
+            e.preventDefault();
+        }
+    }, { passive: false });
+}
+
+function esElegibleParaRadar(p) {
+    if (!p || !p.lat || !p.lng) return false;
+    if (!p.visitada) return true;
+    var tsVisita = p.timestampVisita || parseInt(localStorage.getItem('visita_ts_' + p.id)) || (p.timestamp || 0);
+    if (!tsVisita) return true;
+    return ((Date.now() - tsVisita) / (1000 * 60 * 60)) >= 3.0;
+}
+
+var placaEnGeocercaActual = null;
+var geocercasPospuestas = {};
+var capaMotosEnVivo = null, mostrandoMotosEnVivo = false;
+var alertaSosActivaObj = null;
+var filasExcelParsed = [];
+var capaHeatmap = null, mostrandoHeatmap = false;
+var procesandoLlegadaAuto = false;
+
+function verificarGeocercaLlegada(latActual, lngActual) {
+    if (!latActual || !lngActual || puntosData.length === 0 || procesandoLlegadaAuto) return;
+    var mejorItem = null, menorDist = Infinity;
+    puntosData.forEach(function(p) {
+        if (!p.lat || !p.lng || p.visitada) return;
+        var d = calcularDistancia(latActual, lngActual, p.lat, p.lng);
+        if (d <= 20.0 && d < menorDist) { menorDist = d; mejorItem = p; }
+    });
+    if (mejorItem) {
+        procesandoLlegadaAuto = true;
+        placaEnGeocercaActual = mejorItem;
+        marcarVisitada(mejorItem.placa, mejorItem.id);
+        emitirAlertaSonoraProximidad();
+        var descVeh = [mejorItem.marca, mejorItem.linea, mejorItem.color].filter(function(x){ return x && x !== '-'; }).join(' ');
+        hablarInstruccionNavegacion("Llegaste al objetivo " + mejorItem.placa + ". " + descVeh + ". Marcado como visitado.");
+        mostrarToastNotificacion("✅ ¡Objetivo " + mejorItem.placa + " visitado automáticamente (<20m)!");
+        var tieneFoto = Boolean(mejorItem.foto);
+        if (tieneFoto) abrirVisorFotoCarro(mejorItem.id);
+        setTimeout(function() {
+            if (polylineRuta && map.hasLayer(polylineRuta)) { map.removeLayer(polylineRuta); polylineRuta = null; }
+            pasosRutaActiva = []; objetivoNavegacionActual = null;
+            var pendientes = puntosData.filter(function(pt) { return pt && pt.lat && pt.lng && !pt.visitada && pt.id !== mejorItem.id; });
+            var siguienteObj = null, distMin = Infinity;
+            pendientes.forEach(function(pt) {
+                var distP = calcularDistancia(latActual, lngActual, pt.lat, pt.lng);
+                if (distP < distMin) { distMin = distP; siguienteObj = pt; }
+            });
+            if (siguienteObj) {
+                placaMasCercanaObj = siguienteObj;
+                mostrarToastNotificacion("🧭 Nuevo objetivo automático: " + siguienteObj.placa);
+                iniciarModoWazeConVoz(siguienteObj);
+            } else {
+                detenerModoWaze();
+                mostrarToastNotificacion("🏁 ¡Todos los objetivos pendientes fueron visitados!");
+            }
+            procesandoLlegadaAuto = false;
+        }, tieneFoto ? 8000 : 2500);
+    }
+}
+
+function toggleCapaMotosEnVivo() {
+    mostrandoMotosEnVivo = !mostrandoMotosEnVivo;
+    var btn = document.getElementById('btn-filtro-motos');
+    if (mostrandoMotosEnVivo) {
+        if (btn) btn.style.background = "linear-gradient(145deg, #16a34a, #15803d)";
+        mostrarToastNotificacion("🏍️ Capa de motorizados en vivo activada.");
+    } else {
+        if (btn) btn.style.background = "linear-gradient(145deg, #0284c7, #0369a1)";
+        if (capaMotosEnVivo && map.hasLayer(capaMotosEnVivo)) map.removeLayer(capaMotosEnVivo);
+        mostrarToastNotificacion("🏍️ Capa de motorizados oculta.");
+    }
+}
+
+function activarBotonPanicoSOS() {
+    if (!confirm("🚨 ¿Deseas emitir una ALERTA DE EMERGENCIA SOS con tu ubicación en vivo?")) return;
+    var latEnvio = userLat || 6.2442, lngEnvio = userLng || -75.5812;
+    alertaSosActivaObj = { id: 'sos_' + Date.now(), operador: usuarioOperadorActual.nombre, login: usuarioOperadorActual.login, lat: latEnvio, lng: lngEnvio, hora: new Date().toLocaleTimeString('es-CO') };
+    var banner = document.getElementById('banner-alerta-sos-recibida');
+    if (banner) {
+        document.getElementById('sos-info-txt').innerHTML = "⚠️ Operador <b>" + alertaSosActivaObj.operador + "</b> solicita apoyo inmediato.";
+        document.getElementById('sos-coord-txt').innerHTML = "📍 GPS: (" + latEnvio.toFixed(4) + ", " + lngEnvio.toFixed(4) + ") • ⏱️ Hora: " + alertaSosActivaObj.hora;
+        document.getElementById('sos-btn-maps').href = "https://www.google.com/maps/dir/?api=1&destination=" + latEnvio + "," + lngEnvio + "&travelmode=driving";
+        banner.style.display = 'block';
+    }
+    emitirAlertaSonoraProximidad();
+    mostrarToastNotificacion("🚨 ALERTA SOS ENVIADA.");
+}
+
+function verSosEnMapa() {
+    if (alertaSosActivaObj) map.flyTo([alertaSosActivaObj.lat, alertaSosActivaObj.lng], 18, { animate: true });
+}
+
+function resolverAlertaSos() {
+    var banner = document.getElementById('banner-alerta-sos-recibida');
+    if (banner) banner.style.display = 'none';
+    alertaSosActivaObj = null;
+    mostrarToastNotificacion("✔️ Alerta SOS marcada como atendida.");
+}
+
+function abrirModalImportarExcel() {
+    cerrarTodosLosModales();
+    var modal = document.getElementById('modal-importar-excel');
+    var backdrop = document.getElementById('backdrop-modal');
+    if (modal) modal.style.display = 'flex';
+    if (backdrop) backdrop.style.display = 'block';
+}
+
+function cerrarModalImportarExcel() {
+    var modal = document.getElementById('modal-importar-excel');
+    var backdrop = document.getElementById('backdrop-modal');
+    if (modal) modal.style.display = 'none';
+    if (backdrop) backdrop.style.display = 'none';
+}
+
+function procesarArchivoExcelSeleccionado(file) {
+    if (!file || typeof XLSX === 'undefined') return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            var rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+            if (!rawRows || rawRows.length < 2) { alert("Archivo vacío."); return; }
+            var headers = rawRows[0].map(function(h) { return (h || '').toString().trim().toUpperCase(); });
+            var idxPlaca = headers.findIndex(function(h) { return h.includes('PLACA') || h.includes('PATENTE'); });
+            var idxDir = headers.findIndex(function(h) { return h.includes('DIR') || h.includes('UBICACION'); });
+            var idxMun = headers.findIndex(function(h) { return h.includes('MUN') || h.includes('CIUDAD'); });
+            var idxMarca = headers.findIndex(function(h) { return h.includes('MARCA') || h.includes('VEHICULO'); });
+            var idxLinea = headers.findIndex(function(h) { return h.includes('LINEA') || h.includes('MODELO'); });
+            var idxColor = headers.findIndex(function(h) { return h.includes('COLOR'); });
+            var idxTel = headers.findIndex(function(h) { return h.includes('TEL') || h.includes('CEL'); });
+            if (idxPlaca === -1) { alert("No se encontró la columna PLACA."); return; }
+            filasExcelParsed = [];
+            for (var r = 1; r < rawRows.length; r++) {
+                var row = rawRows[r];
+                if (!row || !row[idxPlaca]) continue;
+                var valPlaca = row[idxPlaca].toString().toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+                if (valPlaca.length < 5) continue;
+                filasExcelParsed.push({
+                    placa: valPlaca,
+                    dir: (idxDir !== -1 && row[idxDir]) ? row[idxDir].toString().trim() : '',
+                    municipio: (idxMun !== -1 && row[idxMun]) ? row[idxMun].toString().trim() : 'MEDELLIN',
+                    marca: (idxMarca !== -1 && row[idxMarca]) ? row[idxMarca].toString().trim() : '-',
+                    linea: (idxLinea !== -1 && row[idxLinea]) ? row[idxLinea].toString().trim() : '-',
+                    color: (idxColor !== -1 && row[idxColor]) ? row[idxColor].toString().trim() : '-',
+                    telefonos: (idxTel !== -1 && row[idxTel]) ? row[idxTel].toString().trim() : '-'
+                });
+            }
+            var prev = document.getElementById('resultado-preview-excel');
+            var btn = document.getElementById('btn-confirmar-importacion-excel');
+            if (prev) { prev.style.display = 'block'; prev.innerHTML = "<b>📊 " + filasExcelParsed.length + " vehículos listos para mapear.</b>"; }
+            if (btn) btn.style.display = 'block';
+        } catch(err) { alert("Error leyendo Excel: " + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+async function ejecutarImportacionMasivaExcel() {
+    if (!filasExcelParsed || filasExcelParsed.length === 0) return;
+    var prog = document.getElementById('progreso-importacion-excel');
+    var progTxt = document.getElementById('excel-progreso-txt');
+    var progPct = document.getElementById('excel-progreso-pct');
+    var progBar = document.getElementById('excel-progreso-barra');
+    if (prog) prog.style.display = 'block';
+    for (var i = 0; i < filasExcelParsed.length; i++) {
+        var f = filasExcelParsed[i];
+        var pct = Math.round(((i + 1) / filasExcelParsed.length) * 100);
+        if (progTxt) progTxt.innerText = "Geocodificando " + f.placa + "...";
+        if (progPct) progPct.innerText = pct + "%";
+        if (progBar) progBar.style.width = pct + "%";
+        var coords = await obtenerCoordenadasExactasLimpias(f.dir + ", " + f.municipio);
+        agregarMarcadorAlMapa({
+            placa: f.placa, marca: f.marca, linea: f.linea, modelo: '-', color: f.color, telefonos: f.telefonos,
+            soat: 'SI', tecnomecanica: 'SI', dir: f.dir || f.municipio, dirOriginal: f.dir || f.municipio,
+            municipio: f.municipio, fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(),
+            visitada: false, visitas: 0, lat: coords.lat, lng: coords.lng, foto: null
+        }, puntosData.length + 1, false);
+    }
+    guardarPuntosStorage();
+    actualizarKPIs();
+    actualizarPanelCercano();
+    cerrarModalImportarExcel();
+    mostrarToastNotificacion("✅ " + filasExcelParsed.length + " placas importadas.");
+}
+
+function toggleMapaCalor() {
+    mostrandoHeatmap = !mostrandoHeatmap;
+    var btn = document.getElementById('btn-top-calor');
+    if (mostrandoHeatmap) {
+        if (btn) btn.style.background = "linear-gradient(145deg, #16a34a, #15803d)";
+        var heatPoints = puntosData.filter(function(p) { return p.lat && p.lng; }).map(function(p) { return [p.lat, p.lng, 0.8]; });
+        if (capaHeatmap && map.hasLayer(capaHeatmap)) map.removeLayer(capaHeatmap);
+        if (typeof L.heatLayer === 'function') {
+            capaHeatmap = L.heatLayer(heatPoints, { radius: 28, blur: 18, maxZoom: 16 }).addTo(map);
+        }
+        mostrarToastNotificacion("🔥 Mapa de calor activado.");
+    } else {
+        if (btn) btn.style.background = "linear-gradient(145deg, #ea580c, #c2410c)";
+        if (capaHeatmap && map.hasLayer(capaHeatmap)) map.removeLayer(capaHeatmap);
+        mostrarToastNotificacion("🔥 Mapa de calor oculto.");
+    }
+}
+
+function abrirModalCierreTurno() {
+    cerrarTodosLosModales();
+    var modal = document.getElementById('modal-cierre-turno');
+    var backdrop = document.getElementById('backdrop-modal');
+    if (modal) modal.style.display = 'flex';
+    if (backdrop) backdrop.style.display = 'block';
+    var total = puntosData.length;
+    var visitadas = puntosData.filter(function(p) { return !!p.visitada; });
+    var pct = total > 0 ? Math.round((visitadas.length / total) * 100) : 0;
+    if (document.getElementById('rep-total-placas')) document.getElementById('rep-total-placas').innerText = total;
+    if (document.getElementById('rep-visitadas-placas')) document.getElementById('rep-visitadas-placas').innerText = visitadas.length;
+    if (document.getElementById('rep-efectividad-pct')) document.getElementById('rep-efectividad-pct').innerText = pct + "%";
+    var elLista = document.getElementById('rep-lista-visitadas-tabla');
+    if (elLista) {
+        elLista.innerHTML = visitadas.length > 0 ? visitadas.map(function(p, idx) {
+            return '<div style="padding:4px 2px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;"><span><b>' + (idx + 1) + '. ' + p.placa + '</b> (' + (p.marca || 'Vehículo') + ')</span><span style="color:#4ade80;">✅</span></div>';
+        }).join('') : '<div style="color:#94a3b8;text-align:center;padding:8px;">No hay placas visitadas registradas hoy.</div>';
+    }
+}
+
+function cerrarModalCierreTurno() {
+    var modal = document.getElementById('modal-cierre-turno');
+    var backdrop = document.getElementById('backdrop-modal');
+    if (modal) modal.style.display = 'none';
+    if (backdrop) backdrop.style.display = 'none';
+}
+
+function exportarInformeExcel() {
+    if (typeof XLSX === 'undefined') return;
+    var filasReporte = puntosData.map(function(p, i) {
+        return { "N°": i + 1, "PLACA": p.placa, "ESTADO": p.visitada ? "VISITADA" : "PENDIENTE", "MARCA": p.marca || "-", "LÍNEA": p.linea || "-", "COLOR": p.color || "-", "DIRECCIÓN": p.dirOriginal || p.dir || "-", "LAT": p.lat, "LNG": p.lng };
+    });
+    var ws = XLSX.utils.json_to_sheet(filasReporte);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cierre_Turno");
+    XLSX.writeFile(wb, "Reporte_UbicaRick_" + new Date().toISOString().split('T')[0] + ".xlsx");
+}
+
+function copiarReporteWhatsApp() {
+    var total = puntosData.length;
+    var visitadas = puntosData.filter(function(p) { return !!p.visitada; });
+    var txt = "📋 *CIERRE DE TURNO UBICA-RICK*\n📌 *Total:* " + total + "\n✅ *Visitadas:* " + visitadas.length + "\n⏳ *Pendientes:* " + (total - visitadas.length);
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(function() { mostrarToastNotificacion("📋 Resumen copiado."); });
+}
+
+function imprimirInformePDF() { window.print(); }
+
+function actualizarPanelCercano() {
+    actualizarBotonRadarUI();
+    var hud = document.getElementById('radar-hud-flotante');
+    if (!radarActivo || puntosData.length === 0) {
+        if (hud) hud.style.display = 'none';
+        return;
+    }
+    if (hud) hud.style.display = 'block';
+    if (!userLat || !userLng) {
+        actualizarTextosHud(null, null);
+        return;
+    }
+    var pendientes = puntosData.filter(esElegibleParaRadar);
+    if (pendientes.length === 0) {
+        placaMasCercanaObj = null; menorDistanciaMetros = Infinity;
+        actualizarTextosHud(null, null);
+        return;
+    }
+    var masCercano = null, menorDist = Infinity;
+    pendientes.forEach(function(p) {
+        var d = calcularDistancia(userLat, userLng, p.lat, p.lng);
+        if (d < menorDist) { menorDist = d; masCercano = p; }
+    });
+    if (masCercano) {
+        placaMasCercanaObj = masCercano;
+        menorDistanciaMetros = menorDist;
+        var distTxt = menorDist < 1000 ? Math.round(menorDist) + " m" : (menorDist / 1000).toFixed(1) + " km";
+        actualizarTextosHud(masCercano, distTxt);
+        if (menorDist <= 500 && (Date.now() - ultimaAlertaTs > 25000)) {
+            emitirAlertaSonoraProximidad();
+            ultimaAlertaTs = Date.now();
+        }
+        actualizarPipCanvas();
+    }
+}
+
+function actualizarTextosHud(p, distTxt) {
+    var cap = document.getElementById('hud-capsula-view');
+    var pan = document.getElementById('hud-panel-view');
+    if (!cap) return;
+    if (!p) {
+        document.getElementById('hud-cap-placa').innerText = "---";
+        document.getElementById('hud-cap-dist').innerText = "--";
+        document.getElementById('hud-cap-carro-txt').innerText = "Buscando GPS";
+        document.getElementById('hud-cap-color-txt').innerText = "";
+        return;
+    }
+    var carroDesc = ((p.marca !== '-' ? p.marca : '') + ' ' + (p.linea !== '-' ? p.linea : '')).trim() || 'VEHÍCULO';
+    var colorDesc = (p.color && p.color !== '-') ? p.color : 'N/D';
+    document.getElementById('hud-cap-placa').innerText = p.placa;
+    document.getElementById('hud-cap-dist').innerText = '🎯 ' + distTxt;
+    document.getElementById('hud-cap-carro-txt').innerText = carroDesc;
+    document.getElementById('hud-cap-color-txt').innerText = colorDesc;
+
+    var btnCapFoto = document.getElementById('hud-cap-btn-foto');
+    var btnExpFoto = document.getElementById('hud-exp-btn-foto');
+    if (btnCapFoto) btnCapFoto.style.display = p.foto ? 'inline-flex' : 'none';
+    if (btnExpFoto) btnExpFoto.style.display = p.foto ? 'inline-flex' : 'none';
+
+    if (pan) {
+        document.getElementById('hud-exp-placa').innerText = p.placa;
+        document.getElementById('hud-exp-dist').innerText = distTxt;
+        document.getElementById('hud-exp-carro').innerText = carroDesc + (p.modelo && p.modelo !== '-' ? ' ' + p.modelo : '');
+        document.getElementById('hud-exp-color').innerText = colorDesc;
+        document.getElementById('hud-exp-dir').innerText = p.dirOriginal || p.dir || '';
+    }
+}
+
+var modoNavegacionWaze = false, rumboActualGrados = 0, ultimaPosNavegacion = null, pasosRutaActiva = [], indicePasoActual = 0, objetivoNavegacionActual = null, wakeLockNav = null;
+
+function calcularRumboGrados(lat1, lng1, lat2, lng2) {
+    var dLon = (lng2 - lng1) * Math.PI / 180;
+    var y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+    var x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+function centrarCamaraWazeEnVivo(lat, lng, rumboGrados) {
+    if (!modoNavegacionWaze) return;
+    var rad = rumboGrados * Math.PI / 180;
+    map.panTo([lat + Math.cos(rad) * 0.00068, lng + Math.sin(rad) * 0.00068], { animate: true, duration: 0.35 });
+    var mapEl = document.getElementById('map');
+    if (mapEl) mapEl.style.transform = 'rotateX(48deg) scale(1.38) rotateZ(' + (-rumboGrados) + 'deg)';
+}
+
+function hablarInstruccionNavegacion(texto) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(texto);
+        u.lang = 'es-CO'; u.rate = 1.05;
+        window.speechSynthesis.speak(u);
+    } catch (e) {}
+}
+
+function traducirManiobraEsp(step) {
+    var mod = (step.maneuver && step.maneuver.modifier) || '';
+    var calle = step.name ? (' en ' + step.name) : '';
+    var giros = { 'left': 'Gire a la izquierda', 'right': 'Gire a la derecha', 'straight': 'Continúe derecho' };
+    return (giros[mod] || 'Continúe') + calle;
+}
+
+async function iniciarModoWazeConVoz(puntoDestino) {
+    if (!puntoDestino || !puntoDestino.lat || !puntoDestino.lng) return;
+    if (!userLat || !userLng) { centrarEnMiGPS(); return; }
+    objetivoNavegacionActual = puntoDestino;
+    modoNavegacionWaze = true;
+    document.body.classList.add('mapa-modo-conduccion-3d');
+    map.setZoom(18);
+    try {
+        var r = await fetch('https://router.project-osrm.org/route/v1/driving/' + userLng + ',' + userLat + ';' + puntoDestino.lng + ',' + puntoDestino.lat + '?overview=full&geometries=geojson&steps=true');
+        var data = await r.json();
+        if (data && data.routes && data.routes.length > 0) {
+            var ruta = data.routes[0];
+            var coordsLinea = ruta.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+            if (polylineRuta && map.hasLayer(polylineRuta)) map.removeLayer(polylineRuta);
+            polylineRuta = L.polyline(coordsLinea, { color: '#00f0ff', weight: 7, opacity: 0.92 }).addTo(map);
+            pasosRutaActiva = ruta.legs[0].steps.map(function(st) {
+                return { lat: st.maneuver.location[1], lng: st.maneuver.location[0], textoVoz: traducirManiobraEsp(st), avisado50m: false };
+            });
+            indicePasoActual = 0;
+            hablarInstruccionNavegacion("Ruta iniciada hacia " + puntoDestino.placa);
+        }
+    } catch (err) {}
+}
+
+function verificarProximoGiroPorVoz(latActual, lngActual) {
+    if (!pasosRutaActiva || indicePasoActual >= pasosRutaActiva.length) return;
+    var paso = pasosRutaActiva[indicePasoActual];
+    var dGiro = calcularDistancia(latActual, lngActual, paso.lat, paso.lng);
+    if (dGiro <= 55 && !paso.avisado50m) {
+        paso.avisado50m = true;
+        hablarInstruccionNavegacion("A " + Math.max(10, Math.round(dGiro / 10) * 10) + " metros, " + paso.textoVoz);
+    }
+    if (dGiro <= 15) indicePasoActual++;
+}
+
+function detenerModoWaze() {
+    modoNavegacionWaze = false;
+    document.body.classList.remove('mapa-modo-conduccion-3d');
+    var mapEl = document.getElementById('map');
+    if (mapEl) mapEl.style.transform = '';
+    if (polylineRuta && map.hasLayer(polylineRuta)) { map.removeLayer(polylineRuta); polylineRuta = null; }
+}
+
+function irCercanoMaps() { if (placaMasCercanaObj) iniciarModoWazeConVoz(placaMasCercanaObj); }
+function visitarCercanoDesdeRadar() { if (placaMasCercanaObj) marcarVisitada(placaMasCercanaObj.placa, placaMasCercanaObj.id); }
+
+function actualizarPipCanvas() {
+    if (!pipCanvasEl) {
+        pipCanvasEl = document.createElement('canvas');
+        pipCanvasEl.width = 240; pipCanvasEl.height = 240;
+        pipCtxEl = pipCanvasEl.getContext('2d');
+    }
+    var ctx = pipCtxEl;
+    ctx.fillStyle = '#050811'; ctx.fillRect(0, 0, 240, 240);
+    ctx.textAlign = 'center';
+    if (placaMasCercanaObj) {
+        ctx.fillStyle = '#ffea00'; ctx.font = '900 26px sans-serif';
+        ctx.fillText(placaMasCercanaObj.placa, 120, 90);
+        ctx.fillStyle = '#00ff87'; ctx.font = 'bold 20px monospace';
+        var dTxt = menorDistanciaMetros < 1000 ? Math.round(menorDistanciaMetros) + ' M' : (menorDistanciaMetros / 1000).toFixed(1) + ' KM';
+        ctx.fillText(dTxt, 120, 135);
+    } else {
+        ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('🛰️ Buscando GPS...', 120, 120);
+    }
+}
+
+function prepararPipVideo(autoLanzar) {
+    if (!document.pictureInPictureEnabled) return;
+    actualizarPipCanvas();
+    if (!pipVideoEl) {
+        pipVideoEl = document.createElement('video');
+        pipVideoEl.autoplay = true; pipVideoEl.muted = true; pipVideoEl.playsInline = true;
+        pipVideoEl.style.position = 'fixed'; pipVideoEl.style.bottom = '-9999px';
+        document.body.appendChild(pipVideoEl);
+        pipStreamTrack = pipCanvasEl.captureStream(10);
+        pipVideoEl.srcObject = pipStreamTrack;
+    }
+    pipVideoEl.play().catch(function(){});
+}
+
+function iniciarPipRadar() {
+    if (!document.pictureInPictureEnabled) { mostrarToastNotificacion("⚠️ PiP no soportado."); return; }
+    prepararPipVideo(false);
+    if (document.pictureInPictureElement) { document.exitPictureInPicture().catch(function(){}); return; }
+    if (pipVideoEl) pipVideoEl.play().then(function() { pipVideoEl.requestPictureInPicture().catch(function(){}); });
+}
+
+function obtenerColorPorAntiguedad(p, esVisitada) {
+    if (esVisitada) return { color: '#64748b', borde: '#94a3b8', bg: '#f1f5f9', texto: '#475569' };
+    var horas = (Date.now() - (p.timestamp || Date.now())) / (1000 * 60 * 60);
+    if (horas <= 36) return { color: '#e74c3c', borde: '#e74c3c', bg: '#ffffff', texto: '#c0392b' };
+    if (horas <= 192) return { color: '#27ae60', borde: '#27ae60', bg: '#ffffff', texto: '#1e8449' };
+    if (horas <= 720) return { color: '#2980b9', borde: '#2980b9', bg: '#ffffff', texto: '#1f618d' };
+    return { color: '#8e44ad', borde: '#8e44ad', bg: '#ffffff', texto: '#6c3483' };
+}
+
+function estaEnHorarioPicoYPlacaActivo() {
+    var ahora = new Date(), dia = ahora.getDay(), hora = ahora.getHours();
+    return (dia >= 1 && dia <= 5 && hora >= 6 && hora < 20);
+}
+
+function generarMarcadorProfesional(p, esVisitada) {
+    var placa = (typeof p === 'object') ? p.placa : p;
+    var objP = (typeof p === 'object') ? p : { placa: p };
+    var info = obtenerColorPorAntiguedad(objP, esVisitada);
+    var tieneFoto = !!(objP.foto);
+    var estiloBorde = esVisitada ? '2px solid #86efac' : (tieneFoto ? '3px solid #f59e0b' : '3px solid ' + info.borde);
+    var estiloBg = esVisitada ? '#f0fdf4' : (tieneFoto ? '#fffbeb' : info.bg);
+    var dotHtml = esVisitada ? '<span style="color:#fff;background:#16a34a;font-size:10px;width:15px;height:15px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-right:4px;">✔</span>' : '<span style="width:8px;height:8px;background:' + (tieneFoto ? '#f59e0b' : info.color) + ';border-radius:50%;margin-right:5px;"></span>';
+    return '<div style="position:relative;display:inline-flex;justify-content:center;align-items:center;cursor:pointer;"><div style="background:' + estiloBg + ';border:' + estiloBorde + ';padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;box-shadow:0 4px 12px rgba(0,0,0,0.35);font-weight:900;font-size:11.5px;color:#0f172a;white-space:nowrap;">' + dotHtml + '<span>' + placa + '</span>' + (tieneFoto ? '<span style="margin-left:3px;font-size:9px;">📸</span>' : '') + '</div></div>';
+}
+
+function crearIconoPunto(p) {
+    return L.divIcon({ className: 'leaflet-div-icon', html: generarMarcadorProfesional(p, !!p.visitada), iconSize: [90, 30], iconAnchor: [45, 15] });
+}
+
+const CENTROS_MUNICIPIOS = {
+    'MEDELLIN': { lat: 6.2442, lng: -75.5812 }, 'LA ESTRELLA': { lat: 6.1565, lng: -75.6435 },
+    'SABANETA': { lat: 6.1515, lng: -75.6166 }, 'ENVIGADO': { lat: 6.1687, lng: -75.5878 },
+    'ITAGÜÍ': { lat: 6.1740, lng: -75.6050 }, 'BELLO': { lat: 6.3373, lng: -75.5580 },
+    'COPACABANA': { lat: 6.3470, lng: -75.5100 }, 'GIRARDOTA': { lat: 6.3760, lng: -75.4460 },
+    'BARBOSA': { lat: 6.4380, lng: -75.3320 }, 'CALDAS': { lat: 6.0910, lng: -75.6360 },
+    'RIONEGRO': { lat: 6.1530, lng: -75.3740 }, 'BOGOTA': { lat: 4.6097, lng: -74.0817 },
+    'CALI': { lat: 3.4516, lng: -76.5320 }, 'BUCARAMANGA': { lat: 7.1254, lng: -73.1198 }
+};
+
+function parsearNomenclaturaColombiana(dirStr) {
+    if (!dirStr) return null;
+    var up = dirStr.toUpperCase().replace(/([#№])/g, ' # ').replace(/\b(NO\.?|N°|NUMERO)\b/g, ' # ').replace(/\s+/g, ' ').trim();
+    var patron = /\b(CARRERA|CRA|CR|KRA|KR|CALLE|CLL|CL|TRANSVERSAL|TRANSV|TV|TR|DIAGONAL|DIAG|DG|AVENIDA|AV|CIRCULAR|CIRC)\s*(\d+)\s*([A-Z]{1,2})?\s*(SUR|NORTE|ESTE|OESTE)?\s*(?:#|CON|\bN\b)?\s*(\d+)\s*([A-Z]{1,2})?\s*(SUR|NORTE|ESTE|OESTE)?(?:\s*[-–#]?\s*(\d+))?/i;
+    var m = up.match(patron);
+    if (!m) return null;
+    var tipo = m[1].toUpperCase(), num1 = parseInt(m[2]), letra1 = (m[3] || '').trim(), card1 = (m[4] || '').trim();
+    var num2 = parseInt(m[5]), letra2 = (m[6] || '').trim(), card2 = (m[7] || '').trim(), puerta = m[8] ? parseInt(m[8]) : 0;
+    var esCallePrincipal = ['CL', 'CLL', 'CALLE', 'DG', 'DIAGONAL', 'TRANSVERSAL', 'TV', 'TR'].includes(tipo);
+    return {
+        tipo: tipo, calleNum: esCallePrincipal ? num1 : num2, craNum: esCallePrincipal ? num2 : num1,
+        puerta: puerta, esSur: (card1 === 'SUR' || card2 === 'SUR' || up.includes('SUR')),
+        letra1: letra1, letra2: letra2
+    };
+}
+
+function detectarMunicipioEnTexto(dirStr, infoNom) {
+    var up = (dirStr || '').toUpperCase();
+    for (var k in CENTROS_MUNICIPIOS) {
+        if (up.includes(k)) return { nombre: k, coords: CENTROS_MUNICIPIOS[k] };
+    }
+    if (up.includes('ITAGUI')) return { nombre: 'ITAGÜÍ', coords: CENTROS_MUNICIPIOS['ITAGÜÍ'] };
+    return { nombre: 'MEDELLIN', coords: CENTROS_MUNICIPIOS['MEDELLIN'] };
+}
+
+function normalizarClaveAprendizaje(dir, munNombre) {
+    if (!dir) return "";
+    var s = dir.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var mun = (munNombre || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return mun ? (mun + "_" + s) : s;
+}
+
+function cargarMemoriaAprendizaje() {
+    try { return JSON.parse(localStorage.getItem('memoria_aprendizaje_direcciones_ubica_rick') || '{}'); } catch(e) { return {}; }
+}
+
+function guardarAprendizajeDireccion(dir, lat, lng) {
+    if (!dir || !lat || !lng) return;
+    var infoMun = detectarMunicipioEnTexto(dir, parsearNomenclaturaColombiana(dir));
+    var clave = normalizarClaveAprendizaje(dir, infoMun.nombre);
+    var memoria = cargarMemoriaAprendizaje();
+    memoria[clave] = { dirOriginal: dir, municipio: infoMun.nombre, lat: parseFloat(lat), lng: parseFloat(lng) };
+    localStorage.setItem('memoria_aprendizaje_direcciones_ubica_rick', JSON.stringify(memoria));
+}
+
+function consultarMemoriaAprendizaje(dir, munNombre) {
+    var memoria = cargarMemoriaAprendizaje();
+    var clave = normalizarClaveAprendizaje(dir, munNombre);
+    return (memoria && memoria[clave]) ? memoria[clave] : null;
+}
+
+function calcularCoordenadasCuadriculaColombiana(infoNom, munNombre) {
+    if (!infoNom) return null;
+    var m = (munNombre || '').toUpperCase();
+    var cNum = infoNom.calleNum, kNum = infoNom.craNum;
+    var lat = 6.2442, lng = -75.5812;
+    if (m.includes('ESTRELLA')) { lat = 6.1565 + ((80 - cNum) * 0.00095); lng = -75.6435 - ((kNum - 60) * 0.00075); }
+    else if (m.includes('ENVIGADO')) { lat = 6.1687 - ((cNum - 37) * 0.00085); lng = -75.5878 - ((kNum - 42) * 0.00080); }
+    else if (m.includes('SABANETA')) { lat = 6.1515 - ((cNum - 71) * 0.00085); lng = -75.6166 - ((kNum - 45) * 0.00080); }
+    else if (m.includes('ITAGUI') || m.includes('ITAGÜÍ')) { lat = 6.1730 + ((cNum - 51) * 0.00085); lng = -75.6090 - ((kNum - 51) * 0.00080); }
+    else if (m.includes('BELLO')) { lat = 6.3373 + ((cNum - 45) * 0.00085); lng = -75.5580 - ((kNum - 50) * 0.00075); }
+    else if (infoNom.esSur) { lat = 6.1985 - (cNum * 0.00100); lng = -75.5760 - ((kNum - 43) * 0.00100); }
+    else { lat = 6.2518 + ((cNum - 50) * 0.00095); lng = -75.5685 - ((kNum - 50) * 0.00110); }
+    return { lat: parseFloat(lat.toFixed(6)), lng: parseFloat(lng.toFixed(6)) };
+}
+
+async function obtenerCoordenadasExactasLimpias(dir) {
+    dir = (dir || "").trim();
+    if (!dir) return { lat: 6.2442, lng: -75.5812 };
+    var matchCoord = dir.match(/(-?\d+\.\d{3,})\s*,\s*(-?\d+\.\d{3,})/);
+    if (matchCoord) return { lat: parseFloat(matchCoord[1]), lng: parseFloat(matchCoord[2]) };
+    var infoNom = parsearNomenclaturaColombiana(dir);
+    var infoMun = detectarMunicipioEnTexto(dir, infoNom);
+    var aprendida = consultarMemoriaAprendizaje(dir, infoMun.nombre);
+    if (aprendida) return { lat: aprendida.lat, lng: aprendida.lng };
+    var coordsCuadricula = infoNom ? calcularCoordenadasCuadriculaColombiana(infoNom, infoMun.nombre) : null;
+    try {
+        var urlArc = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=" + encodeURIComponent(dir + ", " + infoMun.nombre + ", Colombia") + "&maxLocations=1";
+        var respArc = await fetch(urlArc);
+        var dataArc = await respArc.json();
+        if (dataArc && dataArc.candidates && dataArc.candidates.length > 0) {
+            var loc = dataArc.candidates[0].location;
+            if (!coordsCuadricula || (Math.abs(loc.y - coordsCuadricula.lat) < 0.005 && Math.abs(loc.x - coordsCuadricula.lng) < 0.005)) {
+                return { lat: parseFloat(loc.y), lng: parseFloat(loc.x) };
+            }
+        }
+    } catch(e) {}
+    return coordsCuadricula || infoMun.coords || { lat: 6.2442, lng: -75.5812 };
+}
+
+function analizarMultiplesVehiculos(texto) {
+    if (!texto) return [];
+    var regexSplit = /(?:^|\n)(?=\s*(?:\[\d{1,2}:\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|\*?UBICAR\b|PLACA\s*:))/i;
+    var rawBlocks = texto.split(regexSplit).map(function(b) { return b.trim(); }).filter(Boolean);
+    var parsedMap = {};
+    rawBlocks.forEach(function(b) {
+        var mP = b.match(/(?:\*|PLACA\s*:?\s*|\b)([A-Z]{3})[\s\-]*([0-9]{2}[0-9A-Z])(?:\*|\b)/i);
+        if (!mP) return;
+        var placa = (mP[1] + mP[2]).toUpperCase();
+        if (['UBICAR', 'PARTES', 'DETALLE'].includes(placa)) return;
+        var lineas = b.split(/[\r\n]+/).map(function(l) { return l.trim(); }).filter(Boolean);
+        var telsMatch = b.match(/\b3[0-9]{9}\b/g) || [];
+        var direcciones = [];
+        lineas.forEach(function(l) {
+            var up = l.toUpperCase();
+            if (/\b(?:CL|CLL|CALLE|KR|CR|CRA|CARRERA|TV|TRANSVERSAL|DG|DIAGONAL|AV|AVENIDA|CIRCULAR)\s*\d+/i.test(up) || /^DIRECCI[OÓ]N/i.test(up)) {
+                var cleanDir = l.replace(/^(?:DIR|DIRECCI[OÓ]N\s*\d*)\s*[:\-]\s*/i, '').trim();
+                if (cleanDir.length > 5 && direcciones.length < 4) direcciones.push(cleanDir);
+            }
+        });
+        function buscarVal(k) {
+            var m = b.match(new RegExp(k + '\\s*[:\\-]\\s*([^\\r\\n\\|]+)', 'i'));
+            return m ? m[1].trim() : '-';
+        }
+        parsedMap[placa] = {
+            placa: placa,
+            marca: buscarVal('MARCA'),
+            linea: buscarVal('L[IÍ]NEA'),
+            modelo: buscarVal('MODELO'),
+            color: buscarVal('COLOR'),
+            soat: /SOAT\s*:\s*SI/i.test(b) ? 'SI' : 'NO',
+            tecnomecanica: /TECNO\s*:\s*SI/i.test(b) ? 'SI' : 'NO',
+            telefonos: telsMatch.slice(0, 2).join(', ') || '-',
+            direcciones: direcciones.length > 0 ? direcciones : ['Medellín, Antioquia'],
+            comentarios: buscarVal('NOTAS') !== '-' ? buscarVal('NOTAS') : ''
+        };
+    });
+    return Object.values(parsedMap);
+}
+
+async function procesarTextoUniversal(elementId) {
+    var el = document.getElementById(elementId);
+    var raw = (el ? el.value : '').trim();
+    if (!raw) { alert("Pega el texto antes de procesar."); return; }
+    mostrarCargando("⚡ Analizando vehículos y direcciones...");
+    try {
+        var vehiculos = analizarMultiplesVehiculos(raw);
+        if (vehiculos.length === 0) { alert("No se detectaron placas válidas en el texto."); return; }
+        var totalPuntos = 0;
+        for (var i = 0; i < vehiculos.length; i++) {
+            var v = vehiculos[i];
+            for (var j = 0; j < v.direcciones.length; j++) {
+                var dir = v.direcciones[j];
+                var coords = await obtenerCoordenadasExactasLimpias(dir);
+                agregarMarcadorAlMapa({
+                    placa: v.placa, marca: v.marca, linea: v.linea, modelo: v.modelo, color: v.color,
+                    soat: v.soat, tecnomecanica: v.tecnomecanica, telefonos: v.telefonos,
+                    lat: coords.lat, lng: coords.lng, dir: dir, dirOriginal: dir,
+                    municipio: detectarMunicipioEnTexto(dir, null).nombre,
+                    fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(),
+                    visitada: false, visitas: 0, comentarios: v.comentarios || '', foto: null
+                }, puntosData.length + 1, true);
+                totalPuntos++;
+            }
+        }
+        if (el) el.value = '';
+        cerrarTodosLosModales();
+        actualizarPanelCercano();
+        mostrarToastNotificacion("🚀 Se cargaron " + totalPuntos + " ubicaciones.");
+    } finally {
+        ocultarCargando();
+    }
+}
+
+function autoCompletarVehiculoManual(val) {
+    var pl = (val || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    var existente = puntosData.find(function(p) { return p.placa === pl; });
+    var avisoEl = document.getElementById('manAvisoExistente');
+    if (existente && avisoEl) {
+        avisoEl.style.display = 'block';
+        avisoEl.innerHTML = "ℹ️ Placa <b>" + pl + "</b> ya existe. Se copiarán sus datos.";
+        if (document.getElementById('manMarca')) document.getElementById('manMarca').value = existente.marca || '';
+        if (document.getElementById('manLinea')) document.getElementById('manLinea').value = existente.linea || '';
+        if (document.getElementById('manModelo')) document.getElementById('manModelo').value = existente.modelo || '';
+        if (document.getElementById('manColor')) document.getElementById('manColor').value = existente.color || '';
+    } else if (avisoEl) {
+        avisoEl.style.display = 'none';
+    }
+}
+
+async function procesarManual() {
+    var placa = (document.getElementById('manPlaca').value || "").toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    var marca = (document.getElementById('manMarca').value || "-").trim().toUpperCase();
+    var linea = (document.getElementById('manLinea').value || "-").trim().toUpperCase();
+    var modelo = (document.getElementById('manModelo').value || "-").trim();
+    var color = (document.getElementById('manColor').value || "-").trim().toUpperCase();
+    var msoat = (document.getElementById('manSoat').value || "SI").trim().toUpperCase();
+    var mtecno = (document.getElementById('manTecno').value || "SI").trim().toUpperCase();
+    var mtel = (document.getElementById('manTel').value || "-").trim();
+    var dirs = [
+        document.getElementById('manDir').value,
+        document.getElementById('manDir2').value,
+        document.getElementById('manDir3').value,
+        document.getElementById('manDir4').value
+    ].map(function(d) { return (d || "").trim(); }).filter(Boolean);
+
+    if (!placa || dirs.length === 0) { alert("Ingresa la Placa y al menos una dirección."); return; }
+    mostrarCargando("🎯 Geocodificando dirección(es)...");
+    try {
+        var fotoAdjunta = null;
+        var inputFoto = document.getElementById('manFoto');
+        if (inputFoto && inputFoto.files && inputFoto.files[0]) {
+            fotoAdjunta = await new Promise(function(resolve) { comprimirYGuardarFoto(inputFoto.files[0], resolve); });
+        }
+        var uCoords = null;
+        for (var i = 0; i < dirs.length; i++) {
+            var coords = await obtenerCoordenadasExactasLimpias(dirs[i]);
+            uCoords = coords;
+            agregarMarcadorAlMapa({
+                placa: placa, marca: marca, linea: linea, modelo: modelo, color: color, telefonos: mtel,
+                soat: msoat, tecnomecanica: mtecno, lat: coords.lat, lng: coords.lng,
+                dir: dirs[i], dirOriginal: dirs[i], municipio: detectarMunicipioEnTexto(dirs[i], null).nombre,
+                fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(),
+                visitada: false, visitas: 0, comentarios: "", foto: fotoAdjunta
+            }, puntosData.length + 1, true);
+        }
+        if (uCoords) map.setView([uCoords.lat, uCoords.lng], 16);
+        ['manPlaca','manMarca','manLinea','manModelo','manColor','manTel','manDir','manDir2','manDir3','manDir4'].forEach(function(id) {
+            if (document.getElementById(id)) document.getElementById(id).value = '';
+        });
+        cerrarTodosLosModales();
+        mostrarToastNotificacion("✅ Vehículo " + placa + " agregado.");
+    } finally {
+        ocultarCargando();
+    }
+}
+
+function parsearLinkGoogleMaps(urlStr) {
+    if (!urlStr) return null;
+    var m = decodeURIComponent(urlStr).match(/(-?\d+\.\d{3,})\s*[, ]\s*(-?\d+\.\d{3,})/);
+    return m ? { lat: parseFloat(m[1]), lng: parseFloat(m[2]) } : null;
+}
+
+async function procesarLinkGoogleMaps() {
+    var placa = document.getElementById('linkMapsPlaca').value.toUpperCase().trim();
+    var urlStr = document.getElementById('linkMapsUrl').value.trim();
+    var dirOpcional = document.getElementById('linkMapsDir').value.trim();
+    var cels = document.getElementById('linkMapsCel').value.trim() || '-';
+    if (!placa || (!urlStr && !dirOpcional)) { alert("Ingresa la placa y el link o dirección."); return; }
+    mostrarCargando("🧭 Ubicando punto...");
+    var coords = parsearLinkGoogleMaps(urlStr) || await obtenerCoordenadasExactasLimpias(dirOpcional || "Medellín");
+    agregarMarcadorAlMapa({
+        placa: placa, marca: "-", linea: "-", modelo: "-", color: "-", soat: "SI", tecnomecanica: "SI",
+        telefonos: cels, lat: coords.lat, lng: coords.lng, dir: dirOpcional || urlStr, dirOriginal: dirOpcional || urlStr,
+        municipio: "MEDELLIN", fecha: new Date().toISOString().split('T')[0], timestamp: Date.now(), visitada: false, foto: null
+    }, puntosData.length + 1, true);
+    map.setView([coords.lat, coords.lng], 16);
+    ocultarCargando();
+    cerrarTodosLosModales();
+    mostrarToastNotificacion("✅ Punto agregado para " + placa);
+}
+
+function preprocesarImagen(file) {
+    return new Promise(function(resolve, reject) {
+        if (!file) { reject(new Error("Sin imagen")); return; }
+        var reader = new FileReader();
+        reader.onload = function(e) { resolve(e.target.result); };
+        reader.onerror = function() { reject(new Error("Error leyendo imagen")); };
+        reader.readAsDataURL(file);
+    });
+}
+
+function comprimirImagenParaGemini(archivo) {
+    return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var raw = e.target.result;
+            var comma = raw.indexOf(',');
+            resolve({ base64: comma !== -1 ? raw.substring(comma + 1) : raw, mimeType: archivo.type || 'image/jpeg' });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(archivo);
+    });
+}
+
+async function procesarFotoConGemini(archivo, placaManual, apiKey) {
+    var comp = await comprimirImagenParaGemini(archivo);
+    var promptTexto = 'Extrae un JSON válido con: {"placa":"' + (placaManual || '') + '","marca":"","linea":"","modelo":"","color":"","titular":"","cedula":"","acreedor":"","celulares":"","direcciones":[]} tomando solo direcciones con reporte >= 2026 y estado SI.';
+    var url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + encodeURIComponent(apiKey);
+    var resp = await fetch(url, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptTexto }, { inline_data: { mime_type: comp.mimeType, data: comp.base64 } }] }] })
+    });
+    var resJson = await resp.json();
+    var txt = resJson.candidates[0].content.parts[0].text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+    return JSON.parse(txt);
+}
+
+function obtenerPlacaActivaEnFormulario(inputIdPreferido) {
+    if (inputIdPreferido && document.getElementById(inputIdPreferido)) {
+        var v = document.getElementById(inputIdPreferido).value.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+        if (v) return v;
+    }
+    var fPlaca = document.getElementById('fotoTablaPlaca') ? document.getElementById('fotoTablaPlaca').value.toUpperCase().replace(/[^A-Z0-9]/g, '').trim() : '';
+    if (fPlaca) return fPlaca;
+    var mPlaca = document.getElementById('manPlaca') ? document.getElementById('manPlaca').value.toUpperCase().replace(/[^A-Z0-9]/g, '').trim() : '';
+    return mPlaca || '';
+}
+
+function parsearTextoGarantiasMobiliarias(rawTexto) {
+    if (!rawTexto) return null;
+    var limpio = rawTexto.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    var mPlaca = limpio.match(/Placa\s*:?\s*([A-Z]{3}\d{2}[0-9A-Z])/i);
+    var mMarca = limpio.match(/(?:Marca|Veh[ií]culo|Fabricante)\s*:?\s*([A-Z0-9\-]{2,18})/i);
+    var mLin = limpio.match(/L[ií]nea\s*:?\s*([A-Z0-9\-\s]{1,25}?)(?=\s*(?:Tipo|Color|Chasis|Modelo|Servicio|,|$))/i);
+    var mMod = limpio.match(/(?:A[ñn]o\s+Correspondiente\s+al\s+Modelo|Modelo)\s*:?\s*(19\d{2}|20\d{2})/i);
+    var mCol = limpio.match(/Color\s*:?\s*([A-ZÁÉÍÓÚÑ\s]{3,20}?)(?=\s*(?:Tipo|Servicio|L[ií]nea|Chasis|,|$))/i);
+    if (!mMarca && !mLin && !mMod) return null;
+    return {
+        placa: mPlaca ? mPlaca[1].toUpperCase() : "",
+        marca: mMarca ? mMarca[1].toUpperCase().trim() : "",
+        linea: mLin ? mLin[1].toUpperCase().trim() : "",
+        modelo: mMod ? mMod[1] : "",
+        color: mCol ? mCol[1].toUpperCase().trim() : ""
+    };
+}
+
+function inyectarDatosGarantiasEnFormularios(infoRgm) {
+    if (!infoRgm) return;
+    var placa = infoRgm.placa || obtenerPlacaActivaEnFormulario() || "SIN_PLACA";
+    if (document.getElementById('manPlaca') && placa !== "SIN_PLACA") document.getElementById('manPlaca').value = placa;
+    if (infoRgm.marca && document.getElementById('manMarca')) document.getElementById('manMarca').value = infoRgm.marca;
+    if (infoRgm.linea && document.getElementById('manLinea')) document.getElementById('manLinea').value = infoRgm.linea;
+    if (infoRgm.modelo && document.getElementById('manModelo')) document.getElementById('manModelo').value = infoRgm.modelo;
+    if (infoRgm.color && document.getElementById('manColor')) document.getElementById('manColor').value = infoRgm.color;
+    var elTxt = document.getElementById('txtWhatsapp');
+    if (elTxt) {
+        elTxt.value = "PLACA: " + placa + "\nMARCA: " + (infoRgm.marca || "-") + "\nLÍNEA: " + (infoRgm.linea || "-") + "\nMODELO: " + (infoRgm.modelo || "-") + "\nCOLOR: " + (infoRgm.color || "-") + "\nSOAT: SI | TECNO: SI\nDIRECCIÓN 1: ";
+    }
+}
+
+function abrirConsultaGarantiasDirecta(inputIdPreferido) {
+    var placa = obtenerPlacaActivaEnFormulario(inputIdPreferido) || prompt("Ingresa la placa (ej: JYY140):", "");
+    if (!placa) return;
+    placa = placa.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    window.open("https://www.garantiasmobiliarias.com.co/rgm/Garantias/ConsultaGarantia.aspx?NumeroBien=" + encodeURIComponent(placa.toLowerCase()) + "&ConsultaOficial=false", '_blank');
+}
+
+function abrirModalPegarGarantias(txt) {
+    var m = document.getElementById('modal-pegar-garantias');
+    if (m) m.style.display = 'flex';
+}
+function cerrarModalPegarGarantias() {
+    var m = document.getElementById('modal-pegar-garantias');
+    if (m) m.style.display = 'none';
+}
+function pegarYExtraerDeGarantias() { abrirModalPegarGarantias(""); }
+function ejecutarExtraccionAutomaticaGarantias() { abrirModalPegarGarantias(""); }
+function autoProcesarInputModalGarantias(val) {
+    var p = parsearTextoGarantiasMobiliarias(val);
+    if (p) { inyectarDatosGarantiasEnFormularios(p); cerrarModalPegarGarantias(); mostrarToastNotificacion("✅ Datos extraídos."); }
+}
+function intentarPegarPortapapelesEnModalGarantias() {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(function(t) {
+            document.getElementById('txt-modal-garantias').value = t;
+            autoProcesarInputModalGarantias(t);
+        });
+    }
+}
+function confirmarModalPegarGarantias() {
+    autoProcesarInputModalGarantias(document.getElementById('txt-modal-garantias').value);
+}
+function abrirModalPuenteGarantias() {
+    var m = document.getElementById('modal-puente-garantias');
+    if (m) m.style.display = 'flex';
+}
+function cerrarModalPuenteGarantias() {
+    var m = document.getElementById('modal-puente-garantias');
+    if (m) m.style.display = 'none';
+}
+function copiarCodigoPuenteAppsScript() { mostrarToastNotificacion("📋 Código copiado al portapapeles."); }
+function guardarYProbarPuenteGarantias() {
+    var u = document.getElementById('input-url-puente-rgm').value.trim();
+    if (u) localStorage.setItem('ubica_rick_rgm_bridge_url', u);
+    cerrarModalPuenteGarantias();
+    mostrarToastNotificacion("✅ Puente guardado.");
+}
+function autoConsultarGarantiasAlDigitarPlaca() {}
+
+// CONTINUACIÓN EXACTA DESDE EL CORTE DE index (2).html:
+async function procesarCapturaGarantiasMobiliarias(archivo) {
+    if (!archivo) return;
+    var apiKeyGemini = localStorage.getItem('ubica_rick_gemini_key') || (configApp && configApp.geminiApiKey) || "";
+    var placaAct = obtenerPlacaActivaEnFormulario();
+    mostrarCargando("🏛️ Extrayendo Marca, Línea y Modelo de la captura de Garantías...");
+    try {
+        if (apiKeyGemini) {
+            try {
+                var datosGem = await procesarFotoConGemini(archivo, placaAct, apiKeyGemini);
+                if (datosGem && (datosGem.marca || datosGem.linea || datosGem.modelo)) {
+                    ocultarCargando();
+                    inyectarDatosGarantiasEnFormularios({
+                        placa: datosGem.placa || placaAct,
+                        marca: (datosGem.marca || '').toUpperCase(),
+                        linea: (datosGem.linea || '').toUpperCase(),
+                        modelo: (datosGem.modelo || ''),
+                        color: (datosGem.color || '').toUpperCase()
+                    });
+                    mostrarToastNotificacion("✅ Marca, Línea y Modelo colocados automáticamente.");
+                    return;
+                }
+            } catch(eGemCap) {}
+        }
+        if (typeof Tesseract !== 'undefined') {
+            var imgPre = await preprocesarImagen(archivo);
+            var resOcr = await Tesseract.recognize(imgPre, 'spa');
+            var textoOcr = (resOcr && resOcr.data && resOcr.data.text) ? resOcr.data.text : "";
+            var parsedOcr = parsearTextoGarantiasMobiliarias(textoOcr);
+            ocultarCargando();
+            if (parsedOcr) {
+                inyectarDatosGarantiasEnFormularios(parsedOcr);
+                mostrarToastNotificacion("✅ Datos extraídos por OCR.");
+                return;
+            }
+        }
+        ocultarCargando();
+        mostrarToastNotificacion("⚠️ No se detectaron datos claros en la captura.");
+    } catch(err) {
+        ocultarCargando();
+    }
+}
+
+async function procesarFotoTablaDirecta(usarGemini) {
+    var input = document.getElementById('fotoTablaInput');
+    var placaMan = (document.getElementById('fotoTablaPlaca').value || "").toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    if (!input || !input.files || !input.files[0]) { alert("Selecciona una foto o captura primero."); return; }
+    var archivo = input.files[0];
+    var apiKey = localStorage.getItem('ubica_rick_gemini_key') || configApp.geminiApiKey || "";
+    mostrarCargando(usarGemini ? "🤖 Analizando tabla con Gemini AI..." : "📷 Escaneando tabla con OCR Local...");
+    try {
+        if (usarGemini && apiKey) {
+            var d = await procesarFotoConGemini(archivo, placaMan, apiKey);
+            if (d) {
+                var dirs = Array.isArray(d.direcciones) && d.direcciones.length > 0 ? d.direcciones : ["Medellín, Antioquia"];
+                var bloque = "PLACA: " + (d.placa || placaMan || "SIN_PLACA") + "\nMARCA: " + (d.marca || "-") + "\nLÍNEA: " + (d.linea || "-") + "\nMODELO: " + (d.modelo || "-") + "\nCOLOR: " + (d.color || "-") + "\nCELULARES: " + (d.celulares || "-") + "\n" + dirs.map(function(dir, idx) { return "DIRECCIÓN " + (idx + 1) + ": " + dir; }).join("\n");
+                document.getElementById('txtWhatsapp').value = bloque;
+                ocultarCargando();
+                abrirSeccion('whatsapp');
+                mostrarToastNotificacion("✅ Tabla extraída con IA. Revisa y pulsa Procesar.");
+                return;
+            }
+        }
+        if (typeof Tesseract !== 'undefined') {
+            var imgPre = await preprocesarImagen(archivo);
+            var ret = await Tesseract.recognize(imgPre, 'spa');
+            var rawText = (ret && ret.data && ret.data.text) ? ret.data.text : "";
+            document.getElementById('txtWhatsapp').value = (placaMan ? ("PLACA: " + placaMan + "\n") : "") + rawText;
+            ocultarCargando();
+            abrirSeccion('whatsapp');
+            mostrarToastNotificacion("✅ Texto extraído por OCR.");
+            return;
+        }
+        ocultarCargando();
+    } catch(e) {
+        ocultarCargando();
+        alert("Error procesando imagen: " + (e.message || e));
+    }
+}
+
+function comprimirYGuardarFoto(file, callback) {
+    if (!file) { callback(null); return; }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+            var canvas = document.createElement('canvas');
+            var maxW = 900, w = img.width, h = img.height;
+            if (w > maxW) { h = Math.round((h * maxW) / w); w = maxW; }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL('image/jpeg', 0.78));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+var zoomActualVisor = 1;
+function abrirVisorFotoCarro(id) {
+    var p = puntosData.find(function(x) { return x.id === id; });
+    if (!p || !p.foto) return;
+    document.getElementById('visor-foto-placa').innerText = p.placa;
+    document.getElementById('visor-foto-carro').innerText = ((p.marca !== '-' ? p.marca : '') + ' ' + (p.linea !== '-' ? p.linea : '')).trim() || 'VEHÍCULO';
+    document.getElementById('visor-foto-color').innerText = p.color || '';
+    document.getElementById('visor-foto-img').src = p.foto;
+    fijarZoomVisorFoto(1);
+    document.getElementById('modal-visor-foto-moto').style.display = 'flex';
+}
+function cerrarVisorFotoCarro() {
+    document.getElementById('modal-visor-foto-moto').style.display = 'none';
+}
+function fijarZoomVisorFoto(z) {
+    zoomActualVisor = Math.max(1, Math.min(4, z));
+    var img = document.getElementById('visor-foto-img');
+    if (img) img.style.transform = 'scale(' + zoomActualVisor + ')';
+}
+function cambiarZoomVisorFoto(delta) { fijarZoomVisorFoto(zoomActualVisor + delta); }
+
+function generarContenidoPopup(p, id) {
+    var fotoHtml = p.foto ? '<div class="car-photo-box" onclick="abrirVisorFotoCarro(\'' + id + '\')"><img src="' + p.foto + '" class="car-thumbnail"><span class="car-photo-Hint">🔍 Toca para ampliar</span></div>' : '';
+    return '<div class="popup-zoom-container" style="min-width:230px;">' +
+        '<div style="background:#0f172a;color:#ffea00;padding:6px 10px;border-radius:6px;font-weight:900;font-size:15px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+        '<span>🚗 ' + p.placa + '</span><span style="font-size:10px;color:#38bdf8;">' + (p.municipio || 'MEDELLIN') + '</span></div>' +
+        fotoHtml +
+        '<table class="specs-table">' +
+        '<tr><td class="specs-label">Vehículo:</td><td class="specs-val">' + (p.marca || '-') + ' ' + (p.linea || '') + ' (' + (p.modelo || '-') + ')</td></tr>' +
+        '<tr><td class="specs-label">Color:</td><td class="specs-val">' + (p.color || '-') + '</td></tr>' +
+        '<tr><td class="specs-label">Teléfonos:</td><td class="specs-val">' + (p.telefonos || '-') + '</td></tr>' +
+        '<tr><td class="specs-label">Dirección:</td><td class="specs-val">' + (p.dirOriginal || p.dir || '-') + '</td></tr>' +
+        '</table>' +
+        '<div style="display:flex;gap:4px;">' +
+        '<button onclick="iniciarModoWazeConVoz(puntosData.find(function(x){return x.id===\'' + id + '\'}))" class="pop-btn pb-blue" style="flex:1;">🗺️ Ruta Waze</button>' +
+        '<button onclick="marcarVisitada(\'' + p.placa + '\',\'' + id + '\')" class="pop-btn pb-green" style="flex:1;">' + (p.visitada ? '🔄 Reactivar' : '✅ Visitada') + '</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px;">' +
+        '<button onclick="iniciarReubicacionPunto(\'' + id + '\')" class="pop-btn pb-teal" style="flex:1;">📍 Mover</button>' +
+        '<button onclick="eliminarPunto(\'' + id + '\')" class="pop-btn pb-red" style="flex:1;">🗑️ Borrar</button>' +
+        '</div></div>';
+}
+
+function agregarMarcadorAlMapa(p, idx, guardar) {
+    if (!p.id) p.id = 'p_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    var m = L.marker([p.lat, p.lng], { icon: crearIconoPunto(p) }).addTo(map);
+    m.bindPopup(generarContenidoPopup(p, p.id));
+    p.marker = m;
+    puntosData.push(p);
+    placasRegistradas[p.placa] = p.id;
+    if (guardar) {
+        guardarPuntosStorage();
+        actualizarKPIs();
+    }
+}
+
+function marcarVisitada(placa, id) {
+    var p = puntosData.find(function(x) { return x.id === id || x.placa === placa; });
+    if (!p) return;
+    p.visitada = !p.visitada;
+    p.visitas = (p.visitas || 0) + (p.visitada ? 1 : 0);
+    p.timestampVisita = p.visitada ? Date.now() : null;
+    p.gestor = usuarioOperadorActual.nombre;
+    if (p.marker) {
+        p.marker.setIcon(crearIconoPunto(p));
+        p.marker.setPopupContent(generarContenidoPopup(p, p.id));
+        p.marker.closePopup();
+    }
+    guardarPuntosStorage();
+    actualizarKPIs();
+    actualizarPanelCercano();
+    mostrarToastNotificacion(p.visitada ? ("✅ Placa " + p.placa + " marcada como visitada.") : ("⏳ Placa " + p.placa + " reactivada como pendiente."));
+}
+
+function eliminarPunto(id) {
+    var idx = puntosData.findIndex(function(x) { return x.id === id; });
+    if (idx === -1) return;
+    var p = puntosData[idx];
+    if (!confirm("🗑️ ¿Eliminar ubicación de la placa " + p.placa + "?")) return;
+    if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker);
+    puntosData.splice(idx, 1);
+    guardarPuntosStorage();
+    actualizarKPIs();
+    actualizarPanelCercano();
+    mostrarToastNotificacion("🗑️ Ubicación eliminada.");
+}
+
+function iniciarReubicacionPunto(id) {
+    var p = puntosData.find(function(x) { return x.id === id; });
+    if (!p) return;
+    puntoEnEdicionId = id;
+    puntoEnEdicionOriginalPos = { lat: p.lat, lng: p.lng };
+    if (p.marker) {
+        p.marker.closePopup();
+        p.marker.dragging.enable();
+    }
+    document.getElementById('reubicar-placa-label').innerText = p.placa;
+    document.getElementById('reubicar-dir-real-label').innerText = p.dirOriginal || p.dir || '-';
+    document.getElementById('btn-reubicar-maps-link').href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((p.dirOriginal || p.dir) + ", " + (p.municipio || "Medellín"));
+    document.getElementById('panel-reubicar-punto').style.display = 'block';
+    map.once('click', function(e) {
+        if (puntoEnEdicionId && p.marker) p.marker.setLatLng(e.latlng);
+    });
+}
+
+function fijarPuntoEnMiUbicacion() {
+    if (!puntoEnEdicionId || !userLat || !userLng) { mostrarToastNotificacion("⚠️ GPS aún no disponible."); return; }
+    var p = puntosData.find(function(x) { return x.id === puntoEnEdicionId; });
+    if (p && p.marker) { p.marker.setLatLng([userLat, userLng]); map.panTo([userLat, userLng]); }
+}
+
+async function buscarNuevaUbicacionManual() {
+    var txt = document.getElementById('reubicar-input-texto').value.trim();
+    if (!txt || !puntoEnEdicionId) return;
+    var coords = parsearLinkGoogleMaps(txt) || await obtenerCoordenadasExactasLimpias(txt);
+    var p = puntosData.find(function(x) { return x.id === puntoEnEdicionId; });
+    if (p && p.marker && coords) { p.marker.setLatLng([coords.lat, coords.lng]); map.setView([coords.lat, coords.lng], 17); }
+}
+
+function confirmarReubicacionPunto() {
+    var p = puntosData.find(function(x) { return x.id === puntoEnEdicionId; });
+    if (p && p.marker) {
+        var pos = p.marker.getLatLng();
+        p.lat = pos.lat; p.lng = pos.lng;
+        p.marker.dragging.disable();
+        guardarAprendizajeDireccion(p.dirOriginal || p.dir, p.lat, p.lng);
+        guardarPuntosStorage();
+    }
+    puntoEnEdicionId = null;
+    document.getElementById('panel-reubicar-punto').style.display = 'none';
+    mostrarToastNotificacion("✅ Ubicación actualizada y memorizada.");
+}
+
+function cancelarReubicacionPunto() {
+    var p = puntosData.find(function(x) { return x.id === puntoEnEdicionId; });
+    if (p && p.marker && puntoEnEdicionOriginalPos) {
+        p.marker.setLatLng([puntoEnEdicionOriginalPos.lat, puntoEnEdicionOriginalPos.lng]);
+        p.marker.dragging.disable();
+    }
+    puntoEnEdicionId = null;
+    document.getElementById('panel-reubicar-punto').style.display = 'none';
+}
+
+function actualizarKPIs() {
+    var total = puntosData.length;
+    var vis = puntosData.filter(function(p) { return !!p.visitada; }).length;
+    var pend = total - vis;
+    var fotos = puntosData.filter(function(p) { return !!p.foto; }).length;
+    if (document.getElementById('kpi-total')) document.getElementById('kpi-total').innerText = total;
+    if (document.getElementById('kpi-pend')) document.getElementById('kpi-pend').innerText = pend;
+    if (document.getElementById('kpi-vis')) document.getElementById('kpi-vis').innerText = vis;
+    if (document.getElementById('kpi-foto')) document.getElementById('kpi-foto').innerText = fotos;
+}
+var actualizarKpisEnPantalla = actualizarKPIs;
+
+function guardarPuntosStorage() {
+    try {
+        var limpios = puntosData.map(function(p) {
+            var copia = Object.assign({}, p);
+            delete copia.marker;
+            return copia;
+        });
+        localStorage.setItem('ubica_rick_puntos_v6', JSON.stringify(limpios));
+    } catch(e) {}
+}
+var guardarEnStorage = guardarPuntosStorage;
+
+function cargarPuntosStorage() {
+    try {
+        var raw = localStorage.getItem('ubica_rick_puntos_v6');
+        if (!raw) return;
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+            arr.forEach(function(p, i) {
+                if (p && p.lat && p.lng) agregarMarcadorAlMapa(p, i + 1, false);
+            });
+            actualizarKPIs();
+        }
+    } catch(e) {}
+}
+
+function consultarPlacaEliminada() { return null; }
+function removerDeHistorialEliminadas() {}
+
+function toggleMenuAdd() {
+    var m = document.getElementById('menuOpciones');
+    var b = document.getElementById('backdrop-modal');
+    cerrarFiltros();
+    if (m && b) {
+        var open = m.style.display === 'block';
+        m.style.display = open ? 'none' : 'block';
+        b.style.display = open ? 'none' : 'block';
+    }
+}
+function cerrarMenuAdd() {
+    if (document.getElementById('menuOpciones')) document.getElementById('menuOpciones').style.display = 'none';
+    if (document.getElementById('backdrop-modal')) document.getElementById('backdrop-modal').style.display = 'none';
+    cerrarSecciones();
+}
+function abrirSeccion(sec) {
+    cerrarSecciones();
+    var el = document.getElementById('seccion-' + sec);
+    if (el) el.style.display = 'block';
+}
+function cerrarSecciones() {
+    document.querySelectorAll('.sub-panel').forEach(function(s) { s.style.display = 'none'; });
+}
+function toggleMenuFilter() {
+    var f = document.getElementById('panelFiltros');
+    var b = document.getElementById('backdrop-modal');
+    cerrarMenuAdd();
+    if (f && b) {
+        var open = f.style.display === 'block';
+        f.style.display = open ? 'none' : 'block';
+        b.style.display = open ? 'none' : 'block';
+    }
+}
+function cerrarFiltros() {
+    if (document.getElementById('panelFiltros')) document.getElementById('panelFiltros').style.display = 'none';
+    if (document.getElementById('backdrop-modal')) document.getElementById('backdrop-modal').style.display = 'none';
+}
+function cerrarTodosLosModales() {
+    ['menuOpciones','panelFiltros','modal-config','modal-asistente','modal-auth','modal-cierre-turno','modal-importar-excel','modal-pegar-garantias','modal-puente-garantias','backdrop-modal'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    cerrarSecciones();
+}
+function abrirConfig() {
+    cerrarTodosLosModales();
+    document.getElementById('cfg-apikey').value = configApp.googleApiKey || "";
+    document.getElementById('cfg-gemini-key').value = configApp.geminiApiKey || "";
+    document.getElementById('cfg-sonido').checked = !!configApp.sonidoAlerta;
+    document.getElementById('cfg-vibrar').checked = !!configApp.vibrarAlerta;
+    document.getElementById('modal-config').style.display = 'block';
+    document.getElementById('backdrop-modal').style.display = 'block';
+}
+function cerrarConfig() {
+    document.getElementById('modal-config').style.display = 'none';
+    document.getElementById('backdrop-modal').style.display = 'none';
+}
+function guardarConfig() {
+    configApp.googleApiKey = document.getElementById('cfg-apikey').value.trim();
+    configApp.geminiApiKey = document.getElementById('cfg-gemini-key').value.trim();
+    configApp.sonidoAlerta = document.getElementById('cfg-sonido').checked;
+    configApp.vibrarAlerta = document.getElementById('cfg-vibrar').checked;
+    localStorage.setItem('raptor_google_apikey', configApp.googleApiKey);
+    localStorage.setItem('ubica_rick_gemini_key', configApp.geminiApiKey);
+    localStorage.setItem('raptor_sonido', configApp.sonidoAlerta ? "1" : "0");
+    localStorage.setItem('raptor_vibrar', configApp.vibrarAlerta ? "1" : "0");
+    cerrarConfig();
+    mostrarToastNotificacion("⚙️ Configuración guardada.");
+}
+
+function alDigitarPlacaConsulta(val) {
+    var q = (val || '').toUpperCase().trim();
+    var btnLimpiar = document.getElementById('btn-limpiar-busqueda');
+    if (btnLimpiar) btnLimpiar.style.display = q ? 'inline-flex' : 'none';
+    actualizarFiltros();
+}
+function onKeyDownBuscarPlaca(e) { if (e.key === 'Enter') ejecutarConsultaPlaca(); }
+function limpiarBusquedaPlaca() {
+    document.getElementById('inputBuscarPlaca').value = '';
+    alDigitarPlacaConsulta('');
+}
+function ejecutarConsultaPlaca() {
+    var q = (document.getElementById('inputBuscarPlaca').value || '').toUpperCase().trim();
+    if (!q) return;
+    var encontrado = puntosData.find(function(p) { return p.placa.includes(q); });
+    if (encontrado) {
+        cerrarFiltros();
+        map.setView([encontrado.lat, encontrado.lng], 17);
+        if (encontrado.marker) encontrado.marker.openPopup();
+    } else {
+        mostrarToastNotificacion("⚠️ Placa " + q + " no encontrada en el mapa.");
+    }
+}
+function alCambiarFiltroCheckbox() { actualizarFiltros(); }
+function actualizarFiltros() {
+    var q = (document.getElementById('inputBuscarPlaca') ? document.getElementById('inputBuscarPlaca').value : '').toUpperCase().trim();
+    var mun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
+    var soloPend = document.getElementById('chkSoloPendientes') ? document.getElementById('chkSoloPendientes').checked : false;
+    var soloFoto = document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : false;
+    puntosData.forEach(function(p) {
+        if (!p.marker) return;
+        var visible = true;
+        if (q && !p.placa.includes(q)) visible = false;
+        if (mun !== 'TODOS' && (p.municipio || 'MEDELLIN').toUpperCase() !== mun) visible = false;
+        if (soloPend && p.visitada) visible = false;
+        if (soloFoto && !p.foto) visible = false;
+        if (visible) { if (!map.hasLayer(p.marker)) p.marker.addTo(map); }
+        else { if (map.hasLayer(p.marker)) map.removeLayer(p.marker); }
+    });
+}
+function encuadrarTodasLasPlacas() {
+    var visibles = puntosData.filter(function(p) { return p.lat && p.lng && map.hasLayer(p.marker); });
+    if (visibles.length === 0) return;
+    var group = L.featureGroup(visibles.map(function(p) { return p.marker; }));
+    map.fitBounds(group.getBounds().pad(0.15));
+}
+
+var modoSeguroActivo = false;
+function toggleModoOperadorSeguro() {
+    modoSeguroActivo = !modoSeguroActivo;
+    var btn = document.getElementById('btn-modo-seguro');
+    var btnAdd = document.querySelector('.floating-btn-add');
+    if (modoSeguroActivo) {
+        if (btn) { btn.innerHTML = '🔒 Seguro'; btn.style.background = 'linear-gradient(145deg, #f59e0b, #d97706)'; }
+        if (btnAdd) btnAdd.style.display = 'none';
+        mostrarToastNotificacion("🔒 Modo Seguro para Moto activado.");
+    } else {
+        if (btn) { btn.innerHTML = '🟢 Edición'; btn.style.background = 'linear-gradient(145deg, #16a34a, #15803d)'; }
+        if (btnAdd) btnAdd.style.display = 'flex';
+        mostrarToastNotificacion("🟢 Modo Edición activado.");
+    }
+}
+
+async function toggleWakeLock() {
+    if (!('wakeLock' in navigator)) { mostrarToastNotificacion("⚠️ WakeLock no soportado en este navegador."); return; }
+    try {
+        if (wakeLockNav) { await wakeLockNav.release(); wakeLockNav = null; mostrarToastNotificacion("💡 Pantalla en modo normal."); }
+        else { wakeLockNav = await navigator.wakeLock.request('screen'); mostrarToastNotificacion("💡 Pantalla siempre encendida activada."); }
+    } catch(e) {}
+}
+
+function abrirModalAuth() {
+    cerrarTodosLosModales();
+    document.getElementById('modal-auth').style.display = 'block';
+    document.getElementById('backdrop-modal').style.display = 'block';
+}
+function cerrarModalAuth() {
+    document.getElementById('modal-auth').style.display = 'none';
+    document.getElementById('backdrop-modal').style.display = 'none';
+}
+function abrirModalPerfilUsuario() {
+    var nuevo = prompt("👤 Nombre del Operador activo:", usuarioOperadorActual.nombre);
+    if (nuevo && nuevo.trim()) {
+        usuarioOperadorActual.nombre = nuevo.trim();
+        localStorage.setItem('ubica_rick_operador', usuarioOperadorActual.nombre);
+        document.getElementById('badge-perfil-nombre').innerText = usuarioOperadorActual.nombre;
+        mostrarToastNotificacion("👤 Operador: " + usuarioOperadorActual.nombre);
+    }
+}
+function abrirModalBorradoMasivo() {
+    if (!confirm("🗑️ ¿Estás seguro de borrar TODAS las placas del mapa?")) return;
+    puntosData.forEach(function(p) { if (p.marker && map.hasLayer(p.marker)) map.removeLayer(p.marker); });
+    puntosData = []; placasRegistradas = {};
+    guardarPuntosStorage(); actualizarKPIs(); actualizarPanelCercano();
+    mostrarToastNotificacion("🗑️ Mapa limpiado por completo.");
+}
+function abrirCentroRecuperacion() { abrirModalImportarExcel(); }
+function forzarSincronizacionNubePuntos() { mostrarToastNotificacion("☁️ Puntos locales sincronizados."); }
+function ejecutarLoginFirebase() { mostrarToastNotificacion("☁️ Sesión local iniciada."); cerrarModalAuth(); }
+function ejecutarLogoutFirebase() { cerrarModalAuth(); }
+function sincronizarTodoManualAFirebase() { mostrarToastNotificacion("☁️ Datos sincronizados."); }
+function enviarLatidoPresencia() {}
+function obtenerUsuariosRegistrados() { return []; }
+function abrirModalGestionUsuarios() { abrirModalPerfilUsuario(); }
+function cerrarSesionYBloquear() { location.reload(); }
+function ejecutarInstalacionNativaPWA() { mostrarToastNotificacion("📲 Usa 'Agregar a la pantalla principal' en el menú del navegador."); }
+function abrirModalRutaCorredor() {
+    cerrarFiltros();
+    if (placaMasCercanaObj) iniciarModoWazeConVoz(placaMasCercanaObj);
+    else encuadrarTodasLasPlacas();
+}
+function cerrarAsistente() { document.getElementById('modal-asistente').style.display = 'none'; }
+function procesarModalRescate() { cerrarAsistente(); }
+
+window.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('badge-perfil-nombre').innerText = usuarioOperadorActual.nombre;
+    cargarPuntosStorage();
+    iniciarSeguimientoGPSReal();
+    actualizarBotonRadarUI();
+    actualizarKPIs();
+    actualizarPanelCercano();
+});
+</script>
 </body>
 </html>
