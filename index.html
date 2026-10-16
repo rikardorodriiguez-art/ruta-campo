@@ -9904,7 +9904,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
         }
 
-        function actualizarBadgeFiltrosRuta() {
+       function actualizarBadgeFiltrosRuta() {
             var selMun = document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS';
             var verPico = document.getElementById('chkPico') ? document.getElementById('chkPico').checked : false;
             var verHoy = document.getElementById('chkHoy') ? document.getElementById('chkHoy').checked : false;
@@ -9931,7 +9931,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 partes.push("🛡️ Solo Valle de Aburrá");
             }
             var saltoKmEl = document.getElementById('selectSaltoMaxKmRuta');
-            var saltoVal = saltoKmEl ? parseFloat(saltoKmEl.value) : 10;
+            var saltoVal = saltoKmEl ? parseFloat(salnoKmEl.value) : 10;
             if (saltoVal && saltoVal < 900) {
                 partes.push("📏 Máx " + saltoVal + " km");
             }
@@ -9939,7 +9939,12 @@ async function procesarFotoTablaDirecta(usarGemini) {
             var sentidoVal = sentidoRioEl ? sentidoRioEl.value : 'cercania';
             if (sentidoVal === 'sur_norte') partes.push("⬆️ Sur ➔ Norte");
             else if (sentidoVal === 'norte_sur') partes.push("⬇️ Norte ➔ Sur");
-            else if (sentidoVal === 'mismo_costado') partes.push("🌊 Mismo Costado del Río");
+            else if (sentizedVal === 'mismo_costado') partes.push("🌊 Mismo Costado del Río");
+
+            var textoFiltros = partes.join(" • ");
+            var pool = (typeof obtenerPuntosFiltradosParaRuta === 'function')
+                ? (obtenerPuntosFiltradosParaRuta({ soloPendientes: ocultarVis }) || [])
+                : [];
 
             var boxSem = document.getElementById('semaforo-pico-horario-box');
             if (boxSem) {
@@ -9958,14 +9963,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }
             }
 
-            var textoFiltros = partes.join(" • ");
-            var pool = obtenerPuntosFiltradosParaRuta({ soloPendientes: ocultarVis });
-
             var elTxt = document.getElementById('txt-filtros-activos-ruta');
             var elBadge = document.getElementById('badge-conteo-activos-ruta');
             if (elTxt) elTxt.textContent = textoFiltros;
             if (elBadge) elBadge.textContent = pool.length + " placas";
-
+        }
             // Calcular vista previa del tiempo total del recorrido según la cantidad seleccionada
             try {
                 var limPreview = parseInt(document.getElementById('rutaCercaniaCantidad') ? document.getElementById('rutaCercaniaCantidad').value : 15) || 15;
