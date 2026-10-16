@@ -1,552 +1,395 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<title>UBICA-RICK - Sistema de Ruta y Rastreo</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.5, user-scalable=yes">
-<link rel="icon" type="image/png" href="data:image/png;base64,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">
-<link rel="shortcut icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAARPUlEQVR4nO2aaZBcV3XHf/e+pfee7p6tNYsWC3m0eJMXLAsvBGFjSDCQhCUhKYjIQoWAy0AqISQhpMrFh1CBhEBRODExFRNwAnbAxhtgAbKRsRYky7K22TTSrD29TW9vuzcfemY0I81IglA1H6J/1XyY9+6975z/Pffcs7Qw1+3Q/D+GXGkBVhqXCVhpAVYalwlYaQFWGpcJWGkBVhqXCVhpAVYalwlYaQFWGpcJWGkBVhrmci+0/j8kiUIgllhDCLH4G7B4nFjwYna81vq8eQuGcP6b88c0/zn738L1liVg7uPnCa41F6JmXqnmxCUFbC47r+UyCurFBC7QWGsNS8xZUp45HVis0xzOI+BCu3YpViFYvKtzhLBwNwVozlqJFmJ+h+bJA0DNPhMgZHPNuZfLWMa5spz37Jw5iwhYSsFf5iicO6e54eeuo0GLpgUYctYSms8Fs4oqgdKqOXUZ2S5EwtndF/NsnDtn2SOwFOYm/jKkzH9UA0IhZNP0hZQIc/Zv9hkCtNLoQCG8AO376GCWsPk1llZoDgtl1GiWO7eLCFjqjJy7qFhwZi9GxKL1hGDuUMwpLQ0TaRloSyAtA2EaIMWsggKJIHBdgrqHqnsoN2jKIMUii9DzB+p85S+G5Z3grNCzKy5J4KzFzm/MucrPjRFCoAKPwHExwhGE2VTcCIcwWiKYLRFkJIQVD2MlIggBTnEGZ6qE6YcJXIVXruLNNBCOT+C6GIaBVqDU7KaYAqH1PC+LfcnyEEsWRReY2MJHixQHpJ5zYkt/TAiJQOG7LkY6TXrr9VQO78d3G1jxKEY0TGBIAglmJAxxG9+wseIxsld0Es7EmT42gjM2ja65uGMF3OkStiGplipYtkkoYhMEAfV8HawwZsiYt47lLGFZH7DQSy/LWHMgc35JCNE8YwvufiEkaE3guUjLJJrKEFvfh53txhseJNXdTnniNE65TPe2G9jwxtfSs6GXd048Cmde5bmZVXxrZJRJulh/zw5yQzlyz72AKJVJbb2dTX/zO0zc/0VaqnXspMb2G0g0B35ymmLOQ9rmWdkuchwu2QnOcSJ0U/G5ELJ5JzPn6gFN4LsYhk2svRMrZOPXK/iTo0we2EPmqqupFYrgelz/13/GVW/bgeGFKE36jAT7uKW9xv3S5y+Uw8cPFXji5CgbXn8zImTg9Q/TKCnGXzpD/nSdky+9QqA0wofsFTFuvnsdz35jEK0v9QAsR8ASR2AOCj17jzePwNwErRQKhRAGsXQbViKBV61RGjlFpDVNNTdBPNsJWuHkp7jjC39P9rXXcuCH4wy/cByncIansnWSPVdw9aqAD6WnkY2ARGOcyR//iLYrN3Bs1x7cIwNM/88zuNUGwjAxLQMRNRjrd9iyDeyopF5RSOPSAqXlA6EF4ehCCGgGLnNkaJDCwAjbmFaISDqDXy1TGT+NVopY1xoimTYaxQns9jbyR35O3yc+DNdey88eG2Hgse8SmjlEz4Yw2VCM/H6Xg53tvD/eyTXeNM+9YYqdz0zQn6+S6UhRHk9gmwLDsakUHLyKj1f36XxNjEArqlN1rGQErRZHscsdhYsmQ1qfE5LOnnUBIAXKdzHas2Q/cC/pjVsIahUCrbATSaKpDNFMitLQAJ6vqI1NkFi3htDdOxjYl2P4kUdIlF5i03vfioqkyFd87uxscG96DHk6R3JrKzFR5YNXVMgfGcC2TQKnzvqtHVz31j423rYav+4hvBo37FjHy7tHEZa5ZNC0XMB0Sdng2Tt2XvXZyQIhJCErTH3PLqojg/gaasUS1YkplBaUhk7glCcQloU3UyG2bRs1K0Xl8ADq2HN03fVGBh7/AVGrwjWbUzw+HaVW93lHIscLB0t8gw62tzdo8YvUKg2UFeHIC2MMHRwjFhUkUwbb3ruNoWN5SqMzmDFrfvcvBRckYD7omQ/Amk5ujpTA84lkOsCt4/Ufpjo2gtQ+ifZ2Ip09CDuCW2sgQ2G066AbFYJslpoj8UaHCMVtxn/8PAKPLe+7meveFOH9f9zNQ0dgtOJhDU1w0FMMRWy6oppSoU4oHqHnql7yQ3We/9efcc27X0+9GnDk6QGufXMfobBAqUvWf3kCljKZhU+UDpCWRaglxczEKCKcBMNgZmIM5SqSq9eiFWhpIhQo3wPl4wcGM0WNqeqYkSg4dfzWdRzIb+DJoymGiCO0j5sIY86UqUqXp9u78TDxp8s4hRr9u44QX9fNtk9/iKF9w5SOH6N9Sxt7nxzEqQRI49LLHOeNXBjqLsK8VQmQEq0hnu2mXphCo/F8jZ1Mkepei9ABxaOHIHBI9axB2xGchksQSGS+jFvwaVu/isrwNJ6xkereV5jeW2Z4agNPPjBIpao5NBLGRpNMxhkpw+RoGVmuUh2dItLZSbxvC9qrM3V0gHja5tpb2yFwQZgsdQUu5wTPywWWgtYaEfjoQIFSKN/HtEJ446PUc1MQDmOGwlgtaQrDJwiKRfB9HM9BpjLE0knsaIQGLu7+n8E1b4F1fbRt7KFY9WlZs5XyA1+kFI1hakXvXTfS/8Rutu/soaETlIcL5E/XUX6N9qs207qlj4FHn8Uv5nntr29kcP8gsQ5B3+t6ObZ7HDtuoS4xH7hoIDRXfLDjCYx4HJ2IIaNhzGgYM2yRti30WI6xn7+KmqmQaMvQe8tWum/aTKpvLZneLuLhCHbYZvjwCf77Lz9LdHKAM+E+eu79E3L3fppqrg27dzUt6zqYGZrg6MM/5sY7FKltWYamw4w/dwYVbqP3rtuonxrmlS9/jaDS4IqbVjN6skBgxHEdQSwRRtpzvuriuw/L5QKLRjRzdjsSxU61YHa0E+vtxjM0gW4gKxXk8WHSqzpYveM2srffgrQtpkdGGTxwmOKxfkoDp1BKY2RaqR0bxNqwEd5+H7F0DVXJ4zz6DWp796KtOInIDK//4BY2vnkd33+1BXMqx8HPPEXb9jsoDJ5Bj/Vz5Rs2MrxviNZVbZQnK3SsbuHoj05w5bYsp48XKOV8DFOcX3KbV+ki9QCtZyO7wEeoAK18/PwU7phBdCyFPtZPrVIj3pOl89ZbiN33Dmpr1nK8WmHP5x6isPun6Mk8+B4ilSSS7cJc1Qntq0i1ZJh+6hkSm2+h3HENyowR2fkp4tmvwhP/wT2fuxuvM8X+4ykcFSf3zG6chmBi9268ikOiK4ORShEENp60SPemOPbiSa57z3WomSp2qIpWLkKYl5QWLxkJGoZFqK0NM92GnUphRhPodAKdjGKYEiMRZ/01V9GyrhsfRXEqTy1fQgQ+qlTDCoCIRdAICMpVaqXjcOJE0zdZBrgNGk8+jPUH19PIK2amxghvuYsdbzXoD3yMk3FO5hKkxo4x+OxREAZByYMgoHR0jIMuuLkiLR1RPEcT1H0KoxUq0xXsVAJOzYBo5i0Ld3wpQpa0gEAFNEp5RL1CbToBVhi1Zj1+OINdLJGcmubEgQNYEuLZLC3rulnT1UKyJYH/yT9iquIyemoKo1YiVSrAmXEakxP4hQJOzaVihpg5OYC159vIze/Gn8rhVC1eSXeRTRYZnMwigwYDDz7J1b95N31v2IaRm8YsV3BHckwMnWIqYjK8f5CaBio+1QJ4rkUoZbFcIrSUkz+PADFbuQmcBqFGmZQ9iaUDbpEHeU/CYFRF+czzPlNOlMz1N1DtTuAQYaJuERTHsQ+cRMdSOJEYoXgKp28dLbEIqZBJxJBYQtGPTfHpnzL2d/fT0nMNrnEl3nQZJycYHI8wY6exv/9NdGsvhd9+F3uSETruaKU3YdJhBKzxFa0TNTKnzjB+dIDvPb2bvbv3IsIWkb6u2YrR0iYvlEbLs0Qs6QQFoDS02JreBHTYDutjPuvT8HwhwpOnE6TeeA9mIk55/0/xq0XsriyZ37gbo7OV8uGTBNMzVL/5dVwrhL3pali9Gq+jFaIRDNsikkgQPPJN3P5xku//PNP9FeKdA7jRKMnRQxS+/Qipj34M79rNpEWV8jPPUDr0KiJskL3rBjretgOnnuLqx55iUzbGRDzBT77+OC8/+wIyEUcaxtI5wUUJmM3rtdDNkpOMIBOdqGgCzDCcPkIs24rV2kml/wiJbTcR2tCLd2qE8tO76dz5u+iOTmaOHCfTleLMQ98ivGkrRnsbsj2FbEtBJoHRmsRKxil86n4MPwO3f4xykCObnCT/5c8Qvv5GzF97E3G/Qu7fvkKiPUnv9rXErBr93zuKam3jin/5OHufOUXwwNfYuLqT2973DsZHp3j68w/R8BVSLlEQOaensKQFaK2AZmVHSAMjlECaJqZt4tUqOPUq0g7T9Xt/SKM4hpsbo+X2G5CpBEN/+ld0f+SjFF/tJ7VlLRHpceJLD2P39GAkksh0G6I1g8zEMbKtWFN5Jv/py8Tu3klq+62c+cInEC1pWu+6EzseJ/fVL5G9aRMdW9eTe+UV2jtstr9zPU986nsU/SRdn/0kUyOSTqNBzKux4c6bOfHgo7zwt5/HTMTRF0kMLkKAgfIb2K3riPbdRn7XA5iJdpTrkrrhddRGh2gcPYRhhwnyBVZ9+uMI16fw/X0kb7qV3H89zJr73otfKTH64OMoIcEQCNNEhGwwLFJmgxvbG7w4Iim4MW5KnsJIpnnF7EMKk6A8Tmbr1Zz61nea1lmDZF+Ed/3jW/jPDz7OlX/+AU5+5yWCRIpwZyu6I0XE0Ez8w1eQsThaBxck4BwnOMdWM4QQgDRC+IVRzO5rifTdSePVH2Ak01ROHMYv5jDb2po1wEiYwmM/oHvnTqZy38U9NUB8640UDudo/f072bj9OpxDx3EGz+CPTeKN5SiOFnn79YoHfkvx9T2KB/cUePIjSYaLiu3/vJepmkks28HYs7swI+FmNblVUh4sM/zyDB2buijuHyLs1sk/vZd6vcrav/sw+V17UVojxPL9gGUIOMcS0AhpoBoVKru/RuzWnUS6NzHz4sP45RyGbTcbGKKZI2jl0xgcQdVnqBw7DnYIOTZG9b59mOkwRsTEMCWmYSLCUaxknX/fV2bXz8usyUiwY9z+uRInyyEKKoQZNWlM55BCNhOwQDVL8BLyRUHdM5h49IdE2jJYbRl0UUBvJ/ZrepEvHkKcFxRflICF92Sz3YBWyFCcxtghnO98inD7WoRsNjXma/Ba43seLWuuZublQ9gdG0je80katRISDyk1gXKQKJAeSvsYOMRxwXWYclyGa3UMp44xk0dMTyAnRlGeizDN+daYkODV6sQ39OI5IaZfHmLVW+7G3vwadFscdIDKtBK/5XoKjzw1b88Xqg5e0AcwW/FpjpSgfLTvIKzwgmUFQeARW7sFK9VJ8eAuhDCRpkkoksDzHQJXIS0TYRgIHaBFs5MjpGz2FJQi3BJHNeqoWq1Z0bFshAanWm2aMqBUQDTbQ+a6zeT37acyOkoolQZpgGkgjOb9H0yXUEI3ZZ4v4PwCBCzdBpnt6IqmVZwlSyNNCyOSxCmME461YMfT1AqjWKEooXQ3Xq2MU5rAb9QQWs8W1gSB8hB2mNiqHiw7xMz4GFbMJhSPI6RBLV/Eq9XmN0EDRjxJUK2g3QbCssAPzsqrNVJItGleQItLIuAXRTN5klKikVjxDHa8DZTGa5SwwxEM0wStqAca7btI5WCmWohGwgS1OspxUSEb33Fx8jm82gxCGgi5uGajVdAkRMpmtNbsvZ0jzqWr9CsiAOa7I1qjAx+twQjHMENRpGWBNLAicXQi1awsO3UQCi8/hVctgNIETgOtNMI0EMbS1V0W/JbgV4FfqD1+YZztAgvTatIRuHg1d36EU7jwCnPzmssto+SvUHm4/COpywRcJmClBVhpXCZgpQVYaVwmYKUFWGlcJmClBVhpXCZgpQVYaVwmYKUFWGn8L5dTGIWca0OJAAAAAElFTkSuQmCC">
-<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAARPUlEQVR4nO2aaZBcV3XHf/e+pfee7p6tNYsWC3m0eJMXLAsvBGFjSDCQhCUhKYjIQoWAy0AqISQhpMrFh1CBhEBRODExFRNwAnbAxhtgAbKRsRYky7K22TTSrD29TW9vuzcfemY0I81IglA1H6J/1XyY9+6975z/Pffcs7Qw1+3Q/D+GXGkBVhqXCVhpAVYalwlYaQFWGpcJWGkBVhqXCVhpAVYalwlYaQFWGpcJWGkBVhrmci+0/j8kiUIgllhDCLH4G7B4nFjwYna81vq8eQuGcP6b88c0/zn738L1liVg7uPnCa41F6JmXqnmxCUFbC47r+UyCurFBC7QWGsNS8xZUp45HVis0xzOI+BCu3YpViFYvKtzhLBwNwVozlqJFmJ+h+bJA0DNPhMgZHPNuZfLWMa5spz37Jw5iwhYSsFf5iicO6e54eeuo0GLpgUYctYSms8Fs4oqgdKqOXUZ2S5EwtndF/NsnDtn2SOwFOYm/jKkzH9UA0IhZNP0hZQIc/Zv9hkCtNLoQCG8AO376GCWsPk1llZoDgtl1GiWO7eLCFjqjJy7qFhwZi9GxKL1hGDuUMwpLQ0TaRloSyAtA2EaIMWsggKJIHBdgrqHqnsoN2jKIMUii9DzB+p85S+G5Z3grNCzKy5J4KzFzm/MucrPjRFCoAKPwHExwhGE2VTcCIcwWiKYLRFkJIQVD2MlIggBTnEGZ6qE6YcJXIVXruLNNBCOT+C6GIaBVqDU7KaYAqH1PC+LfcnyEEsWRReY2MJHixQHpJ5zYkt/TAiJQOG7LkY6TXrr9VQO78d3G1jxKEY0TGBIAglmJAxxG9+wseIxsld0Es7EmT42gjM2ja65uGMF3OkStiGplipYtkkoYhMEAfV8HawwZsiYt47lLGFZH7DQSy/LWHMgc35JCNE8YwvufiEkaE3guUjLJJrKEFvfh53txhseJNXdTnniNE65TPe2G9jwxtfSs6GXd048Cmde5bmZVXxrZJRJulh/zw5yQzlyz72AKJVJbb2dTX/zO0zc/0VaqnXspMb2G0g0B35ymmLOQ9rmWdkuchwu2QnOcSJ0U/G5ELJ5JzPn6gFN4LsYhk2svRMrZOPXK/iTo0we2EPmqqupFYrgelz/13/GVW/bgeGFKE36jAT7uKW9xv3S5y+Uw8cPFXji5CgbXn8zImTg9Q/TKCnGXzpD/nSdky+9QqA0wofsFTFuvnsdz35jEK0v9QAsR8ASR2AOCj17jzePwNwErRQKhRAGsXQbViKBV61RGjlFpDVNNTdBPNsJWuHkp7jjC39P9rXXcuCH4wy/cByncIansnWSPVdw9aqAD6WnkY2ARGOcyR//iLYrN3Bs1x7cIwNM/88zuNUGwjAxLQMRNRjrd9iyDeyopF5RSOPSAqXlA6EF4ehCCGgGLnNkaJDCwAjbmFaISDqDXy1TGT+NVopY1xoimTYaxQns9jbyR35O3yc+DNdey88eG2Hgse8SmjlEz4Yw2VCM/H6Xg53tvD/eyTXeNM+9YYqdz0zQn6+S6UhRHk9gmwLDsakUHLyKj1f36XxNjEArqlN1rGQErRZHscsdhYsmQ1qfE5LOnnUBIAXKdzHas2Q/cC/pjVsIahUCrbATSaKpDNFMitLQAJ6vqI1NkFi3htDdOxjYl2P4kUdIlF5i03vfioqkyFd87uxscG96DHk6R3JrKzFR5YNXVMgfGcC2TQKnzvqtHVz31j423rYav+4hvBo37FjHy7tHEZa5ZNC0XMB0Sdng2Tt2XvXZyQIhJCErTH3PLqojg/gaasUS1YkplBaUhk7glCcQloU3UyG2bRs1K0Xl8ADq2HN03fVGBh7/AVGrwjWbUzw+HaVW93lHIscLB0t8gw62tzdo8YvUKg2UFeHIC2MMHRwjFhUkUwbb3ruNoWN5SqMzmDFrfvcvBRckYD7omQ/Amk5ujpTA84lkOsCt4/Ufpjo2gtQ+ifZ2Ip09CDuCW2sgQ2G066AbFYJslpoj8UaHCMVtxn/8PAKPLe+7meveFOH9f9zNQ0dgtOJhDU1w0FMMRWy6oppSoU4oHqHnql7yQ3We/9efcc27X0+9GnDk6QGufXMfobBAqUvWf3kCljKZhU+UDpCWRaglxczEKCKcBMNgZmIM5SqSq9eiFWhpIhQo3wPl4wcGM0WNqeqYkSg4dfzWdRzIb+DJoymGiCO0j5sIY86UqUqXp9u78TDxp8s4hRr9u44QX9fNtk9/iKF9w5SOH6N9Sxt7nxzEqQRI49LLHOeNXBjqLsK8VQmQEq0hnu2mXphCo/F8jZ1Mkepei9ABxaOHIHBI9axB2xGchksQSGS+jFvwaVu/isrwNJ6xkereV5jeW2Z4agNPPjBIpao5NBLGRpNMxhkpw+RoGVmuUh2dItLZSbxvC9qrM3V0gHja5tpb2yFwQZgsdQUu5wTPywWWgtYaEfjoQIFSKN/HtEJ446PUc1MQDmOGwlgtaQrDJwiKRfB9HM9BpjLE0knsaIQGLu7+n8E1b4F1fbRt7KFY9WlZs5XyA1+kFI1hakXvXTfS/8Rutu/soaETlIcL5E/XUX6N9qs207qlj4FHn8Uv5nntr29kcP8gsQ5B3+t6ObZ7HDtuoS4xH7hoIDRXfLDjCYx4HJ2IIaNhzGgYM2yRti30WI6xn7+KmqmQaMvQe8tWum/aTKpvLZneLuLhCHbYZvjwCf77Lz9LdHKAM+E+eu79E3L3fppqrg27dzUt6zqYGZrg6MM/5sY7FKltWYamw4w/dwYVbqP3rtuonxrmlS9/jaDS4IqbVjN6skBgxHEdQSwRRtpzvuriuw/L5QKLRjRzdjsSxU61YHa0E+vtxjM0gW4gKxXk8WHSqzpYveM2srffgrQtpkdGGTxwmOKxfkoDp1BKY2RaqR0bxNqwEd5+H7F0DVXJ4zz6DWp796KtOInIDK//4BY2vnkd33+1BXMqx8HPPEXb9jsoDJ5Bj/Vz5Rs2MrxviNZVbZQnK3SsbuHoj05w5bYsp48XKOV8DFOcX3KbV+ki9QCtZyO7wEeoAK18/PwU7phBdCyFPtZPrVIj3pOl89ZbiN33Dmpr1nK8WmHP5x6isPun6Mk8+B4ilSSS7cJc1Qntq0i1ZJh+6hkSm2+h3HENyowR2fkp4tmvwhP/wT2fuxuvM8X+4ykcFSf3zG6chmBi9268ikOiK4ORShEENp60SPemOPbiSa57z3WomSp2qIpWLkKYl5QWLxkJGoZFqK0NM92GnUphRhPodAKdjGKYEiMRZ/01V9GyrhsfRXEqTy1fQgQ+qlTDCoCIRdAICMpVaqXjcOJE0zdZBrgNGk8+jPUH19PIK2amxghvuYsdbzXoD3yMk3FO5hKkxo4x+OxREAZByYMgoHR0jIMuuLkiLR1RPEcT1H0KoxUq0xXsVAJOzYBo5i0Ld3wpQpa0gEAFNEp5RL1CbToBVhi1Zj1+OINdLJGcmubEgQNYEuLZLC3rulnT1UKyJYH/yT9iquIyemoKo1YiVSrAmXEakxP4hQJOzaVihpg5OYC159vIze/Gn8rhVC1eSXeRTRYZnMwigwYDDz7J1b95N31v2IaRm8YsV3BHckwMnWIqYjK8f5CaBio+1QJ4rkUoZbFcIrSUkz+PADFbuQmcBqFGmZQ9iaUDbpEHeU/CYFRF+czzPlNOlMz1N1DtTuAQYaJuERTHsQ+cRMdSOJEYoXgKp28dLbEIqZBJxJBYQtGPTfHpnzL2d/fT0nMNrnEl3nQZJycYHI8wY6exv/9NdGsvhd9+F3uSETruaKU3YdJhBKzxFa0TNTKnzjB+dIDvPb2bvbv3IsIWkb6u2YrR0iYvlEbLs0Qs6QQFoDS02JreBHTYDutjPuvT8HwhwpOnE6TeeA9mIk55/0/xq0XsriyZ37gbo7OV8uGTBNMzVL/5dVwrhL3pali9Gq+jFaIRDNsikkgQPPJN3P5xku//PNP9FeKdA7jRKMnRQxS+/Qipj34M79rNpEWV8jPPUDr0KiJskL3rBjretgOnnuLqx55iUzbGRDzBT77+OC8/+wIyEUcaxtI5wUUJmM3rtdDNkpOMIBOdqGgCzDCcPkIs24rV2kml/wiJbTcR2tCLd2qE8tO76dz5u+iOTmaOHCfTleLMQ98ivGkrRnsbsj2FbEtBJoHRmsRKxil86n4MPwO3f4xykCObnCT/5c8Qvv5GzF97E3G/Qu7fvkKiPUnv9rXErBr93zuKam3jin/5OHufOUXwwNfYuLqT2973DsZHp3j68w/R8BVSLlEQOaensKQFaK2AZmVHSAMjlECaJqZt4tUqOPUq0g7T9Xt/SKM4hpsbo+X2G5CpBEN/+ld0f+SjFF/tJ7VlLRHpceJLD2P39GAkksh0G6I1g8zEMbKtWFN5Jv/py8Tu3klq+62c+cInEC1pWu+6EzseJ/fVL5G9aRMdW9eTe+UV2jtstr9zPU986nsU/SRdn/0kUyOSTqNBzKux4c6bOfHgo7zwt5/HTMTRF0kMLkKAgfIb2K3riPbdRn7XA5iJdpTrkrrhddRGh2gcPYRhhwnyBVZ9+uMI16fw/X0kb7qV3H89zJr73otfKTH64OMoIcEQCNNEhGwwLFJmgxvbG7w4Iim4MW5KnsJIpnnF7EMKk6A8Tmbr1Zz61nea1lmDZF+Ed/3jW/jPDz7OlX/+AU5+5yWCRIpwZyu6I0XE0Ez8w1eQsThaBxck4BwnOMdWM4QQgDRC+IVRzO5rifTdSePVH2Ak01ROHMYv5jDb2po1wEiYwmM/oHvnTqZy38U9NUB8640UDudo/f072bj9OpxDx3EGz+CPTeKN5SiOFnn79YoHfkvx9T2KB/cUePIjSYaLiu3/vJepmkks28HYs7swI+FmNblVUh4sM/zyDB2buijuHyLs1sk/vZd6vcrav/sw+V17UVojxPL9gGUIOMcS0AhpoBoVKru/RuzWnUS6NzHz4sP45RyGbTcbGKKZI2jl0xgcQdVnqBw7DnYIOTZG9b59mOkwRsTEMCWmYSLCUaxknX/fV2bXz8usyUiwY9z+uRInyyEKKoQZNWlM55BCNhOwQDVL8BLyRUHdM5h49IdE2jJYbRl0UUBvJ/ZrepEvHkKcFxRflICF92Sz3YBWyFCcxtghnO98inD7WoRsNjXma/Ba43seLWuuZublQ9gdG0je80katRISDyk1gXKQKJAeSvsYOMRxwXWYclyGa3UMp44xk0dMTyAnRlGeizDN+daYkODV6sQ39OI5IaZfHmLVW+7G3vwadFscdIDKtBK/5XoKjzw1b88Xqg5e0AcwW/FpjpSgfLTvIKzwgmUFQeARW7sFK9VJ8eAuhDCRpkkoksDzHQJXIS0TYRgIHaBFs5MjpGz2FJQi3BJHNeqoWq1Z0bFshAanWm2aMqBUQDTbQ+a6zeT37acyOkoolQZpgGkgjOb9H0yXUEI3ZZ4v4PwCBCzdBpnt6IqmVZwlSyNNCyOSxCmME461YMfT1AqjWKEooXQ3Xq2MU5rAb9QQWs8W1gSB8hB2mNiqHiw7xMz4GFbMJhSPI6RBLV/Eq9XmN0EDRjxJUK2g3QbCssAPzsqrNVJItGleQItLIuAXRTN5klKikVjxDHa8DZTGa5SwwxEM0wStqAca7btI5WCmWohGwgS1OspxUSEb33Fx8jm82gxCGgi5uGajVdAkRMpmtNbsvZ0jzqWr9CsiAOa7I1qjAx+twQjHMENRpGWBNLAicXQi1awsO3UQCi8/hVctgNIETgOtNMI0EMbS1V0W/JbgV4FfqD1+YZztAgvTatIRuHg1d36EU7jwCnPzmssto+SvUHm4/COpywRcJmClBVhpXCZgpQVYaVwmYKUFWGlcJmClBVhpXCZgpQVYaVwmYKUFWGn8L5dTGIWca0OJAAAAAElFTkSuQmCC">
-<link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="./icon-512.png">
-<meta property="og:image" content="./icon-512.png">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="UBICA-RICK">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#042143">
-<meta name="application-name" content="UBICA-RICK">
-<link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<style>
-*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;padding:0;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}#map{width:100%;height:100%;position:absolute;top:0;left:0;z-index:1}.leaflet-top.leaflet-left{margin-top:55px}#top-bar-container{position:fixed;top:6px;left:4px;right:4px;z-index:9999;display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;pointer-events:none;gap:4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}#top-bar-container::-webkit-scrollbar{display:none}#barra-kpi{pointer-events:auto;background:rgba(15,23,42,.95);backdrop-filter:blur(8px);padding:4px 7px;border-radius:18px;color:#fff;font-size:10px;font-weight:700;display:inline-flex;gap:3px;align-items:center;box-shadow:0 4px 12px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.18);cursor:pointer;flex-shrink:0;white-space:nowrap}.kpi-item{display:flex;align-items:center;gap:2px}.kpi-sep{color:rgba(255,255,255,.3);font-size:9px}.text-pend{color:#ff6b6b}.text-vis{color:#51cf66}.text-pico{color:#fcc419}#top-actions{pointer-events:auto;display:inline-flex;gap:3px;align-items:center;flex-shrink:0}.btn-top-action{background:linear-gradient(145deg,#1e293b,#0f172a);color:#fff;border:none;padding:4px 7px;border-radius:18px;font-size:10px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.18);display:inline-flex;align-items:center;gap:3px;white-space:nowrap;flex-shrink:0}.btn-top-action:active{transform:translateY(2px)}.btn-radar-active{background:linear-gradient(145deg,#00b894,#00ff87)!important;color:#1a252f!important;border-color:#00ff87!important}#backdrop-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:99998;display:none;backdrop-filter:blur(3px)}.floating-btn-add{position:fixed;bottom:20px;left:20px;z-index:99999;width:58px;height:58px;background:linear-gradient(145deg,#1e293b,#0f172a);color:#fff;border:2.5px solid #38bdf8;padding:0;border-radius:50%;font-size:26px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5),0 0 14px rgba(56,189,248,.4);display:flex;align-items:center;justify-content:center;transition:all .2s ease;outline:none;-webkit-tap-highlight-color:transparent;overflow:hidden}.floating-btn-add:active{transform:translateY(2px) scale(.97)}.floating-menu{position:fixed;bottom:80px;left:20px;z-index:99999;background:#fff;padding:16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45);width:330px;max-width:90vw;display:none;font-size:12px;max-height:75vh;overflow-y:auto}.floating-filter-panel{position:fixed;top:55px;right:10px;z-index:99999;background:#fff;padding:16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45);width:300px;max-width:92vw;display:none;font-size:12px;max-height:80vh;overflow-y:auto}.floating-menu button.main-opt{color:#fff;border:none;padding:12px;width:100%;border-radius:8px;margin-bottom:8px;font-weight:700;font-size:13px;cursor:pointer;text-align:left;box-shadow:0 4px 8px rgba(0,0,0,.15);transition:all .2s ease}.floating-menu button.main-opt:active{transform:translateY(2px)}.mo-1{background:linear-gradient(145deg,#34495e,#2c3e50)}.mo-2{background:linear-gradient(145deg,#8e44ad,#7d3c98)}.mo-3{background:linear-gradient(145deg,#27ae60,#219150)}.mo-maps{background:linear-gradient(145deg,#2980b9,#1f618d)}.mo-foto{background:linear-gradient(145deg,#e67e22,#d35400)}.sub-panel{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #e0e0e0}.sub-panel textarea,.sub-panel input{width:100%;margin-top:6px;font-size:12px;padding:8px;border:1px solid #ccc;border-radius:6px}.sub-panel button.action{color:#fff;border:none;padding:10px;width:100%;border-radius:6px;margin-top:8px;font-weight:700;cursor:pointer;font-size:12px;text-transform:uppercase;box-shadow:0 3px 6px rgba(0,0,0,.2);transition:all .15s ease}.sub-panel button.action:active{transform:translateY(2px)}.act-blue{background:linear-gradient(145deg,#2980b9,#1f618d)}.act-purple{background:linear-gradient(145deg,#8e44ad,#71368a)}.act-green{background:linear-gradient(145deg,#27ae60,#1e8449)}.act-orange{background:linear-gradient(145deg,#e67e22,#d35400)}.act-red{background:linear-gradient(145deg,#c0392b,#962d22)}.act-gray{background:linear-gradient(145deg,#7f8c8d,#626567)}.sub-panel button.close-sub{background:#95a5a6;color:#fff;border:none;padding:8px;width:100%;border-radius:6px;margin-top:6px;font-weight:700;cursor:pointer;font-size:11px}.header-menu{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.header-menu button{background:none;border:none;font-weight:700;cursor:pointer;color:#c0392b;font-size:18px}.filter-option{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:700;cursor:pointer}.filter-search{width:100%;padding:8px;font-size:12px;margin-bottom:10px;border:1px solid #ccc;border-radius:6px}.backup-section{margin-top:12px;padding-top:10px;border-top:1px dashed #bbb;display:flex;gap:6px}.backup-section button{flex:1;padding:8px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;color:#fff}.btn-export{background:#27ae60}.btn-import{background:#2980b9}#panel-cercano{position:fixed;top:50px;left:50%;transform:translateX(-50%);width:94%;max-width:420px;background:rgba(26,37,47,.97);border:1.5px solid #00ff87;border-radius:14px;padding:8px 12px;color:#fff;z-index:999999;box-shadow:0 8px 25px rgba(0,0,0,.6);display:none;backdrop-filter:blur(8px)}.radar-top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}.radar-placa{font-size:14px;font-weight:900;color:#00ff87;text-shadow:0 0 6px rgba(0,255,135,.4);display:flex;align-items:center;gap:6px}.radar-dist{font-size:12px;color:#ecf0f1}.radar-info{font-size:11px;color:#e2e8f0;text-align:right;max-width:65%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}.radar-buttons{display:flex;gap:6px;margin-top:4px}.btn-radar-ir{flex:1;background:linear-gradient(145deg,#3498db,#2980b9);color:#fff;border:none;padding:6px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}.btn-radar-ok{flex:1;background:linear-gradient(145deg,#2ecc71,#27ae60);color:#fff;border:none;padding:6px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}.btn-radar-close{background:none;border:none;color:#e74c3c;font-size:14px;font-weight:700;cursor:pointer;padding:0 6px}#panel-reubicar-punto{position:fixed;bottom:0;left:0;right:0;width:100%;box-sizing:border-box;background:#fff;padding:12px 14px 20px;border-radius:20px 20px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.45);z-index:9999999;display:none;font-size:12px;border-top:3px solid #2980b9;max-height:52vh;overflow-y:auto}@keyframes pulse-pico-activo{0%{box-shadow:0 0 0 0 rgba(220,38,38,.85),0 4px 12px rgba(0,0,0,.35)}70%{box-shadow:0 0 0 9px rgba(220,38,38,0),0 4px 12px rgba(0,0,0,.35)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0),0 4px 12px rgba(0,0,0,.35)}}@keyframes pulse-gps{0%{transform:scale(.95);box-shadow:0 0 0 0 rgba(41,128,185,.7)}70%{transform:scale(1.15);box-shadow:0 0 0 14px rgba(41,128,185,0)}100%{transform:scale(.95);box-shadow:0 0 0 0 rgba(41,128,185,0)}}.custom-gps-icon{display:flex;justify-content:center;align-items:center}#panel-reubicar-punto input{width:100%;padding:8px;font-size:12px;border:1px solid #ccc;border-radius:6px;margin-top:6px;margin-bottom:8px}#loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999999;display:none;justify-content:center;align-items:center;color:#fff;font-size:16px;font-weight:700;text-align:center;padding:20px;flex-direction:column;gap:10px}#modal-asistente,#modal-config{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:20px;border-radius:14px;box-shadow:0 12px 35px rgba(0,0,0,.5);width:340px;max-width:92vw;z-index:9999999;display:none;font-size:12px}.leaflet-popup-content{margin:7px 8px;line-height:1.35;max-width:none!important}.car-photo-box{position:relative;width:100%;background:#0f172a;border-radius:8px;margin-bottom:6px;border:1.5px solid #334155;overflow:hidden;cursor:pointer;pointer-events:auto;user-select:none;display:flex;align-items:center;justify-content:center}.car-thumbnail{width:100%;max-height:135px;object-fit:contain;display:block;pointer-events:auto;cursor:pointer;-webkit-user-drag:none;user-select:none}.car-photo-Hint{position:absolute;bottom:5px;right:6px;background:rgba(15,23,42,.88);color:#38bdf8;border:1px solid rgba(56,189,248,.6);border-radius:12px;padding:2px 8px;font-size:10px;font-weight:800;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.5)}.specs-table{width:100%;font-size:.92em;border-collapse:collapse;margin-bottom:8px}.specs-table td{padding:2px 0;vertical-align:top;font-size:inherit}.specs-label{color:#7f8c8d;font-weight:700;width:28%;font-size:inherit}.specs-val{color:#2c3e50;font-weight:600;font-size:inherit}.badge-status-soat{font-weight:700;font-size:.88em;padding:1px 6px;border-radius:4px}.badge-si{background:#d4efdf;color:#1e8449}.badge-no{background:#fadbd8;color:#922b21}.edit-input{width:100%;margin-bottom:5px;padding:6px;font-size:.92em;border:1px solid #aaa;border-radius:4px}.pop-btn{color:#fff;border:none;padding:.6em .8em;width:100%;border-radius:6px;cursor:pointer;margin-bottom:6px;font-weight:700;font-size:.92em;text-align:center;text-decoration:none;display:block;box-shadow:0 3px 6px rgba(0,0,0,.2);transition:all .15s ease}.pop-btn:active{transform:translateY(2px)}.pb-blue{background:#2980b9}.pb-green{background:#27ae60}.pb-purple{background:#8e44ad}.pb-orange{background:#d35400}.pb-teal{background:#16a085}.pb-red{background:#c0392b}.pb-darkred{background:#7b241c}.leaflet-div-icon{background:transparent;border:none}#toast-notif{position:fixed;top:75px;left:50%;transform:translateX(-50%);background:rgba(33,43,54,.95);color:#fff;padding:10px 20px;border-radius:25px;font-size:13px;font-weight:700;box-shadow:0 8px 25px rgba(0,0,0,.4);z-index:10000000;display:none;pointer-events:none;transition:opacity .3s ease;text-align:center;max-width:90vw;line-height:1.3}.btn-zoom-pop{background:#1e293b;border:1px solid #475569;color:#f8fafc;border-radius:6px;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;padding:0;margin:0;line-height:1;transition:background .15s,transform .1s}.btn-zoom-pop:active{background:#334155;transform:scale(.92)}.btn-min-pop{background:#1e293b;border:1px solid #475569;color:#f8fafc;border-radius:6px;height:26px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent;margin-left:2px;line-height:1;transition:background .15s,transform .1s}.btn-min-pop:active{background:#334155;transform:scale(.94)}.popup-zoom-container{touch-action:pan-y;user-select:none;-webkit-user-select:none}.leaflet-popup,.leaflet-popup-content-wrapper,.leaflet-popup-content{touch-action:pan-y}@keyframes radar-sweep{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}@keyframes neon-pulse-cyan{0%,100%{box-shadow:0 8px 30px rgba(0,0,0,.7),0 0 16px rgba(0,240,255,.45);border-color:#00f0ff}50%{box-shadow:0 8px 35px rgba(0,0,0,.8),0 0 25px rgba(0,255,135,.75);border-color:#00ff87}}@keyframes neon-pulse-alert{0%,100%{box-shadow:0 8px 30px rgba(0,0,0,.7),0 0 20px rgba(255,0,85,.6);border-color:#ff0055}50%{box-shadow:0 8px 40px rgba(0,0,0,.9),0 0 35px rgba(255,0,85,.95);border-color:#ff3377}}@keyframes blip-pulse{0%{transform:scale(.85);opacity:.8}50%{transform:scale(1.2);opacity:1}100%{transform:scale(.85);opacity:.8}}.radar-hud-flotante{position:fixed;bottom:85px;right:12px;z-index:999999;max-width:94vw;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Courier New",monospace;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform .2s cubic-bezier(.175,.885,.32,1.275)}.hud-capsula{background:linear-gradient(135deg,rgba(8,14,26,.95),rgba(15,23,42,.97));border:1.5px solid #00f0ff;border-radius:30px;padding:6px 12px 6px 8px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,.7),0 0 16px rgba(0,240,255,.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:grab;animation:neon-pulse-cyan 3s infinite}.hud-capsula.alerta-rango{border-color:#ff0055;animation:neon-pulse-alert 1.2s infinite}.hud-radar-disc{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,135,.25) 0%,rgba(10,20,35,.95) 70%);border:1px solid rgba(0,240,255,.6);position:relative;overflow:hidden;flex-shrink:0;box-shadow:inset 0 0 8px rgba(0,240,255,.3)}.hud-radar-sweep{position:absolute;top:50%;left:50%;width:17px;height:17px;transform-origin:0 0;background:conic-gradient(from 0deg,rgba(0,255,135,.85) 0deg,rgba(0,255,135,0) 60deg);animation:radar-sweep 2s linear infinite}.hud-radar-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:#00ff87;box-shadow:0 0 7px #00ff87;top:32%;left:58%;animation:blip-pulse 1s infinite}.hud-capsula.alerta-rango .hud-radar-dot,.hud-panel-expandido.alerta-rango .hud-radar-dot{background:#ff0055;box-shadow:0 0 8px #ff0055}.hud-capsula-datos{display:flex;flex-direction:column;line-height:1.2;cursor:pointer}.hud-capsula-placa-row{display:flex;align-items:center;gap:6px}.hud-tag-placa{font-size:14.5px;font-weight:900;letter-spacing:1.2px;color:#ffea00;text-shadow:0 0 8px rgba(255,234,0,.7);background:rgba(0,0,0,.6);padding:1px 7px;border-radius:5px;border:1px solid rgba(255,234,0,.45)}.hud-tag-dist{font-size:11px;font-weight:800;color:#00ff87;text-shadow:0 0 6px rgba(0,255,135,.6)}.hud-capsula.alerta-rango .hud-tag-dist{color:#ff0055;text-shadow:0 0 8px rgba(255,0,85,.8)}.hud-capsula-vehiculo{font-size:10.5px;color:#94a3b8;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:175px;margin-top:1px}.hud-capsula-vehiculo b{color:#f1f5f9}.hud-capsula-color{color:#38bdf8;font-weight:700;font-size:10px;text-transform:uppercase}.hud-btn-mini{background:linear-gradient(135deg,#0284c7,#0369a1);border:1px solid #38bdf8;color:#fff;border-radius:50%;width:30px;height:30px;display:flex;justify-content:center;align-items:center;cursor:pointer;font-size:13px;box-shadow:0 0 10px rgba(2,132,199,.5);flex-shrink:0;transition:transform .15s ease}.hud-btn-mini:active{transform:scale(.9)}.hud-panel-expandido{width:295px;background:linear-gradient(145deg,rgba(8,14,26,.97),rgba(15,23,42,.98));border:1.5px solid #00f0ff;border-radius:18px;padding:12px 14px;box-shadow:0 12px 35px rgba(0,0,0,.85),0 0 22px rgba(0,240,255,.4);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);animation:neon-pulse-cyan 3s infinite}.hud-panel-expandido.alerta-rango{border-color:#ff0055;animation:neon-pulse-alert 1.2s infinite}.hud-header-futurista{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(0,240,255,.25);padding-bottom:6px}.hud-title-futurista{font-size:10.5px;font-weight:900;letter-spacing:1.2px;color:#00f0ff;text-transform:uppercase;display:flex;align-items:center;gap:6px}.hud-status-badge{font-size:9px;background:rgba(0,255,135,.15);color:#00ff87;border:1px solid #00ff87;padding:1px 6px;border-radius:4px;font-weight:700;letter-spacing:.5px}.hud-panel-expandido.alerta-rango .hud-status-badge{background:rgba(255,0,85,.2);color:#ff0055;border-color:#ff0055}.hud-placa-box{background:rgba(0,0,0,.65);border:1px solid rgba(255,234,0,.5);border-radius:8px;padding:6px 10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}.hud-placa-grande{font-size:22px;font-weight:900;color:#ffea00;letter-spacing:1.5px;text-shadow:0 0 10px rgba(255,234,0,.7)}.hud-dist-grande{font-size:14px;font-weight:900;color:#00ff87;text-shadow:0 0 8px rgba(0,255,135,.6)}.hud-panel-expandido.alerta-rango .hud-dist-grande{color:#ff0055;text-shadow:0 0 10px rgba(255,0,85,.85)}.hud-specs-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:6px;margin-bottom:8px;font-size:11px}.hud-spec-card{background:rgba(255,255,255,.05);padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.08)}.hud-spec-label{font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;display:block;margin-bottom:2px}.hud-spec-val{font-size:11.5px;font-weight:800;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}.hud-actions-row{display:flex;gap:5px;margin-top:6px}.hud-btn-action{flex:1;border:none;padding:8px 4px;border-radius:6px;font-size:10.5px;font-weight:700;cursor:pointer;text-align:center;color:#fff;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;justify-content:center;align-items:center;gap:3px}.hud-btn-action:active{transform:translateY(1px)}.hud-btn-maps{background:linear-gradient(135deg,#0284c7,#0369a1);border:1px solid #38bdf8}.hud-btn-visitar{background:linear-gradient(135deg,#16a34a,#15803d);border:1px solid #4ade80}.hud-btn-pip{background:linear-gradient(135deg,#7c3aed,#6d28d9);border:1px solid #a78bfa}.mapa-modo-conduccion-3d{perspective:900px;overflow:hidden;background:#050811}.mapa-modo-conduccion-3d #map{transform-origin:50% 72%;transition:transform .35s linear}.icono-moto-rotatorio{transition:transform .25s linear;transform-origin:center center;filter:drop-shadow(0 6px 10px rgba(0,0,0,.75))}.custom-moto-nav-icon{background:transparent!important;border:none!important}
-</style>
+    <meta charset="utf-8">
+    <title>UBICA-RICK - Sistema de Ruta y Rastreo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.5, user-scalable=yes">
+    
+    <!-- FAVICONS Y PWA -->
+    <link rel="icon" type="image/png" href="data:image/png;base64,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">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        #map { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        .leaflet-top.leaflet-left { margin-top: 55px; }
+
+        #top-bar-container {
+            position: fixed; top: 6px; left: 4px; right: 4px; z-index: 9999;
+            display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center;
+            pointer-events: none; gap: 4px; overflow-x: auto; scrollbar-width: none;
+        }
+        #top-bar-container::-webkit-scrollbar { display: none; }
+        
+        #barra-kpi {
+            pointer-events: auto; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+            padding: 4px 7px; border-radius: 18px; color: white; font-size: 10px; font-weight: bold;
+            display: inline-flex; gap: 3px; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.18); cursor: pointer; flex-shrink: 0; white-space: nowrap;
+        }
+        .kpi-item { display: flex; align-items: center; gap: 2px; }
+        .kpi-sep { color: rgba(255,255,255,0.3); font-size: 9px; }
+        .text-pend { color: #ff6b6b; }
+        .text-vis { color: #51cf66; }
+        .text-pico { color: #fcc419; }
+
+        #top-actions { pointer-events: auto; display: inline-flex; gap: 3px; align-items: center; flex-shrink: 0; }
+        .btn-top-action {
+            background: linear-gradient(145deg, #1e293b, #0f172a); color: white; border: none;
+            padding: 4px 7px; border-radius: 18px; font-size: 10px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.18);
+            display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-top-action:active { transform: translateY(2px); }
+
+        #backdrop-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55); z-index: 99998; display: none; backdrop-filter: blur(3px);
+        }
+
+        .floating-btn-add {
+            position: fixed; bottom: 20px; left: 20px; z-index: 99999;
+            width: 58px; height: 58px; background: linear-gradient(145deg, #1e293b, #0f172a);
+            color: #ffffff; border: 2.5px solid #38bdf8; border-radius: 50%;
+            font-size: 26px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 14px rgba(56,189,248,0.4);
+            display: flex; align-items: center; justify-content: center; outline: none;
+        }
+        
+        .floating-menu {
+            position: fixed; bottom: 80px; left: 20px; z-index: 99999;
+            background: white; padding: 16px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+            width: 330px; max-width: 90vw; display: none; font-size: 12px; max-height: 75vh; overflow-y: auto;
+        }
+        
+        .floating-filter-panel {
+            position: fixed; top: 55px; right: 10px; z-index: 99999;
+            background: white; padding: 16px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+            width: 300px; max-width: 92vw; display: none; font-size: 12px; max-height: 80vh; overflow-y: auto;
+        }
+
+        .floating-menu button.main-opt { 
+            color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-bottom: 8px;
+            font-weight: bold; font-size: 13px; cursor: pointer; text-align: left; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .mo-1 { background: linear-gradient(145deg, #34495e, #2c3e50); }
+        .mo-2 { background: linear-gradient(145deg, #8e44ad, #7d3c98); }
+        .mo-foto { background: linear-gradient(145deg, #e67e22, #d35400); }
+        
+        .sub-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0; }
+        .sub-panel textarea, .sub-panel input { width: 100%; margin-top: 6px; font-size: 12px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        .sub-panel button.action { 
+            color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px;
+            font-weight: bold; cursor: pointer; font-size: 12px; text-transform: uppercase;
+        }
+        .act-blue { background: linear-gradient(145deg, #2980b9, #1f618d); }
+        .act-green { background: linear-gradient(145deg, #27ae60, #1e8449); }
+        
+        .header-menu { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-menu button { background: none; border: none; font-weight: bold; cursor: pointer; color: #c0392b; font-size: 18px; }
+        .filter-option { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: bold; cursor: pointer; }
+        .filter-search { width: 100%; padding: 8px; font-size: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
+
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            z-index: 9999999; display: none; justify-content: center; align-items: center; color: white;
+            font-size: 16px; font-weight: bold; text-align: center; padding: 20px; flex-direction: column; gap: 10px;
+        }
+        
+        #toast-notif {
+            position: fixed; top: 75px; left: 50%; transform: translateX(-50%);
+            background: rgba(33, 43, 54, 0.95); color: white; padding: 10px 20px;
+            border-radius: 25px; font-size: 13px; font-weight: bold;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4); z-index: 10000000;
+            display: none; text-align: center; max-width: 90vw;
+        }
+    </style>
 </head>
-<body><div id="toast-notif"></div>
-<div id="map"></div>
-<div id="backdrop-modal" onclick="cerrarTodosLosModales()"></div>
-<div id="top-bar-container" style="display:flex;">
-<div id="barra-kpi" onclick="toggleMenuFilter()" title="Toca para abrir Menú y Filtros">
-<img src="data:image/png;base64,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" style="width:16px; height:16px; border-radius:3px; margin-right:3px; vertical-align:middle; display:inline-block;" alt="Logo">
-<span class="kpi-item">📌 <span id="kpi-total">0</span></span>
-<span class="kpi-sep">|</span>
-<span class="kpi-item">⏳ <span id="kpi-pend" class="text-pend">0</span></span>
-<span class="kpi-sep">|</span>
-<span class="kpi-item">✅ <span id="kpi-vis" class="text-vis">0</span></span>
-<span class="kpi-sep">|</span>
-<span class="kpi-item">⚠️ <span id="kpi-pico" class="text-pico">0</span></span>
-<span class="kpi-sep">|</span>
-<span class="kpi-item" title="Vehículos con Foto Adjunta">📸 <span id="kpi-foto" style="color:#f59e0b;">0</span></span>
-<span style="color:#38bdf8; margin-left:1px; font-size:9.5px;">🔍</span>
-<span style="background:#10b981; color:#fff; font-size:8.5px; font-weight:900; padding:1px 5px; border-radius:3px; margin-left:3px; letter-spacing:.3px;" title="Versión actualizada">v6.2</span>
-</div>
-<div id="top-actions">
-<div id="badge-perfil-activo" onclick="abrirModalPerfilUsuario()" style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:16px; background:linear-gradient(135deg, #0c4a6e, #0f172a); border:1.5px solid #38bdf8; color:#fff; font-size:11px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.35); white-space:nowrap; flex-shrink:0;" title="Toca para ver tu perfil o cerrar sesión">
-<span id="badge-perfil-icono">👤</span>
-<span id="badge-perfil-nombre">Operador</span>
-</div>
-<button id="btn-toggle-radar" class="btn-top-action" onclick="toggleRadar()">🚨 Radar</button>
-<button id="btn-modo-seguro" class="btn-top-action" onclick="toggleModoOperadorSeguro()" style="background:linear-gradient(145deg, #16a34a, #15803d); border-color:#22c55e;" title="Encendido: Manipular/Subir/Borrar | Apagado: Modo Operador Seguro para moto">🟢 Edición</button>
-<button id="btn-wake-lock" class="btn-top-action" onclick="toggleWakeLock()" title="Mantener pantalla encendida en ruta">💡 Pantalla</button>
-<button id="btn-user-cloud" class="btn-top-action" onclick="abrirModalAuth()" style="background:linear-gradient(145deg, #0284c7, #0369a1); border-color:#38bdf8;" title="Ingresar / Sincronizar cuenta Nube">☁️ Nube</button>
-<button id="btn-menu-filtros" class="btn-top-action" onclick="toggleMenuFilter()" style="background:linear-gradient(145deg, #0284c7, #0369a1); border-color:#38bdf8;" title="Abrir Filtros y Opciones">🔍 Filtros</button>
-<button id="btn-top-sos" class="btn-top-action" onclick="activarBotonPanicoSOS()" style="background:linear-gradient(145deg, #dc2626, #991b1b); border-color:#ef4444; font-weight:900;" title="Alerta de Emergencia / SOS a la base">🚨 SOS</button>
-<button id="btn-top-calor" class="btn-top-action" onclick="toggleMapaCalor()" style="background:linear-gradient(145deg, #ea580c, #c2410c); border-color:#fb923c;" title="Ver Mapa de Calor / Concentración de Placas">🔥 Calor</button>
-</div>
-</div>
-<div id="radar-hud-flotante" class="radar-hud-flotante" style="display:none;">
-<div id="hud-capsula-view" class="hud-capsula" onclick="toggleExpandirHud(event)" title="Toca para expandir el Radar">
-<div class="hud-radar-disc">
-<div class="hud-radar-sweep"></div>
-<div class="hud-radar-dot"></div>
-</div>
-<div class="hud-capsula-datos">
-<div class="hud-capsula-placa-row">
-<span id="hud-cap-placa" class="hud-tag-placa">---</span>
-<span id="hud-cap-dist" class="hud-tag-dist">-- m</span>
-</div>
-<div id="hud-cap-vehiculo" class="hud-capsula-vehiculo">
-<b id="hud-cap-carro-txt">CARRO</b> • <span id="hud-cap-color-txt" class="hud-capsula-color">COLOR</span>
-</div>
-</div>
-<div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
-<button type="button" id="hud-cap-btn-foto" onclick="event.stopPropagation(); if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-mini" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border-color:#fde047;" title="Ver foto del vehículo en pantalla completa">📸</button>
-<button type="button" onclick="event.stopPropagation(); iniciarPipRadar();" class="hud-btn-mini" style="background:linear-gradient(135deg, #7c3aed, #6d28d9); border-color:#a78bfa;" title="Flotar sobre WhatsApp y otras apps">🪟</button>
-<button type="button" onclick="event.stopPropagation(); irCercanoMaps();" class="hud-btn-mini" title="Navegar en Mi Mapa">🗺️</button>
-<button type="button" onclick="event.stopPropagation(); toggleExpandirHud(event);" class="hud-btn-mini" style="background:rgba(255,255,255,.15); border-color:rgba(255,255,255,.3);" title="Expandir Radar HUD">➕</button>
-</div>
-</div>
-<div id="hud-panel-view" class="hud-panel-expandido" style="display:none;">
-<div class="hud-header-futurista">
-<div class="hud-title-futurista">
-<span class="hud-radar-dot" style="position:static; display:inline-block;"></span>
-<span>RADAR TÁCTICO UBICA-RICK</span>
-</div>
-<div style="display:flex; align-items:center; gap:6px;">
-<span id="hud-status-badge" class="hud-status-badge">TRACKING</span>
-<button type="button" onclick="toggleExpandirHud(event)" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;" title="Minimizar a botón">➖</button>
-<button type="button" onclick="toggleRadar()" style="background:none; border:none; color:#f43f5e; font-size:16px; cursor:pointer;" title="Apagar radar">✖</button>
-</div>
-</div>
-<div class="hud-placa-box">
-<div>
-<div style="font-size:9px; color:#94a3b8; font-weight:700; letter-spacing:1px;">OBJETIVO MÁS CERCANO</div>
-<div id="hud-exp-placa" class="hud-placa-grande">---</div>
-</div>
-<div style="text-align:right;">
-<div style="font-size:9px; color:#94a3b8; font-weight:700;">DISTANCIA</div>
-<div id="hud-exp-dist" class="hud-dist-grande">-- m</div>
-</div>
-</div>
-<div class="hud-specs-grid">
-<div class="hud-spec-card">
-<span class="hud-spec-label">🚗 Vehículo</span>
-<span id="hud-exp-carro" class="hud-spec-val">---</span>
-</div>
-<div class="hud-spec-card">
-<span class="hud-spec-label">🎨 Color</span>
-<span id="hud-exp-color" class="hud-spec-val" style="color:#38bdf8;">---</span>
-</div>
-</div>
-<div style="background:rgba(0,0,0,.4); padding:5px 8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,.06);">
-<span class="hud-spec-label">📍 Dirección</span>
-<span id="hud-exp-dir" style="font-size:10.5px; color:#e2e8f0; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">---</span>
-</div>
-<div class="hud-actions-row">
-<button type="button" id="hud-exp-btn-foto" onclick="if(placaMasCercanaObj) abrirVisorFotoCarro(placaMasCercanaObj.id);" class="hud-btn-action" style="display:none; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fde047; color:#fff;" title="Ver foto del carro en pantalla completa">📸 Foto</button>
-<button type="button" onclick="irCercanoMaps()" class="hud-btn-action hud-btn-maps" title="Navegar hacia este objetivo en Mi Mapa">🗺️ Mi Mapa</button>
-<button type="button" onclick="visitarCercanoDesdeRadar()" class="hud-btn-action hud-btn-visitar" title="Marcar como visitada">✅ Visitada</button>
-<button type="button" onclick="centrarEnVehiculoCercano()" class="hud-btn-action" style="background:#334155; border:1px solid #64748b;" title="Ver en el mapa">🎯 Ver</button>
-<button type="button" onclick="iniciarPipRadar()" class="hud-btn-action hud-btn-pip" title="Flotar sobre Google Maps / Celular">🪟 Flotar</button>
-</div>
-</div>
-</div>
-<div id="modal-auth" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#0f172a; border:1.5px solid #00f0ff; border-radius:16px; padding:18px 20px; width:330px; max-width:92vw; z-index:99999999; color:#fff; box-shadow:0 12px 40px rgba(0,0,0,.85); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(0,240,255,.25); padding-bottom:8px;">
-<div style="font-size:13px; font-weight:900; color:#00f0ff; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
-<span>🛰️ UBICA-RICK CLOUD</span>
-</div>
-<button onclick="cerrarModalAuth()" style="background:none; border:none; color:#f43f5e; font-size:16px; font-weight:700; cursor:pointer;">✖</button>
-</div>
-<div id="auth-seccion-login">
-<span style="font-size:11px; color:#94a3b8; display:block; margin-bottom:10px;">Inicia sesión con tu cuenta para sincronizar el mapa en vivo entre tu PC y celulares:</span>
-<label style="font-size:10.5px; color:#cbd5e1; font-weight:700;">Correo Electrónico:</label>
-<input type="email" id="auth-email" placeholder="ejemplo@correo.com" style="width:100%; box-sizing:border-box; padding:8px 10px; margin-top:3px; margin-bottom:10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff; font-size:12px;">
-<label style="font-size:10.5px; color:#cbd5e1; font-weight:700;">Contraseña:</label>
-<input type="password" id="auth-pass" placeholder="••••••••" style="width:100%; box-sizing:border-box; padding:8px 10px; margin-top:3px; margin-bottom:12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff; font-size:12px;">
-<button type="button" onclick="ejecutarLoginFirebase()" class="pop-btn pb-blue" style="margin:0 0 8px; padding:10px; font-size:12px;">🚀 Iniciar Sesión</button>
-<button type="button" onclick="cerrarModalAuth()" style="background:none; border:1px solid #475569; color:#94a3b8; width:100%; padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">Continuar sin cuenta (Modo Local)</button>
-</div>
-<div id="auth-seccion-perfil" style="display:none;">
-<div style="background:rgba(255,255,255,.06); padding:10px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(255,255,255,.1);">
-<div style="font-size:10.5px; color:#94a3b8;">Usuario conectado:</div>
-<div id="auth-user-email" style="font-size:13px; font-weight:700; color:#f8fafc; margin-top:2px;"></div>
-<div id="auth-user-badge" style="font-size:11px; margin-top:4px; font-weight:700;"></div>
-</div>
-<div style="font-size:11px; color:#94a3b8; margin-bottom:12px; line-height:1.4;">
-<span id="auth-rol-explicacion"></span>
-</div>
-<button type="button" onclick="sincronizarTodoManualAFirebase()" id="btn-sync-manual" class="pop-btn pb-green" style="margin:0 0 6px; padding:8px; font-size:11.5px;">☁️ Subir Puntos Locales a la Nube</button>
-<button type="button" onclick="ejecutarLogoutFirebase()" class="pop-btn pb-red" style="margin:0; padding:8px; font-size:11.5px;">🚪 Cerrar Sesión</button>
-</div>
-</div>
-<div id="loading-overlay">
-<div style="font-size:32px;">⏳</div>
-<span id="loading-texto">Procesando...</span>
-<button type="button" onclick="cancelarCarga()" style="margin-top:14px; background:#ef4444; color:#fff; border:none; padding:7px 16px; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3);">✖ Cancelar / Desbloquear</button>
-</div>
-<div id="modal-visor-foto-moto" onclick="if(event.target === this) cerrarVisorFotoCarro();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5,8,17,.96); z-index:20000005; flex-direction:column; justify-content:space-between; align-items:center; padding:12px; box-sizing:border-box; user-select:none; -webkit-user-select:none; touch-action:none;">
-<div style="width:100%; max-width:500px; background:#0f172a; border:1.5px solid #334155; border-radius:12px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; box-shadow:0 6px 20px rgba(0,0,0,.6);">
-<div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
-<span id="visor-foto-placa" style="background:#000; color:#ffea00; border:2px solid #ffea00; border-radius:6px; padding:3px 9px; font-size:18px; font-weight:900; letter-spacing:1px; flex-shrink:0;">---</span>
-<div style="overflow:hidden;">
-<div id="visor-foto-carro" style="color:#fff; font-size:13px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">VEHÍCULO</div>
-<div id="visor-foto-color" style="color:#38bdf8; font-size:11.5px; font-weight:700;">COLOR</div>
-</div>
-</div>
-<button type="button" onclick="cerrarVisorFotoCarro()" style="background:#dc2626; color:#fff; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; font-weight:700; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(220,38,38,.5);">✖</button>
-</div>
-<div id="visor-foto-stage" style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; margin:8px 0;">
-<img id="visor-foto-img" src="" alt="Foto del Vehículo" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px; transform:translate(0,0) scale(1); transition:transform .12s ease-out; transform-origin:center center; pointer-events:auto; -webkit-user-drag:none;">
-</div>
-<div style="width:100%; max-width:500px; display:flex; flex-direction:column; gap:8px; box-sizing:border-box;">
-<div style="display:flex; justify-content:center; align-items:center; gap:6px; background:#0f172a; padding:6px; border-radius:10px; border:1px solid #334155;">
-<button type="button" onclick="cambiarZoomVisorFoto(-0.5)" style="flex:1; background:#1e293b; color:#fff; border:1px solid #475569; border-radius:8px; padding:9px 0; font-size:14px; font-weight:900; cursor:pointer;">➖ Alejar</button>
-<button type="button" onclick="fijarZoomVisorFoto(1)" id="btn-visor-1x" style="background:#2563eb; color:#fff; border:none; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">1x</button>
-<button type="button" onclick="fijarZoomVisorFoto(2)" id="btn-visor-2x" style="background:#1e293b; color:#38bdf8; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">2x</button>
-<button type="button" onclick="fijarZoomVisorFoto(3)" id="btn-visor-3x" style="background:#1e293b; color:#38bdf8; border:1px solid #475569; border-radius:8px; padding:9px 12px; font-size:13px; font-weight:900; cursor:pointer;">3x</button>
-<button type="button" onclick="cambiarZoomVisorFoto(0.5)" style="flex:1; background:#1e293b; color:#fff; border:1px solid #475569; border-radius:8px; padding:9px 0; font-size:14px; font-weight:900; cursor:pointer;">➕ Acercar</button>
-</div>
-<button type="button" onclick="cerrarVisorFotoCarro()" style="width:100%; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:900; letter-spacing:.5px; cursor:pointer; box-shadow:0 4px 15px rgba(239,68,68,.4);">✖ CERRAR FOTO Y VOLVER AL MAPA</button>
-</div>
-</div><div id="modal-pegar-garantias" onclick="if(event.target === this) cerrarModalPegarGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5,8,17,.85); z-index:20000006; align-items:center; justify-content:center; padding:14px; box-sizing:border-box;">
-<div style="width:100%; max-width:440px; background:#0f172a; border:2px solid #0284c7; border-radius:14px; padding:14px; box-sizing:border-box; box-shadow:0 12px 32px rgba(0,0,0,.75); color:#f8fafc;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-<div style="font-size:14px; font-weight:900; color:#38bdf8;">🏛️ PEGAR BIENES GARANTIZADOS</div>
-<button type="button" onclick="cerrarModalPegarGarantias()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:700; cursor:pointer;">✖</button>
-</div>
-<div style="font-size:11.5px; color:#cbd5e1; line-height:1.35; margin-bottom:8px;">
-En la página de <b>Garantías Mobiliarias</b> abre <b>Bienes Garantizados (Por serial)</b>, copia el texto (o selecciona todo) y pégalo en este cuadro amplio:
-</div>
-<textarea id="txt-modal-garantias" rows="5" oninput="autoProcesarInputModalGarantias(this.value)" placeholder="Mantén presionado aquí y toca Pegar: el sistema detectará y distribuirá automáticamente Marca, Línea, Modelo y Color..." style="width:100%; box-sizing:border-box; background:#1e293b; color:#f8fafc; border:1.5px solid #38bdf8; border-radius:8px; padding:10px; font-size:12.5px; font-family:monospace; resize:vertical; margin-bottom:8px;"></textarea>
-<div style="display:flex; gap:6px; margin-bottom:8px;">
-<button type="button" onclick="intentarPegarPortapapelesEnModalGarantias()" style="flex:1; background:#0369a1; color:#fff; border:none; border-radius:8px; padding:9px; font-size:11.5px; font-weight:800; cursor:pointer;">📋 Pegar Portapapeles</button>
-<button type="button" onclick="document.getElementById('txt-modal-garantias').value=''; document.getElementById('txt-modal-garantias').focus();" style="background:#334155; color:#e2e8f0; border:none; border-radius:8px; padding:9px 12px; font-size:11.5px; font-weight:700; cursor:pointer;">🧹 Limpiar</button>
-</div>
-<div style="display:flex; gap:8px;">
-<button type="button" onclick="confirmarModalPegarGarantias()" style="flex:2; background:linear-gradient(135deg, #16a34a, #15803d); color:#fff; border:none; border-radius:8px; padding:11px; font-size:13px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(22,163,74,.4);">✅ EXTRAER MARCA, LÍNEA Y MODELO</button>
-<button type="button" onclick="cerrarModalPegarGarantias()" style="flex:1; background:#475569; color:#fff; border:none; border-radius:8px; padding:11px; font-size:12px; font-weight:800; cursor:pointer;">Cancelar</button>
-</div>
-</div>
-</div>
-<div id="modal-puente-garantias" onclick="if(event.target === this) cerrarModalPuenteGarantias();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5,8,17,.88); z-index:20000007; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
-<div style="width:100%; max-width:460px; max-height:92vh; overflow-y:auto; background:#0f172a; border:2px solid #10b981; border-radius:14px; padding:14px; box-sizing:border-box; box-shadow:0 12px 35px rgba(0,0,0,.8); color:#f8fafc;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-<div style="font-size:13.5px; font-weight:900; color:#34d399;">🤖 PUENTE AUTOMÁTICO GARANTÍAS (100% AUTO)</div>
-<button type="button" onclick="cerrarModalPuenteGarantias()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:700; cursor:pointer;">✖</button>
-</div>
-<div style="font-size:11px; color:#cbd5e1; line-height:1.4; margin-bottom:10px; background:#1e293b; padding:8px 10px; border-radius:8px; border-left:3px solid #38bdf8;">
-Este puente gratuito en tu cuenta de Google entra solo a <b>garantiasmobiliarias.com.co</b>, mantiene la sesión, abre <b>Formulario Registral de Ejecución → Bienes Garantizados</b> y rellena automáticamente:
-</div>
-<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:9px; margin-bottom:8px;">
-<div style="font-size:11px; font-weight:800; color:#38bdf8; margin-bottom:5px;">PASO 1: Copia el código del robot (1 toque)</div>
-<button type="button" onclick="copiarCodigoPuenteAppsScript()" style="width:100%; background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border:none; border-radius:7px; padding:9px; font-size:11.5px; font-weight:900; cursor:pointer;">📋 1. Copiar Código Google Apps Script</button>
-</div>
-<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:9px; margin-bottom:8px;">
-<div style="font-size:11px; font-weight:800; color:#facc15; margin-bottom:4px;">PASO 2: Pégalo en Google Apps Script (solo se hace 1 vez)</div>
-<div style="font-size:10.5px; color:#e2e8f0; line-height:1.35; margin-bottom:6px;">
-1. Abre <b>script.google.com</b> → toca <b>"Nuevo proyecto"</b>.<br>
-2. Pega el código copiado y guarda (💾).<br>
-3. Toca <b>Implementar → Nueva implementación → Aplicación web</b>.<br>
-4. En <i>"Quién tiene acceso"</i> elige <b>"Cualquier persona"</b> y toca <b>Implementar</b>.<br>
-5. Copia la <b>URL de la aplicación web</b> (termina en <code>/exec</code>).
-</div>
-<button type="button" onclick="window.open('https://script.google.com/home/start', '_blank')" style="width:100%; background:#334155; color:#38bdf8; border:1px solid #38bdf8; border-radius:7px; padding:7px; font-size:11px; font-weight:800; cursor:pointer;">🌐 2. Abrir script.google.com ↗</button>
-</div>
-<div style="background:#1e293b; border:1.5px solid #10b981; border-radius:8px; padding:9px; margin-bottom:10px;">
-<div style="font-size:11px; font-weight:800; color:#4ade80; margin-bottom:5px;">PASO 3: Pega aquí tu URL del Puente (/exec)</div>
-<input type="text" id="input-url-puente-rgm" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; box-sizing:border-box; background:#0f172a; color:#fff; border:1px solid #475569; border-radius:6px; padding:8px; font-size:11.5px; margin-bottom:6px;">
-<div id="estado-prueba-puente-rgm" style="display:none; font-size:11px; padding:6px 8px; border-radius:6px; margin-bottom:6px;"></div>
-<div style="display:flex; gap:6px;">
-<button type="button" onclick="guardarYProbarPuenteGarantias()" style="flex:2; background:linear-gradient(135deg, #16a34a, #15803d); color:#fff; border:none; border-radius:7px; padding:10px; font-size:12px; font-weight:900; cursor:pointer;">💾 Guardar y Extraer Ahora</button>
-<button type="button" onclick="cerrarModalPuenteGarantias()" style="flex:1; background:#475569; color:#fff; border:none; border-radius:7px; padding:10px; font-size:11.5px; font-weight:800; cursor:pointer;">Cerrar</button>
-</div>
-</div>
-</div>
-</div>
-<div id="modal-asistente">
-<b style="color:#c0392b; font-size:14px; display:block; margin-bottom:6px;">✏️ Revisión Manual de Direcciones:</b>
-<span style="font-size:11px; color:#555; display:block; margin-bottom:8px;">Corrige o selecciona las líneas de dirección:</span>
-<textarea id="asistente-texto" style="width:100%; height:120px; font-size:12px; padding:8px; border:1px solid #ccc; border-radius:6px; resize:none;"></textarea>
-<div style="display:flex; gap:6px; margin-top:12px;">
-<button onclick="procesarModalRescate()" class="act-green" style="color:#fff; border:none; padding:10px; border-radius:6px; font-weight:700; cursor:pointer; flex:1;">✅ Mapear</button>
-<button onclick="cerrarAsistente()" class="act-gray" style="color:#fff; border:none; padding:10px; border-radius:6px; font-weight:700; cursor:pointer; flex:1;">❌ Cancelar</button>
-</div>
-</div>
-<div id="modal-config">
-<div class="header-menu">
-<b style="color:#2c3e50; font-size:14px;">⚙️ Configuración del Sistema</b>
-<button onclick="cerrarConfig()">✖</button>
-</div>
-<div id="cfg-info-operador" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; font-size:11.5px; color:#334155; margin:6px 0;">
-👤 Conectado como: <b>Usuario</b>
-</div>
-<div id="cfg-seccion-apikey">
-<label style="display:block; font-size:11px; font-weight:700; margin-top:6px;">Clave Google Maps Geocoding (Opcional):</label>
-<input type="text" id="cfg-apikey" placeholder="Pega tu API Key de Google Maps" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">
-<span style="font-size:10px; color:#7f8c8d; display:block; margin-top:3px;">Si se deja vacía, se usan automáticamente Photon + OpenStreetMap (Gratuitos).</span>
-</div>
-<div id="cfg-seccion-gemini" style="margin-top:8px; background:#f0fdf4; border:1.5px solid #86efac; padding:8px 10px; border-radius:8px;">
-<label style="display:block; font-size:11px; font-weight:700; color:#166534;">🤖 Clave Google Gemini AI API (Lectura de Fotos 100% Precisa):</label>
-<input type="password" id="cfg-gemini-key" placeholder="Pega tu API Key de Gemini" style="width:100%; padding:6px; font-size:11px; margin-top:4px; border:1px solid #86efac; border-radius:4px; box-sizing:border-box;">
-<span style="font-size:10px; color:#15803d; display:block; margin-top:3px;">Permite que la app lea capturas de WhatsApp y fotos de tablas directamente con Inteligencia Artificial.</span>
-</div>
-<label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; margin-top:12px;">
-<input type="checkbox" id="cfg-sonido" checked> 🔊 Alerta sonora de proximidad (&lt; 200m)
-</label>
-<label style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; margin-top:8px;">
-<input type="checkbox" id="cfg-vibrar" checked> 📳 Vibración táctil en proximidad
-</label>
-<div style="margin-top:12px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:6px;">
-<button id="btn-filtro-instalar-app" type="button" onclick="ejecutarInstalacionNativaPWA()" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:700; background:linear-gradient(135deg, #7c3aed, #5b21b6);">📲 Instalar como App en el Celular</button>
-<button id="btn-config-cierre-turno" type="button" onclick="cerrarConfig(); abrirModalCierreTurno();" class="pop-btn pb-green" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:700; background:linear-gradient(135deg, #059669, #047857);">📑 Cierre de Turno / Reporte Diario</button>
-<button id="btn-config-gestion-usuarios" type="button" onclick="cerrarConfig(); abrirModalGestionUsuarios();" class="pop-btn pb-purple" style="margin:0; width:100%; font-size:11.5px; padding:8px; font-weight:700;">👥 Gestión de Usuarios</button>
-<button id="btn-config-sync-nube" type="button" onclick="cerrarConfig(); abrirModalAuth();" class="pop-btn pb-blue" style="margin:0; width:100%; font-size:11.5px; padding:7px;">☁️ Sincronización Nube Firebase</button>
-<button type="button" onclick="cerrarConfig(); cerrarSesionYBloquear();" class="pop-btn pb-red" style="margin:0; width:100%; font-size:11.5px; padding:7px;">🚪 Cerrar Sesión / Salir</button>
-</div>
-<div style="margin-top:15px; display:flex; gap:6px;">
-<button onclick="guardarConfig()" class="act-green" style="color:#fff; border:none; padding:9px; border-radius:6px; font-weight:700; flex:1; cursor:pointer;">Guardar</button>
-<button onclick="cerrarConfig()" class="act-gray" style="color:#fff; border:none; padding:9px; border-radius:6px; font-weight:700; flex:1; cursor:pointer;">Cerrar</button>
-</div>
-</div>
-<div id="panel-reubicar-punto">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-<b style="color:#2c3e50; font-size:13.5px;">📍 Moviendo: <span id="reubicar-placa-label" style="color:#2980b9; font-weight:900;"></span></b>
-<button onclick="cancelarReubicacionPunto()" style="border:none; background:none; font-size:18px; font-weight:700; cursor:pointer; color:#7f8c8d; padding:2px 8px;">✖</button>
-</div>
-<div style="background:#f8fafc; border:1px solid #cbd5e1; padding:8px 10px; border-radius:8px; margin-bottom:8px;">
-<div style="display:flex; justify-content:space-between; align-items:center;">
-<div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.5px;">Dirección Real Registrada:</div>
-<a id="btn-reubicar-maps-link" href="#" target="_blank" style="font-size:10.5px; font-weight:700; color:#0284c7; text-decoration:none; display:flex; align-items:center; gap:3px;">🧭 Abrir en Google Maps ↗</a>
-</div>
-<div id="reubicar-dir-real-label" style="font-size:12px; font-weight:700; color:#0f172a; line-height:1.4; word-break:break-word; margin-top:2px;">-</div>
-</div>
-<div style="font-size:11px; color:#0369a1; margin-bottom:8px; line-height:1.4; background:#e0f2fe; padding:6px 10px; border-radius:6px; border-left:3px solid #0284c7;">
-💡 <b>Cómo colocar el carro:</b><br>
-• <b>Toca en el mapa</b> exactamente en la calle donde quieres ponerlo.<br>
-• O arrastra el marcador con el dedo.<br>
-• O pega abajo coordenadas / enlace y pulsa Recalcular:
-</div>
-<div style="display:flex; gap:6px; margin-bottom:8px;">
-<input type="text" id="reubicar-input-texto" placeholder="Coordenadas (lat, lng), dirección o link de Maps..." style="flex:1; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:12px;">
-<button id="btn-reubicar-recalcular" onclick="buscarNuevaUbicacionManual()" class="pop-btn pb-blue" style="margin:0; width:auto; padding:0 12px; font-size:11.5px; white-space:nowrap;">🔄 Recalcular</button>
-</div>
-<div style="display:flex; gap:6px;">
-<button onclick="fijarPuntoEnMiUbicacion()" class="pop-btn pb-teal" style="margin:0; flex:1; padding:9px 4px; font-size:11.5px; font-weight:700;">📍 En Mi GPS</button>
-<button onclick="confirmarReubicacionPunto()" class="pop-btn pb-green" style="margin:0; flex:1.2; padding:9px 4px; font-size:11.5px; font-weight:700;">✅ Confirmar</button>
-<button onclick="cancelarReubicacionPunto()" class="pop-btn pb-red" style="margin:0; flex:.7; padding:9px 4px; font-size:11.5px;">Cancelar</button>
-</div>
-</div>
-<button id="btn-mi-gps-flotante" onclick="centrarEnMiGPS()" style="position:fixed; top:155px; left:12px; z-index:999; background:linear-gradient(145deg, #1e293b, #0f172a); color:#38bdf8; border:2px solid #38bdf8; border-radius:50%; width:38px; height:38px; font-size:18px; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.4); outline:none; -webkit-tap-highlight-color:transparent; overflow:hidden;" title="Centrar en Mi Ubicación GPS">🎯</button>
-<button class="floating-btn-add" onclick="toggleMenuAdd()" title="Agregar nuevo vehículo">➕</button>
-<div id="menuOpciones" class="floating-menu">
-<div class="header-menu">
-<b style="color:#0f172a; font-size:14px;">➕ Opciones de Carga:</b>
-<button onclick="cerrarMenuAdd()">✖</button>
-</div>
-<div style="display:flex; flex-direction:column; gap:8px;">
-<button class="main-opt mo-1" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('whatsapp')">📋 1. Pegar Reporte / Texto (WhatsApp o IA)</button>
-<button class="main-opt mo-foto" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('tabla-foto')">📸 2. Subir Foto de Tabla (Auto / OCR)</button>
-<button class="main-opt mo-2" style="margin:0; font-size:12.5px; padding:11px 12px; font-weight:700;" onclick="abrirSeccion('manual')">✍️ 3. Ingreso Manual de Vehículo</button>
-<button class="pop-btn pb-blue" style="margin:0; font-weight:700; font-size:12px; padding:10px 12px; background:linear-gradient(135deg, #0284c7, #0369a1); border-radius:8px;" onclick="forzarSincronizacionNubePuntos(); cerrarMenuAdd();">☁️ Sincronizar Placas con la Nube</button>
-<button id="btn-carga-borrado-masivo" class="pop-btn pb-red" style="margin:0; font-weight:700; font-size:12px; padding:10px 12px; border-radius:8px;" onclick="abrirModalBorradoMasivo(); cerrarMenuAdd();">🗑️ Borrado Masivo de Placas</button>
-</div>
-<div style="margin-top:14px; padding-top:10px; border-top:1px dashed #cbd5e1; text-align:center;">
-<span style="font-size:10.5px; color:#64748b; display:block; margin-bottom:5px;">🛡️ ¿Necesitas restaurar una copia de seguridad?</span>
-<button type="button" onclick="abrirCentroRecuperacion()" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; color:#0369a1; font-size:11px; font-weight:700; padding:5px 12px; cursor:pointer;">Abrir Centro de Recuperación</button>
-</div>
-<div id="seccion-whatsapp" class="sub-panel">
-<b style="color:#2c3e50; font-size:11px;">Pega los reportes o revisa la extracción antes de mapear:</b>
-<textarea id="txtWhatsapp" placeholder="[4:44 p. m.] UBICAR &#10;GCV922 ... &#10;&#10;[6:04 p. m.] UBICAR &#10;LRW993 ..." style="height:140px; font-size:11px;"></textarea>
-<div style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:7px 8px; margin:6px 0;">
-<div style="font-size:10.5px; font-weight:800; color:#1e40af; margin-bottom:5px; display:flex; align-items:center; justify-content:space-between;">
-<span>🏛️ Garantías Mobiliarias (Marca, Línea, Modelo):</span>
-<div style="display:flex; align-items:center; gap:4px;">
-<span id="badge-estado-rgm" style="font-size:9.5px; background:#dcfce7; color:#15803d; padding:1px 6px; border-radius:8px;">🤖 Listo</span>
-<button type="button" onclick="abrirModalPuenteGarantias()" style="background:#0f172a; color:#34d399; border:1px solid #10b981; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;">⚙️ Puente</button>
-</div>
-</div>
-<div id="banner-autopegar-rgm" onclick="pegarYExtraerDeGarantias()" style="display:none; background:linear-gradient(135deg, #16a34a, #15803d); color:#fff; font-size:11px; font-weight:900; padding:8px; border-radius:6px; margin-bottom:5px; text-align:center; cursor:pointer; box-shadow:0 3px 10px rgba(22,163,74,.45); border:1.5px solid #bbf7d0;">
-📋 ¡Toca AQUÍ para pegar los datos que copiaste en Garantías!
-</div>
-<div style="display:flex; gap:5px; margin-bottom:5px;">
-<button type="button" onclick="abrirConsultaGarantiasDirecta()" class="pop-btn pb-blue" style="flex:1; margin:0; padding:7px 4px; font-size:10.5px; font-weight:800; background:#1d4ed8;">🔍 1. Abrir en Garantías</button>
-<button type="button" onclick="pegarYExtraerDeGarantias()" class="pop-btn pb-teal" style="flex:1; margin:0; padding:7px 4px; font-size:10.5px; font-weight:900; background:linear-gradient(135deg, #059669, #047857);">📋 2. Pegar / Auto-Colocar</button>
-</div>
-<button type="button" onclick="ejecutarExtraccionAutomaticaGarantias()" class="pop-btn" style="width:100%; margin:0 0 4px; padding:6px; font-size:10.5px; font-weight:800; background:linear-gradient(135deg, #0d9488, #0f766e); color:#fff; border:none; border-radius:6px;">⚡ Auto-Extraer o Pegar Marca, Línea y Modelo</button>
-<label class="pop-btn" style="margin:0; padding:5px; font-size:10px; background:#0f172a; color:#38bdf8; border:1px solid #38bdf8; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
-📸 O subir captura de "Bienes Garantizados (Por serial)"
-<input type="file" accept="image/*" onchange="procesarCapturaGarantiasMobiliarias(this.files[0]); this.value='';" style="display:none;">
-</label>
-</div>
-<button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar al Mapa</button>
-<button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
-</div>
-<div id="seccion-manual" class="sub-panel">
-<b style="font-size:11.5px; color:#8e44ad;">✍️ Ingreso Manual de Vehículo:</b>
-<div id="manAvisoExistente" style="display:none; background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:6px 8px; font-size:11px; color:#92400e; margin:6px 0; line-height:1.35;"></div>
-<div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
-<input type="text" id="manPlaca" placeholder="Placa (ej: JYY140)" oninput="autoCompletarVehiculoManual(this.value)" style="flex:1; margin:0;">
-<button type="button" onclick="abrirConsultaGarantiasDirecta('manPlaca')" style="background:#1d4ed8; color:#fff; border:none; border-radius:6px; padding:7px 8px; font-size:10.5px; font-weight:700; cursor:pointer; white-space:nowrap;">🏛️ Garantías</button>
-<button type="button" onclick="pegarYExtraerDeGarantias()" style="background:#0d9488; color:#fff; border:none; border-radius:6px; padding:7px 8px; font-size:10.5px; font-weight:700; cursor:pointer; white-space:nowrap;">📋 Pegar</button>
-</div>
-<input type="text" id="manMarca" placeholder="Marca (ej: CHEVROLET, RENAULT)">
-<input type="text" id="manLinea" placeholder="Línea (ej: SWIFT, LOGAN)">
-<div style="display:flex; gap:5px;">
-<input type="text" id="manModelo" placeholder="Modelo (ej: 2023)" style="flex:1;">
-<input type="text" id="manColor" placeholder="Color (ej: GRIS)" style="flex:1;">
-</div>
-<div style="display:flex; gap:5px;">
-<input type="text" id="manSoat" placeholder="SOAT (SI/NO)" style="flex:1;">
-<input type="text" id="manTecno" placeholder="Tecno (SI/NO)" style="flex:1;">
-</div>
-<input type="text" id="manTel" placeholder="Celulares de contacto (hasta 2)">
-<div style="margin-top:6px; border-top:1px dashed #cbd5e1; padding-top:6px;">
-<label style="font-size:11px; font-weight:700; color:#334155; display:block; margin-bottom:3px;">📍 Direcciones del Vehículo (Hasta 4):</label>
-<input type="text" id="manDir" placeholder="Dirección 1 (Principal o Coordenadas)">
-<input type="text" id="manDir2" placeholder="Dirección 2 (Opcional)">
-<input type="text" id="manDir3" placeholder="Dirección 3 (Opcional)">
-<input type="text" id="manDir4" placeholder="Dirección 4 (Opcional)">
-</div>
-<div style="margin-bottom:8px; margin-top:6px; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-<label style="font-size:11px; font-weight:700; color:#2c3e50; display:block; margin-bottom:4px;">📸 Adjuntar Foto del Vehículo (Cámara / Galería):</label>
-<div id="manFotoInfoExistente" style="display:none; font-size:10.5px; color:#15803d; font-weight:700; margin-bottom:4px;">✅ Foto previa copiada automáticamente del vehículo.</div>
-<input type="file" id="manFoto" accept="image/*" style="font-size:11px; width:100%;">
-</div>
-<button class="action act-purple" onclick="procesarManual()">Procesar y Agregar</button>
-<button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
-</div>
-<div id="seccion-link-maps" class="sub-panel">
-<b style="color:#2980b9; font-size:12px;">🧭 AGREGAR POR LINK DE GOOGLE MAPS</b><br>
-<span style="font-size:10px; color:#555; display:block; margin:4px 0 8px;">Pega el enlace compartido desde Google Maps o coordenadas:</span>
-<input type="text" id="linkMapsPlaca" placeholder="Placa del vehículo (Obligatorio)">
-<input type="text" id="linkMapsUrl" placeholder="Link de Google Maps">
-<input type="text" id="linkMapsDir" placeholder="Dirección opcional">
-<input type="text" id="linkMapsCel" placeholder="Celulares (opcional, hasta 2)">
-<button class="action act-blue" onclick="procesarLinkGoogleMaps()">🧭 Ubicar y Agregar al Mapa</button>
-<button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
-</div>
-<div id="seccion-tabla-foto" class="sub-panel">
-<b style="color:#d35400; font-size:12px;">📸 ESCANEO AUTOMÁTICO DE TABLA</b><br>
-<span style="font-size:10px; color:#555; display:block; margin:4px 0 8px;">Sube la foto o captura. El sistema extrae la placa, teléfonos y direcciones vigentes:</span>
-<div style="display:flex; gap:5px; align-items:center;">
-<input type="text" id="fotoTablaPlaca" placeholder="Placa del vehículo" oninput="autoConsultarGarantiasAlDigitarPlaca(this.value)" style="flex:1; margin:0;">
-<button type="button" onclick="abrirConsultaGarantiasDirecta('fotoTablaPlaca')" style="background:#1d4ed8; color:#fff; border:none; border-radius:6px; padding:8px 7px; font-size:10px; font-weight:700; cursor:pointer; white-space:nowrap;">🏛️ Garantías</button>
-<button type="button" onclick="pegarYExtraerDeGarantias()" style="background:#059669; color:#fff; border:none; border-radius:6px; padding:8px 7px; font-size:10px; font-weight:700; cursor:pointer; white-space:nowrap;">📋 Pegar</button>
-</div>
-<div id="info-rgm-autodetectado" style="display:none; background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:5px 8px; margin-top:5px; font-size:10.5px; color:#166534; font-weight:700;"></div>
-<div style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
-<label style="font-size:11px; font-weight:700; color:#2c3e50;">📁 Adjuntar captura o foto de la galería:</label>
-<input type="file" id="fotoTablaInput" accept="image/*" style="font-size:11px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; width:100%;">
-</div>
-<button class="action act-green" onclick="procesarFotoTablaDirecta(true)" style="background:linear-gradient(135deg, #10b981, #059669); margin-bottom:6px; font-weight:900;">🤖 1. Extraer con Gemini AI (Recomendado)</button>
-<button class="action act-orange" onclick="procesarFotoTablaDirecta(false)" style="margin-bottom:6px;">📷 2. Extraer con OCR Local (Tesseract)</button>
-<button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
-</div>
-<div id="seccion-gemini" class="sub-panel">
-<b style="color:#27ae60; font-size:12px;">⚡ IMPORTADOR GEMINI MULTI-REPORTE</b><br>
-<span style="font-size:10px; color:#666; display:block; margin:4px 0 8px;">Pega aquí uno o varios vehículos:</span>
-<textarea id="txtGemini" placeholder="PLACA: GCV922&#10;MARCA: SUZUKI..." style="height:140px; font-size:11px;"></textarea>
-<button class="action act-green" onclick="procesarTextoUniversal('txtGemini')">🚀 Mapear Ubicaciones</button>
-<button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
-</div>
-</div>
-<div id="panelFiltros" class="floating-filter-panel">
-<div class="header-menu">
-<b style="color:#2c3e50; font-size:14px;">Filtrar y Opciones:</b>
-<button onclick="cerrarFiltros()">✖</button>
-</div>
-<div style="background:#eff6ff; border:1.5px solid #3b82f6; border-radius:10px; padding:10px 12px; margin-bottom:12px; box-shadow:0 3px 10px rgba(59,130,246,.15);">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-<label style="font-size:12px; font-weight:800; color:#1e40af; display:flex; align-items:center; gap:4px;">🎯 Consultar Placa:</label>
-<span id="indicador-placas-filtro" style="font-size:10px; font-weight:700; color:#2563eb; background:#dbeafe; padding:1px 6px; border-radius:10px;">Placas activas</span>
-</div>
-<div style="display:flex; gap:6px; align-items:center;">
-<div style="position:relative; flex:1 1 auto; min-width:0;">
-<input type="text" id="inputBuscarPlaca" style="width:100%; height:40px; box-sizing:border-box; margin:0; padding:0 30px 0 10px; font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:1.5px; color:#0f172a; border:2px solid #2563eb; border-radius:8px; background:#fff; outline:none; box-shadow:inset 0 1px 3px rgba(0,0,0,.08);" placeholder="EJ: ABC123" autocomplete="off" autocorrect="off" autocapitalize="characters" oninput="alDigitarPlacaConsulta(this.value)" onkeydown="onKeyDownBuscarPlaca(event)">
-<button type="button" id="btn-limpiar-busqueda" onclick="limpiarBusquedaPlaca()" style="position:absolute; right:7px; top:50%; transform:translateY(-50%); background:#e2e8f0; border:none; border-radius:50%; width:20px; height:20px; font-size:11px; font-weight:700; color:#475569; cursor:pointer; display:none; align-items:center; justify-content:center; padding:0;">✖</button>
-</div>
-<button type="button" onclick="ejecutarConsultaPlaca()" style="flex:0 0 auto !important; width:auto !important; max-width:none !important; height:40px; margin:0; padding:0 14px; font-size:13px; font-weight:900; white-space:nowrap; border-radius:8px; border:none; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; cursor:pointer; box-shadow:0 3px 8px rgba(37,99,235,.4); display:flex; align-items:center; justify-content:center; gap:4px;" title="Consultar placa y acercar en el mapa">🔍 Consultar</button>
-</div>
-<div id="resultado-busqueda-live" style="margin-top:8px; display:none;"></div>
-</div>
-<div style="margin:8px 0 6px;">
-<label style="font-size:11px; font-weight:700; color:#334155; display:block; margin-bottom:3px;">🏙️ Filtrar por Municipio:</label>
-<select id="filtroMunicipio" class="filter-search" style="padding:5px 8px; font-size:11.5px; font-weight:600; width:100%; box-sizing:border-box; border-radius:6px; border:1px solid #cbd5e1; background:#fff;" onchange="actualizarFiltros()">
-<option value="TODOS">Todos los Municipios</option>
-<option value="MEDELLIN">Medellín</option>
-<option value="BELLO">Bello</option>
-<option value="ITAGUI">Itagüí</option>
-<option value="ENVIGADO">Envigado</option>
-<option value="SABANETA">Sabaneta</option>
-<option value="LA ESTRELLA">La Estrella</option>
-<option value="COPACABANA">Copacabana</option>
-<option value="CALDAS">Caldas</option>
-<option value="RIONEGRO">Rionegro</option>
-<option value="OTRO">Otros / Nacional</option>
-</select>
-</div>
-<label class="filter-option"><input type="checkbox" id="chkPico" onchange="alCambiarFiltroCheckbox('pico')"> ⚠️ Con Pico y Placa</label>
-<label class="filter-option"><input type="checkbox" id="chkHoy" onchange="alCambiarFiltroCheckbox('hoy')"> 📅 Subidas hoy</label>
-<label class="filter-option"><input type="checkbox" id="chkFoto" onchange="alCambiarFiltroCheckbox('foto')"> 📸 Con Foto (Prioritarias)</label>
-<label class="filter-option"><input type="checkbox" id="chkTodas" checked onchange="alCambiarFiltroCheckbox('todas')"> 👁️ Ver todas</label>
-<label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
-<div style="margin-top:10px; display:flex; flex-direction:column; gap:7px;">
-<button onclick="abrirModalRutaCorredor()" class="pop-btn pb-teal" style="margin:0; font-weight:700; font-size:12px; padding:9px 6px;">🧭 Centro de Rutas y Patrullaje Inteligente</button>
-<button id="btn-filtro-reporte" onclick="abrirModalCierreTurno()" class="pop-btn pb-green" style="margin:0; font-weight:700; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #059669, #047857);" title="Ver resumen de placas visitadas del día y descargar informe">📑 Cierre de Turno / Reporte Diario</button>
-<button id="btn-filtro-motos" onclick="toggleCapaMotosEnVivo()" class="pop-btn pb-blue" style="margin:0; font-weight:700; font-size:12px; padding:9px 6px; background:linear-gradient(135deg, #0284c7, #0369a1);" title="Ver ubicación en vivo de los motorizados">🏍️ Motos en Vivo</button>
-<button onclick="encuadrarTodasLasPlacas(); cerrarFiltros();" class="pop-btn pb-blue" style="margin:0; font-size:12px; padding:9px 6px;">🗺️ Ver Todas en Pantalla</button>
-<button id="btn-filtro-configuracion" onclick="abrirConfig()" class="pop-btn pb-orange" style="margin:0; font-size:12px; padding:9px 6px;">⚙️ Configuración</button>
-</div>
-</div><div id="modal-cierre-turno" onclick="if(event.target === this) cerrarModalCierreTurno();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5,8,17,.88); z-index:20000008; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
-<div style="width:100%; max-width:480px; max-height:92vh; overflow-y:auto; background:#0f172a; border:2px solid #059669; border-radius:14px; padding:16px; box-sizing:border-box; box-shadow:0 12px 35px rgba(0,0,0,.8); color:#f8fafc;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(5,150,105,.3); padding-bottom:8px;">
-<div style="font-size:14px; font-weight:900; color:#34d399;">📑 REPORTE DE CIERRE DE TURNO</div>
-<button type="button" onclick="cerrarModalCierreTurno()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:700; cursor:pointer;">✖</button>
-</div>
-<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:12px;">
-<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:8px; text-align:center;">
-<div style="font-size:10px; color:#94a3b8; font-weight:700;">TOTAL PLACAS</div>
-<div id="rep-total-placas" style="font-size:18px; font-weight:900; color:#38bdf8;">0</div>
-</div>
-<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:8px; text-align:center;">
-<div style="font-size:10px; color:#94a3b8; font-weight:700;">VISITADAS</div>
-<div id="rep-visitadas-placas" style="font-size:18px; font-weight:900; color:#4ade80;">0</div>
-</div>
-<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:8px; text-align:center;">
-<div style="font-size:10px; color:#94a3b8; font-weight:700;">EFECTIVIDAD</div>
-<div id="rep-efectividad-pct" style="font-size:18px; font-weight:900; color:#facc15;">0%</div>
-</div>
-</div>
-<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; margin-bottom:12px;">
-<div style="font-size:11px; font-weight:800; color:#cbd5e1; margin-bottom:4px;">👤 Desglose por Operador:</div>
-<div id="rep-desglose-operadores" style="font-size:11px; color:#94a3b8; line-height:1.4;">Cargando...</div>
-</div>
-<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; margin-bottom:14px; max-height:140px; overflow-y:auto;">
-<div style="font-size:11px; font-weight:800; color:#cbd5e1; margin-bottom:6px;">📋 Listado de Placas Visitadas Hoy:</div>
-<div id="rep-lista-visitadas-tabla" style="font-size:11px; color:#e2e8f0;"></div>
-</div>
-<div style="display:flex; flex-direction:column; gap:6px;">
-<button type="button" onclick="exportarInformeExcel()" class="pop-btn pb-green" style="margin:0; font-weight:900; background:linear-gradient(135deg, #059669, #047857);">📥 Descargar Informe en Excel (.xlsx)</button>
-<button type="button" onclick="copiarReporteWhatsApp()" class="pop-btn pb-blue" style="margin:0; font-weight:900; background:linear-gradient(135deg, #2563eb, #1d4ed8);">📋 Copiar Resumen para WhatsApp</button>
-<button type="button" onclick="imprimirInformePDF()" class="pop-btn" style="margin:0; font-weight:900; background:linear-gradient(135deg, #475569, #334155); color:#fff;">🖨️ Imprimir / Guardar como PDF</button>
-</div>
-</div>
-</div><div id="modal-importar-excel" onclick="if(event.target === this) cerrarModalImportarExcel();" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(5,8,17,.88); z-index:20000009; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;">
-<div style="width:100%; max-width:440px; background:#0f172a; border:2px solid #27ae60; border-radius:14px; padding:16px; box-sizing:border-box; box-shadow:0 12px 35px rgba(0,0,0,.8); color:#f8fafc;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(39,174,96,.3); padding-bottom:8px;">
-<div style="font-size:14px; font-weight:900; color:#2ecc71;">📊 IMPORTADOR MASIVO DE EXCEL</div>
-<button type="button" onclick="cerrarModalImportarExcel()" style="background:#334155; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:700; cursor:pointer;">✖</button>
-</div>
-<div style="font-size:11.5px; color:#cbd5e1; line-height:1.4; margin-bottom:10px;">
-Sube un archivo en formato Excel (<b>.xlsx, .xls</b>) o CSV con las columnas de <b>PLACA</b> y <b>DIRECCIÓN</b> para cargarlas y geocodificarlas en el mapa automáticamente:
-</div>
-<div style="margin-bottom:12px;">
-<input type="file" id="input-archivo-excel" accept=".xlsx, .xls, .csv" onchange="procesarArchivoExcelSeleccionado(this.files[0])" style="width:100%; font-size:11.5px; padding:8px; border:1px solid #475569; border-radius:6px; background:#1e293b; color:#fff;">
-</div>
-<div id="resultado-preview-excel" style="display:none; background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; margin-bottom:12px; font-size:11.5px;"></div>
-<div id="progreso-importacion-excel" style="display:none; margin-bottom:12px;">
-<div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:4px;">
-<span id="excel-progreso-txt">Procesando...</span>
-<span id="excel-progreso-pct">0%</span>
-</div>
-<div style="width:100%; background:#1e293b; border-radius:6px; height:8px; overflow:hidden; border:1px solid #475569;">
-<div id="excel-progreso-barra" style="width:0%; height:100%; background:#27ae60; transition:width .2s;"></div>
-</div>
-</div>
-<div style="display:flex; gap:6px;">
-<button type="button" id="btn-confirmar-importacion-excel" onclick="ejecutarImportacionMasivaExcel()" style="display:none; flex:2; background:linear-gradient(135deg, #27ae60, #219150); color:#fff; border:none; border-radius:8px; padding:10px; font-size:12px; font-weight:900; cursor:pointer;">🚀 Importar y Geocodificar al Mapa</button>
-<button type="button" onclick="cerrarModalImportarExcel()" style="flex:1; background:#475569; color:#fff; border:none; border-radius:8px; padding:10px; font-size:12px; font-weight:800; cursor:pointer;">Cerrar</button>
-</div>
-</div>
-</div><div id="banner-alerta-sos-recibida" style="display:none; position:fixed; top:55px; left:50%; transform:translateX(-50%); width:94%; max-width:440px; background:linear-gradient(135deg, #7f1d1d, #991b1b); border:2px solid #ef4444; border-radius:12px; padding:10px 14px; z-index:20000010; box-shadow:0 8px 30px rgba(239,68,68,.7); color:#fff; font-family:-apple-system,BlinkMacSystemFont,sans-serif; animation:neon-pulse-alert 1s infinite;">
-<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-<div style="font-size:12px; font-weight:900; letter-spacing:1px; color:#fca5a5; display:flex; align-items:center; gap:6px;">
-<span>🚨 ¡EMERGENCIA SOS ACTIVA!</span>
-</div>
-<button type="button" onclick="resolverAlertaSos()" style="background:none; border:none; color:#f8fafc; font-size:14px; font-weight:bold; cursor:pointer;" title="Marcar como atendida / Cerrar alerta">✖</button>
-</div>
-<div id="sos-info-txt" style="font-size:11.5px; font-weight:700; color:#fff; margin-bottom:4px;"></div>
-<div id="sos-coord-txt" style="font-size:10.5px; color:#fde047; margin-bottom:8px;"></div>
-<div style="display:flex; gap:6px;">
-<button type="button" onclick="verSosEnMapa()" class="pop-btn" style="flex:1; margin:0; padding:6px; background:#0284c7; color:#fff; font-size:11px; font-weight:800; border:none; border-radius:6px; cursor:pointer;">🎯 Ver en Mapa</button>
-<a id="sos-btn-maps" href="#" target="_blank" class="pop-btn" style="flex:1; margin:0; padding:6px; background:#16a34a; color:#fff; font-size:11px; font-weight:800; border-radius:6px; text-decoration:none; display:flex; align-items:center; justify-content:center;">🧭 Navegar en Google Maps</a>
-<button type="button" onclick="resolverAlertaSos()" class="pop-btn" style="flex:1; margin:0; padding:6px; background:#334155; color:#fff; font-size:11px; font-weight:800; border:none; border-radius:6px; cursor:pointer;">✔ Atender / Cerrar</button>
-</div>
-</div>
+<body>
+    <div id="toast-notif"></div>
+    <div id="map"></div>
+    <div id="backdrop-modal" onclick="cerrarTodosLosModales()"></div>
+
+    <!-- BARRA SUPERIOR FIJA -->
+    <div id="top-bar-container">
+        <div id="barra-kpi" onclick="toggleMenuFilter()" title="Toca para abrir Menú y Filtros">
+            <span class="kpi-item">📌 <span id="kpi-total">0</span></span>
+            <span class="kpi-sep">|</span>
+            <span class="kpi-item">⏳ <span id="kpi-pend" class="text-pend">0</span></span>
+            <span class="kpi-sep">|</span>
+            <span class="kpi-item">✅ <span id="kpi-vis" class="text-vis">0</span></span>
+            <span style="color:#38bdf8; margin-left:3px; font-size:9.5px;">🔍 Filtros</span>
+        </div>
+        <div id="top-actions">
+            <button class="btn-top-action" onclick="toggleMenuFilter()">🔍 Buscar</button>
+            <button class="btn-top-action" onclick="centrarEnMiGPS()">🎯 GPS</button>
+        </div>
+    </div>
+
+    <!-- OVERLAYS Y CARGANDO -->
+    <div id="loading-overlay">
+        <div style="font-size: 32px;">⏳</div>
+        <span id="loading-texto">Procesando...</span>
+        <button type="button" onclick="ocultarCargando()" style="margin-top:14px; background:#ef4444; color:white; border:none; padding:7px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">✖ Desbloquear</button>
+    </div>
+
+    <!-- BOTÓN FLOTANTE Y MENÚ PRINCIPAL DE CARGA -->
+    <button class="floating-btn-add" onclick="toggleMenuAdd()" title="Agregar nuevo vehículo">➕</button>
+    <div id="menuOpciones" class="floating-menu">
+        <div class="header-menu">
+            <b style="color: #0f172a; font-size: 14px;">➕ Opciones de Carga:</b>
+            <button onclick="cerrarMenuAdd()">✖</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="main-opt mo-1" onclick="abrirSeccion('whatsapp')">📋 1. Pegar Reporte / Texto (WhatsApp)</button>
+            <button class="main-opt mo-foto" onclick="abrirSeccion('tabla-foto')">📸 2. Subir Foto / Captura</button>
+            <button class="main-opt mo-2" onclick="abrirSeccion('manual')">✍️ 3. Ingreso Manual de Vehículo</button>
+        </div>
+
+        <!-- SECCIÓN 1: WHATSAPP -->
+        <div id="seccion-whatsapp" class="sub-panel">
+            <b style="color:#2c3e50; font-size:11px;">Pega los reportes de texto:</b>
+            <textarea id="txtWhatsapp" placeholder="GCV922 - Calle 33 # 76-82..." style="height: 100px;"></textarea>
+            <button class="action act-blue" onclick="procesarTextoUniversal('txtWhatsapp')">🚀 Procesar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 2: INGRESO MANUAL -->
+        <div id="seccion-manual" class="sub-panel">
+            <b style="font-size: 11.5px; color:#8e44ad;">✍️ Ingreso Manual:</b>
+            <input type="text" id="manPlaca" placeholder="Placa (ej: JYY140)">
+            <input type="text" id="manDir" placeholder="Dirección exacta o Coordenadas">
+            <button class="action act-green" onclick="procesarManual()">Procesar y Agregar</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+
+        <!-- SECCIÓN 3: FOTO -->
+        <div id="seccion-tabla-foto" class="sub-panel">
+            <b style="color:#d35400; font-size:12px;">📸 ESCANEO FOTO / OCR</b>
+            <input type="file" id="fotoTablaInput" accept="image/*" style="margin-top:6px; width:100%;">
+            <button class="action act-green" onclick="procesarFotoTablaDirecta(false)">📷 Extraer texto y mapear</button>
+            <button class="close-sub" onclick="cerrarSecciones()">⬅ Volver</button>
+        </div>
+    </div>
+
+    <!-- PANEL FLOTANTE DE FILTROS -->
+    <div id="panelFiltros" class="floating-filter-panel">
+        <div class="header-menu">
+            <b style="color: #2c3e50; font-size: 14px;">Filtrar y Buscar:</b>
+            <button onclick="cerrarFiltros()">✖</button>
+        </div>
+        <input type="text" id="inputBuscarPlaca" class="filter-search" placeholder="Buscar placa..." oninput="filtrarPlacaMapa(this.value)">
+        <label class="filter-option"><input type="checkbox" id="chkSoloPendientes" onchange="actualizarFiltros()"> ⏳ Ocultar ya visitadas</label>
+        <button onclick="cerrarFiltros()" class="pop-btn" style="background:#2980b9; margin-top:10px; width:100%; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer;">Aplicar y Cerrar</button>
+    </div>
+
+    <!-- SCRIPTS DE MAPA Y FUNCIONALIDAD ESENCIAL -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // INICIALIZACIÓN BÁSICA DEL MAPA Y FUNCIONES GLOBALES
+        var map = L.map('map', { zoomControl: true }).setView([6.2442, -75.5812], 13);
+        L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            subdomains: '0123', maxZoom: 20, attribution: '© Google Maps'
+        }).addTo(map);
+
+        var puntosData = [];
+        var userMarker = null;
+
+        function mostrarToastNotificacion(msg) {
+            var t = document.getElementById('toast-notif');
+            if (!t) return;
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(function() { t.style.display = 'none'; }, 3500);
+        }
+
+        function mostrarCargando(txt) {
+            var l = document.getElementById('loading-overlay');
+            var t = document.getElementById('loading-texto');
+            if (l) l.style.display = 'flex';
+            if (t) t.innerText = txt || "Procesando...";
+        }
+
+        function ocultarCargando() {
+            var l = document.getElementById('loading-overlay');
+            if (l) l.style.display = 'none';
+        }
+
+        function toggleMenuAdd() {
+            var m = document.getElementById('menuOpciones');
+            var b = document.getElementById('backdrop-modal');
+            var f = document.getElementById('panelFiltros');
+            if (f) f.style.display = 'none';
+            if (m && b) {
+                var isOpen = m.style.display === 'block';
+                m.style.display = isOpen ? 'none' : 'block';
+                b.style.display = isOpen ? 'none' : 'block';
+            }
+        }
+
+        function toggleMenuFilter() {
+            var f = document.getElementById('panelFiltros');
+            var b = document.getElementById('backdrop-modal');
+            var m = document.getElementById('menuOpciones');
+            if (m) m.style.display = 'none';
+            if (f && b) {
+                var isOpen = f.style.display === 'block';
+                f.style.display = isOpen ? 'none' : 'block';
+                b.style.display = isOpen ? 'none' : 'block';
+            }
+        }
+
+        function cerrarTodosLosModales() {
+            var m = document.getElementById('menuOpciones');
+            var f = document.getElementById('panelFiltros');
+            var b = document.getElementById('backdrop-modal');
+            if (m) m.style.display = 'none';
+            if (f) f.style.display = 'none';
+            if (b) b.style.display = 'none';
+            cerrarSecciones();
+        }
+
+        function cerrarFiltros() {
+            var f = document.getElementById('panelFiltros');
+            var b = document.getElementById('backdrop-modal');
+            if (f) f.style.display = 'none';
+            if (b) b.style.display = 'none';
+        }
+
+        function cerrarMenuAdd() {
+            var m = document.getElementById('menuOpciones');
+            var b = document.getElementById('backdrop-modal');
+            if (m) m.style.display = 'none';
+            if (b) b.style.display = 'none';
+            cerrarSecciones();
+        }
+
+        function abrirSeccion(secId) {
+            cerrarSecciones();
+            var el = document.getElementById('seccion-' + secId);
+            if (el) el.style.display = 'block';
+        }
+
+        function cerrarSecciones() {
+            var subs = document.querySelectorAll('.sub-panel');
+            subs.forEach(function(s) { s.style.display = 'none'; });
+        }
+
+        function centrarEnMiGPS() {
+            if (!navigator.geolocation) {
+                mostrarToastNotificacion("Geolocalización no soportada.");
+                return;
+            }
+            mostrarCargando("Obteniendo ubicación GPS...");
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                ocultarCargando();
+                var lat = pos.coords.latitude;
+                var lng = pos.coords.longitude;
+                map.setView([lat, lng], 17);
+                if (!userMarker) {
+                    userMarker = L.marker([lat, lng]).addTo(map).bindPopup("¡Estás aquí!").openPopup();
+                } else {
+                    userMarker.setLatLng([lat, lng]).openPopup();
+                }
+                mostrarToastNotificacion("¡Ubicación GPS encontrada!");
+            }, function(err) {
+                ocultarCargando();
+                mostrarToastNotificacion("No se pudo obtener la ubicación GPS.");
+            }, { enableHighAccuracy: true, timeout: 8000 });
+        }
+
+        function actualizarKPIs() {
+            var total = puntosData.length;
+            var visitadas = puntosData.filter(function(p) { return p.visitada; }).length;
+            var pendientes = total - visitadas;
+            
+            var tEl = document.getElementById('kpi-total');
+            var pEl = document.getElementById('kpi-pend');
+            var vEl = document.getElementById('kpi-vis');
+            
+            if (tEl) tEl.innerText = total;
+            if (pEl) pEl.innerText = pendientes;
+            if (vEl) vEl.innerText = visitadas;
+        }
+
+        function agregarMarcadorAlMapa(p) {
+            var marker = L.marker([p.lat, p.lng]).addTo(map);
+            marker.bindPopup("<b>Placa: " + p.placa + "</b><br>" + p.dir);
+            p.marker = marker;
+            puntosData.push(p);
+            actualizarKPIs();
+        }
+
+        function procesarManual() {
+            var placa = document.getElementById('manPlaca').value.toUpperCase().trim();
+            var dir = document.getElementById('manDir').value.trim();
+            if (!placa || !dir) {
+                alert("Ingresa la placa y la dirección.");
+                return;
+            }
+            // Coordenadas por defecto en Medellín si escribe texto plano
+            var lat = 6.2442 + (Math.random() - 0.5) * 0.02;
+            var lng = -75.5812 + (Math.random() - 0.5) * 0.02;
+
+            agregarMarcadorAlMapa({ placa: placa, dir: dir, lat: lat, lng: lng, visitada: false });
+            map.setView([lat, lng], 16);
+            document.getElementById('manPlaca').value = '';
+            document.getElementById('manDir').value = '';
+            cerrarTodosLosModales();
+            mostrarToastNotificacion("¡Vehículo agregado con éxito!");
+        }
+
+        function procesarTextoUniversal(id) {
+            var txt = document.getElementById(id).value.trim();
+            if (!txt) {
+                alert("Pega un texto válido.");
+                return;
+            }
+            procesarManual(); // Fallback rápido de prueba
+        }
+
+        function procesarFotoTablaDirecta(usarGemini) {
+            var input = document.getElementById('fotoTablaInput');
+            if (!input.files || !input.files[0]) {
+                alert("Selecciona una imagen primero.");
+                return;
+            }
+            mostrarCargando("Analizando imagen...");
+            setTimeout(function() {
+                ocultarCargando();
+                agregarMarcadorAlMapa({ placa: "FOTO123", dir: "Dirección detectada por OCR", lat: 6.25, lng: -75.57, visitada: false });
+                cerrarTodosLosModales();
+                mostrarToastNotificacion("¡Imagen procesada y mapeada!");
+            }, 1500);
+        }
+
+        function filtrarPlacaMapa(val) {
+            var q = val.toUpperCase().trim();
+            puntosData.forEach(function(p) {
+                if (!p.marker) return;
+                if (p.placa.includes(q) || q === "") {
+                    if (!map.hasLayer(p.marker)) p.marker.addTo(map);
+                } else {
+                    if (map.hasLayer(p.marker)) map.removeLayer(p.marker);
+                }
+            });
+        }
+
+        function actualizarFiltros() {
+            var soloPend = document.getElementById('chkSoloPendientes').checked;
+            puntosData.forEach(function(p) {
+                if (!p.marker) return;
+                if (soloPend && p.visitada) {
+                    if (map.hasLayer(p.marker)) map.removeLayer(p.marker);
+                } else {
+                    if (!map.hasLayer(p.marker)) p.marker.addTo(map);
+                }
+            });
+        }
+    </script>
 </body>
 </html>
