@@ -12810,114 +12810,78 @@ async function procesarFotoTablaDirecta(usarGemini) {
 <!-- 🚀 MÓDULO WAZE 3D + COPILOTO DE VOZ EN SEGUNDO PLANO (24/7 KEEP-ALIVE)    -->
 <!-- ========================================================================= -->
 <style>
+    /* 1. Ocultar scroll y limpiar fondo cuando Waze 3D esté activo */
     body.waze-nav-active {
         background: #060b16 !important;
         overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    /* Ajuste perfecto del mapa 3D sin dejar espacios negros arriba */
+    /* 2. El mapa ocupa el 100% exacto de la pantalla con perspectiva Waze real sin franjas */
     body.waze-nav-active #map {
         width: 100vw !important;
-        height: 150vh !important;
+        height: 100vh !important;
         left: 0 !important;
-        top: -15vh !important;
+        top: 0 !important;
         position: fixed !important;
-        transform-origin: 50% 40% !important;
-        transform: perspective(850px) rotateX(58deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
-        transition: transform 0.25s linear !important;
+        z-index: 1 !important;
+        transform-origin: 50% 65% !important;
+        transform: perspective(750px) rotateX(54deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
+        transition: transform 0.2s linear !important;
         will-change: transform;
         filter: contrast(1.1) saturate(1.15);
     }
 
-    #waze-horizon-sky {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        height: 85px;
-        background: linear-gradient(180deg, #060b16 0%, rgba(6, 11, 22, 0.8) 60%, rgba(6, 11, 22, 0) 100%);
-        z-index: 900;
-        pointer-events: none;
-    }
-    body.waze-nav-active #waze-horizon-sky {
-        display: block;
-    }
-
+    /* 3. Contra-rotación perfecta para que las placas se lean bien y no queden de cabeza */
     body.waze-nav-active .leaflet-marker-icon > div,
     body.waze-nav-active .leaflet-popup {
-        transform: rotateZ(var(--waze-inv-rot, 0deg)) rotateX(-28deg);
+        transform: rotateZ(var(--waze-inv-rot, 0deg)) rotateX(-25deg);
         transform-origin: center center;
-        transition: transform 0.25s linear;
+        transition: transform 0.2s linear;
     }
 
-    .waze-user-cone {
-        position: relative;
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .waze-user-cone::before {
-        content: '';
-        position: absolute;
-        top: -30px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 24px solid transparent;
-        border-right: 24px solid transparent;
-        border-bottom: 45px solid rgba(0, 240, 255, 0.3);
-        filter: blur(2px);
-        pointer-events: none;
-    }
-    .waze-arrow-svg {
-        width: 40px;
-        height: 40px;
-        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 12px rgba(56, 189, 248, 0.9));
-    }
-
+    /* 4. Banner superior limpio sin invadir espacio */
     #waze-street-banner {
         display: none;
         position: fixed;
-        top: 10px;
+        top: 8px;
         left: 50%;
         transform: translateX(-50%);
-        width: 95%;
-        max-width: 420px;
-        background: rgba(8, 15, 30, 0.95);
+        width: 96%;
+        max-width: 440px;
+        background: rgba(10, 18, 35, 0.95);
         border: 2px solid #00f0ff;
-        border-radius: 14px;
-        padding: 6px 12px;
+        border-radius: 12px;
+        padding: 6px 10px;
         color: #ffffff;
-        z-index: 99998;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(8px);
+        z-index: 999998;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(6px);
     }
     body.waze-nav-active #waze-street-banner {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
+        gap: 6px;
     }
     .waze-banner-left {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         overflow: hidden;
         flex: 1;
     }
     .waze-turn-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
         background: linear-gradient(135deg, #0284c7, #0369a1);
-        border: 1.5px solid #38bdf8;
+        border: 1px solid #38bdf8;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
-        font-weight: 900;
+        font-size: 16px;
         flex-shrink: 0;
     }
     .waze-street-texts {
@@ -12927,13 +12891,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
         flex: 1;
     }
     .waze-street-label {
-        font-size: 9px;
+        font-size: 8.5px;
         color: #38bdf8;
         font-weight: 800;
         text-transform: uppercase;
     }
     .waze-street-name {
-        font-size: 14px;
+        font-size: 13.5px;
         font-weight: 900;
         color: #ffea00;
         white-space: nowrap;
@@ -12941,19 +12905,18 @@ async function procesarFotoTablaDirecta(usarGemini) {
         text-overflow: ellipsis;
     }
     .waze-street-sub {
-        font-size: 10.5px;
-        color: #e2e8f0;
-        font-weight: 600;
+        font-size: 10px;
+        color: #cbd5e1;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     .waze-speed-box {
-        background: #090d16;
+        background: #050811;
         border: 2px solid #00ff87;
         border-radius: 50%;
-        width: 42px;
-        height: 42px;
+        width: 40px;
+        height: 40px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -12961,57 +12924,56 @@ async function procesarFotoTablaDirecta(usarGemini) {
         flex-shrink: 0;
     }
     .waze-speed-num {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 900;
         color: #00ff87;
         line-height: 1;
     }
     .waze-speed-unit {
-        font-size: 7.5px;
+        font-size: 7px;
         color: #94a3b8;
         font-weight: bold;
     }
 
+    /* 5. Reorganización de botones a la derecha para que no choquen con tus controles */
     .waze-side-controls {
         position: fixed;
-        top: 140px;
-        left: 12px;
-        z-index: 99999;
+        top: 75px;
+        right: 12px;
+        z-index: 999999;
         display: flex;
         flex-direction: column;
-        gap: 7px;
+        gap: 6px;
     }
     .btn-waze-ctrl {
-        background: linear-gradient(145deg, #1e293b, #0f172a);
+        background: rgba(15, 23, 42, 0.95);
         color: #00f0ff;
-        border: 2px solid #00f0ff;
-        border-radius: 20px;
-        height: 36px;
-        padding: 0 12px;
-        font-size: 11px;
+        border: 1.5px solid #00f0ff;
+        border-radius: 16px;
+        height: 34px;
+        padding: 0 10px;
+        font-size: 10.5px;
         font-weight: 900;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
         cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
         outline: none;
         white-space: nowrap;
-        -webkit-tap-highlight-color: transparent;
+        backdrop-filter: blur(4px);
     }
     .btn-waze-ctrl.activo {
-        background: linear-gradient(145deg, #0284c7, #0369a1);
+        background: #0284c7;
         color: #ffffff;
         border-color: #ffea00;
     }
     .btn-waze-ctrl.voz-activa {
-        background: linear-gradient(145deg, #16a34a, #15803d);
+        background: #16a34a;
         color: #ffffff;
         border-color: #4ade80;
     }
 </style>
-
-<div id="waze-horizon-sky"></div>
 
 <div id="waze-street-banner">
     <div class="waze-banner-left" onclick="repetirIndicacionVozActual()" title="Toca para escuchar reporte por voz">
