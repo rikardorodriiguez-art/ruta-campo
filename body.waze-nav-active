@@ -12807,10 +12807,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </button>
     </div>
 <!-- ========================================================================= -->
-<!-- 🚀 MÓDULO WAZE 3D + COPILOTO DE VOZ EN SEGUNDO PLANO (24/7 KEEP-ALIVE)    -->
+<!-- 🚀 MÓDULO WAZE 3D + COPILOTO DE VOZ CORREGIDO (PANTALLA BLANCA SOLUCIONADA)-->
 <!-- ========================================================================= -->
 <style>
-    /* 1. Ocultar scroll y limpiar fondo cuando Waze 3D esté activo */
+    /* 1. Forzar pantalla completa absoluta sin espacios vacíos */
     body.waze-nav-active {
         background: #060b16 !important;
         overflow: hidden !important;
@@ -12818,30 +12818,28 @@ async function procesarFotoTablaDirecta(usarGemini) {
         padding: 0 !important;
     }
 
-    /* 2. El mapa ocupa el 100% exacto de la pantalla con perspectiva Waze real sin franjas */
+    /* 2. El mapa ocupa el 100% de la ventana de forma fija sin colapsar Leaflet */
     body.waze-nav-active #map {
         width: 100vw !important;
         height: 100vh !important;
-        left: 0 !important;
-        top: 0 !important;
         position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
         z-index: 1 !important;
-        transform-origin: 50% 65% !important;
-        transform: perspective(750px) rotateX(54deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
-        transition: transform 0.2s linear !important;
+        transform-origin: 50% 60% !important;
+        transform: perspective(700px) rotateX(52deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
         will-change: transform;
         filter: contrast(1.1) saturate(1.15);
     }
 
-    /* 3. Contra-rotación perfecta para que las placas se lean bien y no queden de cabeza */
+    /* 3. Contra-rotación perfecta para que las placas se lean bien */
     body.waze-nav-active .leaflet-marker-icon > div,
     body.waze-nav-active .leaflet-popup {
         transform: rotateZ(var(--waze-inv-rot, 0deg)) rotateX(-25deg);
         transform-origin: center center;
-        transition: transform 0.2s linear;
     }
 
-    /* 4. Banner superior limpio sin invadir espacio */
+    /* 4. Banner superior de navegación Waze */
     #waze-street-banner {
         display: none;
         position: fixed;
@@ -12935,7 +12933,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         font-weight: bold;
     }
 
-    /* 5. Reorganización de botones a la derecha para que no choquen con tus controles */
+    /* 5. Controles a la derecha */
     .waze-side-controls {
         position: fixed;
         top: 75px;
@@ -13089,7 +13087,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 .replace(/\bCL\b|\bCLL\b/gi, "Calle")
                 .replace(/\bTV\b|\bTRANSV\b|\bTR\b/gi, "Transversal")
                 .replace(/\bDG\b|\bDIAG\b/gi, "Diagonal")
-                .replace(/\bAV\b/gi, "Avenida")
+                .replace(/\bAV\b|\bAVENIDA\b/gi, "Avenida")
                 .replace(/#/g, " número ");
 
             var utter = new SpeechSynthesisUtterance(textoHablado);
@@ -13442,7 +13440,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 window.hablarInstruccionCopiloto("Modo Waze 3D y copiloto en segundo plano activados.", true);
             }
 
-            setTimeout(function() { if (map) map.invalidateSize(); }, 300);
+            setTimeout(function() { 
+                if (map) {
+                    map.invalidateSize();
+                }
+            }, 300);
         } else {
             document.body.classList.remove('waze-nav-active');
             if (btn) btn.classList.remove('activo');
