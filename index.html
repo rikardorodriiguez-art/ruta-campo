@@ -87,7 +87,7 @@
         /* BOTONES FLOTANTES INFERIORES */
         .floating-btn-add {
             position: fixed; bottom: 20px; left: 20px; z-index: 99999;
-            width: 58px; height: 58px;
+            width: 58px; height: 58pnavigator.geolocation.watchPositionx;
             background: linear-gradient(145deg, #1e293b, #0f172a);
             color: #ffffff; border: 2.5px solid #38bdf8; padding: 0;
             border-radius: 50%; font-size: 26px; font-weight: bold; cursor: pointer;
@@ -12815,26 +12815,26 @@ async function procesarFotoTablaDirecta(usarGemini) {
         overflow: hidden !important;
     }
 
-    /* Perspectiva 3D tipo Waze (62° de inclinación + rotación automática 360°) */
+    /* Ajuste perfecto del mapa 3D sin dejar espacios negros arriba */
     body.waze-nav-active #map {
-        width: 195vw !important;
-        height: 195vh !important;
-        left: -47.5vw !important;
-        top: -47.5vh !important;
-        transform-origin: 50% 60% !important;
-        transform: perspective(900px) rotateX(62deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
-        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        width: 100vw !important;
+        height: 150vh !important;
+        left: 0 !important;
+        top: -15vh !important;
+        position: fixed !important;
+        transform-origin: 50% 40% !important;
+        transform: perspective(850px) rotateX(58deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
+        transition: transform 0.25s linear !important;
         will-change: transform;
-        filter: contrast(1.08) saturate(1.18);
+        filter: contrast(1.1) saturate(1.15);
     }
 
-    /* Horizonte superior estilo Waze */
     #waze-horizon-sky {
         display: none;
         position: fixed;
         top: 0; left: 0; right: 0;
-        height: 120px;
-        background: linear-gradient(180deg, rgba(6, 11, 25, 0.96) 0%, rgba(15, 23, 42, 0.65) 55%, rgba(15, 23, 42, 0) 100%);
+        height: 85px;
+        background: linear-gradient(180deg, #060b16 0%, rgba(6, 11, 22, 0.8) 60%, rgba(6, 11, 22, 0) 100%);
         z-index: 900;
         pointer-events: none;
     }
@@ -12842,15 +12842,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
         display: block;
     }
 
-    /* Contra-rotación automática para que todas las placas siempre se lean al derecho */
     body.waze-nav-active .leaflet-marker-icon > div,
     body.waze-nav-active .leaflet-popup {
-        transform: rotateZ(var(--waze-inv-rot, 0deg)) rotateX(-25deg);
+        transform: rotateZ(var(--waze-inv-rot, 0deg)) rotateX(-28deg);
         transform-origin: center center;
-        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        transition: transform 0.25s linear;
     }
 
-    /* Flecha luminosa 3D del vehículo del usuario */
     .waze-user-cone {
         position: relative;
         width: 48px;
@@ -12879,24 +12877,22 @@ async function procesarFotoTablaDirecta(usarGemini) {
         filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 12px rgba(56, 189, 248, 0.9));
     }
 
-    /* Banner Superior Waze con Calle, Carrera, Objetivo y Velocímetro */
     #waze-street-banner {
         display: none;
         position: fixed;
-        top: 44px;
+        top: 10px;
         left: 50%;
         transform: translateX(-50%);
         width: 95%;
-        max-width: 440px;
-        background: linear-gradient(145deg, rgba(8, 15, 30, 0.97), rgba(15, 31, 56, 0.97));
+        max-width: 420px;
+        background: rgba(8, 15, 30, 0.95);
         border: 2px solid #00f0ff;
-        border-radius: 16px;
-        padding: 8px 12px;
+        border-radius: 14px;
+        padding: 6px 12px;
         color: #ffffff;
-        z-index: 9998;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75), 0 0 18px rgba(0, 240, 255, 0.4);
-        backdrop-filter: blur(10px);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        z-index: 99998;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
     }
     body.waze-nav-active #waze-street-banner {
         display: flex;
@@ -12912,18 +12908,17 @@ async function procesarFotoTablaDirecta(usarGemini) {
         flex: 1;
     }
     .waze-turn-icon {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         border-radius: 10px;
         background: linear-gradient(135deg, #0284c7, #0369a1);
         border: 1.5px solid #38bdf8;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 900;
         flex-shrink: 0;
-        box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
     }
     .waze-street-texts {
         display: flex;
@@ -12932,23 +12927,21 @@ async function procesarFotoTablaDirecta(usarGemini) {
         flex: 1;
     }
     .waze-street-label {
-        font-size: 9.5px;
+        font-size: 9px;
         color: #38bdf8;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.6px;
     }
     .waze-street-name {
-        font-size: 14.5px;
+        font-size: 14px;
         font-weight: 900;
         color: #ffea00;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        text-shadow: 0 0 8px rgba(255, 234, 0, 0.45);
     }
     .waze-street-sub {
-        font-size: 11px;
+        font-size: 10.5px;
         color: #e2e8f0;
         font-weight: 600;
         white-space: nowrap;
@@ -12959,33 +12952,31 @@ async function procesarFotoTablaDirecta(usarGemini) {
         background: #090d16;
         border: 2px solid #00ff87;
         border-radius: 50%;
-        width: 44px;
-        height: 44px;
+        width: 42px;
+        height: 42px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        box-shadow: 0 0 10px rgba(0, 255, 135, 0.4);
     }
     .waze-speed-num {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 900;
         color: #00ff87;
         line-height: 1;
     }
     .waze-speed-unit {
-        font-size: 8px;
+        font-size: 7.5px;
         color: #94a3b8;
         font-weight: bold;
     }
 
-    /* Botones Flotantes Izquierdos (Modo Waze 3D + Voz Segundo Plano) */
     .waze-side-controls {
         position: fixed;
-        top: 202px;
+        top: 140px;
         left: 12px;
-        z-index: 999;
+        z-index: 99999;
         display: flex;
         flex-direction: column;
         gap: 7px;
@@ -12994,62 +12985,57 @@ async function procesarFotoTablaDirecta(usarGemini) {
         background: linear-gradient(145deg, #1e293b, #0f172a);
         color: #00f0ff;
         border: 2px solid #00f0ff;
-        border-radius: 24px;
+        border-radius: 20px;
         height: 36px;
-        padding: 0 11px;
+        padding: 0 12px;
         font-size: 11px;
         font-weight: 900;
         display: inline-flex;
         align-items: center;
         gap: 5px;
         cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
         outline: none;
         white-space: nowrap;
         -webkit-tap-highlight-color: transparent;
-        transition: all 0.2s ease;
     }
     .btn-waze-ctrl.activo {
         background: linear-gradient(145deg, #0284c7, #0369a1);
         color: #ffffff;
         border-color: #ffea00;
-        box-shadow: 0 0 16px rgba(0, 240, 255, 0.85);
     }
     .btn-waze-ctrl.voz-activa {
         background: linear-gradient(145deg, #16a34a, #15803d);
         color: #ffffff;
         border-color: #4ade80;
-        box-shadow: 0 0 15px rgba(34, 197, 94, 0.75);
     }
 </style>
 
-<!-- Horizonte y Banner Superior estilo Waze -->
 <div id="waze-horizon-sky"></div>
 
 <div id="waze-street-banner">
-    <div class="waze-banner-left" onclick="repetirIndicacionVozActual()" title="Toca para escuchar la indicación por voz ahora">
+    <div class="waze-banner-left" onclick="repetirIndicacionVozActual()" title="Toca para escuchar reporte por voz">
         <div id="waze-turn-symbol" class="waze-turn-icon">⬆️</div>
         <div class="waze-street-texts">
             <span id="waze-street-top-label" class="waze-street-label">📍 CIRCULANDO POR</span>
             <span id="waze-current-street" class="waze-street-name">Detectando Calle / Carrera...</span>
-            <span id="waze-next-target" class="waze-street-sub">Copiloto de Voz Activo • Toca para escuchar</span>
+            <span id="waze-next-target" class="waze-street-sub">Copiloto Activo • Toca para escuchar</span>
         </div>
     </div>
-    <div class="waze-speed-box" title="Velocidad actual GPS">
+    <div class="waze-speed-box">
         <span id="waze-speed-val" class="waze-speed-num">0</span>
         <span class="waze-speed-unit">km/h</span>
     </div>
 </div>
 
-<!-- Controles Flotantes Waze 3D + Copiloto en Segundo Plano -->
 <div class="waze-side-controls">
-    <button id="btn-waze-mode" class="btn-waze-ctrl" onclick="toggleModoWaze3D()" title="Activar vista en primera persona tipo Waze">
+    <button id="btn-waze-mode" class="btn-waze-ctrl" onclick="toggleModoWaze3D()">
         <span>🧭</span> <span id="lbl-waze-btn">Waze 3D</span>
     </button>
-    <button id="btn-waze-bg-voice" class="btn-waze-ctrl" onclick="toggleCopilotoVozSegundoPlano()" title="Mantener voz hablando en segundo plano aunque salgas del mapa">
+    <button id="btn-waze-bg-voice" class="btn-waze-ctrl" onclick="toggleCopilotoVozSegundoPlano()">
         <span>🔊</span> <span id="lbl-waze-voice">Voz 2° Plano: OFF</span>
     </button>
-    <button id="btn-waze-save-html" class="btn-waze-ctrl" onclick="descargarArchivoHtmlCompleto()" style="border-color:#a78bfa; color:#e9d5ff;" title="Descargar este archivo index.html ya modificado">
+    <button id="btn-waze-save-html" class="btn-waze-ctrl" onclick="descargarArchivoHtmlCompleto()" style="border-color:#a78bfa; color:#e9d5ff;">
         <span>💾</span> <span>Descargar HTML</span>
     </button>
 </div>
@@ -13065,20 +13051,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
     var calleActualTexto = "";
     var ultimaCalleHablada = "";
     var barrioActualTexto = "";
-
-    // Control de avisos por voz de objetivos cercanos
     var ultimoAvisoPlacaTs = 0;
     var ultimaPlacaAvisadaId = null;
     var ultimoEscalonDistAvisado = 99999;
-
-    // Audio Keep-Alive y Worker para que el navegador NUNCA se duerma al salir de la app
     var bgKeepAliveAudioEl = null;
     var bgWorkerNav = null;
     var wakeLockSentinel = null;
 
-    // 1. GENERADOR DE AUDIO SILENCIOSO WAV EN MEMORIA (Mantiene vivo el hilo de voz en Android / iOS)
     function crearAudioSilenciosoDataUri() {
-        // WAV PCM de 1 segundo de silencio casi cero para mantener la sesión de medios activa
         return "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
     }
 
@@ -13091,7 +13071,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
             bgKeepAliveAudioEl.play().catch(function(){});
 
-            // Registrar en la barra del sistema Android/iOS como Navegador Activo
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: "UBICA-RICK Copiloto Waze Activo",
@@ -13101,7 +13080,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 navigator.mediaSession.playbackState = "playing";
             }
 
-            // Solicitar WakeLock de pantalla si está disponible
             if ('wakeLock' in navigator && !wakeLockSentinel) {
                 navigator.wakeLock.request('screen').then(function(lock) {
                     wakeLockSentinel = lock;
@@ -13109,14 +13087,12 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }).catch(function(){});
             }
 
-            // Crear Web Worker dedicado que no se congela cuando el usuario cambia a WhatsApp o Google Maps
             if (!bgWorkerNav) {
                 var blobCode = "setInterval(function(){ postMessage('bg_nav_tick'); }, 4000);";
                 var blob = new Blob([blobCode], { type: 'application/javascript' });
                 bgWorkerNav = new Worker(URL.createObjectURL(blob));
                 bgWorkerNav.onmessage = function() {
                     if (!copilotoBgActivo && !wazeActivo) return;
-                    // Forzar lectura de posición y verificación de voz en segundo plano
                     if (typeof userLat === 'number' && typeof userLng === 'number') {
                         consultarCalleActualEnVivo(userLat, userLng);
                         evaluarIndicacionesVozEnRuta();
@@ -13130,27 +13106,22 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     }
                 };
             }
-        } catch (e) {
-            console.warn("Blindaje segundo plano:", e);
-        }
+        } catch (e) {}
     }
 
-    // 2. MOTOR DE SÍNTESIS DE VOZ (HABLA CLARA EN ESPAÑOL INCLUSO CON LA APP MINIMIZADA)
     window.hablarInstruccionCopiloto = function(texto, forzarInmediato) {
         if (!texto) return;
         if (!copilotoBgActivo && !(typeof configApp !== 'undefined' && configApp.sonidoAlerta)) return;
         if (!('speechSynthesis' in window)) return;
 
         try {
-            // Reanudar motor de síntesis por si Android lo pausó en segundo plano
             window.speechSynthesis.resume();
             if (forzarInmediato) {
                 window.speechSynthesis.cancel();
             } else if (window.speechSynthesis.speaking) {
-                return; // No cortar una frase importante a la mitad si no es urgente
+                return;
             }
 
-            // Expandir abreviaturas viales para que la voz pronuncie "Carrera" y "Calle" completos
             var textoHablado = String(texto)
                 .replace(/\bKR\b|\bCRA\b|\bCR\b|\bKRA\b/gi, "Carrera")
                 .replace(/\bCL\b|\bCLL\b/gi, "Calle")
@@ -13173,9 +13144,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
 
             window.speechSynthesis.speak(utter);
-        } catch (eVoz) {
-            console.warn("Error síntesis de voz:", eVoz);
-        }
+        } catch (eVoz) {}
     };
 
     window.describirVehiculoParaVoz = function(p) {
@@ -13189,12 +13158,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
                (dir ? (", ubicada en " + dir) : "");
     };
 
-    // 3. EVALUADOR INTELIGENTE DE INDICACIONES DE VOZ (CALLES + OBJETIVOS CERCANOS)
     function evaluarIndicacionesVozEnRuta() {
         if (!copilotoBgActivo) return;
         var ahora = Date.now();
 
-        // A. Si hay una placa objetivo cercana, anunciar escalonadamente (a 800m, 400m, 200m, 80m o cada 35 seg)
         if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj && typeof menorDistanciaMetros === 'number') {
             var p = placaMasCercanaObj;
             var dist = Math.round(menorDistanciaMetros);
@@ -13230,7 +13197,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     }
 
-    // Indica si el objetivo está al frente, a la derecha, a la izquierda o atrás respecto a tu marcha
     function obtenerOrientacionRelativaVoz(miRumbo, rumboObjetivo) {
         var diff = ((rumboObjetivo - miRumbo + 540) % 360) - 180;
         if (Math.abs(diff) <= 35) return "al frente tuyo";
@@ -13255,7 +13221,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         window.hablarInstruccionCopiloto(frase, true);
     };
 
-    // Calcular rumbo (0-360°) entre dos puntos GPS
     function calcularRumboGrados(lat1, lon1, lat2, lon2) {
         var toRad = Math.PI / 180;
         var toDeg = 180 / Math.PI;
@@ -13315,7 +13280,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     }
 
-    // Geocodificación inversa en vivo: detecta la Calle/Carrera y la anuncia por voz cuando cambias de vía
     async function consultarCalleActualEnVivo(lat, lng) {
         var ahora = Date.now();
         if (ahora - ultimaConsultaVialTs < 4500) return;
@@ -13341,12 +13305,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     var elCalle = document.getElementById('waze-current-street');
                     if (elCalle) elCalle.innerText = calleActualTexto;
 
-                    // Actualizar metadatos de pantalla de bloqueo / segundo plano con la calle actual
                     if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
                         navigator.mediaSession.metadata.artist = "Vía: " + calleActualTexto + (barrio ? (" (" + barrio + ")") : "");
                     }
 
-                    // Si cambió de Calle o Carrera y el Copiloto de Voz está activo, anunciarla por voz
                     if (copilotoBgActivo && nombreViaLimpio !== ultimaCalleHablada) {
                         ultimaCalleHablada = nombreViaLimpio;
                         var extraObj = "";
@@ -13390,7 +13352,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     }
 
-    // Interceptar actualizarPosicionGPS sin alterar nada de tu lógica original
     var originalActualizarGPS = window.actualizarPosicionGPS;
     window.actualizarPosicionGPS = function(pos) {
         if (typeof originalActualizarGPS === 'function') {
@@ -13434,7 +13395,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     };
 
-    // Cuando el usuario sale de la app (minimiza o abre WhatsApp / Google Maps), mantener voz activa
     document.addEventListener('visibilitychange', function() {
         if (document.hidden && (copilotoBgActivo || wazeActivo)) {
             activarBlindajeSegundoPlano();
@@ -13471,7 +13431,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
             window.repetirIndicacionVozActual();
             if (typeof mostrarToastNotificacion === 'function') {
-                mostrarToastNotificacion("🔊 Copiloto de Voz en 2° Plano ACTIVADO. Seguirá hablando aunque salgas del mapa.");
+                mostrarToastNotificacion("🔊 Copiloto de Voz en 2° Plano ACTIVADO.");
             }
         } else {
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -13491,7 +13451,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (btn) btn.classList.add('activo');
             if (lbl) lbl.innerText = "Salir Waze";
 
-            // Al encender Waze 3D, activar también el Copiloto de Voz en Segundo Plano automáticamente
             if (!copilotoBgActivo) {
                 copilotoBgActivo = true;
                 localStorage.setItem('ubica_rick_voz_bg', '1');
@@ -13518,7 +13477,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 window.repetirIndicacionVozActual();
             } else if (typeof centrarEnMiGPS === 'function') {
                 centrarEnMiGPS();
-                window.hablarInstruccionCopiloto("Modo Waze tres D y copiloto en segundo plano activados. Buscando señal G P S.", true);
+                window.hablarInstruccionCopiloto("Modo Waze 3D y copiloto en segundo plano activados.", true);
             }
 
             setTimeout(function() { if (map) map.invalidateSize(); }, 300);
@@ -13541,7 +13500,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     };
 
-    // Función para descargar el archivo index.html completo con todos los cambios integrados
     window.descargarArchivoHtmlCompleto = function() {
         try {
             var doctype = "<!DOCTYPE html>\n";
@@ -13563,7 +13521,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     };
 
-    // Inicializar estado visual del botón al cargar
     setTimeout(actualizarBotonVozUI, 500);
 })();
 </script>
