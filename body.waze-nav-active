@@ -12806,6 +12806,209 @@ async function procesarFotoTablaDirecta(usarGemini) {
             Cancelar
         </button>
     </div>
+(function(){
+    var scriptWaze = `
+<!-- ========================================================================= -->
+<!-- 🚀 MÓDULO WAZE 3D + COPILOTO DE VOZ EN SEGUNDO PLANO                    -->
+<!-- ========================================================================= -->
+<style>
+    body.waze-nav-active { background: #060b16 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+    body.waze-nav-active #map { width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 1 !important; transform-origin: 50% 60% !important; transform: perspective(700px) rotateX(52deg) rotateZ(var(--waze-map-rot, 0deg)) !important; will-change: transform; filter: contrast(1.1) saturate(1.15); }
+    body.waze-nav-active .leaflet-marker-icon > div, body.waze-nav-active .leaflet-popup { transform: rotateZ(var(--waze-inv-rot, 0deg)) rotateX(-25deg); transform-origin: center center; }
+    #waze-street-banner { display: none; position: fixed; top: 8px; left: 50%; transform: translateX(-50%); width: 96%; max-width: 440px; background: rgba(10, 18, 35, 0.95); border: 2px solid #00f0ff; border-radius: 12px; padding: 6px 10px; color: #ffffff; z-index: 999998; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8); backdrop-filter: blur(6px); }
+    body.waze-nav-active #waze-street-banner { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .waze-banner-left { display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; }
+    .waze-turn-icon { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .waze-street-texts { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+    .waze-street-label { font-size: 8.5px; color: #38bdf8; font-weight: 800; text-transform: uppercase; }
+    .waze-street-name { font-size: 13.5px; font-weight: 900; color: #ffea00; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .waze-street-sub { font-size: 10px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .waze-speed-box { background: #050811; border: 2px solid #00ff87; border-radius: 50%; width: 40px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+    .waze-speed-num { font-size: 12px; font-weight: 900; color: #00ff87; line-height: 1; }
+    .waze-speed-unit { font-size: 7px; color: #94a3b8; font-weight: bold; }
+    .waze-side-controls { position: fixed; top: 75px; right: 12px; z-index: 999999; display: flex; flex-direction: column; gap: 6px; }
+    .btn-waze-ctrl { background: rgba(15, 23, 42, 0.95); color: #00f0ff; border: 1.5px solid #00f0ff; border-radius: 16px; height: 34px; padding: 0 10px; font-size: 10.5px; font-weight: 900; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6); outline: none; white-space: nowrap; backdrop-filter: blur(4px); }
+    .btn-waze-ctrl.activo { background: #0284c7; color: #ffffff; border-color: #ffea00; }
+    .btn-waze-ctrl.voz-activa { background: #16a34a; color: #ffffff; border-color: #4ade80; }
+</style>
+<div id="waze-street-banner">
+    <div class="waze-banner-left" onclick="repetirIndicacionVozActual()">
+        <div id="waze-turn-symbol" class="waze-turn-icon">⬆️</div>
+        <div class="waze-street-texts">
+            <span id="waze-street-top-label" class="waze-street-label">📍 CIRCULANDO POR</span>
+            <span id="waze-current-street" class="waze-street-name">Detectando Calle / Carrera...</span>
+            <span id="waze-next-target" class="waze-street-sub">Copiloto Activo</span>
+        </div>
+    </div>
+    <div class="waze-speed-box">
+        <span id="waze-speed-val" class="waze-speed-num">0</span>
+        <span class="waze-speed-unit">km/h</span>
+    </div>
+</div>
+<div class="waze-side-controls">
+    <button id="btn-waze-mode" class="btn-waze-ctrl" onclick="toggleModoWaze3D()"><span>🧭</span> <span id="lbl-waze-btn">Waze 3D</span></button>
+    <button id="btn-waze-bg-voice" class="btn-waze-ctrl" onclick="toggleCopilotoVozSegundoPlano()"><span>🔊</span> <span id="lbl-waze-voice">Voz 2° Plano: OFF</span></button>
+</div>
+<script>
+(function() {
+    var wazeActivo = false; var copilotoBgActivo = localStorage.getItem('ubica_rick_voz_bg') === '1'; var wazeRumboActual = 0; var prevLatWaze = null; var prevLngWaze = null; var ultimaConsultaVialTs = 0; var calleActualTexto = ""; var ultimaCalleHablada = ""; var barrioActualTexto = ""; var ultimoAvisoPlacaTs = 0; var ultimaPlacaAvisadaId = null; var ultimoEscalonDistAvisado = 99999; var bgKeepAliveAudioEl = null; var bgWorkerNav = null; var wakeLockSentinel = null;
+    function crearAudioSilenciosoDataUri() { return "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"; }
+    function activarBlindajeSegundoPlano() {
+        try {
+            if (!bgKeepAliveAudioEl) { bgKeepAliveAudioEl = new Audio(crearAudioSilenciosoDataUri()); bgKeepAliveAudioEl.loop = true; bgKeepAliveAudioEl.volume = 0.01; }
+            bgKeepAliveAudioEl.play().catch(function(){});
+            if ('mediaSession' in navigator) { navigator.mediaSession.metadata = new MediaMetadata({ title: "UBICA-RICK Copiloto Waze Activo", artist: calleActualTexto || "Rastreando Calles", album: "Navegación" }); navigator.mediaSession.playbackState = "playing"; }
+            if ('wakeLock' in navigator && !wakeLockSentinel) { navigator.wakeLock.request('screen').then(function(l){ wakeLockSentinel = l; }).catch(function(){}); }
+            if (!bgWorkerNav) {
+                var blob = new Blob(["setInterval(function(){ postMessage('tick'); }, 4000);"], { type: 'application/javascript' });
+                bgWorkerNav = new Worker(URL.createObjectURL(blob));
+                bgWorkerNav.onmessage = function() {
+                    if (!copilotoBgActivo && !wazeActivo) return;
+                    if (typeof userLat === 'number' && typeof userLng === 'number') { consultarCalleActualEnVivo(userLat, userLng); evaluarIndicacionesVozEnRuta(); }
+                };
+            }
+        } catch (e) {}
+    }
+    window.hablarInstruccionCopiloto = function(texto, forzarInmediato) {
+        if (!texto || (!copilotoBgActivo && !(typeof configApp !== 'undefined' && configApp.sonidoAlerta))) return;
+        if (!('speechSynthesis' in window)) return;
+        try {
+            window.speechSynthesis.resume();
+            if (forzarInmediato) window.speechSynthesis.cancel();
+            else if (window.speechSynthesis.speaking) return;
+            var txt = String(texto).replace(/\\bKR\\b|\\bCRA\\b/gi, "Carrera").replace(/\\bCL\\b|\\bCLL\\b/gi, "Calle").replace(/#/g, " número ");
+            var utter = new SpeechSynthesisUtterance(txt); utter.lang = 'es-CO'; utter.rate = 1.03; utter.volume = 1.0;
+            var voces = window.speechSynthesis.getVoices();
+            if (voces && voces.length > 0) {
+                var vEsp = voces.find(function(v) { return /es[-_](CO|MX|US|ES|419)/i.test(v.lang); }) || voces.find(function(v) { return /^es/i.test(v.lang); });
+                if (vEsp) utter.voice = vEsp;
+            }
+            window.speechSynthesis.speak(utter);
+        } catch (e) {}
+    };
+    window.describirVehiculoParaVoz = function(p) {
+        if (!p) return "";
+        return "Placa " + p.placa + ", " + ((p.marca && p.marca !== '-') ? p.marca : "") + " " + ((p.color && p.color !== '-') ? ("color " + p.color) : "") + (p.dirOriginal ? (", en " + p.dirOriginal) : "");
+    };
+    function evaluarIndicacionesVozEnRuta() {
+        if (!copilotoBgActivo || typeof placaMasCercanaObj === 'undefined' || !placaMasCercanaObj || typeof menorDistanciaMetros !== 'number') return;
+        var p = placaMasCercanaObj; var dist = Math.round(menorDistanciaMetros);
+        if (p.id !== ultimaPlacaAvisadaId) { ultimaPlacaAvisadaId = p.id; ultimoEscalonDistAvisado = 99999; }
+        var escalon = dist <= 80 ? 80 : (dist <= 200 ? 200 : (dist <= 400 ? 400 : 800));
+        if (dist <= 800 && escalon < ultimoEscalonDistAvisado) {
+            ultimoEscalonDistAvisado = escalon; ultimoAvisoPlacaTs = Date.now();
+            window.hablarInstruccionCopiloto("Atención. Objetivo " + p.placa + " a " + dist + " metros. " + window.describirVehiculoParaVoz(p), true);
+        }
+    }
+    window.repetirIndicacionVozActual = function() {
+        copilotoBgActivo = true; actualizarBotonVozUI();
+        var frase = calleActualTexto ? ("Circulando por " + calleActualTexto + ". ") : "";
+        if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj && isFinite(menorDistanciaMetros)) {
+            frase += "Más cercano: " + window.describirVehiculoParaVoz(placaMasCercanaObj) + ", a " + Math.round(menorDistanciaMetros) + " metros.";
+        }
+        window.hablarInstruccionCopiloto(frase, true);
+    };
+    function calcularRumboGrados(lat1, lon1, lat2, lon2) {
+        var dLon = (lon2 - lon1) * Math.PI / 180; var y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+        var x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+    function obtenerNombreRumbo(g) {
+        var dirs = ["Norte ⬆️", "Noreste ↗️", "Este ➡️", "Sureste ↘️", "Sur ⬇️", "Suroeste ↙️", "Oeste ⬅️", "Noroeste ↖️"];
+        return dirs[Math.round(((g %= 360) < 0 ? g + 360 : g) / 45) % 8];
+    }
+    function centrarCamaraAdelanteWaze(lat, lng, rumbo) {
+        if (!map || !lat || !lng) return;
+        var rad = rumbo * (Math.PI / 180);
+        map.setView([lat + (85 * Math.cos(rad)) / 111320, lng + (85 * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180))], Math.max(map.getZoom(), 19), { animate: true, duration: 0.4 });
+    }
+    function aplicarRotacionMapaWaze(rumbo) {
+        wazeRumboActual = rumbo;
+        document.documentElement.style.setProperty('--waze-map-rot', (-rumbo).toFixed(1) + 'deg');
+        document.documentElement.style.setProperty('--waze-inv-rot', rumbo.toFixed(1) + 'deg');
+    }
+    function actualizarIconoUsuarioWaze(activo) {
+        if (typeof userMarker === 'undefined' || !userMarker) return;
+        userMarker.setIcon(L.divIcon({
+            className: 'custom-gps-icon',
+            html: activo ? '<div class="waze-user-cone"><svg class="waze-arrow-svg" viewBox="0 0 100 100" style="width:40px;height:40px;"><polygon points="50,6 90,88 50,70 10,88" fill="#00f0ff" stroke="#ffffff" stroke-width="6" stroke-linejoin="round"/></svg></div>' : '<div style="width:18px;height:18px;background:#2980b9;border:3px solid #fff;border-radius:50%;"></div>',
+            iconSize: [48, 48], iconAnchor: [24, 24]
+        }));
+    }
+    async function consultarCalleActualEnVivo(lat, lng) {
+        if (Date.now() - ultimaConsultaVialTs < 4500) return; ultimaConsultaVialTs = Date.now();
+        try {
+            var r = await fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lng + "&zoom=18&addressdetails=1", { headers: { 'Accept-Language': 'es' } });
+            if (!r.ok) return; var d = await r.json();
+            if (d && d.address) {
+                var via = d.address.road || d.address.pedestrian || d.address.residential || "";
+                if (via) {
+                    calleActualTexto = via.toUpperCase() + (d.address.house_number ? (" # " + d.address.house_number) : "");
+                    var el = document.getElementById('waze-current-street'); if (el) el.innerText = calleActualTexto;
+                    if (copilotoBgActivo && via.toUpperCase() !== ultimaCalleHablada) {
+                        ultimaCalleHablada = via.toUpperCase();
+                        window.hablarInstruccionCopiloto("Por " + via.toUpperCase(), false);
+                    }
+                }
+            }
+        } catch(e) {}
+    }
+    var origGPS = window.actualizarPosicionGPS;
+    window.actualizarPosicionGPS = function(pos) {
+        if (typeof origGPS === 'function') origGPS(pos);
+        if (!pos || !pos.coords) return;
+        var lat = pos.coords.latitude; var lng = pos.coords.longitude;
+        var nuevoRumbo = (pos.coords.speed > 0.8 && !isNaN(pos.coords.heading)) ? pos.coords.heading : null;
+        if (nuevoRumbo === null && prevLatWaze !== null && calcularDistancia(prevLatWaze, prevLngWaze, lat, lng) >= 3.5) {
+            nuevoRumbo = calcularRumboGrados(prevLatWaze, prevLngWaze, lat, lng);
+            prevLatWaze = lat; prevLngWaze = lng;
+        } else if (prevLatWaze === null) { prevLatWaze = lat; prevLngWaze = lng; }
+        if (nuevoRumbo !== null) wazeRumboActual = nuevoRumbo;
+        if (wazeActivo) { aplicarRotacionMapaWaze(wazeRumboActual); actualizarIconoUsuarioWaze(true); centrarCamaraAdelanteWaze(lat, lng, wazeRumboActual); }
+        if (wazeActivo || copilotoBgActivo) { consultarCalleActualEnVivo(lat, lng); evaluarIndicacionesVozEnRuta(); }
+    };
+    function actualizarBotonVozUI() {
+        var btn = document.getElementById('btn-waze-bg-voice'); var lbl = document.getElementById('lbl-waze-voice');
+        if (!btn || !lbl) return;
+        if (copilotoBgActivo) { btn.classList.add('voz-activa'); lbl.innerText = "Voz 2° Plano: ON"; }
+        else { btn.classList.remove('voz-activa'); lbl.innerText = "Voz 2° Plano: OFF"; }
+    }
+    window.toggleCopilotoVozSegundoPlano = function() {
+        copilotoBgActivo = !copilotoBgActivo; localStorage.setItem('ubica_rick_voz_bg', copilotoBgActivo ? '1' : '0'); actualizarBotonVozUI();
+        if (copilotoBgActivo) { activarBlindajeSegundoPlano(); window.repetirIndicacionVozActual(); }
+        else { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }
+    };
+    window.toggleModoWaze3D = function() {
+        wazeActivo = !wazeActivo; var btn = document.getElementById('btn-waze-mode'); var lbl = document.getElementById('lbl-waze-btn');
+        if (wazeActivo) {
+            document.body.classList.add('waze-nav-active'); if (btn) btn.classList.add('activo'); if (lbl) lbl.innerText = "Salir Waze";
+            if (!copilotoBgActivo) { copilotoBgActivo = true; localStorage.setItem('ubica_rick_voz_bg', '1'); actualizarBotonVozUI(); }
+            activarBlindajeSegundoPlano();
+            if (typeof capaGoogle !== 'undefined' && map && !map.hasLayer(capaGoogle)) capaGoogle.addTo(map);
+            if (typeof userLat === 'number' && typeof userLng === 'number') {
+                aplicarRotacionMapaWaze(wazeRumboActual); actualizarIconoUsuarioWaze(true); centrarCamaraAdelanteWaze(userLat, userLng, wazeRumboActual); window.repetirIndicacionVozActual();
+            } else if (typeof centrarEnMiGPS === 'function') { centrarEnMiGPS(); }
+            setTimeout(function() { if (map) map.invalidateSize(); }, 300);
+        } else {
+            document.body.classList.remove('waze-nav-active'); if (btn) btn.classList.remove('activo'); if (lbl) lbl.innerText = "Waze 3D";
+            document.documentElement.style.setProperty('--waze-map-rot', '0deg'); document.documentElement.style.setProperty('--waze-inv-rot', '0deg');
+            actualizarIconoUsuarioWaze(false);
+            setTimeout(function() { if (map) { map.invalidateSize(); if (typeof userLat === 'number') map.setView([userLat, userLng], 16, { animate: true }); } }, 300);
+        }
+    };
+    setTimeout(actualizarBotonVozUI, 500);
+})();
+</script>
+<!-- ================= FIN DEL MÓDULO ================= -->`;
 
+    document.body.insertAdjacentHTML('beforeend', scriptWaze);
+    var blob = new Blob(["<!DOCTYPE html>\n" + document.documentElement.outerHTML], {type: "text/html;charset=utf-8"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "index.html";
+    a.click();
+    console.log("🎉 ¡Archivo index.html descargado correctamente con todo tu código intacto!");
+    alert("🎉 ¡Listo! Se ha descargado automáticamente tu archivo nuevo llamado 'index.html' con todo tu sistema intacto y el modo Waze integrado. Solo cámbialo en tu proyecto y GitHub.");
+})();
 </body>
 </html>
