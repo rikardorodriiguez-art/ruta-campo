@@ -12807,164 +12807,98 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </button>
     </div>
 <!-- ========================================================================= -->
-<!-- 🚀 MÓDULO WAZE 3D + AUTO-RECÁLCULO DE RUTA + VOZ EN SEGUNDO PLANO         -->
+<!-- 🚀 MÓDULO WAZE 3D DEFINITIVO (SIN BORDES GRISES + SIN CHOQUES + VOZ 2°P)  -->
 <!-- ========================================================================= -->
 <style>
     body.waze-nav-active {
-        background: #e5e3df !important;
+        background: #0f172a !important;
         overflow: hidden !important;
         margin: 0 !important;
         padding: 0 !important;
     }
 
-    /* Mapa 3D sin filtros pesados (evita pantalla blanca) y con scale(1.28) para cubrir el 100% sin bordes negros */
+    /* Cuadrado gigante en vmax centrado en la moto: NUNCA deja bordes grises al girar 360° */
     body.waze-nav-active #map {
         position: fixed !important;
-        width: 160vw !important;
-        height: 160vh !important;
-        left: -30vw !important;
-        top: -25vh !important;
+        width: 280vmax !important;
+        height: 280vmax !important;
+        left: calc(50vw - 140vmax) !important;
+        top: calc(56vh - 140vmax) !important;
         z-index: 1 !important;
-        transform-origin: 50% 58% !important;
-        transform: perspective(900px) rotateX(48deg) scale(1.28) rotateZ(var(--waze-map-rot, 0deg)) !important;
+        transform-origin: 50% 50% !important;
+        transform: perspective(850px) rotateX(48deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
         transition: transform 0.25s ease-out !important;
     }
 
-    /* Contra-rotación sólo en el contenido interno del marcador para no romper coordenadas de Leaflet */
+    /* Mantener las placas y textos de marcadores siempre al derecho al rotar el mapa */
     body.waze-nav-active .leaflet-marker-icon > div {
         transform: rotateZ(var(--waze-inv-rot, 0deg));
         transform-origin: center center;
         transition: transform 0.25s ease-out;
     }
 
-    /* Flecha de conducción estilo Waze */
-    .waze-user-cone {
-        position: relative;
-        width: 44px;
-        height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .waze-arrow-svg {
-        width: 38px;
-        height: 38px;
-        filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.65));
-    }
-
-    /* Banner Superior Waze (debajo de la barra superior de UBICA-RICK para no chocar) */
-    #waze-street-banner {
+    /* Píldora compacta de Calle/Carrera que se ubica automáticamente debajo del cuadro verde */
+    #waze-street-pill {
         display: none;
         position: fixed;
-        top: 42px;
+        top: 108px;
         left: 50%;
         transform: translateX(-50%);
-        width: 94%;
-        max-width: 420px;
-        background: rgba(11, 19, 36, 0.96);
-        border: 2px solid #00f0ff;
-        border-radius: 14px;
-        padding: 6px 10px;
+        width: 92%;
+        max-width: 400px;
+        background: rgba(15, 23, 42, 0.94);
+        border: 1.5px solid #00f0ff;
+        border-radius: 22px;
+        padding: 5px 12px;
         color: #ffffff;
         z-index: 9990;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.65);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    body.waze-nav-active #waze-street-banner {
-        display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-    }
-    .waze-banner-left {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        overflow: hidden;
-        flex: 1;
         cursor: pointer;
     }
-    .waze-turn-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 9px;
-        background: linear-gradient(135deg, #0284c7, #0369a1);
-        border: 1.5px solid #38bdf8;
+    body.waze-nav-active #waze-street-pill {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        font-weight: 900;
-        flex-shrink: 0;
     }
-    .waze-street-texts {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        flex: 1;
-    }
-    .waze-street-label {
-        font-size: 9px;
-        color: #38bdf8;
-        font-weight: 800;
-        text-transform: uppercase;
-    }
-    .waze-street-name {
-        font-size: 13.5px;
+    .waze-pill-road {
+        font-size: 12.5px;
         font-weight: 900;
         color: #ffea00;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        flex: 1;
     }
-    .waze-street-sub {
+    .waze-pill-compass {
         font-size: 10.5px;
-        color: #e2e8f0;
-        font-weight: 600;
+        font-weight: 800;
+        color: #00ff87;
+        background: rgba(0, 255, 135, 0.12);
+        border: 1px solid rgba(0, 255, 135, 0.4);
+        padding: 2px 7px;
+        border-radius: 12px;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .waze-speed-box {
-        background: #050811;
-        border: 2px solid #00ff87;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
         flex-shrink: 0;
     }
-    .waze-speed-num {
-        font-size: 13px;
-        font-weight: 900;
-        color: #00ff87;
-        line-height: 1;
-    }
-    .waze-speed-unit {
-        font-size: 7.5px;
-        color: #94a3b8;
-        font-weight: bold;
-    }
 
-    /* Botones compactos debajo del botón 🎯 (top:155px) sin tapar ningún otro control */
+    /* Botones laterales ubicados sin chocar con el cuadro verde ni con el panel inferior */
     .waze-side-controls {
         position: fixed;
-        top: 200px;
-        left: 12px;
-        z-index: 999;
+        top: 205px;
+        left: 10px;
+        z-index: 9990;
         display: flex;
         flex-direction: column;
         gap: 6px;
     }
     .btn-waze-ctrl {
-        background: linear-gradient(145deg, #1e293b, #0f172a);
+        background: rgba(15, 23, 42, 0.95);
         color: #00f0ff;
-        border: 2px solid #00f0ff;
-        border-radius: 20px;
-        height: 34px;
+        border: 1.5px solid #00f0ff;
+        border-radius: 18px;
+        height: 32px;
         padding: 0 10px;
         font-size: 10.5px;
         font-weight: 900;
@@ -12972,41 +12906,31 @@ async function procesarFotoTablaDirecta(usarGemini) {
         align-items: center;
         gap: 4px;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         outline: none;
         white-space: nowrap;
         -webkit-tap-highlight-color: transparent;
     }
     .btn-waze-ctrl.activo {
-        background: linear-gradient(145deg, #0284c7, #0369a1);
+        background: #0284c7;
         color: #ffffff;
         border-color: #ffea00;
     }
     .btn-waze-ctrl.voz-activa {
-        background: linear-gradient(145deg, #16a34a, #15803d);
+        background: #16a34a;
         color: #ffffff;
         border-color: #4ade80;
     }
 </style>
 
-<!-- Banner Superior Vial estilo Waze -->
-<div id="waze-street-banner">
-    <div class="waze-banner-left" onclick="repetirIndicacionVozActual()" title="Toca para escuchar indicación y recalcular ruta">
-        <div id="waze-turn-symbol" class="waze-turn-icon">⬆️</div>
-        <div class="waze-street-texts">
-            <span id="waze-street-top-label" class="waze-street-label">📍 NAVEGACIÓN WAZE ACTIVA</span>
-            <span id="waze-current-street" class="waze-street-name">Detectando Calle / Carrera...</span>
-            <span id="waze-next-target" class="waze-street-sub">Calculando ruta al objetivo...</span>
-        </div>
-    </div>
-    <div class="waze-speed-box">
-        <span id="waze-speed-val" class="waze-speed-num">0</span>
-        <span class="waze-speed-unit">km/h</span>
-    </div>
+<!-- Barra compacta de Calle y Carrera (No tapa el cuadro verde de ruta) -->
+<div id="waze-street-pill" onclick="repetirIndicacionVozActual()" title="Toca para escuchar la vía actual y el objetivo">
+    <span id="waze-current-street" class="waze-pill-road">📍 Detectando Calle / Carrera...</span>
+    <span id="waze-compass-tag" class="waze-pill-compass">⬆️ Norte</span>
 </div>
 
-<!-- Botones Flotantes Compactos -->
-<div class="waze-side-controls">
+<!-- Controles Flotantes Waze 3D y Voz en 2° Plano -->
+<div id="waze-controls-box" class="waze-side-controls">
     <button id="btn-waze-mode" class="btn-waze-ctrl" onclick="toggleModoWaze3D()">
         <span>🧭</span> <span id="lbl-waze-btn">Waze 3D</span>
     </button>
@@ -13018,285 +12942,187 @@ async function procesarFotoTablaDirecta(usarGemini) {
 <script>
 (function() {
     var wazeActivo = false;
-    var copilotoBgActivo = localStorage.getItem('ubica_rick_voz_bg') === '1';
+    var copilotoBgActivo = localStorage.getItem('ubica_rick_voz_bg') !== '0';
     var wazeRumboActual = 0;
     var prevLatWaze = null;
     var prevLngWaze = null;
 
-    // Variables de geocodificación y recálculo de ruta OSRM
     var ultimaConsultaVialTs = 0;
-    var ultimoRecalculoRutaTs = 0;
     var calleActualTexto = "";
     var ultimaCalleHablada = "";
-    var ultimaManiobraHablada = "";
-    var wazeRoutePolyline = null;
-    var ultimoDestinoId = null;
-    var coordsRutaActual = [];
-
-    // Control de avisos de placas
     var ultimoAvisoPlacaTs = 0;
     var ultimaPlacaAvisadaId = null;
     var ultimoEscalonDistAvisado = 99999;
 
-    // Keep-Alive Segundo Plano
-    var bgKeepAliveAudioEl = null;
-    var bgWorkerNav = null;
-    var wakeLockSentinel = null;
+    // Audio continuo para mantener vivo el GPS y la Voz cuando sales de la app
+    var audioSilenciosoLoop = null;
+    var audioVozBgPlayer = null;
+    var bgWorkerWaze = null;
+    var wakeLockWaze = null;
+    var fnHablarOriginal = window.hablarInstruccionCopiloto;
 
-    function crearAudioSilenciosoDataUri() {
+    // 1. GENERADOR DE WAV SILENCIOSO DE 2 SEGUNDOS PARA KEEP-ALIVE EN ANDROID / IOS
+    function generarWavSilenciosoBase64() {
         return "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
     }
 
-    function activarBlindajeSegundoPlano() {
+    function iniciarMotorSegundoPlano() {
         try {
-            if (!bgKeepAliveAudioEl) {
-                bgKeepAliveAudioEl = new Audio(crearAudioSilenciosoDataUri());
-                bgKeepAliveAudioEl.loop = true;
-                bgKeepAliveAudioEl.volume = 0.01;
+            if (!audioSilenciosoLoop) {
+                audioSilenciosoLoop = new Audio(generarWavSilenciosoBase64());
+                audioSilenciosoLoop.loop = true;
+                audioSilenciosoLoop.volume = 0.01;
             }
-            bgKeepAliveAudioEl.play().catch(function(){});
+            audioSilenciosoLoop.play().catch(function(){});
+
+            if (!audioVozBgPlayer) {
+                audioVozBgPlayer = new Audio();
+                audioVozBgPlayer.volume = 1.0;
+            }
 
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: "UBICA-RICK Waze 3D Activo",
-                    artist: calleActualTexto || "Guiando por Calles y Carreras",
-                    album: "Copiloto en Segundo Plano"
+                    title: "UBICA-RICK Navegación Waze Activa",
+                    artist: calleActualTexto || "Rastreando Calles y Placas en 2° Plano",
+                    album: "Copiloto de Ruta"
                 });
                 navigator.mediaSession.playbackState = "playing";
             }
 
-            if ('wakeLock' in navigator && !wakeLockSentinel) {
-                navigator.wakeLock.request('screen').then(function(lock) {
-                    wakeLockSentinel = lock;
-                    lock.addEventListener('release', function() { wakeLockSentinel = null; });
+            if ('wakeLock' in navigator && !wakeLockWaze) {
+                navigator.wakeLock.request('screen').then(function(l) {
+                    wakeLockWaze = l;
+                    l.addEventListener('release', function() { wakeLockWaze = null; });
                 }).catch(function(){});
             }
 
-            if (!bgWorkerNav) {
-                var blobCode = "setInterval(function(){ postMessage('bg_nav_tick'); }, 4000);";
-                var blob = new Blob([blobCode], { type: 'application/javascript' });
-                bgWorkerNav = new Worker(URL.createObjectURL(blob));
-                bgWorkerNav.onmessage = function() {
+            // Hilo en segundo plano ininterrumpible (cada 4 segundos pide GPS y habla indicaciones)
+            if (!bgWorkerWaze) {
+                var codigoWorker = "setInterval(function(){ postMessage('tick'); }, 4000);";
+                var blob = new Blob([codigoWorker], { type: 'application/javascript' });
+                bgWorkerWaze = new Worker(URL.createObjectURL(blob));
+                bgWorkerWaze.onmessage = function() {
+                    ajustarPosicionSinChocar();
                     if (!copilotoBgActivo && !wazeActivo) return;
-                    if (typeof userLat === 'number' && typeof userLng === 'number') {
-                        consultarCalleActualEnVivo(userLat, userLng);
-                        verificarYRecalcularRutaWaze(userLat, userLng, false);
-                        evaluarIndicacionesVozEnRuta();
-                    }
-                    if (document.hidden && navigator.geolocation) {
+
+                    if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(function(pos) {
                             if (typeof window.actualizarPosicionGPS === 'function') {
                                 window.actualizarPosicionGPS(pos);
                             }
-                        }, function(){}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 5000 });
+                        }, function(){}, { enableHighAccuracy: true, maximumAge: 1500, timeout: 4000 });
+                    }
+
+                    if (typeof userLat === 'number' && typeof userLng === 'number') {
+                        consultarCalleActualEnVivo(userLat, userLng);
+                        verificarAvisosDeProximidadVoz();
                     }
                 };
             }
         } catch (e) {}
     }
 
-    // Motor de Voz en Español con pronunciación completa de Calles y Carreras
-    window.hablarInstruccionCopiloto = function(texto, forzarInmediato) {
+    // 2. SISTEMA DE VOZ DUAL: USA SYNTHESIS EN PRIMER PLANO Y AUDIO STREAM EN SEGUNDO PLANO
+    function formatearTextoVialParaVoz(texto) {
+        return String(texto || "")
+            .replace(/\bKR\b|\bCRA\b|\bCR\b|\bKRA\b/gi, "Carrera")
+            .replace(/\bCL\b|\bCLL\b/gi, "Calle")
+            .replace(/\bTV\b|\bTRANSV\b|\bTR\b/gi, "Transversal")
+            .replace(/\bDG\b|\bDIAG\b/gi, "Diagonal")
+            .replace(/\bAV\b/gi, "Avenida")
+            .replace(/#/g, " número ");
+    }
+
+    function hablarEnCualquierPlano(texto, prioritario) {
         if (!texto) return;
-        if (!copilotoBgActivo && !(typeof configApp !== 'undefined' && configApp.sonidoAlerta)) return;
-        if (!('speechSynthesis' in window)) return;
+        var limpio = formatearTextoVialParaVoz(texto);
 
-        try {
-            window.speechSynthesis.resume();
-            if (forzarInmediato) {
-                window.speechSynthesis.cancel();
-            } else if (window.speechSynthesis.speaking) {
-                return;
-            }
-
-            var textoHablado = String(texto)
-                .replace(/\bKR\b|\bCRA\b|\bCR\b|\bKRA\b/gi, "Carrera")
-                .replace(/\bCL\b|\bCLL\b/gi, "Calle")
-                .replace(/\bTV\b|\bTRANSV\b|\bTR\b/gi, "Transversal")
-                .replace(/\bDG\b|\bDIAG\b/gi, "Diagonal")
-                .replace(/\bAV\b/gi, "Avenida")
-                .replace(/#/g, " número ");
-
-            var utter = new SpeechSynthesisUtterance(textoHablado);
-            utter.lang = 'es-CO';
-            utter.rate = 1.03;
-            utter.pitch = 1.0;
-            utter.volume = 1.0;
-
-            var voces = window.speechSynthesis.getVoices();
-            if (voces && voces.length > 0) {
-                var vozEsp = voces.find(function(v) { return /es[-_](CO|MX|US|ES|419)/i.test(v.lang); }) ||
-                             voces.find(function(v) { return /^es/i.test(v.lang); });
-                if (vozEsp) utter.voice = vozEsp;
-            }
-
-            window.speechSynthesis.speak(utter);
-        } catch (eVoz) {}
-    };
-
-    window.describirVehiculoParaVoz = function(p) {
-        if (!p) return "";
-        var placaSpelled = (p.placa || "").split('').join(' ');
-        var marca = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
-        var linea = (p.linea && p.linea !== '-') ? p.linea : '';
-        var color = (p.color && p.color !== '-') ? ("color " + p.color) : '';
-        var dir = p.dirOriginal || p.dir || '';
-        return "Placa " + p.placa + " (" + placaSpelled + "), " + [marca, linea, color].filter(Boolean).join(" ") +
-               (dir ? (", en " + dir) : "");
-    };
-
-    // =========================================================================
-    // MOTOR DE RUTA Y AUTO-RECÁLCULO EN VIVO (OSRM TURN-BY-TURN)
-    // =========================================================================
-    function traducirManiobraEspanol(step) {
-        if (!step || !step.maneuver) return { icono: "⬆️", texto: "Continúa recto" };
-        var mod = step.maneuver.modifier || "";
-        var type = step.maneuver.type || "";
-        var viaDestino = step.name ? (" hacia " + step.name.toUpperCase()) : "";
-
-        if (type === "arrive") return { icono: "🏁", texto: "Llegando al objetivo" };
-        if (mod.indexOf("left") !== -1) return { icono: "⬅️", texto: "Gira a la izquierda" + viaDestino };
-        if (mod.indexOf("right") !== -1) return { icono: "➡️", texto: "Gira a la derecha" + viaDestino };
-        if (mod.indexOf("uturn") !== -1) return { icono: "🔄", texto: "Retorna en U" + viaDestino };
-        return { icono: "⬆️", texto: "Sigue por " + (step.name ? step.name.toUpperCase() : "la vía") };
-    }
-
-    function usuarioDesviadoDeRuta(lat, lng) {
-        if (!coordsRutaActual || coordsRutaActual.length === 0) return true;
-        var minDist = Infinity;
-        for (var i = 0; i < coordsRutaActual.length; i++) {
-            var c = coordsRutaActual[i];
-            var d = typeof calcularDistancia === 'function' ? calcularDistancia(lat, lng, c[0], c[1]) : 0;
-            if (d < minDist) minDist = d;
+        // A. Si el usuario salió de la app (está en WhatsApp, inicio o pantalla apagada),
+        // reproducir también por canal de Audio HTML5 que Android NO bloquea en segundo plano
+        if (document.hidden && audioVozBgPlayer) {
+            try {
+                var textoCorto = limpio.substring(0, 180);
+                var urlTts = "https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" + encodeURIComponent(textoCorto);
+                audioVozBgPlayer.src = urlTts;
+                audioVozBgPlayer.play().catch(function(){});
+            } catch (eAud) {}
         }
-        return minDist > 35; // Si se aleja más de 35 metros de la línea trazada, recalcula automáticamente
-    }
 
-    async function verificarYRecalcularRutaWaze(lat, lng, forzar) {
-        if (typeof placaMasCercanaObj === 'undefined' || !placaMasCercanaObj) return;
-        var dest = placaMasCercanaObj;
-        if (!dest.lat || !dest.lng) return;
-
-        var ahora = Date.now();
-        var cambioObjetivo = (ultimoDestinoId !== dest.id);
-        var desviado = usuarioDesviadoDeRuta(lat, lng);
-
-        // Recalcular si cambió de placa objetivo, si se desvió de calle (>35m) o cada 14 segundos en movimiento
-        if (!forzar && !cambioObjetivo && !desviado && (ahora - ultimoRecalculoRutaTs < 14000)) {
-            return;
-        }
-        if (ahora - ultimoRecalculoRutaTs < 4000 && !forzar) return;
-        ultimoRecalculoRutaTs = ahora;
-        ultimoDestinoId = dest.id;
-
-        try {
-            var urlOsrm = "https://router.project-osrm.org/route/v1/driving/" +
-                          lng + "," + lat + ";" + dest.lng + "," + dest.lat +
-                          "?overview=full&geometries=geojson&steps=true";
-            var resp = await fetch(urlOsrm);
-            if (!resp.ok) return;
-            var data = await resp.json();
-            if (!data || !data.routes || !data.routes[0]) return;
-
-            var route = data.routes[0];
-            var geom = route.geometry.coordinates.map(function(pt) { return [pt[1], pt[0]]; });
-            coordsRutaActual = geom;
-
-            // Dibujar o actualizar la línea de ruta estilo Waze en el mapa
-            if (map) {
-                if (wazeRoutePolyline) {
-                    wazeRoutePolyline.setLatLngs(geom);
-                } else {
-                    wazeRoutePolyline = L.polyline(geom, {
-                        color: '#00f0ff',
-                        weight: 7,
-                        opacity: 0.85,
-                        lineJoin: 'round'
-                    }).addTo(map);
+        // B. Hablar con el sintetizador nativo del teléfono (destrabando cola si se congeló)
+        if ('speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.resume();
+                if (prioritario || document.hidden) {
+                    window.speechSynthesis.cancel();
                 }
-            }
+                var utter = new SpeechSynthesisUtterance(limpio);
+                utter.lang = 'es-CO';
+                utter.rate = 1.04;
+                utter.volume = 1.0;
 
-            // Extraer la próxima maniobra (calle/carrera e instrucción de giro)
-            var legs = route.legs && route.legs[0];
-            if (legs && legs.steps && legs.steps.length > 0) {
-                var pasoActual = legs.steps[0];
-                var sigPaso = legs.steps.length > 1 ? legs.steps[1] : pasoActual;
-                var distGiro = Math.round(pasoActual.distance || 0);
-                var infoManiobra = traducirManiobraEspanol(sigPaso);
-
-                var elIcon = document.getElementById('waze-turn-symbol');
-                var elTopLbl = document.getElementById('waze-street-top-label');
-                var elCalle = document.getElementById('waze-current-street');
-                var elSub = document.getElementById('waze-next-target');
-
-                if (elIcon) elIcon.innerText = infoManiobra.icono;
-                if (elTopLbl) {
-                    elTopLbl.innerText = "🧭 A " + distGiro + " M • OBJETIVO " + dest.placa + " (" + Math.round(route.distance) + " m)";
+                var voces = window.speechSynthesis.getVoices();
+                if (voces && voces.length > 0) {
+                    var vozEsp = voces.find(function(v) { return /es[-_](CO|MX|US|ES|419)/i.test(v.lang); }) ||
+                                 voces.find(function(v) { return /^es/i.test(v.lang); });
+                    if (vozEsp) utter.voice = vozEsp;
                 }
-                if (elCalle) {
-                    elCalle.innerText = infoManiobra.texto;
-                }
-                if (elSub) {
-                    var viaAct = pasoActual.name ? pasoActual.name.toUpperCase() : calleActualTexto;
-                    elSub.innerHTML = "📍 Vía actual: <b>" + (viaAct || "En ruta") + "</b> ➔ " + (dest.dirOriginal || dest.dir || "");
-                }
-
-                // Hablar la maniobra si cambió o si se acaba de recalcular por desvío
-                var claveManiobra = infoManiobra.texto + "_" + Math.floor(distGiro / 100);
-                if (copilotoBgActivo && claveManiobra !== ultimaManiobraHablada && distGiro <= 350) {
-                    ultimaManiobraHablada = claveManiobra;
-                    window.hablarInstruccionCopiloto("En " + distGiro + " metros, " + infoManiobra.texto + ". Objetivo " + dest.placa, false);
-                }
-            }
-        } catch (eRoute) {}
-    }
-
-    function evaluarIndicacionesVozEnRuta() {
-        if (!copilotoBgActivo) return;
-        var ahora = Date.now();
-
-        if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj && typeof menorDistanciaMetros === 'number') {
-            var p = placaMasCercanaObj;
-            var dist = Math.round(menorDistanciaMetros);
-
-            if (p.id !== ultimaPlacaAvisadaId) {
-                ultimaPlacaAvisadaId = p.id;
-                ultimoEscalonDistAvisado = 99999;
-            }
-
-            var escalonActual = dist <= 80 ? 80 : (dist <= 200 ? 200 : (dist <= 400 ? 400 : (dist <= 800 ? 800 : 2000)));
-            var subioDeEscalon = escalonActual < ultimoEscalonDistAvisado;
-            var tiempoCumplido = (ahora - ultimoAvisoPlacaTs) > 40000;
-
-            if ((dist <= 800 && subioDeEscalon) || (dist <= 450 && tiempoCumplido)) {
-                ultimoEscalonDistAvisado = escalonActual;
-                ultimoAvisoPlacaTs = ahora;
-
-                var msgObjetivo = "Objetivo " + p.placa + " a " + dist + " metros. " +
-                                  ((p.marca && p.marca !== '-') ? (p.marca + " ") : "") +
-                                  ((p.linea && p.linea !== '-') ? (p.linea + " ") : "") +
-                                  ((p.color && p.color !== '-') ? ("color " + p.color + ". ") : ". ") +
-                                  "Dirección: " + (p.dirOriginal || p.dir || "");
-
-                window.hablarInstruccionCopiloto(msgObjetivo, true);
-            }
+                window.speechSynthesis.speak(utter);
+            } catch (eSyn) {}
         }
     }
 
-    window.repetirIndicacionVozActual = function() {
-        copilotoBgActivo = true;
-        actualizarBotonVozUI();
-        if (typeof userLat === 'number' && typeof userLng === 'number') {
-            verificarYRecalcularRutaWaze(userLat, userLng, true);
-        }
-        var frase = calleActualTexto ? ("Circulando por " + calleActualTexto + ". ") : "";
-        if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj && isFinite(menorDistanciaMetros)) {
-            frase += "Objetivo " + window.describirVehiculoParaVoz(placaMasCercanaObj) + ", a " + Math.round(menorDistanciaMetros) + " metros.";
+    // Conservar y potenciar la función original de voz de tu app para que el botón "🗣️ Todo" siga funcionando
+    window.hablarInstruccionCopiloto = function(texto, forzar) {
+        if (typeof fnHablarOriginal === 'function' && !document.hidden) {
+            try { fnHablarOriginal(texto, forzar); } catch (e) {}
         } else {
-            frase += "Rastreando objetivos en la ruta.";
+            hablarEnCualquierPlano(texto, true);
         }
-        window.hablarInstruccionCopiloto(frase, true);
+        // Si está en segundo plano, asegurar reproducción por canal de audio
+        if (document.hidden) {
+            hablarEnCualquierPlano(texto, true);
+        }
     };
+
+    // 3. EVITAR QUE LOS LETREROS SE MONTEN UNO ENCIMA DEL OTRO AUTOMÁTICAMENTE
+    function ajustarPosicionSinChocar() {
+        var pill = document.getElementById('waze-street-pill');
+        var ctrlBox = document.getElementById('waze-controls-box');
+        if (!pill) return;
+
+        var maxBottomSuperior = 42;
+        // Buscar si el cartel verde de recorrido de tu app está visible arriba
+        var divs = document.querySelectorAll('div');
+        for (var i = 0; i < divs.length; i++) {
+            var d = divs[i];
+            if (d.id === 'map' || d.id === 'waze-street-pill' || d.id === 'waze-controls-box' || d.id === 'backdrop-modal') continue;
+            var st = window.getComputedStyle(d);
+            if ((st.position === 'fixed' || st.position === 'absolute') && st.display !== 'none' && st.visibility !== 'hidden') {
+                var r = d.getBoundingClientRect();
+                if (r.top >= 0 && r.top < 70 && r.height > 25 && r.height < 160 && r.width > 180) {
+                    if (r.bottom > maxBottomSuperior) {
+                        maxBottomSuperior = r.bottom;
+                    }
+                }
+            }
+        }
+
+        var nuevoTopPill = Math.round(maxBottomSuperior + 6);
+        pill.style.top = nuevoTopPill + 'px';
+
+        // Verificar que el botón 🎯 tampoco choque con la píldora ni con los botones Waze
+        var btnGps = document.getElementById('btn-mi-gps-flotante');
+        var baseTopControles = Math.max(200, nuevoTopPill + 42);
+        if (btnGps) {
+            var rGps = btnGps.getBoundingClientRect();
+            if (rGps.bottom + 8 > baseTopControles) {
+                baseTopControles = Math.round(rGps.bottom + 8);
+            }
+        }
+        if (ctrlBox) {
+            ctrlBox.style.top = baseTopControles + 'px';
+        }
+    }
 
     function calcularRumboGrados(lat1, lon1, lat2, lon2) {
         var toRad = Math.PI / 180;
@@ -13305,52 +13131,24 @@ async function procesarFotoTablaDirecta(usarGemini) {
         var y = Math.sin(dLon) * Math.cos(lat2 * toRad);
         var x = Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) -
                 Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos(dLon);
-        var brng = Math.atan2(y, x) * toDeg;
-        return (brng + 360) % 360;
+        return (Math.atan2(y, x) * toDeg + 360) % 360;
     }
 
-    function centrarCamaraAdelanteWaze(lat, lng, rumboGrados) {
-        if (!map || !lat || !lng) return;
-        var zoomDeseado = Math.max(map.getZoom(), 18);
-        var distanciaAdelanteMetros = 55;
-        var rad = rumboGrados * (Math.PI / 180);
-        var deltaLat = (distanciaAdelanteMetros * Math.cos(rad)) / 111320;
-        var deltaLng = (distanciaAdelanteMetros * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180));
-        map.setView([lat + deltaLat, lng + deltaLng], zoomDeseado, { animate: true, duration: 0.35 });
+    function obtenerEtiquetaRumbo(grados) {
+        var dirs = ["⬆️ Norte", "↗️ Noreste", "➡️ Este", "↘️ Sureste", "⬇️ Sur", "↙️ Suroeste", "⬅️ Oeste", "↖️ Noroeste"];
+        var idx = Math.round(((grados %= 360) < 0 ? grados + 360 : grados) / 45) % 8;
+        return dirs[idx];
     }
 
     function aplicarRotacionMapaWaze(rumboGrados) {
         wazeRumboActual = rumboGrados;
-        var rotMapa = -rumboGrados;
-        document.documentElement.style.setProperty('--waze-map-rot', rotMapa.toFixed(1) + 'deg');
+        document.documentElement.style.setProperty('--waze-map-rot', (-rumboGrados).toFixed(1) + 'deg');
         document.documentElement.style.setProperty('--waze-inv-rot', rumboGrados.toFixed(1) + 'deg');
+        var elComp = document.getElementById('waze-compass-tag');
+        if (elComp) elComp.innerText = obtenerEtiquetaRumbo(rumboGrados);
     }
 
-    function actualizarIconoUsuarioWaze(activar) {
-        if (typeof userMarker === 'undefined' || !userMarker) return;
-        if (activar) {
-            var wazeIcon = L.divIcon({
-                className: 'custom-gps-icon',
-                html: '<div class="waze-user-cone">' +
-                      '<svg class="waze-arrow-svg" viewBox="0 0 100 100">' +
-                      '<polygon points="50,6 90,88 50,70 10,88" fill="#00f0ff" stroke="#ffffff" stroke-width="7" stroke-linejoin="round"/>' +
-                      '</svg>' +
-                      '</div>',
-                iconSize: [44, 44],
-                iconAnchor: [22, 22]
-            });
-            userMarker.setIcon(wazeIcon);
-        } else {
-            var normalIcon = L.divIcon({
-                className: 'custom-gps-icon',
-                html: '<div style="width:18px; height:18px; background:#2980b9; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 10px rgba(41,128,185,0.8); animation:pulse-gps 2s infinite;"></div>',
-                iconSize: [18, 18],
-                iconAnchor: [9, 9]
-            });
-            userMarker.setIcon(normalIcon);
-        }
-    }
-
+    // Detectar la Calle o Carrera actual y anunciarla por voz al cambiar de vía
     async function consultarCalleActualEnVivo(lat, lng) {
         var ahora = Date.now();
         if (ahora - ultimaConsultaVialTs < 5000) return;
@@ -13365,44 +13163,82 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 var a = data.address;
                 var via = a.road || a.pedestrian || a.primary || a.secondary || a.residential || a.highway || "";
                 var num = a.house_number ? (" # " + a.house_number) : "";
+                var barrio = a.neighbourhood || a.suburb || a.city_district || "";
+
                 if (via) {
-                    var nombreViaLimpio = via.toUpperCase();
-                    calleActualTexto = nombreViaLimpio + num;
+                    var viaMayus = via.toUpperCase();
+                    calleActualTexto = viaMayus + num + (barrio ? (" • " + barrio) : "");
+
+                    var elCalle = document.getElementById('waze-current-street');
+                    if (elCalle) elCalle.innerText = "🛣️ " + calleActualTexto;
 
                     if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
-                        navigator.mediaSession.metadata.artist = "Vía: " + calleActualTexto;
+                        navigator.mediaSession.metadata.artist = "Por: " + calleActualTexto;
                     }
 
-                    if (copilotoBgActivo && nombreViaLimpio !== ultimaCalleHablada) {
-                        ultimaCalleHablada = nombreViaLimpio;
-                        window.hablarInstruccionCopiloto("Circulando por " + nombreViaLimpio, false);
+                    if (copilotoBgActivo && viaMayus !== ultimaCalleHablada) {
+                        ultimaCalleHablada = viaMayus;
+                        var msgVia = "Circulando por " + viaMayus;
+                        if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj && typeof menorDistanciaMetros === 'number' && menorDistanciaMetros <= 1000) {
+                            msgVia += ". Objetivo " + placaMasCercanaObj.placa + " a " + Math.round(menorDistanciaMetros) + " metros";
+                        }
+                        hablarEnCualquierPlano(msgVia, false);
                     }
                 }
             }
         } catch (e) {}
     }
 
-    var originalActualizarGPS = window.actualizarPosicionGPS;
+    function verificarAvisosDeProximidadVoz() {
+        if (!copilotoBgActivo) return;
+        if (typeof placaMasCercanaObj === 'undefined' || !placaMasCercanaObj || typeof menorDistanciaMetros !== 'number') return;
+
+        var p = placaMasCercanaObj;
+        var dist = Math.round(menorDistanciaMetros);
+        var ahora = Date.now();
+
+        if (p.id !== ultimaPlacaAvisadaId) {
+            ultimaPlacaAvisadaId = p.id;
+            ultimoEscalonDistAvisado = 99999;
+        }
+
+        var escalon = dist <= 80 ? 80 : (dist <= 180 ? 180 : (dist <= 350 ? 350 : (dist <= 700 ? 700 : 2000)));
+        if ((dist <= 700 && escalon < ultimoEscalonDistAvisado) || (dist <= 400 && (ahora - ultimoAvisoPlacaTs > 35000))) {
+            ultimoEscalonDistAvisado = escalon;
+            ultimoAvisoPlacaTs = ahora;
+
+            var msg = "Atención, placa " + p.placa + " a " + dist + " metros, en " + (p.dirOriginal || p.dir || "la ruta");
+            hablarEnCualquierPlano(msg, true);
+        }
+    }
+
+    window.repetirIndicacionVozActual = function() {
+        copilotoBgActivo = true;
+        actualizarBotonVozUI();
+        iniciarMotorSegundoPlano();
+        var msg = calleActualTexto ? ("Circulando por " + calleActualTexto + ". ") : "Navegación Waze activa. ";
+        if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj && isFinite(menorDistanciaMetros)) {
+            msg += "Objetivo " + placaMasCercanaObj.placa + " a " + Math.round(menorDistanciaMetros) + " metros, en " + (placaMasCercanaObj.dirOriginal || placaMasCercanaObj.dir || "");
+        }
+        hablarEnCualquierPlano(msg, true);
+    };
+
+    // Conectar al GPS sin romper nada del sistema original
+    var origActualizarGPS = window.actualizarPosicionGPS;
     window.actualizarPosicionGPS = function(pos) {
-        if (typeof originalActualizarGPS === 'function') {
-            originalActualizarGPS(pos);
+        if (typeof origActualizarGPS === 'function') {
+            origActualizarGPS(pos);
         }
         if (!pos || !pos.coords) return;
         var lat = pos.coords.latitude;
         var lng = pos.coords.longitude;
 
-        var velKmh = (typeof pos.coords.speed === 'number' && pos.coords.speed >= 0) ? Math.round(pos.coords.speed * 3.6) : 0;
-        var elSpeed = document.getElementById('waze-speed-val');
-        if (elSpeed) elSpeed.innerText = velKmh;
-
         var nuevoRumbo = null;
         if (typeof pos.coords.heading === 'number' && !isNaN(pos.coords.heading) && pos.coords.speed > 0.8) {
             nuevoRumbo = pos.coords.heading;
         } else if (prevLatWaze !== null && prevLngWaze !== null) {
-            var distMovida = typeof calcularDistancia === 'function'
-                ? calcularDistancia(prevLatWaze, prevLngWaze, lat, lng)
-                : 0;
-            if (distMovida >= 3.0) {
+            var dMov = typeof calcularDistancia === 'function' ? calcularDistancia(prevLatWaze, prevLngWaze, lat, lng) : 0;
+            if (dMov >= 3.0) {
                 nuevoRumbo = calcularRumboGrados(prevLatWaze, prevLngWaze, lat, lng);
                 prevLatWaze = lat;
                 prevLngWaze = lng;
@@ -13416,27 +13252,30 @@ async function procesarFotoTablaDirecta(usarGemini) {
             wazeRumboActual = nuevoRumbo;
         }
 
-        if (wazeActivo) {
+        if (wazeActivo && map) {
             aplicarRotacionMapaWaze(wazeRumboActual);
-            actualizarIconoUsuarioWaze(true);
-            centrarCamaraAdelanteWaze(lat, lng, wazeRumboActual);
-            verificarYRecalcularRutaWaze(lat, lng, false);
+            // Centrar la moto en el punto focal de la cámara 3D
+            map.setView([lat, lng], Math.max(map.getZoom(), 18), { animate: true, duration: 0.3 });
+            ajustarPosicionSinChocar();
         }
 
         if (wazeActivo || copilotoBgActivo) {
             consultarCalleActualEnVivo(lat, lng);
-            evaluarIndicacionesVozEnRuta();
+            verificarAvisosDeProximidadVoz();
         }
     };
 
+    // Cuando el usuario sale de la app en el teléfono, activar el audio en 2° plano inmediatamente
     document.addEventListener('visibilitychange', function() {
         if (document.hidden && (copilotoBgActivo || wazeActivo)) {
-            activarBlindajeSegundoPlano();
-            var msgBg = "Copiloto UBICA RICK activo en segundo plano.";
+            iniciarMotorSegundoPlano();
+            var avisoSalida = "Copiloto UBICA RICK activo en segundo plano.";
             if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj && isFinite(menorDistanciaMetros)) {
-                msgBg += " Objetivo " + placaMasCercanaObj.placa + " a " + Math.round(menorDistanciaMetros) + " metros.";
+                avisoSalida += " Placa " + placaMasCercanaObj.placa + " a " + Math.round(menorDistanciaMetros) + " metros.";
             }
-            window.hablarInstruccionCopiloto(msgBg, false);
+            hablarEnCualquierPlano(avisoSalida, true);
+        } else if (!document.hidden && wazeActivo && map) {
+            setTimeout(function() { map.invalidateSize(false); }, 200);
         }
     });
 
@@ -13459,17 +13298,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
         actualizarBotonVozUI();
 
         if (copilotoBgActivo) {
-            activarBlindajeSegundoPlano();
-            if (typeof prepararPipVideo === 'function') prepararPipVideo(false);
+            iniciarMotorSegundoPlano();
             window.repetirIndicacionVozActual();
-            if (typeof mostrarToastNotificacion === 'function') {
-                mostrarToastNotificacion("🔊 Copiloto en 2° Plano ACTIVADO.");
-            }
         } else {
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-            if (typeof mostrarToastNotificacion === 'function') {
-                mostrarToastNotificacion("🔇 Copiloto en 2° Plano DESACTIVADO.");
-            }
+            if (audioVozBgPlayer) audioVozBgPlayer.pause();
         }
     };
 
@@ -13483,50 +13316,44 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (btn) btn.classList.add('activo');
             if (lbl) lbl.innerText = "Salir Waze";
 
-            if (!copilotoBgActivo) {
-                copilotoBgActivo = true;
-                localStorage.setItem('ubica_rick_voz_bg', '1');
-                actualizarBotonVozUI();
-            }
-            activarBlindajeSegundoPlano();
-            if (typeof prepararPipVideo === 'function') prepararPipVideo(false);
+            copilotoBgActivo = true;
+            localStorage.setItem('ubica_rick_voz_bg', '1');
+            actualizarBotonVozUI();
+            iniciarMotorSegundoPlano();
+            ajustarPosicionSinChocar();
 
             if (typeof capaGoogle !== 'undefined' && map && !map.hasLayer(capaGoogle)) {
                 capaGoogle.addTo(map);
             }
 
-            // Redimensionar el lienzo de Leaflet inmediatamente para que cargue todos los bloques del mapa sin dejar zonas blancas
+            // Obligar a Leaflet a cargar todo el cuadrado gigante de 280vmax para que NO existan bordes grises
             if (map) map.invalidateSize(false);
 
             if (typeof userLat === 'number' && typeof userLng === 'number') {
                 if (typeof placaMasCercanaObj !== 'undefined' && placaMasCercanaObj) {
-                    var rumboObj = calcularRumboGrados(userLat, userLng, placaMasCercanaObj.lat, placaMasCercanaObj.lng);
-                    aplicarRotacionMapaWaze(rumboObj);
-                } else {
-                    aplicarRotacionMapaWaze(wazeRumboActual);
+                    wazeRumboActual = calcularRumboGrados(userLat, userLng, placaMasCercanaObj.lat, placaMasCercanaObj.lng);
                 }
-                actualizarIconoUsuarioWaze(true);
-                centrarCamaraAdelanteWaze(userLat, userLng, wazeRumboActual);
+                aplicarRotacionMapaWaze(wazeRumboActual);
+                map.setView([userLat, userLng], 18, { animate: false });
                 consultarCalleActualEnVivo(userLat, userLng);
-                verificarYRecalcularRutaWaze(userLat, userLng, true);
                 window.repetirIndicacionVozActual();
-            } else if (typeof centrarEnMiGPS === 'function') {
-                centrarEnMiGPS();
             }
 
-            setTimeout(function() { if (map) map.invalidateSize(false); }, 350);
+            setTimeout(function() {
+                if (map) {
+                    map.invalidateSize(false);
+                    if (typeof userLat === 'number' && typeof userLng === 'number') {
+                        map.setView([userLat, userLng], 18, { animate: false });
+                    }
+                }
+                ajustarPosicionSinChocar();
+            }, 350);
         } else {
             document.body.classList.remove('waze-nav-active');
             if (btn) btn.classList.remove('activo');
             if (lbl) lbl.innerText = "Waze 3D";
             document.documentElement.style.setProperty('--waze-map-rot', '0deg');
             document.documentElement.style.setProperty('--waze-inv-rot', '0deg');
-            actualizarIconoUsuarioWaze(false);
-
-            if (wazeRoutePolyline && map) {
-                map.removeLayer(wazeRoutePolyline);
-                wazeRoutePolyline = null;
-            }
 
             setTimeout(function() {
                 if (map) {
@@ -13535,13 +13362,16 @@ async function procesarFotoTablaDirecta(usarGemini) {
                         map.setView([userLat, userLng], 16, { animate: true });
                     }
                 }
-            }, 300);
+            }, 250);
         }
     };
 
-    setTimeout(actualizarBotonVozUI, 500);
+    setTimeout(function() {
+        actualizarBotonVozUI();
+        ajustarPosicionSinChocar();
+    }, 600);
 })();
 </script>
-<!-- ================= FIN DEL MÓDULO WAZE 3D ================= -->
+<!-- ================= FIN DEL MÓDULO WAZE 3D DEFINITIVO ================= -->
 </body>
 </html>
