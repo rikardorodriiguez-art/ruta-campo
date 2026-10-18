@@ -12807,7 +12807,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </button>
     </div>
 <!-- ========================================================================= -->
-<!-- 🚀 MÓDULO WAZE 3D DEFINITIVO (CERO ESPACIOS ARRIBA + REVISIÓN DE RUTA)    -->
+<!-- ⚡ MÓDULO WAZE 3D ULTRA-RÁPIDO (BOTÓN ➕ AGREGAR PLACAS 100% VISIBLE)      -->
 <!-- ========================================================================= -->
 <style>
     body.waze-nav-active {
@@ -12817,21 +12817,45 @@ async function procesarFotoTablaDirecta(usarGemini) {
         padding: 0 !important;
     }
 
-    /* 1. PERSPECTIVA 3D CALIBRADA: CUBRE EL 100% DESDE EL BORDE SUPERIOR (0PX) HASTA ABAJO EN PC Y MÓVIL */
-    body.waze-nav-active.waze-camara-3d #map {
+    /* 1. BLINDAJE DEL BOTÓN ➕ AGREGAR PLACAS Y MENÚS (SIEMPRE VISIBLES ENCIMA DEL 3D) */
+    .floating-btn-add {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
         position: fixed !important;
-        width: 300vmax !important;
-        height: 300vmax !important;
-        left: calc(50vw - 150vmax) !important;
-        top: calc(62vh - 150vmax) !important;
-        z-index: 1 !important;
-        transform-origin: 50% 50% !important;
-        transform: scale(1.42) perspective(1600px) rotateX(50deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
-        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1) !important;
-        will-change: transform;
+        bottom: 20px !important;
+        left: 20px !important;
+        z-index: 999999 !important;
+        transform: translateZ(250px) !important;
+    }
+    #menuOpciones,
+    #panelFiltros,
+    #top-bar-container,
+    #radar-hud-flotante,
+    #panel-reubicar-punto,
+    #modal-asistente,
+    #modal-config {
+        z-index: 999999 !important;
+        transform: translateZ(250px);
     }
 
-    /* 2. MODO INSPECCIÓN DE RUTA (SE ACTIVA AL ARRASTRAR, HACER ZOOM O TOCAR "VER RUTA") */
+    /* 2. LIENZO OPTIMIZADO EN GPU: CARGA 82% MENOS DATOS PERO CUBRE EL 100% DE LA PANTALLA */
+    body.waze-nav-active.waze-camara-3d #map {
+        position: fixed !important;
+        width: 128vmax !important;
+        height: 128vmax !important;
+        left: calc(50vw - 64vmax) !important;
+        top: calc(60vh - 64vmax) !important;
+        z-index: 1 !important;
+        transform-origin: 50% 50% !important;
+        transform: scale(1.72) perspective(1400px) rotateX(48deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
+        transition: transform 0.22s linear !important;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    /* 3. MODO INSPECCIÓN DE RUTA 2D (INSTANTÁNEO Y SIN TRANSFORMACIONES PESADAS) */
     body.waze-nav-active.waze-camara-2d-libre #map {
         position: fixed !important;
         width: 100vw !important;
@@ -12840,14 +12864,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
         top: 0 !important;
         z-index: 1 !important;
         transform: none !important;
-        transition: transform 0.2s ease-out !important;
+        transition: none !important;
     }
 
-    /* 3. CONTRA-ROTACIÓN AUTOMÁTICA DE PLACAS Y POPUPS EN 3D */
+    /* 4. CONTRA-ROTACIÓN LIGERA EN PLACAS Y FICHAS */
     body.waze-nav-active.waze-camara-3d .leaflet-marker-icon:not(.waze-moto-gps-marker) > div {
         transform: rotateZ(var(--waze-inv-rot, 0deg));
         transform-origin: center center;
-        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
     body.waze-nav-active.waze-camara-3d .leaflet-popup-content-wrapper,
     body.waze-nav-active.waze-camara-3d .leaflet-popup-tip-container {
@@ -12855,7 +12878,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         transform-origin: center center;
     }
 
-    /* 4. MOTOCICLETA 3D ACTUALIZADA */
+    /* 5. MOTOCICLETA 3D LIGERA */
     .waze-moto-gps-marker {
         background: transparent !important;
         border: none !important;
@@ -12863,58 +12886,39 @@ async function procesarFotoTablaDirecta(usarGemini) {
     }
     .waze-moto-wrapper {
         position: relative;
-        width: 72px;
-        height: 90px;
+        width: 68px;
+        height: 84px;
         display: flex;
         align-items: center;
         justify-content: center;
         transform: rotateZ(var(--waze-inv-rot, 0deg));
         transform-origin: 50% 65%;
-        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
         pointer-events: none;
     }
     body.waze-nav-active.waze-camara-2d-libre .waze-moto-wrapper {
         transform: rotateZ(var(--waze-moto-2d-rot, 0deg)) scale(0.85);
     }
     .waze-moto-svg {
-        width: 68px;
-        height: 86px;
-        filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 10px rgba(0, 240, 255, 0.55));
-    }
-    .waze-moto-pulse-ring {
-        position: absolute;
-        bottom: 12px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 2px solid #00f0ff;
-        background: radial-gradient(circle, rgba(0, 240, 255, 0.3) 0%, rgba(0, 240, 255, 0) 70%);
-        animation: waze-ring-pulse 1.8s infinite ease-out;
-        z-index: -1;
-    }
-    @keyframes waze-ring-pulse {
-        0% { transform: translateX(-50%) scale(0.75); opacity: 1; }
-        100% { transform: translateX(-50%) scale(1.6); opacity: 0; }
+        width: 66px;
+        height: 82px;
     }
 
-    /* 5. BANNER VIAL SUPERIOR COMPACTO */
+    /* 6. BANNER VIAL SUPERIOR ULTRALIGERO */
     #waze-street-pill {
         display: none;
         position: fixed;
         top: 44px;
         left: 50%;
-        transform: translateX(-50%);
+        transform: translateX(-50%) translateZ(220px);
         width: 90%;
         max-width: 390px;
-        background: rgba(10, 18, 36, 0.94);
+        background: #0a1224;
         border: 1.5px solid #00f0ff;
         border-radius: 14px;
         padding: 5px 10px;
         color: #ffffff;
-        z-index: 9990;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.55);
+        z-index: 99990;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         align-items: center;
         justify-content: space-between;
@@ -12928,7 +12932,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background: linear-gradient(135deg, #0284c7, #0369a1);
+        background: #0284c7;
         border: 1px solid #38bdf8;
         display: flex;
         align-items: center;
@@ -12983,18 +12987,19 @@ async function procesarFotoTablaDirecta(usarGemini) {
         font-weight: bold;
     }
 
-    /* 6. CONTROLES LATERALES COMPACTOS */
+    /* 7. CONTROLES LATERALES COMPACTOS */
     .waze-side-controls {
         position: fixed;
         top: 198px;
         left: 10px;
-        z-index: 9990;
+        z-index: 99990;
+        transform: translateZ(220px);
         display: flex;
         flex-direction: column;
         gap: 6px;
     }
     .btn-waze-ctrl {
-        background: rgba(15, 23, 42, 0.94);
+        background: #0f172a;
         color: #00f0ff;
         border: 1.5px solid #00f0ff;
         border-radius: 18px;
@@ -13006,34 +13011,33 @@ async function procesarFotoTablaDirecta(usarGemini) {
         align-items: center;
         gap: 5px;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
         outline: none;
         white-space: nowrap;
         -webkit-tap-highlight-color: transparent;
     }
     .btn-waze-ctrl.activo {
-        background: linear-gradient(135deg, #0284c7, #0369a1);
+        background: #0284c7;
         color: #ffffff;
         border-color: #ffea00;
     }
     .btn-waze-ctrl.modo-2d-temp {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
+        background: #d97706;
         color: #ffffff;
         border-color: #fef08a;
-        box-shadow: 0 0 14px rgba(245, 158, 11, 0.8);
     }
     .btn-waze-ctrl.voz-activa {
-        background: linear-gradient(135deg, #16a34a, #15803d);
+        background: #16a34a;
         color: #ffffff;
         border-color: #4ade80;
     }
 </style>
 
-<!-- Barra Superior de Navegación (Calle, Carrera, Próximo Giro y Velocidad) -->
-<div id="waze-street-pill" onclick="repetirIndicacionVozActual()" title="Toca para escuchar indicación por voz y recalcular">
+<!-- Barra Superior de Navegación -->
+<div id="waze-street-pill" onclick="repetirIndicacionVozActual()" title="Toca para escuchar indicación por voz">
     <div id="waze-turn-icon" class="waze-turn-box">⬆️</div>
     <div class="waze-pill-center">
-        <span id="waze-next-step-txt" class="waze-pill-sub">🧭 MODO WAZE 3D • RUMBO NORTE</span>
+        <span id="waze-next-step-txt" class="waze-pill-sub">🧭 MODO WAZE 3D • ACTIVO</span>
         <span id="waze-current-street" class="waze-pill-road">🛣️ Detectando Calle / Carrera...</span>
     </div>
     <div class="waze-pill-speed">
@@ -13065,6 +13069,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
     var rotacionAcumulada = 0;
     var prevLatWaze = null;
     var prevLngWaze = null;
+    var ultimoPanCamaraTs = 0;
 
     var ultimaConsultaVialTs = 0;
     var ultimoRecalculoRutaTs = 0;
@@ -13086,38 +13091,52 @@ async function procesarFotoTablaDirecta(usarGemini) {
     var wakeLockWaze = null;
     var fnHablarOriginal = window.hablarInstruccionCopiloto;
 
-    // 1. DISEÑO SVG DE LA MOTOCICLETA 3D
+    // 0. GARANTIZAR QUE EL BOTÓN ➕ DE AGREGAR PLACAS ESTÉ SIEMPRE VISIBLE Y HABILITADO
+    function asegurarBotonAgregarPlacasVisible() {
+        var btnAdd = document.querySelector('.floating-btn-add');
+        if (!btnAdd) {
+            btnAdd = document.createElement('button');
+            btnAdd.className = 'floating-btn-add';
+            btnAdd.title = 'Agregar nuevo vehículo';
+            btnAdd.innerHTML = '➕';
+            btnAdd.onclick = function() {
+                if (typeof toggleMenuAdd === 'function') toggleMenuAdd();
+            };
+            document.body.appendChild(btnAdd);
+        }
+        btnAdd.style.setProperty('display', 'flex', 'important');
+        btnAdd.style.setProperty('visibility', 'visible', 'important');
+        btnAdd.style.setProperty('opacity', '1', 'important');
+        btnAdd.style.setProperty('z-index', '999999', 'important');
+    }
+
+    // 1. DISEÑO SVG OPTIMIZADO DE LA MOTOCICLETA 3D
     function obtenerHtmlMotoActualizadaSVG() {
         return '<div class="waze-moto-wrapper">' +
-            '<div class="waze-moto-pulse-ring"></div>' +
             '<svg class="waze-moto-svg" viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">' +
                 '<defs>' +
                     '<linearGradient id="wazeBeamGrad" x1="0%" y1="100%" x2="0%" y2="0%">' +
-                        '<stop offset="0%" stop-color="#00f0ff" stop-opacity="0.65"/>' +
-                        '<stop offset="60%" stop-color="#38bdf8" stop-opacity="0.22"/>' +
+                        '<stop offset="0%" stop-color="#00f0ff" stop-opacity="0.55"/>' +
                         '<stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>' +
                     '</linearGradient>' +
                     '<linearGradient id="motoBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">' +
                         '<stop offset="0%" stop-color="#00f0ff"/>' +
-                        '<stop offset="50%" stop-color="#0284c7"/>' +
+                        '<stop offset="55%" stop-color="#0284c7"/>' +
                         '<stop offset="100%" stop-color="#0f172a"/>' +
                     '</linearGradient>' +
-                    '<linearGradient id="helmetGrad" x1="0%" y1="0%" x2="0%" y2="100%">' +
-                        '<stop offset="0%" stop-color="#ffffff"/>' +
-                        '<stop offset="45%" stop-color="#38bdf8"/>' +
-                        '<stop offset="100%" stop-color="#0369a1"/>' +
-                    '</linearGradient>' +
                 '</defs>' +
-                '<polygon points="60,52 14,2 106,2" fill="url(#wazeBeamGrad)"/>' +
+                '<ellipse cx="60" cy="92" rx="28" ry="42" fill="rgba(0,0,0,0.42)"/>' +
+                '<ellipse cx="60" cy="92" rx="22" ry="34" fill="none" stroke="rgba(0,240,255,0.45)" stroke-width="2"/>' +
+                '<polygon points="60,52 16,4 104,4" fill="url(#wazeBeamGrad)"/>' +
                 '<rect x="53" y="28" width="14" height="26" rx="6" fill="#090d16" stroke="#475569" stroke-width="2"/>' +
                 '<path d="M51,42 Q60,35 69,42 L68,56 L52,56 Z" fill="#0284c7" stroke="#00f0ff" stroke-width="1.5"/>' +
                 '<path d="M22,58 L98,58" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/>' +
                 '<rect x="18" y="54" width="14" height="7" rx="3" fill="#0f172a" stroke="#00f0ff" stroke-width="1.5"/>' +
                 '<rect x="88" y="54" width="14" height="7" rx="3" fill="#0f172a" stroke="#00f0ff" stroke-width="1.5"/>' +
-                '<path d="M46,50 Q60,40 74,50 L70,64 Q60,58 50,64 Z" fill="rgba(0,240,255,0.85)" stroke="#ffffff" stroke-width="1.5"/>' +
+                '<path d="M46,50 Q60,40 74,50 L70,64 Q60,58 50,64 Z" fill="#00f0ff" stroke="#ffffff" stroke-width="1.5"/>' +
                 '<path d="M40,62 Q60,52 80,62 L84,88 Q60,96 36,88 Z" fill="url(#motoBodyGrad)" stroke="#00f0ff" stroke-width="2"/>' +
                 '<path d="M32,78 Q60,68 88,78 L82,106 Q60,112 38,106 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>' +
-                '<ellipse cx="60" cy="84" rx="15" ry="17" fill="url(#helmetGrad)" stroke="#ffffff" stroke-width="2"/>' +
+                '<ellipse cx="60" cy="84" rx="15" ry="17" fill="#38bdf8" stroke="#ffffff" stroke-width="2"/>' +
                 '<path d="M47,77 Q60,70 73,77 Q60,83 47,77 Z" fill="#090d16"/>' +
                 '<rect x="75" y="102" width="7" height="22" rx="3" fill="#64748b" stroke="#cbd5e1" stroke-width="1"/>' +
                 '<path d="M45,105 L75,105 L70,126 L50,126 Z" fill="#0f172a" stroke="#00f0ff" stroke-width="1.8"/>' +
@@ -13128,7 +13147,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
     }
 
     function actualizarIconoMotoEnMapa(activarMoto) {
-        // Ocultar el círculo gigante azul de precisión en Modo Waze para que deje ver las calles limpias
         if (typeof userAccuracyCircle !== 'undefined' && userAccuracyCircle) {
             try {
                 userAccuracyCircle.setStyle({
@@ -13144,8 +13162,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 var motoIcon = L.divIcon({
                     className: 'custom-gps-icon waze-moto-gps-marker',
                     html: obtenerHtmlMotoActualizadaSVG(),
-                    iconSize: [72, 90],
-                    iconAnchor: [36, 58]
+                    iconSize: [68, 84],
+                    iconAnchor: [34, 54]
                 });
                 userMarker.setIcon(motoIcon);
                 userMarker._esMotoWaze3D = true;
@@ -13154,7 +13172,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (userMarker._esMotoWaze3D) {
                 var normalIcon = L.divIcon({
                     className: 'custom-gps-icon',
-                    html: '<div style="width:18px; height:18px; background:#2980b9; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 10px rgba(41,128,185,0.8); animation:pulse-gps 2s infinite;"></div>',
+                    html: '<div style="width:18px; height:18px; background:#2980b9; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 10px rgba(41,128,185,0.8);"></div>',
                     iconSize: [18, 18],
                     iconAnchor: [9, 9]
                 });
@@ -13164,7 +13182,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     }
 
-    // 2. MATEMÁTICA DE ROTACIÓN Y ENFOQUE ADELANTADO
+    // 2. MATEMÁTICA DE ROTACIÓN Y MOVIMIENTO SIN RETRASO
     function calcularRumboGrados(lat1, lon1, lat2, lon2) {
         var toRad = Math.PI / 180;
         var toDeg = 180 / Math.PI;
@@ -13176,32 +13194,40 @@ async function procesarFotoTablaDirecta(usarGemini) {
     }
 
     function aplicarRotacionContinuaWaze(nuevoRumboGrados) {
-        wazeRumboActual = (nuevoRumboGrados + 360) % 360;
+        var r = (nuevoRumboGrados + 360) % 360;
+        var diff = Math.abs(r - wazeRumboActual);
+        if (diff > 180) diff = 360 - diff;
+        if (diff < 2.0 && rotacionAcumulada !== 0) return;
+
+        wazeRumboActual = r;
         var objetivoMapa = -wazeRumboActual;
         var delta = ((objetivoMapa - rotacionAcumulada + 540) % 360) - 180;
         rotacionAcumulada += delta;
 
-        document.documentElement.style.setProperty('--waze-map-rot', rotacionAcumulada.toFixed(1) + 'deg');
-        document.documentElement.style.setProperty('--waze-inv-rot', (-rotacionAcumulada).toFixed(1) + 'deg');
-        document.documentElement.style.setProperty('--waze-moto-2d-rot', wazeRumboActual.toFixed(1) + 'deg');
+        requestAnimationFrame(function() {
+            document.documentElement.style.setProperty('--waze-map-rot', rotacionAcumulada.toFixed(1) + 'deg');
+            document.documentElement.style.setProperty('--waze-inv-rot', (-rotacionAcumulada).toFixed(1) + 'deg');
+            document.documentElement.style.setProperty('--waze-moto-2d-rot', wazeRumboActual.toFixed(1) + 'deg');
+        });
     }
 
-    function enfocarCamaraWazeAdelante(lat, lng, rumboGrados, animar) {
+    function enfocarCamaraWazeAdelante(lat, lng, rumboGrados, forzar) {
         if (!map || typeof lat !== 'number' || typeof lng !== 'number' || !camara3dActiva) return;
+        var ahora = Date.now();
+        if (!forzar && (ahora - ultimoPanCamaraTs < 750)) return;
+        ultimoPanCamaraTs = ahora;
+
         var zoomActual = map.getZoom();
         var zoomWaze = (zoomActual < 17) ? 18 : zoomActual;
-        var metrosAdelante = 55;
+        var metrosAdelante = 50;
         var rad = rumboGrados * (Math.PI / 180);
         var dLat = (metrosAdelante * Math.cos(rad)) / 111320;
         var dLng = (metrosAdelante * Math.sin(rad)) / (111320 * Math.cos(lat * Math.PI / 180));
 
-        map.setView([lat + dLat, lng + dLng], zoomWaze, {
-            animate: animar !== false,
-            duration: 0.35
-        });
+        map.setView([lat + dLat, lng + dLng], zoomWaze, { animate: false });
     }
 
-    // 3. DESBLOQUEO AUTOMÁTICO DEL MAPA PARA REVISAR LA RUTA LIBREMENTE
+    // 3. MODO REVISIÓN DE RUTA 2D Y RETORNO A 3D
     function pasarAModoRevisionRuta2D(encuadrarTodaLaRuta) {
         if (!wazeActivo) return;
         camara3dActiva = false;
@@ -13216,15 +13242,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
         if (map) {
             map.invalidateSize(false);
             if (encuadrarTodaLaRuta) {
-                // Buscar si hay una ruta activa para mostrarla completa en pantalla
                 if (window.polylineRuta && map.hasLayer(window.polylineRuta)) {
-                    map.fitBounds(window.polylineRuta.getBounds(), { padding: [50, 50] });
+                    map.fitBounds(window.polylineRuta.getBounds(), { padding: [45, 45] });
                 } else if (polylineRutaWaze && map.hasLayer(polylineRutaWaze)) {
-                    map.fitBounds(polylineRutaWaze.getBounds(), { padding: [50, 50] });
+                    map.fitBounds(polylineRutaWaze.getBounds(), { padding: [45, 45] });
                 } else if (typeof encuadrarTodasLasPlacas === 'function') {
                     encuadrarTodasLasPlacas();
                 } else if (typeof userLat === 'number' && typeof userLng === 'number') {
-                    map.setView([userLat, userLng], 14, { animate: true });
+                    map.setView([userLat, userLng], 14, { animate: false });
                 }
             }
         }
@@ -13245,7 +13270,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
             map.invalidateSize(false);
             if (typeof userLat === 'number' && typeof userLng === 'number') {
                 aplicarRotacionContinuaWaze(wazeRumboActual);
-                map.setZoom(18, { animate: false });
                 enfocarCamaraWazeAdelante(userLat, userLng, wazeRumboActual, true);
             }
         }
@@ -13256,30 +13280,24 @@ async function procesarFotoTablaDirecta(usarGemini) {
         if (camara3dActiva) {
             pasarAModoRevisionRuta2D(true);
             if (typeof mostrarToastNotificacion === 'function') {
-                mostrarToastNotificacion("🗺️ Revisando ruta completa. Mueve o haz zoom libremente. Toca '🏍️ Volver a 3D' para conducir.");
+                mostrarToastNotificacion("🗺️ Revisando ruta en 2D. Toca '🏍️ Volver a 3D' para conducir.");
             }
         } else {
             volverAModoConduccion3D();
-            if (typeof mostrarToastNotificacion === 'function') {
-                mostrarToastNotificacion("🏍️ Cámara Waze 3D activa.");
-            }
         }
     };
 
-    // Si el usuario usa la rueda del ratón (PC) o arrastra el mapa para mirar la ruta, pasar a 2D libre sin bloquearlo
     function instalarEventosExploracionMapa() {
         var mapEl = document.getElementById('map');
         if (!mapEl || mapEl._wazeListenersListos) return;
         mapEl._wazeListenersListos = true;
 
-        // Rueda del ratón hacia atrás (alejar para ver ruta)
         mapEl.addEventListener('wheel', function(e) {
             if (wazeActivo && camara3dActiva && e.deltaY > 0) {
                 pasarAModoRevisionRuta2D(false);
             }
         }, { passive: true });
 
-        // Arrastrar mapa en Leaflet
         if (typeof map !== 'undefined' && map) {
             map.on('dragstart', function() {
                 if (wazeActivo && camara3dActiva) {
@@ -13289,7 +13307,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     }
 
-    // 4. RECÁLCULO AUTOMÁTICO DE RUTA Y GIROS (OSRM)
+    // 4. RECÁLCULO AUTOMÁTICO DE RUTA (OSRM)
     function traducirPasoManiobra(step) {
         if (!step || !step.maneuver) return { icono: "⬆️", texto: "Continúa recto" };
         var mod = step.maneuver.modifier || "";
@@ -13306,7 +13324,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
     function motoSeDesvioDeLaRuta(lat, lng) {
         if (!coordsRutaWaze || coordsRutaWaze.length === 0) return true;
         var menor = Infinity;
-        for (var i = 0; i < coordsRutaWaze.length; i++) {
+        for (var i = 0; i < coordsRutaWaze.length; i += 2) {
             var pt = coordsRutaWaze[i];
             var d = typeof calcularDistancia === 'function' ? calcularDistancia(lat, lng, pt[0], pt[1]) : 0;
             if (d < menor) menor = d;
@@ -13323,8 +13341,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
         var cambioObj = (ultimoObjetivoRutaId !== obj.id);
         var desviado = motoSeDesvioDeLaRuta(lat, lng);
 
-        if (!forzar && !cambioObj && !desviado && (ahora - ultimoRecalculoRutaTs < 14000)) return;
-        if (!forzar && (ahora - ultimoRecalculoRutaTs < 4000)) return;
+        if (!forzar && !cambioObj && !desviado && (ahora - ultimoRecalculoRutaTs < 15000)) return;
+        if (!forzar && (ahora - ultimoRecalculoRutaTs < 5000)) return;
 
         ultimoRecalculoRutaTs = ahora;
         ultimoObjetivoRutaId = obj.id;
@@ -13332,7 +13350,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         try {
             var url = "https://router.project-osrm.org/route/v1/driving/" +
                       lng + "," + lat + ";" + obj.lng + "," + obj.lat +
-                      "?overview=full&geometries=geojson&steps=true";
+                      "?overview=simplified&geometries=geojson&steps=true";
             var resp = await fetch(url);
             if (!resp.ok) return;
             var data = await resp.json();
@@ -13348,8 +13366,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     polylineRutaWaze = L.polyline(coordsRutaWaze, {
                         color: '#0284c7',
                         weight: 6,
-                        opacity: 0.85,
-                        lineJoin: 'round'
+                        opacity: 0.85
                     }).addTo(map);
                 }
             }
@@ -13377,7 +13394,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         } catch (e) {}
     }
 
-    // 5. MOTOR DE VOZ Y SEGUNDO PLANO (24/7 KEEP-ALIVE)
+    // 5. MOTOR DE VOZ Y SEGUNDO PLANO
     function generarWavSilenciosoBase64() {
         return "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
     }
@@ -13427,10 +13444,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
             }
 
             if (!bgWorkerWaze) {
-                var blob = new Blob(["setInterval(function(){ postMessage('tick'); }, 4000);"], { type: 'application/javascript' });
+                var blob = new Blob(["setInterval(function(){ postMessage('tick'); }, 4500);"], { type: 'application/javascript' });
                 bgWorkerWaze = new Worker(URL.createObjectURL(blob));
                 bgWorkerWaze.onmessage = function() {
-                    ajustarPosicionSinChocar();
+                    asegurarBotonAgregarPlacasVisible();
                     if (!copilotoBgActivo && !wazeActivo) return;
 
                     if (document.hidden && navigator.geolocation) {
@@ -13438,7 +13455,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                             if (typeof window.actualizarPosicionGPS === 'function') {
                                 window.actualizarPosicionGPS(pos);
                             }
-                        }, function(){}, { enableHighAccuracy: true, maximumAge: 1500, timeout: 4000 });
+                        }, function(){}, { enableHighAccuracy: true, maximumAge: 2000, timeout: 4000 });
                     }
 
                     if (typeof userLat === 'number' && typeof userLng === 'number') {
@@ -13505,7 +13522,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
     async function consultarCalleActualEnVivo(lat, lng) {
         var ahora = Date.now();
-        if (ahora - ultimaConsultaVialTs < 4500) return;
+        if (ahora - ultimaConsultaVialTs < 5500) return;
         ultimaConsultaVialTs = ahora;
 
         try {
@@ -13580,23 +13597,23 @@ async function procesarFotoTablaDirecta(usarGemini) {
         hablarEnCualquierPlano(msg, true);
     };
 
+    // 6. AJUSTE ULTRA-RÁPIDO DE POSICIÓN
     function ajustarPosicionSinChocar() {
+        asegurarBotonAgregarPlacasVisible();
         var pill = document.getElementById('waze-street-pill');
         var ctrlBox = document.getElementById('waze-controls-box');
         if (!pill) return;
 
         var maxBottomSuperior = 38;
-        var divs = document.querySelectorAll('div');
-        for (var i = 0; i < divs.length; i++) {
-            var d = divs[i];
-            if (d.id === 'map' || d.id === 'waze-street-pill' || d.id === 'waze-controls-box' || d.id === 'backdrop-modal') continue;
-            var st = window.getComputedStyle(d);
-            if ((st.position === 'fixed' || st.position === 'absolute') && st.display !== 'none' && st.visibility !== 'hidden') {
-                var r = d.getBoundingClientRect();
-                if (r.top >= 0 && r.top < 70 && r.height > 24 && r.height < 150 && r.width > 180) {
-                    if (r.bottom > maxBottomSuperior) {
-                        maxBottomSuperior = r.bottom;
-                    }
+        var hijos = document.body.children;
+        for (var i = 0; i < hijos.length; i++) {
+            var d = hijos[i];
+            if (!d || d.id === 'map' || d.id === 'waze-street-pill' || d.id === 'waze-controls-box' || d.id === 'backdrop-modal') continue;
+            if (d.offsetParent === null) continue;
+            var r = d.getBoundingClientRect();
+            if (r.top >= 0 && r.top < 70 && r.height > 24 && r.height < 140 && r.width > 180) {
+                if (r.bottom > maxBottomSuperior) {
+                    maxBottomSuperior = r.bottom;
                 }
             }
         }
@@ -13604,20 +13621,12 @@ async function procesarFotoTablaDirecta(usarGemini) {
         var nuevoTopPill = Math.round(maxBottomSuperior + 5);
         pill.style.top = nuevoTopPill + 'px';
 
-        var btnGps = document.getElementById('btn-mi-gps-flotante');
-        var baseTopControles = Math.max(198, nuevoTopPill + 50);
-        if (btnGps) {
-            var rGps = btnGps.getBoundingClientRect();
-            if (rGps.bottom + 8 > baseTopControles) {
-                baseTopControles = Math.round(rGps.bottom + 8);
-            }
-        }
         if (ctrlBox) {
-            ctrlBox.style.top = baseTopControles + 'px';
+            ctrlBox.style.top = Math.max(198, nuevoTopPill + 50) + 'px';
         }
     }
 
-    // 6. CONEXIÓN AL GPS Y BOTONES
+    // 7. CONEXIÓN AL GPS OPTIMIZADA
     var origActualizarGPS = window.actualizarPosicionGPS;
     window.actualizarPosicionGPS = function(pos) {
         if (typeof origActualizarGPS === 'function') {
@@ -13636,7 +13645,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             nuevoRumbo = pos.coords.heading;
         } else if (prevLatWaze !== null && prevLngWaze !== null) {
             var dMov = typeof calcularDistancia === 'function' ? calcularDistancia(prevLatWaze, prevLngWaze, lat, lng) : 0;
-            if (dMov >= 2.5) {
+            if (dMov >= 2.8) {
                 nuevoRumbo = calcularRumboGrados(prevLatWaze, prevLngWaze, lat, lng);
                 prevLatWaze = lat;
                 prevLngWaze = lng;
@@ -13652,12 +13661,10 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
         if (wazeActivo) {
             actualizarIconoMotoEnMapa(true);
-            // SOLO centra la cámara si estamos en modo 3D activo (si el usuario está revisando la ruta en 2D, no lo interrumpe)
             if (camara3dActiva) {
-                enfocarCamaraWazeAdelante(lat, lng, wazeRumboActual, true);
+                enfocarCamaraWazeAdelante(lat, lng, wazeRumboActual, false);
             }
             verificarYRecalcularRutaWaze(lat, lng, false);
-            ajustarPosicionSinChocar();
         }
 
         if (wazeActivo || copilotoBgActivo) {
@@ -13667,15 +13674,17 @@ async function procesarFotoTablaDirecta(usarGemini) {
     };
 
     document.addEventListener('click', function(e) {
+        asegurarBotonAgregarPlacasVisible();
         if (!wazeActivo) return;
         var btn = e.target.closest('button');
         if (!btn) return;
         var txt = (btn.innerText || "").trim();
         if (txt.indexOf("Centrar Moto") !== -1 || btn.id === 'btn-mi-gps-flotante') {
-            setTimeout(volverAModoConduccion3D, 120);
+            setTimeout(volverAModoConduccion3D, 100);
         } else if (txt.indexOf("Ver Todo") !== -1 || txt.indexOf("Ver Todas") !== -1) {
-            setTimeout(function() { pasarAModoRevisionRuta2D(true); }, 120);
+            setTimeout(function() { pasarAModoRevisionRuta2D(true); }, 100);
         }
+        setTimeout(ajustarPosicionSinChocar, 250);
     }, true);
 
     document.addEventListener('visibilitychange', function() {
@@ -13725,6 +13734,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         var btnExp = document.getElementById('btn-waze-ver-ruta');
 
         instalarEventosExploracionMapa();
+        asegurarBotonAgregarPlacasVisible();
 
         if (wazeActivo) {
             camara3dActiva = true;
@@ -13756,8 +13766,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 }
                 aplicarRotacionContinuaWaze(wazeRumboActual);
                 actualizarIconoMotoEnMapa(true);
-                map.setZoom(18, { animate: false });
-                enfocarCamaraWazeAdelante(userLat, userLng, wazeRumboActual, false);
+                enfocarCamaraWazeAdelante(userLat, userLng, wazeRumboActual, true);
                 consultarCalleActualEnVivo(userLat, userLng);
                 verificarYRecalcularRutaWaze(userLat, userLng, true);
                 window.repetirIndicacionVozActual();
@@ -13770,11 +13779,11 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     map.invalidateSize(false);
                     if (typeof userLat === 'number' && typeof userLng === 'number') {
                         actualizarIconoMotoEnMapa(true);
-                        enfocarCamaraWazeAdelante(userLat, userLng, wazeRumboActual, false);
+                        enfocarCamaraWazeAdelante(userLat, userLng, wazeRumboActual, true);
                     }
                 }
                 ajustarPosicionSinChocar();
-            }, 350);
+            }, 250);
         } else {
             camara3dActiva = false;
             document.body.classList.remove('waze-nav-active', 'waze-camara-3d', 'waze-camara-2d-libre');
@@ -13794,20 +13803,21 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 if (map) {
                     map.invalidateSize(false);
                     if (typeof userLat === 'number' && typeof userLng === 'number') {
-                        map.setView([userLat, userLng], 16, { animate: true });
+                        map.setView([userLat, userLng], 16, { animate: false });
                     }
                 }
-            }, 250);
+            }, 200);
         }
     };
 
     setTimeout(function() {
+        asegurarBotonAgregarPlacasVisible();
         actualizarBotonVozUI();
         ajustarPosicionSinChocar();
         instalarEventosExploracionMapa();
-    }, 600);
+    }, 500);
 })();
 </script>
-<!-- ================= FIN DEL MÓDULO WAZE 3D DEFINITIVO ================= -->
+<!-- ================= FIN DEL MÓDULO WAZE 3D ULTRA-RÁPIDO ================= -->
 </body>
 </html>
