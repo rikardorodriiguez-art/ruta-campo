@@ -12807,7 +12807,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </button>
     </div>
 <!-- ========================================================================= -->
-<!-- 🚀 MÓDULO WAZE 3D INTELIGENTE (PERMITE REVISAR RUTA + POPUPS AL DERECHO)  -->
+<!-- 🚀 MÓDULO WAZE 3D NATIVO (MAPA 3D REAL + MOTO + REVISIÓN + VOZ)            -->
 <!-- ========================================================================= -->
 <style>
     body.waze-nav-active {
@@ -12817,20 +12817,19 @@ async function procesarFotoTablaDirecta(usarGemini) {
         padding: 0 !important;
     }
 
-    /* Solo inclina y rota cuando está siguiendo la moto; si estás revisando la ruta se endereza para moverte fácil */
+    /* Contenedor 3D real optimizado para Leaflet */
     body.waze-nav-active.waze-siguiendo-moto #map {
         position: fixed !important;
-        width: 260vmax !important;
-        height: 260vmax !important;
-        left: calc(50vw - 130vmax) !important;
-        top: calc(52vh - 130vmax) !important;
+        width: 180vw !important;
+        height: 180vh !important;
+        left: -40vw !important;
+        top: -40vh !important;
         z-index: 1 !important;
-        transform-origin: 50% 50% !important;
-        transform: perspective(900px) rotateX(45deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
-        transition: transform 0.3s ease-out !important;
+        transform-origin: 50% 55% !important;
+        transform: perspective(800px) rotateX(50deg) rotateZ(var(--waze-map-rot, 0deg)) !important;
+        transition: transform 0.2s linear !important;
     }
 
-    /* Cuando el usuario mueve el mapa con el dedo para revisar la ruta, vista limpia y derecha al 100% */
     body.waze-nav-active.waze-explorando-mapa #map {
         position: fixed !important;
         width: 100vw !important;
@@ -12839,21 +12838,40 @@ async function procesarFotoTablaDirecta(usarGemini) {
         top: 0 !important;
         z-index: 1 !important;
         transform: none !important;
-        transition: transform 0.25s ease-out !important;
+        transition: transform 0.2s ease-out !important;
     }
 
-    /* Contra-rotación en placas Y TAMBIÉN EN LAS FICHAS (POPUPS) para que nunca salgan de cabeza */
-    body.waze-nav-active.waze-siguiendo-moto .leaflet-marker-icon > div {
-        transform: rotateZ(var(--waze-inv-rot, 0deg));
-        transform-origin: center center;
-    }
+    /* Contra-rotación para que las placas y popups no salgan de cabeza */
+    body.waze-nav-active.waze-siguiendo-moto .leaflet-marker-icon > div,
     body.waze-nav-active.waze-siguiendo-moto .leaflet-popup-content-wrapper,
     body.waze-nav-active.waze-siguiendo-moto .leaflet-popup-tip-container {
         transform: rotateZ(var(--waze-inv-rot, 0deg));
         transform-origin: center center;
     }
 
-    /* Píldora superior ultra-compacta que se oculta sola mientras revisas el mapa para darte más visión */
+    /* Icono de la Moto 3D */
+    .waze-moto-marker-container {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .waze-moto-icon-box {
+        width: 40px;
+        height: 40px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 2px solid #00f0ff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        box-shadow: 0 0 14px rgba(0,240,255,0.8);
+    }
+
+    /* Píldora vial superior sin chocar con tus botones */
     #waze-street-pill {
         display: none;
         position: fixed;
@@ -12862,13 +12880,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
         transform: translateX(-50%);
         width: 88%;
         max-width: 370px;
-        background: rgba(15, 23, 42, 0.92);
+        background: rgba(15, 23, 42, 0.94);
         border: 1.5px solid #00f0ff;
         border-radius: 20px;
-        padding: 3px 10px;
+        padding: 4px 12px;
         color: #ffffff;
         z-index: 9990;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         align-items: center;
         justify-content: space-between;
@@ -12879,7 +12897,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         display: flex;
     }
     .waze-pill-road {
-        font-size: 11.5px;
+        font-size: 12px;
         font-weight: 900;
         color: #ffea00;
         white-space: nowrap;
@@ -12891,15 +12909,15 @@ async function procesarFotoTablaDirecta(usarGemini) {
         font-size: 10px;
         font-weight: 800;
         color: #00ff87;
-        background: rgba(0, 255, 135, 0.12);
+        background: rgba(0, 255, 135, 0.15);
         border: 1px solid rgba(0, 255, 135, 0.4);
-        padding: 1px 6px;
-        border-radius: 10px;
+        padding: 2px 7px;
+        border-radius: 12px;
         white-space: nowrap;
         flex-shrink: 0;
     }
 
-    /* Botones laterales discretos y compactos */
+    /* Botones de control flotantes a la izquierda */
     .waze-side-controls {
         position: fixed;
         top: 198px;
@@ -12910,19 +12928,19 @@ async function procesarFotoTablaDirecta(usarGemini) {
         gap: 5px;
     }
     .btn-waze-ctrl {
-        background: rgba(15, 23, 42, 0.92);
+        background: rgba(15, 23, 42, 0.95);
         color: #00f0ff;
         border: 1.5px solid #00f0ff;
         border-radius: 16px;
-        height: 30px;
-        padding: 0 9px;
-        font-size: 10px;
+        height: 32px;
+        padding: 0 10px;
+        font-size: 10.5px;
         font-weight: 900;
         display: inline-flex;
         align-items: center;
         gap: 4px;
         cursor: pointer;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         outline: none;
         white-space: nowrap;
         -webkit-tap-highlight-color: transparent;
@@ -12944,13 +12962,13 @@ async function procesarFotoTablaDirecta(usarGemini) {
     }
 </style>
 
-<!-- Barra compacta de Calle y Carrera -->
+<!-- Barra superior de Calle y Carrera -->
 <div id="waze-street-pill" onclick="repetirIndicacionVozActual()">
     <span id="waze-current-street" class="waze-pill-road">🛣️ Detectando vía...</span>
     <span id="waze-compass-tag" class="waze-pill-compass">⬆️ Norte</span>
 </div>
 
-<!-- Controles Flotantes Waze 3D -->
+<!-- Botones Waze 3D -->
 <div id="waze-controls-box" class="waze-side-controls">
     <button id="btn-waze-mode" class="btn-waze-ctrl" onclick="toggleModoWaze3D()">
         <span>🧭</span> <span id="lbl-waze-btn">Waze 3D</span>
@@ -12966,7 +12984,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
 <script>
 (function() {
     var wazeActivo = false;
-    var siguiendoMotoWaze = true; // Se pone en false automáticamente cuando el usuario mueve el mapa para ver la ruta
+    var siguiendoMotoWaze = true;
     var copilotoBgActivo = localStorage.getItem('ubica_rick_voz_bg') !== '0';
     var wazeRumboActual = 0;
     var prevLatWaze = null;
@@ -12989,7 +13007,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         return "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
     }
 
-    // 1. DETECTAR SI EL BOTÓN NATIVO DE TU APP DICE "Centrar Moto" (SEGUIMIENTO PAUSADO)
     function appNativaTieneSeguimientoPausado() {
         var botones = document.querySelectorAll('button');
         for (var i = 0; i < botones.length; i++) {
@@ -13001,7 +13018,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         return false;
     }
 
-    // 2. PAUSAR O REANUDAR EL AUTO-CENTRADO PARA PODER REVISAR EL MAPA Y LA RUTA LIBREMENTE
     function pausarSeguimientoParaRevisarMapa() {
         if (!wazeActivo || !siguiendoMotoWaze) return;
         siguiendoMotoWaze = false;
@@ -13057,7 +13073,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     };
 
-    // Escuchar cuando el usuario arrastra el mapa con el dedo o hace zoom con dos dedos
     if (typeof map !== 'undefined' && map) {
         map.on('dragstart', function() {
             if (wazeActivo && siguiendoMotoWaze) {
@@ -13066,7 +13081,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         });
     }
 
-    // Escuchar clics en los botones "Centrar Moto" o "🎯" de tu app para reanudar automáticamente
     document.addEventListener('click', function(e) {
         if (!wazeActivo) return;
         var btn = e.target.closest('button');
@@ -13079,7 +13093,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     }, true);
 
-    // 3. MOTOR DE SEGUNDO PLANO Y VOZ
     function iniciarMotorSegundoPlano() {
         try {
             if (!audioSilenciosoLoop) {
@@ -13115,10 +13128,8 @@ async function procesarFotoTablaDirecta(usarGemini) {
                 var blob = new Blob([codigoWorker], { type: 'application/javascript' });
                 bgWorkerWaze = new Worker(URL.createObjectURL(blob));
                 bgWorkerWaze.onmessage = function() {
-                    ajustarPosicionSinChocar();
                     if (!copilotoBgActivo && !wazeActivo) return;
 
-                    // Solo pedir posición forzada si está en segundo plano (para no interferir cuando el usuario revisa el mapa)
                     if (document.hidden && navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(function(pos) {
                             if (typeof window.actualizarPosicionGPS === 'function') {
@@ -13192,43 +13203,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         }
     };
 
-    function ajustarPosicionSinChocar() {
-        var pill = document.getElementById('waze-street-pill');
-        var ctrlBox = document.getElementById('waze-controls-box');
-        if (!pill) return;
-
-        var maxBottomSuperior = 42;
-        var divs = document.querySelectorAll('div');
-        for (var i = 0; i < divs.length; i++) {
-            var d = divs[i];
-            if (d.id === 'map' || d.id === 'waze-street-pill' || d.id === 'waze-controls-box' || d.id === 'backdrop-modal') continue;
-            var st = window.getComputedStyle(d);
-            if ((st.position === 'fixed' || st.position === 'absolute') && st.display !== 'none' && st.visibility !== 'hidden') {
-                var r = d.getBoundingClientRect();
-                if (r.top >= 0 && r.top < 70 && r.height > 25 && r.height < 150 && r.width > 180) {
-                    if (r.bottom > maxBottomSuperior) {
-                        maxBottomSuperior = r.bottom;
-                    }
-                }
-            }
-        }
-
-        var nuevoTopPill = Math.round(maxBottomSuperior + 4);
-        pill.style.top = nuevoTopPill + 'px';
-
-        var btnGps = document.getElementById('btn-mi-gps-flotante');
-        var baseTopControles = Math.max(195, nuevoTopPill + 36);
-        if (btnGps) {
-            var rGps = btnGps.getBoundingClientRect();
-            if (rGps.bottom + 6 > baseTopControles) {
-                baseTopControles = Math.round(rGps.bottom + 6);
-            }
-        }
-        if (ctrlBox) {
-            ctrlBox.style.top = baseTopControles + 'px';
-        }
-    }
-
     function calcularRumboGrados(lat1, lon1, lat2, lon2) {
         var toRad = Math.PI / 180;
         var toDeg = 180 / Math.PI;
@@ -13251,6 +13225,29 @@ async function procesarFotoTablaDirecta(usarGemini) {
         document.documentElement.style.setProperty('--waze-inv-rot', rumboGrados.toFixed(1) + 'deg');
         var elComp = document.getElementById('waze-compass-tag');
         if (elComp) elComp.innerText = obtenerEtiquetaRumbo(rumboGrados);
+    }
+
+    function actualizarIconoUsuarioWaze(activar) {
+        if (typeof userMarker === 'undefined' || !userMarker) return;
+        if (activar) {
+            var motoIcon = L.divIcon({
+                className: 'custom-gps-icon',
+                html: '<div class="waze-moto-marker-container">' +
+                      '<div class="waze-moto-icon-box">🏍️</div>' +
+                      '</div>',
+                iconSize: [48, 48],
+                iconAnchor: [24, 24]
+            });
+            userMarker.setIcon(motoIcon);
+        } else {
+            var normalIcon = L.divIcon({
+                className: 'custom-gps-icon',
+                html: '<div style="width:18px; height:18px; background:#2980b9; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 10px rgba(41,128,185,0.8);"></div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
+            });
+            userMarker.setIcon(normalIcon);
+        }
     }
 
     async function consultarCalleActualEnVivo(lat, lng) {
@@ -13355,16 +13352,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
             wazeRumboActual = nuevoRumbo;
         }
 
-        // Si el usuario tocó "Siguiendo" para pausar, respetar su decisión y NO mover el mapa a la fuerza
         if (appNativaTieneSeguimientoPausado() && siguiendoMotoWaze) {
             pausarSeguimientoParaRevisarMapa();
         }
 
-        // SOLO centrar el mapa si estamos en modo seguimiento activo (no cuando el usuario está revisando la ruta)
         if (wazeActivo && siguiendoMotoWaze && map) {
             aplicarRotacionMapaWaze(wazeRumboActual);
+            actualizarIconoUsuarioWaze(true);
             map.setView([lat, lng], Math.max(map.getZoom(), 18), { animate: true, duration: 0.3 });
-            ajustarPosicionSinChocar();
         }
 
         if (wazeActivo || copilotoBgActivo) {
@@ -13435,7 +13430,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
             localStorage.setItem('ubica_rick_voz_bg', '1');
             actualizarBotonVozUI();
             iniciarMotorSegundoPlano();
-            ajustarPosicionSinChocar();
 
             if (typeof capaGoogle !== 'undefined' && map && !map.hasLayer(capaGoogle)) {
                 capaGoogle.addTo(map);
@@ -13448,6 +13442,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
                     wazeRumboActual = calcularRumboGrados(userLat, userLng, placaMasCercanaObj.lat, placaMasCercanaObj.lng);
                 }
                 aplicarRotacionMapaWaze(wazeRumboActual);
+                actualizarIconoUsuarioWaze(true);
                 map.setView([userLat, userLng], 18, { animate: false });
                 consultarCalleActualEnVivo(userLat, userLng);
                 window.repetirIndicacionVozActual();
@@ -13455,7 +13450,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
             setTimeout(function() {
                 if (map) map.invalidateSize(false);
-                ajustarPosicionSinChocar();
             }, 350);
         } else {
             siguiendoMotoWaze = false;
@@ -13465,6 +13459,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
             if (btnExp) btnExp.style.display = 'none';
             document.documentElement.style.setProperty('--waze-map-rot', '0deg');
             document.documentElement.style.setProperty('--waze-inv-rot', '0deg');
+            actualizarIconoUsuarioWaze(false);
 
             setTimeout(function() {
                 if (map) {
@@ -13479,10 +13474,9 @@ async function procesarFotoTablaDirecta(usarGemini) {
 
     setTimeout(function() {
         actualizarBotonVozUI();
-        ajustarPosicionSinChocar();
     }, 600);
 })();
 </script>
-<!-- ================= FIN DEL MÓDULO WAZE 3D INTELIGENTE ================= -->
+<!-- ================= FIN DEL MÓDULO WAZE 3D DEFINITIVO ================= -->
 </body>
 </html>
