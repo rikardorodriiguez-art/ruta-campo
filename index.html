@@ -13839,5 +13839,215 @@ async function procesarFotoTablaDirecta(usarGemini) {
 })();
 </script>
 <!-- ================= FIN DEL MÓDULO WAZE 3D ULTRA-RÁPIDO ================= -->
+    <!-- ========================================================================= -->
+<!-- 🏛️ PARCHE DEFINITIVO DE REPARACIÓN RGM (GARANTÍAS MOBILIARIAS 100% AUTO) -->
+<!-- ========================================================================= -->
+<script>
+(function() {
+    // 1. Mejorar el analizador de texto/HTML de Garantías Mobiliarias (captura más formatos de Bienes Garantizados)
+    var origParsearRgm = window.parsearTextoGarantiasMobiliarias;
+    window.parsearTextoGarantiasMobiliarias = function(rawTexto) {
+        if (!rawTexto || typeof rawTexto !== "string") return null;
+
+        var res = typeof origParsearRgm === "function" ? (origParsearRgm(rawTexto) || {}) : {};
+        var limpio = rawTexto
+            .replace(/<script[\s\S]*?<\/script>/gi, " ")
+            .replace(/<style[\s\S]*?<\/style>/gi, " ")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/&nbsp;/gi, " ")
+            .replace(/&#(\d+);/g, function(_, d) { return String.fromCharCode(parseInt(d, 10)); })
+            .replace(/\s+/g, " ")
+            .trim();
+
+        // Refuerzo de Placa
+        if (!res.placa) {
+            var mPl = limpio.match(/(?:Placa|Serial|Bien)\s*:?\s*([A-Z]{3}\d{2}[0-9A-Z])\b/i) ||
+                      limpio.match(/\b([A-Z]{3}\d{2}[0-9A-Z])\b/);
+            if (mPl && mPl[1]) res.placa = mPl[1].toUpperCase();
+        }
+
+        // Refuerzo de Marca (Fabricante / Marca / Vehículo)
+        if (!res.marca || res.marca === "-") {
+            var mMarca = limpio.match(/(?:Marca|Fabricante)\s*:?\s*([A-Z0-9\-\s]{2,20}?)(?=\s*(?:L[ií]nea|Modelo|A[ñn]o|Color|Placa|Serie|Chasis|Motor|Vin|Tipo|Descripci|N[uú]mero|,|$))/i);
+            if (mMarca && mMarca[1]) {
+                var candM = mMarca[1].trim().toUpperCase();
+                if (!/SERIAL|FABRICANTE|MODELO|DESCRIPCI|BIEN|SERVICIO/.test(candM)) {
+                    res.marca = candM;
+                }
+            }
+        }
+
+        // Refuerzo de Línea (Línea directa o dentro de Descripción del Bien)
+        if (!res.linea || res.linea === "-") {
+            var mLin = limpio.match(/L[ií]nea\s*:?\s*([A-Z0-9\-\s\.\/]{1,28}?)(?=\s*(?:Modelo|A[ñn]o|Color|Placa|Serie|Chasis|Motor|Vin|Tipo|Servicio|Descripci|No\s+existen|,|$))/i);
+            if (mLin && mLin[1]) {
+                var candL = mLin[1].trim().toUpperCase();
+                if (!/SERVICIO|PARTICULAR|PUBLICO|EXISTEN/.test(candL)) {
+                    res.linea = candL;
+                }
+            }
+        }
+
+        // Refuerzo de Modelo (Año Correspondiente al Modelo / Modelo)
+        if (!res.modelo || res.modelo === "-") {
+            var mMod = limpio.match(/(?:A[ñn]o\s+Correspondiente\s+al\s+Modelo|Modelo)\s*:?\s*(19\d{2}|20[0-3]\d)\b/i);
+            if (mMod && mMod[1]) res.modelo = mMod[1];
+        }
+
+        // Refuerzo de Color
+        if (!res.color || res.color === "-") {
+            var mCol = limpio.match(/Color\s*:?\s*([A-ZÁÉÍÓÚÑ\s]{3,22}?)(?=\s*(?:Tipo|Servicio|Chasis|Motor|Serie|Vin|Modelo|Marca|Placa|No\s+existen|,|\.|$))/i);
+            if (mCol && mCol[1]) {
+                var candC = mCol[1].trim().toUpperCase();
+                if (!/SERVICIO|PARTICULAR|PUBLICO|MOTOR|CHASIS/.test(candC)) {
+                    res.color = candC;
+                }
+            }
+        }
+
+        if (res.marca || res.linea || res.modelo || res.color || res.acreedor || res.garante) {
+            if (res.placa && typeof guardarEnCacheGarantiasPlaca === "function") {
+                guardarEnCacheGarantiasPlaca(res.placa, res);
+            }
+            return res;
+        }
+        return null;
+    };
+
+    // 2. Motor reparado de consulta RGM: Prioriza el Puente de Google Apps Script con timeout extendido (16s)
+    window.consultarGarantiasMobiliariasPorPlaca = async function(placaOrUrl, ignorarCache) {
+        if (!placaOrUrl || placaOrUrl === 'SIN_PLACA') return null;
+        var rawInput = String(placaOrUrl).trim();
+        var urlDirecta = "";
+        var placa = "";
+
+        if (/garantiasmobiliarias\.com\.co/i.test(rawInput)) {
+            urlDirecta = rawInput;
+            var mP = rawInput.match(/NumeroBien=([a-zA-Z0-9]+)/i);
+            if (mP && mP[1]) placa = mP[1].toUpperCase();
+        } else {
+            var mToken = rawInput.toUpperCase().match(/\b([A-Z]{3}\d{2}[0-9A-Z])\b/);
+            placa = mToken ? mToken[1] : rawInput.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+        }
+
+        if (!placa && !urlDirecta) return null;
+
+        // Revisar memoria caché local primero si no se forzó recarga
+        if (!ignorarCache && placa && typeof obtenerCacheGarantiasPlacas === "function") {
+            var cache = obtenerCacheGarantiasPlacas();
+            if (cache[placa] && ((cache[placa].marca && cache[placa].marca !== '-') || (cache[placa].linea && cache[placa].linea !== '-'))) {
+                return cache[placa];
+            }
+        }
+
+        var badgeRgm = document.getElementById('badge-estado-rgm');
+        if (badgeRgm) {
+            badgeRgm.style.background = '#fef3c7';
+            badgeRgm.style.color = '#b45309';
+            badgeRgm.innerText = '⏳ Consultando RGM ' + (placa || '') + '...';
+        }
+
+        var infoParcial = null;
+
+        // PASO A (PRINCIPAL Y MÁS CONFIABLE): Consultar Puente de Google Apps Script con 16 segundos de margen
+        var listaPuentes = [];
+        if (typeof obtenerUrlPuenteRgm === "function") {
+            var uPrincipal = obtenerUrlPuenteRgm();
+            if (uPrincipal) listaPuentes.push(uPrincipal);
+        }
+        if (typeof URLS_PUENTE_RGM_FALLBACK !== "undefined" && Array.isArray(URLS_PUENTE_RGM_FALLBACK)) {
+            URLS_PUENTE_RGM_FALLBACK.forEach(function(u) {
+                if (u && listaPuentes.indexOf(u) === -1) listaPuentes.push(u);
+            });
+        }
+
+        for (var i = 0; i < listaPuentes.length; i++) {
+            var uBridge = listaPuentes[i];
+            if (!uBridge) continue;
+            try {
+                var sep = uBridge.indexOf("?") === -1 ? "?" : "&";
+                var queryParam = urlDirecta
+                    ? ("url=" + encodeURIComponent(urlDirecta) + (placa ? "&placa=" + encodeURIComponent(placa) : ""))
+                    : ("placa=" + encodeURIComponent(placa));
+                var fullUrl = uBridge + sep + queryParam + "&_t=" + Date.now();
+
+                var ctrl = new AbortController();
+                var tid = setTimeout(function() { ctrl.abort(); }, 16000); // 16s para permitir los 2 pasos de ASP.NET en RGM
+                var resp = await fetch(fullUrl, {
+                    method: "GET",
+                    redirect: "follow",
+                    signal: ctrl.signal
+                });
+                clearTimeout(tid);
+
+                if (resp.ok) {
+                    var txtResp = await resp.text();
+                    var dataBr = null;
+                    try {
+                        dataBr = JSON.parse(txtResp);
+                    } catch (eJson) {
+                        dataBr = window.parsearTextoGarantiasMobiliarias(txtResp);
+                    }
+
+                    if (dataBr) {
+                        if (placa && !dataBr.placa) dataBr.placa = placa;
+                        if (dataBr.marca || dataBr.linea || dataBr.modelo) {
+                            if (typeof guardarEnCacheGarantiasPlaca === "function") {
+                                guardarEnCacheGarantiasPlaca(dataBr.placa || placa, dataBr);
+                            }
+                            return dataBr;
+                        }
+                        if (dataBr.acreedor || dataBr.garante) {
+                            infoParcial = dataBr;
+                        }
+                    }
+                }
+            } catch (eBr) {
+                console.warn("Aviso Puente RGM:", eBr);
+            }
+        }
+
+        // PASO B (RESPALDO DIRECTO): Si el puente no trajo el detalle del bien, usar Microlink Headless con click automático
+        if (placa) {
+            try {
+                var targetRgm = "https://www.garantiasmobiliarias.com.co/rgm/Garantias/ConsultaGarantia.aspx?NumeroBien=" + encodeURIComponent(placa.toLowerCase()) + "&ConsultaOficial=false";
+                var selectorClick = 'table input[type="image"], table a[href*="__doPostBack"]';
+                var urlMic = "https://api.microlink.io/?url=" + encodeURIComponent(targetRgm) +
+                             "&click=" + encodeURIComponent(selectorClick) +
+                             "&waitForTimeout=4000&data.texto.selector=body&data.texto.type=text";
+                var ctrlM = new AbortController();
+                var tidM = setTimeout(function() { ctrlM.abort(); }, 12000);
+                var rMic = await fetch(urlMic, { signal: ctrlM.signal });
+                clearTimeout(tidM);
+
+                if (rMic.ok) {
+                    var jMic = await rMic.json();
+                    var textoBody = (jMic && jMic.data && jMic.data.texto) ? jMic.data.texto : "";
+                    if (textoBody) {
+                        var parsedM = window.parsearTextoGarantiasMobiliarias(textoBody);
+                        if (parsedM && (parsedM.marca || parsedM.linea || parsedM.modelo)) {
+                            parsedM.placa = placa;
+                            if (infoParcial) {
+                                if (!parsedM.acreedor && infoParcial.acreedor) parsedM.acreedor = infoParcial.acreedor;
+                                if (!parsedM.garante && infoParcial.garante) parsedM.garante = infoParcial.garante;
+                                if (!parsedM.cedula && infoParcial.cedula) parsedM.cedula = infoParcial.cedula;
+                            }
+                            if (typeof guardarEnCacheGarantiasPlaca === "function") {
+                                guardarEnCacheGarantiasPlaca(placa, parsedM);
+                            }
+                            return parsedM;
+                        }
+                    }
+                }
+            } catch (eMic) {}
+        }
+
+        return infoParcial;
+    };
+
+    console.log("✅ Parche RGM (Garantías Mobiliarias) activado correctamente.");
+})();
+</script>
+<!-- ================= FIN DEL PARCHE DE REPARACIÓN RGM ================= -->
 </body>
 </html>
