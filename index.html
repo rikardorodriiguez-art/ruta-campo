@@ -12807,7 +12807,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         </button>
     </div>
 <!-- ========================================================================= -->
-<!-- ⚡ MÓDULO WAZE 3D ULTRA-RÁPIDO (BOTÓN ➕ AGREGAR PLACAS 100% VISIBLE)      -->
+<!-- ⚡ MÓDULO WAZE 3D ULTRA-RÁPIDO (MODALES CENTRADOS + FIX GEMINI/GARANTÍAS)  -->
 <!-- ========================================================================= -->
 <style>
     body.waze-nav-active {
@@ -12817,7 +12817,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         padding: 0 !important;
     }
 
-    /* 1. BLINDAJE DEL BOTÓN ➕ AGREGAR PLACAS Y MENÚS (SIEMPRE VISIBLES ENCIMA DEL 3D) */
+    /* 1. BOTÓN ➕ Y PANELES LATERALES VISIBLES SIN ROMPER EL CENTRADO DE MODALES */
     .floating-btn-add {
         display: flex !important;
         visibility: visible !important;
@@ -12827,20 +12827,34 @@ async function procesarFotoTablaDirecta(usarGemini) {
         bottom: 20px !important;
         left: 20px !important;
         z-index: 999999 !important;
-        transform: translateZ(250px) !important;
     }
     #menuOpciones,
     #panelFiltros,
     #top-bar-container,
     #radar-hud-flotante,
-    #panel-reubicar-punto,
-    #modal-asistente,
-    #modal-config {
+    #panel-reubicar-punto {
         z-index: 999999 !important;
-        transform: translateZ(250px);
     }
 
-    /* 2. LIENZO OPTIMIZADO EN GPU: CARGA 82% MENOS DATOS PERO CUBRE EL 100% DE LA PANTALLA */
+    /* CORRECCIÓN DEFINITIVA DE #modal-config Y #modal-asistente:
+       Conserva su translate(-50%, -50%) original para quedar 100% centrados y agrega scroll vertical */
+    #modal-config,
+    #modal-asistente,
+    #modal-auth {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        max-height: 88vh !important;
+        width: 340px !important;
+        max-width: 92vw !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        z-index: 9999999 !important;
+        margin: 0 !important;
+    }
+
+    /* 2. LIENZO OPTIMIZADO EN GPU: RÁPIDO Y SIN BORDES ARRIBA */
     body.waze-nav-active.waze-camara-3d #map {
         position: fixed !important;
         width: 128vmax !important;
@@ -12855,7 +12869,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         -webkit-backface-visibility: hidden;
     }
 
-    /* 3. MODO INSPECCIÓN DE RUTA 2D (INSTANTÁNEO Y SIN TRANSFORMACIONES PESADAS) */
+    /* 3. MODO INSPECCIÓN DE RUTA 2D */
     body.waze-nav-active.waze-camara-2d-libre #map {
         position: fixed !important;
         width: 100vw !important;
@@ -12909,7 +12923,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         position: fixed;
         top: 44px;
         left: 50%;
-        transform: translateX(-50%) translateZ(220px);
+        transform: translateX(-50%);
         width: 90%;
         max-width: 390px;
         background: #0a1224;
@@ -12993,7 +13007,6 @@ async function procesarFotoTablaDirecta(usarGemini) {
         top: 198px;
         left: 10px;
         z-index: 99990;
-        transform: translateZ(220px);
         display: flex;
         flex-direction: column;
         gap: 6px;
@@ -13091,7 +13104,14 @@ async function procesarFotoTablaDirecta(usarGemini) {
     var wakeLockWaze = null;
     var fnHablarOriginal = window.hablarInstruccionCopiloto;
 
-    // 0. GARANTIZAR QUE EL BOTÓN ➕ DE AGREGAR PLACAS ESTÉ SIEMPRE VISIBLE Y HABILITADO
+    // 0. REPARACIÓN AUTOMÁTICA DE CACHÉ DE MODELO GEMINI (PARA QUE LA EXTRACCIÓN DE FOTOS NO FALLE)
+    try {
+        var modGuardado = localStorage.getItem('ubica_rick_gemini_modelo_ok');
+        if (modGuardado && modGuardado.indexOf('1.5') !== -1) {
+            localStorage.setItem('ubica_rick_gemini_modelo_ok', 'gemini-2.5-flash');
+        }
+    } catch (e) {}
+
     function asegurarBotonAgregarPlacasVisible() {
         var btnAdd = document.querySelector('.floating-btn-add');
         if (!btnAdd) {
@@ -13608,7 +13628,7 @@ async function procesarFotoTablaDirecta(usarGemini) {
         var hijos = document.body.children;
         for (var i = 0; i < hijos.length; i++) {
             var d = hijos[i];
-            if (!d || d.id === 'map' || d.id === 'waze-street-pill' || d.id === 'waze-controls-box' || d.id === 'backdrop-modal') continue;
+            if (!d || d.id === 'map' || d.id === 'waze-street-pill' || d.id === 'waze-controls-box' || d.id === 'backdrop-modal' || d.id === 'modal-config' || d.id === 'modal-asistente') continue;
             if (d.offsetParent === null) continue;
             var r = d.getBoundingClientRect();
             if (r.top >= 0 && r.top < 70 && r.height > 24 && r.height < 140 && r.width > 180) {
