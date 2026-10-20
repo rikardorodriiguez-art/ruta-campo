@@ -14618,5 +14618,308 @@ async function procesarFotoTablaDirecta(usarGemini) {
 })();
 </script>
 <!-- ================= FIN DEL CONECTOR SUPABASE ================= -->
+                    <!-- ========================================================================= -->
+<!-- 🧠 FASE 1: OPTIMIZADOR DE PLACAS + COMANDOS DE VOZ CASCO + HORARIO IA     -->
+<!-- ========================================================================= -->
+<style>
+    /* Indicador del Micrófono de Comandos de Voz Manos Libres */
+    .btn-waze-ctrl.mic-escuchando {
+        background: linear-gradient(135deg, #dc2626, #991b1b) !important;
+        color: #ffffff !important;
+        border-color: #fca5a5 !important;
+        box-shadow: 0 0 16px rgba(220, 38, 38, 0.9) !important;
+        animation: pulse-mic-casco 1.4s infinite;
+    }
+    @keyframes pulse-mic-casco {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+    }
+
+    /* Etiqueta flotante de Estrategia Horaria (Residencial / Laboral / Pico y Placa) */
+    #badge-estrategia-horaria {
+        position: fixed;
+        bottom: 22px;
+        right: 12px;
+        z-index: 2147483642;
+        background: rgba(15, 23, 42, 0.94);
+        border: 1.5px solid #38bdf8;
+        color: #f8fafc;
+        padding: 5px 10px;
+        border-radius: 16px;
+        font-size: 10px;
+        font-weight: 800;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* Modo compacto automático cuando se aleja el mapa para evitar saturación de 160+ placas */
+    body.mapa-zoom-lejano .leaflet-marker-icon:not(.waze-moto-gps-marker):not(.custom-gps-icon) > div > div:first-child {
+        transform: scale(0.72);
+        transform-origin: center center;
+        box-shadow: none !important;
+        padding: 1px 5px !important;
+        min-width: 54px !important;
+    }
+</style>
+
+<!-- Insignia de Enrutamiento Inteligente por Probabilidad de Hallazgo -->
+<div id="badge-estrategia-horaria" onclick="window.anunciarEstrategiaHorariaActual()" title="Toca para ver la prioridad de búsqueda según la hora actual">
+    <span id="ico-estrategia-hora">🕒</span>
+    <span id="txt-estrategia-hora">Analizando horario...</span>
+</div>
+
+<script>
+(function() {
+    // =========================================================================
+    // 1. AGRUPACIÓN Y DESEMPEÑO INTELIGENTE EN EL MAPA (ELIMINA EL LAG DE +160 PLACAS)
+    // =========================================================================
+    function optimizarMarcadoresPorNivelDeZoom() {
+        if (typeof map === 'undefined' || !map || typeof puntosData === 'undefined' || !Array.isArray(puntosData)) return;
+        var z = map.getZoom();
+
+        // Si el zoom es lejano (< 14), compactar etiquetas y mostrar solo las cercanas o con foto/pico y placa
+        if (z < 14) {
+            document.body.classList.add('mapa-zoom-lejano');
+        } else {
+            document.body.classList.remove('mapa-zoom-lejano');
+        }
+
+        // Ocultar marcadores fuera del encuadre actual de la pantalla (Viewport Culling) para liberar memoria RAM
+        var bounds = map.getBounds ? map.getBounds().pad(0.35) : null;
+        if (!bounds) return;
+
+        for (var i = 0; i < puntosData.length; i++) {
+            var p = puntosData[i];
+            if (!p || !p.marker || !p.lat || !p.lng) continue;
+            var el = p.marker.getElement ? p.marker.getElement() : null;
+            if (!el) continue;
+
+            var dentroDePantalla = bounds.contains([p.lat, p.lng]);
+            if (!dentroDePantalla) {
+                el.style.display = 'none';
+            } else {
+                // En zoom muy alejado (<= 12), ocultar temporalmente las ya visitadas para despejar las calles
+                if (z <= 12 && p.visitada) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                }
+            }
+        }
+    }
+
+    if (typeof map !== 'undefined' && map) {
+        map.on('zoomend moveend', function() {
+            requestAnimationFrame(optimizarMarcadoresPorNivelDeZoom);
+        });
+    }
+
+    // =========================================================================
+    // 2. ENRUTAMIENTO INTELIGENTE POR PROBABILIDAD DE HALLAZGO (HORARIO + PICO Y PLACA)
+    // =========================================================================
+    window.calcularPuntajeProbabilidadHallazgo = function(p) {
+        if (!p || p.visitada) return -999999;
+        var ahora = new Date();
+        var dia = ahora.getDay(); // 0=Dom, 1=Lun ... 6=Sáb
+        var hora = ahora.getHours() + (ahora.getMinutes() / 60);
+        var esDiaHabil = (dia >= 1 && dia <= 5);
+        var esHorarioOficina = (esDiaHabil && hora >= 6.5 && hora < 18.0);
+        var esHorarioPico = (esDiaHabil && hora >= 6.0 && hora < 20.0);
+
+        var dirTxt = ((p.dirOriginal || p.dir || '') + ' ' + (p.comentarios || '')).toUpperCase();
+        var esResidencial = /\b(RES|CASA|CS|APTO|APT|INTERIOR|INT|CONJUNTO|URB|TORRE|BLOQUE)\b/.test(dirTxt);
+        var esLaboral = /\b(LAB|COM|OFICINA|OF|LOCAL|LC|BODEGA|EMPRESA|CENTRO COMERCIAL|PARQUEADERO)\b/.test(dirTxt);
+
+        var bonusMetros = 0; // Mientras más alto el bonus, más prioritario se vuelve el vehículo
+
+        // A. Si tiene Pico y Placa hoy y estamos en horario activo (6am - 8pm), altísima probabilidad de estar guardado
+        if (p.pico && esHorarioPico) {
+            bonusMetros += 450;
+        }
+
+        // B. Si tiene Foto adjunta, darle prioridad visual y operativa
+        if (p.foto) {
+            bonusMetros += 250;
+        }
+
+        // C. Prioridad según la hora del día (Noche/Madrugada = Residencial | Día = Laboral)
+        if (!esHorarioOficina) {
+            if (esResidencial) bonusMetros += 300;
+        } else {
+            if (esLaboral) bonusMetros += 250;
+        }
+
+        var distReal = (typeof userLat === 'number' && typeof userLng === 'number' && typeof calcularDistancia === 'function')
+            ? calcularDistancia(userLat, userLng, p.lat, p.lng)
+            : 5000;
+
+        // Distancia efectiva ponderada (menor valor = mayor prioridad inmediata)
+        return distReal - bonusMetros;
+    };
+
+    function actualizarIndicadorEstrategiaHoraria() {
+        var ico = document.getElementById('ico-estrategia-hora');
+        var txt = document.getElementById('txt-estrategia-hora');
+        if (!ico || !txt) return;
+
+        var ahora = new Date();
+        var dia = ahora.getDay();
+        var hora = ahora.getHours();
+        var esHabil = (dia >= 1 && dia <= 5);
+
+        if (esHabil && hora >= 6 && hora < 18) {
+            ico.innerText = "🚦";
+            txt.innerText = "Prioridad: Pico y Placa + Laboral";
+        } else {
+            ico.innerText = "🌙";
+            txt.innerText = "Prioridad: Residencial / Casas";
+        }
+    }
+
+    window.anunciarEstrategiaHorariaActual = function() {
+        var ahora = new Date();
+        var dia = ahora.getDay();
+        var hora = ahora.getHours();
+        var esHabil = (dia >= 1 && dia <= 5);
+        var msg = "";
+
+        if (esHabil && hora >= 6 && hora < 18) {
+            msg = "Estrategia diurna activa: priorizando vehículos con Pico y Placa hoy y direcciones laborales o comerciales.";
+        } else {
+            msg = "Estrategia nocturna y residencial activa: priorizando direcciones de casas, apartamentos y conjuntos residenciales.";
+        }
+
+        if (typeof mostrarToastNotificacion === 'function') mostrarToastNotificacion("🧠 " + msg);
+        if (typeof hablarInstruccionCopiloto === 'function') hablarInstruccionCopiloto(msg, true);
+    };
+
+    // =========================================================================
+    // 3. 🎙️ COMANDOS DE VOZ POR EL INTERCOMUNICADOR DEL CASCO (100% MANOS LIBRES)
+    // =========================================================================
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var reconocedorVoz = null;
+    var cascoEscuchandoActivo = false;
+
+    function agregarBotonComandosVozCasco() {
+        var box = document.getElementById('waze-controls-box');
+        if (!box || document.getElementById('btn-waze-mic-casco')) return;
+
+        var btnMic = document.createElement('button');
+        btnMic.type = 'button';
+        btnMic.id = 'btn-waze-mic-casco';
+        btnMic.className = 'btn-waze-ctrl';
+        btnMic.style.borderColor = '#f43f5e';
+        btnMic.style.color = '#fda4af';
+        btnMic.innerHTML = '<span id="ico-mic-casco">🎙️</span> <span id="lbl-mic-casco">Casco: OFF</span>';
+        btnMic.onclick = function() { window.toggleComandosVozCasco(); };
+        box.appendChild(btnMic);
+    }
+
+    function procesarFraseComandoCasco(fraseRaw) {
+        if (!fraseRaw) return;
+        var cmd = fraseRaw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        console.log("🎙️ Comando escuchado en casco:", cmd);
+
+        if (cmd.indexOf("visitado") !== -1 || cmd.indexOf("siguiente") !== -1 || cmd.indexOf("listo") !== -1) {
+            if (typeof window.marcarActualYAvanzarSiguiente === 'function') {
+                window.marcarActualYAvanzarSiguiente('comando_voz');
+            }
+        } else if (cmd.indexOf("ampliar") !== -1 || cmd.indexOf("foto") !== -1 || cmd.indexOf("imagen") !== -1) {
+            if (typeof window.alternarZoomAutoFotoWaze === 'function') {
+                window.alternarZoomAutoFotoWaze();
+                if (typeof mostrarToastNotificacion === 'function') mostrarToastNotificacion("📸 Zoom de foto activado por voz.");
+            }
+        } else if (cmd.indexOf("repetir") !== -1 || cmd.indexOf("direccion") !== -1 || cmd.indexOf("objetivo") !== -1) {
+            if (typeof window.repetirIndicacionVozActual === 'function') {
+                window.repetirIndicacionVozActual();
+            }
+        } else if (cmd.indexOf("revisar") !== -1 || cmd.indexOf("mapa") !== -1 || cmd.indexOf("dos d") !== -1) {
+            if (typeof window.alternarVista2D3DWaze === 'function') {
+                window.alternarVista2D3DWaze();
+            }
+        } else if (cmd.indexOf("waze") !== -1 || cmd.indexOf("tres d") !== -1 || cmd.indexOf("centrar") !== -1) {
+            var btn3d = document.getElementById('btn-mi-gps-flotante');
+            if (btn3d) btn3d.click();
+        } else if (cmd.indexOf("silencio") !== -1 || cmd.indexOf("mudo") !== -1 || cmd.indexOf("callar") !== -1) {
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            if (typeof window.toggleCopilotoVozSegundoPlano === 'function') {
+                window.toggleCopilotoVozSegundoPlano();
+            }
+        }
+    }
+
+    window.toggleComandosVozCasco = function() {
+        if (!SpeechRecognition) {
+            alert("⚠️ Tu navegador actual no soporta reconocimiento de voz directo. Usa Google Chrome.");
+            return;
+        }
+
+        cascoEscuchandoActivo = !cascoEscuchandoActivo;
+        var btn = document.getElementById('btn-waze-mic-casco');
+        var lbl = document.getElementById('lbl-mic-casco');
+
+        if (cascoEscuchandoActivo) {
+            if (!reconocedorVoz) {
+                reconocedorVoz = new SpeechRecognition();
+                reconocedorVoz.lang = 'es-CO';
+                reconocedorVoz.continuous = true;
+                reconocedorVoz.interimResults = false;
+
+                reconocedorVoz.onresult = function(event) {
+                    for (var i = event.resultIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) {
+                            var texto = event.results[i][0].transcript;
+                            procesarFraseComandoCasco(texto);
+                        }
+                    }
+                };
+
+                reconocedorVoz.onend = function() {
+                    // Reiniciar automáticamente la escucha si sigue encendido en ruta
+                    if (cascoEscuchandoActivo) {
+                        setTimeout(function() {
+                            try { reconocedorVoz.start(); } catch (e) {}
+                        }, 400);
+                    }
+                };
+            }
+
+            try {
+                reconocedorVoz.start();
+                if (btn) btn.classList.add('mic-escuchando');
+                if (lbl) lbl.innerText = "Casco: ON";
+                if (typeof mostrarToastNotificacion === 'function') {
+                    mostrarToastNotificacion("🎙️ Comandos de voz activos: Di 'Visitado', 'Foto', 'Repetir' o 'Revisar ruta'.");
+                }
+            } catch (e) {}
+        } else {
+            if (reconocedorVoz) {
+                try { reconocedorVoz.stop(); } catch (e) {}
+            }
+            if (btn) btn.classList.remove('mic-escuchando');
+            if (lbl) lbl.innerText = "Casco: OFF";
+            if (typeof mostrarToastNotificacion === 'function') {
+                mostrarToastNotificacion("🎙️ Micrófono de comandos apagado.");
+            }
+        }
+    };
+
+    setTimeout(function() {
+        agregarBotonComandosVozCasco();
+        actualizarIndicadorEstrategiaHoraria();
+        optimizarMarcadoresPorNivelDeZoom();
+    }, 900);
+
+    setInterval(function() {
+        agregarBotonComandosVozCasco();
+        actualizarIndicadorEstrategiaHoraria();
+    }, 5000);
+})();
+</script>
+<!-- ================= FIN DE LA FASE 1 ================= -->
 </body>
 </html>
