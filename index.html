@@ -14426,5 +14426,197 @@ async function procesarFotoTablaDirecta(usarGemini) {
 })();
 </script>
 <!-- ================= FIN DEL MÓDULO WAZE 3D MANOS LIBRES ================= -->
+                    <!-- ========================================================================= -->
+<!-- ☁️ CONECTOR OFICIAL SUPABASE CLOUD + REALTIME PARA UBICA-RICK             -->
+<!-- ========================================================================= -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function() {
+    // 1. CREDENCIALES CONFIGURADAS DE TU PROYECTO SUPABASE
+    var SUPABASE_URL = "https://prlussiywooenvezyujf.supabase.co";
+    var SUPABASE_KEY = "sb_publishable_BmVp3fFs2ILKynElIT1sMA_OZRTkoyq";
+
+    if (typeof supabase === 'undefined') {
+        console.warn("Librería de Supabase no disponible.");
+        return;
+    }
+
+    var sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window.sbClient = sbClient;
+
+    // 2. DESCARGAR TODAS LAS PLACAS DESDE LA NUBE AL ABRIR LA APP
+    async function cargarPlacasDesdeSupabase() {
+        try {
+            var { data, error } = await sbClient.from('vehiculos').select('*');
+            if (error) {
+                console.warn("Aviso al leer Supabase:", error.message);
+                return;
+            }
+            if (data && data.length > 0) {
+                data.forEach(function(item) {
+                    var puntoExistente = Array.isArray(puntosData) ? puntosData.find(function(p) {
+                        return p.placa === item.placa;
+                    }) : null;
+
+                    if (!puntoExistente && typeof agregarMarcadorAlMapa === 'function') {
+                        var nuevoP = {
+                            id: item.id || ('sb_' + item.placa),
+                            placa: item.placa,
+                            marca: item.marca || '-',
+                            linea: item.linea || '-',
+                            modelo: item.modelo || '-',
+                            color: item.color || '-',
+                            telefonos: item.telefonos || '-',
+                            municipio: item.municipio || 'MEDELLIN',
+                            lat: parseFloat(item.lat),
+                            lng: parseFloat(item.lng),
+                            dir: item.dir_original || 'Dirección registrada',
+                            dirOriginal: item.dir_original,
+                            visitada: Boolean(item.visitada),
+                            gestor: item.gestor || '',
+                            foto: item.foto_url || null,
+                            timestamp: item.timestamp || Date.now()
+                        };
+                        agregarMarcadorAlMapa(nuevoP, (puntosData ? puntosData.length : 0) + 1, false);
+                    } else if (puntoExistente) {
+                        puntoExistente.visitada = Boolean(item.visitada);
+                        if (item.foto_url && !puntoExistente.foto) puntoExistente.foto = item.foto_url;
+                        if (puntoExistente.marker && typeof generarContenidoPopup === 'function') {
+                            puntoExistente.marker.setPopupContent(generarContenidoPopup(puntoExistente, puntoExistente.id));
+                        }
+                    }
+                });
+                if (typeof actualizarKPIs === 'function') actualizarKPIs();
+                if (typeof actualizarPanelCercano === 'function') actualizarPanelCercano();
+                console.log("☁️ " + data.length + " placas sincronizadas desde Supabase.");
+            }
+        } catch (e) {
+            console.warn("Excepción al cargar de Supabase:", e);
+        }
+    }
+
+    // 3. SUBIR UN VEHÍCULO A LA NUBE (CON SOPORTE DE FOTO EN STORAGE)
+    window.guardarVehiculoEnSupabase = async function(punto) {
+        if (!punto || !punto.placa) return;
+        try {
+            var fotoFinalUrl = punto.foto || null;
+
+            // Si la foto está en formato Base64 local, subirla primero a Supabase Storage
+            if (punto.foto && punto.foto.indexOf('data:image') === 0) {
+                try {
+                    var resBlob = await fetch(punto.foto);
+                    var blobFoto = await resBlob.blob();
+                    var nombreArchivo = punto.placa + '_' + Date.now() + '.jpg';
+                    var { data: uploadData, error: uploadErr } = await sbClient.storage
+                        .from('fotos_vehiculos')
+                        .upload(nombreArchivo, blobFoto, { contentType: 'image/jpeg', upsert: true });
+
+                    if (!uploadErr && uploadData) {
+                        var { data: publicUrlData } = sbClient.storage
+                            .from('fotos_vehiculos')
+                            .getPublicUrl(nombreArchivo);
+                        if (publicUrlData && publicUrlData.publicUrl) {
+                            fotoFinalUrl = publicUrlData.publicUrl;
+                            punto.foto = fotoFinalUrl;
+                        }
+                    }
+                } catch(eFoto) {
+                    console.warn("Aviso subiendo foto a Storage:", eFoto);
+                }
+            }
+
+            var fila = {
+                placa: punto.placa.toUpperCase().trim(),
+                marca: punto.marca || '-',
+                linea: punto.linea || '-',
+                modelo: punto.modelo || '-',
+                color: punto.color || '-',
+                telefonos: punto.telefonos || '-',
+                municipio: punto.municipio || 'MEDELLIN',
+                lat: punto.lat,
+                lng: punto.lng,
+                dir_original: punto.dirOriginal || punto.dir || '',
+                visitada: Boolean(punto.visitada),
+                gestor: punto.gestor || '',
+                foto_url: fotoFinalUrl,
+                timestamp: punto.timestamp || Date.now()
+            };
+
+            var { error } = await sbClient
+                .from('vehiculos')
+                .upsert([fila], { onConflict: 'placa' });
+
+            if (error) {
+                console.warn("Error guardando en Supabase:", error.message);
+            } else {
+                console.log("☁️ Placa " + punto.placa + " guardada en Supabase.");
+            }
+        } catch (e) {
+            console.warn("Excepción guardando en Supabase:", e);
+        }
+    };
+
+    // 4. ACTUALIZAR ESTADO DE VISITADO EN LA NUBE
+    window.actualizarEstadoVisitadaEnSupabase = async function(placa, visitada, gestor) {
+        if (!placa) return;
+        try {
+            await sbClient
+                .from('vehiculos')
+                .update({ visitada: Boolean(visitada), gestor: gestor || 'Operador' })
+                .eq('placa', placa.toUpperCase().trim());
+        } catch (e) {}
+    };
+
+    // 5. ESCUCHAR CAMBIOS EN TIEMPO REAL (REALTIME)
+    try {
+        sbClient
+            .channel('realtime_vehiculos')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'vehiculos' }, function(payload) {
+                var nuevo = payload.new;
+                if (!nuevo || !nuevo.placa) return;
+                var p = Array.isArray(puntosData) ? puntosData.find(function(x) { return x.placa === nuevo.placa; }) : null;
+                if (p) {
+                    p.visitada = Boolean(nuevo.visitada);
+                    p.gestor = nuevo.gestor || p.gestor;
+                    if (nuevo.foto_url) p.foto = nuevo.foto_url;
+                    if (p.marker && typeof generarContenidoPopup === 'function') {
+                        p.marker.setPopupContent(generarContenidoPopup(p, p.id));
+                    }
+                    if (typeof actualizarKPIs === 'function') actualizarKPIs();
+                    if (typeof actualizarPanelCercano === 'function') actualizarPanelCercano();
+                } else if (payload.eventType === 'INSERT') {
+                    cargarPlacasDesdeSupabase();
+                }
+            })
+            .subscribe();
+    } catch(eSub) {}
+
+    // Enganchar guardado automático al agregar marcadores
+    var origAgregarMarcador = window.agregarMarcadorAlMapa;
+    if (typeof origAgregarMarcador === 'function') {
+        window.agregarMarcadorAlMapa = function(punto, index, guardarStorage) {
+            var res = origAgregarMarcador(punto, index, guardarStorage);
+            if (punto && punto.placa) {
+                window.guardarVehiculoEnSupabase(punto);
+            }
+            return res;
+        };
+    }
+
+    // Enganchar cambio de estado de visitada
+    var origMarcarVisitada = window.marcarVisitada;
+    if (typeof origMarcarVisitada === 'function') {
+        window.marcarVisitada = function(placa, puntoId) {
+            var res = origMarcarVisitada(placa, puntoId);
+            window.actualizarEstadoVisitadaEnSupabase(placa, true, (typeof usuarioOperadorActual !== 'undefined' && usuarioOperadorActual ? usuarioOperadorActual.nombre : 'Operador'));
+            return res;
+        };
+    }
+
+    // Cargar datos al iniciar
+    setTimeout(cargarPlacasDesdeSupabase, 1200);
+})();
+</script>
+<!-- ================= FIN DEL CONECTOR SUPABASE ================= -->
 </body>
 </html>
