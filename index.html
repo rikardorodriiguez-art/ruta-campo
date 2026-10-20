@@ -14921,5 +14921,441 @@ async function procesarFotoTablaDirecta(usarGemini) {
 })();
 </script>
 <!-- ================= FIN DE LA FASE 1 ================= -->
+                    <!-- ========================================================================= -->
+<!-- 📷 FASE 2: ESCÁNER DE PLACAS EN VIVO (ALPR) + LIMPIADOR DE CACHÉ SW.JS    -->
+<!-- ========================================================================= -->
+<style>
+    /* Ventana Flotante del Escáner de Placas en Vivo (No tapa el mapa completo) */
+    #alpr-scanner-modal {
+        display: none;
+        position: fixed !important;
+        top: 52px;
+        right: 10px;
+        width: 270px;
+        max-width: 88vw;
+        background: #090d16;
+        border: 2px solid #00f0ff;
+        border-radius: 16px;
+        overflow: hidden;
+        z-index: 2147483646 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 18px rgba(0, 240, 255, 0.45);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #ffffff;
+    }
+    #alpr-scanner-modal.alerta-match {
+        border-color: #ff0055 !important;
+        box-shadow: 0 0 30px rgba(255, 0, 85, 0.95) !important;
+    }
+    .alpr-header {
+        background: #0f172a;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(0, 240, 255, 0.25);
+        font-size: 11px;
+        font-weight: 900;
+        color: #00f0ff;
+    }
+    .alpr-video-wrap {
+        position: relative;
+        width: 100%;
+        height: 155px;
+        background: #000000;
+        overflow: hidden;
+    }
+    #alpr-video-el {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    /* Mira láser amarilla enfocada en el centro para recortar solo la placa (Ultra rápido) */
+    .alpr-target-box {
+        position: absolute;
+        top: 28%;
+        left: 12%;
+        width: 76%;
+        height: 44%;
+        border: 2px solid #ffea00;
+        border-radius: 8px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.42), inset 0 0 12px rgba(255, 234, 0, 0.5);
+        pointer-events: none;
+    }
+    .alpr-laser-line {
+        position: absolute;
+        top: 50%;
+        left: 4%;
+        right: 4%;
+        height: 2px;
+        background: #ff0055;
+        box-shadow: 0 0 8px #ff0055;
+        animation: alpr-laser-anim 1.3s infinite ease-in-out;
+    }
+    @keyframes alpr-laser-anim {
+        0%, 100% { top: 18%; }
+        50% { top: 82%; }
+    }
+    .alpr-status-bar {
+        padding: 6px 10px;
+        background: #0f172a;
+        font-size: 11px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .alpr-last-read {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .alpr-plate-chip {
+        background: #000000;
+        color: #ffea00;
+        border: 1.5px solid #ffea00;
+        border-radius: 5px;
+        padding: 1px 7px;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 1px;
+    }
+    #alpr-match-card {
+        display: none;
+        background: linear-gradient(135deg, #991b1b, #7f1d1d);
+        border: 1.5px solid #ffea00;
+        border-radius: 10px;
+        padding: 7px 9px;
+        margin-top: 4px;
+        color: #ffffff;
+    }
+</style>
+
+<!-- Ventana del Escáner Táctico ALPR -->
+<div id="alpr-scanner-modal">
+    <div class="alpr-header">
+        <span>📷 ESCÁNER ALPR EN VIVO</span>
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button type="button" onclick="window.alternarLinternaAlpr()" style="background:#1e293b;border:1px solid #475569;color:#fde047;border-radius:6px;padding:2px 6px;font-size:11px;cursor:pointer;" title="Encender/Apagar Linterna">🔦</button>
+            <button type="button" onclick="window.toggleEscanerPlacasALPR()" style="background:none;border:none;color:#f87171;font-size:15px;font-weight:bold;cursor:pointer;">✖</button>
+        </div>
+    </div>
+    <div class="alpr-video-wrap" onclick="window.forzarCapturaInmediataALPR()" title="Toca la imagen para forzar lectura inmediata">
+        <video id="alpr-video-el" autoplay playsinline muted></video>
+        <div class="alpr-target-box">
+            <div class="alpr-laser-line"></div>
+        </div>
+    </div>
+    <div class="alpr-status-bar">
+        <div class="alpr-last-read">
+            <span id="alpr-status-txt" style="color:#94a3b8; font-size:10px;">Apunta a la placa...</span>
+            <span id="alpr-detected-plate" class="alpr-plate-chip">---</span>
+        </div>
+        <div id="alpr-match-card">
+            <div id="alpr-match-title" style="font-weight:900; font-size:12.5px; color:#ffea00;">🚨 ¡OBJETIVO DETECTADO!</div>
+            <div id="alpr-match-sub" style="font-size:10.5px; color:#fecaca; margin-top:2px;">---</div>
+            <button type="button" id="alpr-btn-ver-mapa" style="margin-top:5px; width:100%; background:#16a34a; color:#fff; border:1px solid #4ade80; border-radius:6px; padding:5px; font-size:11px; font-weight:900; cursor:pointer;">🎯 Ver en el Mapa y Fijar Ruta</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // =========================================================================
+    // 1. DESACTIVADOR AUTOMÁTICO DE CACHÉ VIEJA (SW.JS) PARA ACTUALIZACIÓN INMEDIATA
+    // =========================================================================
+    try {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                for (var i = 0; i < regs.length; i++) {
+                    regs[i].update();
+                }
+            });
+        }
+    } catch (eSw) {}
+
+    // =========================================================================
+    // 2. MOTOR DEL ESCÁNER DE PLACAS EN VIVO CON CÁMARA (ALPR)
+    // =========================================================================
+    var alprActivo = false;
+    var alprStream = null;
+    var alprWorker = null;
+    var alprTimer = null;
+    var alprOcupado = false;
+    var linternaActiva = false;
+    var canvasRecorte = document.createElement('canvas');
+    var ctxRecorte = canvasRecorte.getContext('2d', { willReadFrequently: true });
+    var ultimaPlacaCantadaAlpr = "";
+    var ultimoTsCantadaAlpr = 0;
+
+    function agregarBotonAlprEnControles() {
+        var box = document.getElementById('waze-controls-box');
+        if (!box || document.getElementById('btn-waze-alpr-cam')) return;
+
+        var btnCam = document.createElement('button');
+        btnCam.type = 'button';
+        btnCam.id = 'btn-waze-alpr-cam';
+        btnCam.className = 'btn-waze-ctrl';
+        btnCam.style.borderColor = '#ffea00';
+        btnCam.style.color = '#fef08a';
+        btnCam.innerHTML = '<span>📷</span> <span id="lbl-alpr-cam">Escáner ALPR</span>';
+        btnCam.onclick = function() { window.toggleEscanerPlacasALPR(); };
+        box.appendChild(btnCam);
+    }
+
+    // Sonar sirena táctica de dos tonos cuando la cámara encuentra un vehículo buscado
+    function sonarSirenaHallazgoALPR() {
+        try {
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            var ctx = new AudioCtx();
+            var now = ctx.currentTime;
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(680, now);
+            osc.frequency.linearRampToValueAtTime(1180, now + 0.22);
+            osc.frequency.linearRampToValueAtTime(680, now + 0.44);
+            osc.frequency.linearRampToValueAtTime(1220, now + 0.66);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.72);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.72);
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
+        } catch (e) {}
+    }
+
+    // Corrige confusiones típicas de cámara entre letras y números según el formato colombiano (AAA123 o AAA12A)
+    function normalizarCandidatoPlacaColombia(textoRaw) {
+        if (!textoRaw) return null;
+        var limpio = textoRaw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (limpio.length < 5) return null;
+
+        var mapaLetra = { '0': 'O', '1': 'I', '2': 'Z', '5': 'S', '8': 'B' };
+        var mapaNumero = { 'O': '0', 'Q': '0', 'D': '0', 'I': '1', 'L': '1', 'Z': '2', 'S': '5', 'B': '8' };
+
+        for (var i = 0; i <= limpio.length - 6; i++) {
+            var sub = limpio.substring(i, i + 6).split('');
+            // Primeros 3 caracteres son siempre LETRAS en Colombia
+            for (var a = 0; a < 3; a++) {
+                if (/[0-9]/.test(sub[a]) && mapaLetra[sub[a]]) sub[a] = mapaLetra[sub[a]];
+            }
+            // Caracteres 4 y 5 son siempre NÚMEROS
+            for (var b = 3; b < 5; b++) {
+                if (/[A-Z]/.test(sub[b]) && mapaNumero[sub[b]]) sub[b] = mapaNumero[sub[b]];
+            }
+            var candidato = sub.join('');
+            if (/^[A-Z]{3}[0-9]{2}[0-9A-Z]$/.test(candidato)) {
+                return candidato;
+            }
+        }
+        return null;
+    }
+
+    // Busca coincidencia exacta (6/6) o cuasi-exacta (5/6 caracteres por barro o tornillo en la placa)
+    function buscarPlacaEnBaseDeDatosLocalYSupabase(placaLeida) {
+        if (!placaLeida || typeof puntosData === 'undefined' || !Array.isArray(puntosData)) return null;
+
+        // 1. Coincidencia 100% exacta
+        var exacta = puntosData.find(function(p) {
+            return p && p.placa && p.placa.toUpperCase().trim() === placaLeida;
+        });
+        if (exacta) return { punto: exacta, tipo: 'EXACTA' };
+
+        // 2. Coincidencia 5 de 6 caracteres (Tolerancia a 1 letra tapada o borrosa)
+        for (var i = 0; i < puntosData.length; i++) {
+            var p = puntosData[i];
+            if (!p || !p.placa || p.placa.length !== 6) continue;
+            var pl = p.placa.toUpperCase().trim();
+            var iguales = 0;
+            for (var k = 0; k < 6; k++) {
+                if (pl[k] === placaLeida[k]) iguales++;
+            }
+            if (iguales === 5) {
+                return { punto: p, tipo: 'SIMILAR (5/6)' };
+            }
+        }
+        return null;
+    }
+
+    async function procesarFotogramaDeCamara() {
+        if (!alprActivo || alprOcupado) return;
+        var video = document.getElementById('alpr-video-el');
+        if (!video || video.readyState < 2 || !video.videoWidth) return;
+
+        alprOcupado = true;
+        try {
+            // Recortar únicamente la franja central amarilla (donde está la placa) para que el OCR tarde menos de 0.35s
+            var vw = video.videoWidth;
+            var vh = video.videoHeight;
+            var sx = Math.round(vw * 0.12);
+            var sy = Math.round(vh * 0.28);
+            var sw = Math.round(vw * 0.76);
+            var sh = Math.round(vh * 0.44);
+
+            canvasRecorte.width = 360;
+            canvasRecorte.height = Math.round((sh / sw) * 360);
+            ctxRecorte.drawImage(video, sx, sy, sw, sh, 0, 0, canvasRecorte.width, canvasRecorte.height);
+
+            // Aumentar contraste de letras negras/amarillas de la placa
+            var imgData = ctxRecorte.getImageData(0, 0, canvasRecorte.width, canvasRecorte.height);
+            var d = imgData.data;
+            for (var p = 0; p < d.length; p += 4) {
+                var lum = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+                var v = lum < 118 ? 0 : 255;
+                d[p] = v; d[p + 1] = v; d[p + 2] = v;
+            }
+            ctxRecorte.putImageData(imgData, 0, 0);
+
+            if (!alprWorker && typeof Tesseract !== 'undefined') {
+                document.getElementById('alpr-status-txt').innerText = "Cargando lector IA...";
+                alprWorker = await Tesseract.createWorker('eng');
+                await alprWorker.setParameters({
+                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+                });
+            }
+
+            if (alprWorker) {
+                var ret = await alprWorker.recognize(canvasRecorte);
+                var textoBruto = (ret && ret.data && ret.data.text) ? ret.data.text : "";
+                var placaDetectada = normalizarCandidatoPlacaColombia(textoBruto);
+
+                var elStatus = document.getElementById('alpr-status-txt');
+                var elChip = document.getElementById('alpr-detected-plate');
+
+                if (placaDetectada) {
+                    if (elChip) elChip.innerText = placaDetectada;
+                    if (elStatus) elStatus.innerText = "Leída:";
+
+                    var resultado = buscarPlacaEnBaseDeDatosLocalYSupabase(placaDetectada);
+                    var modal = document.getElementById('alpr-scanner-modal');
+                    var card = document.getElementById('alpr-match-card');
+
+                    if (resultado && resultado.punto) {
+                        var veh = resultado.punto;
+                        if (modal) modal.classList.add('alerta-match');
+                        if (card) card.style.display = 'block';
+
+                        document.getElementById('alpr-match-title').innerText =
+                            (resultado.tipo === 'EXACTA' ? "🚨 ¡PLACA BUSCADA!: " : "⚠️ ¡MUY SIMILAR!: ") + veh.placa;
+                        document.getElementById('alpr-match-sub').innerText =
+                            [veh.marca, veh.linea, veh.color].filter(function(x) { return x && x !== '-'; }).join(" • ") +
+                            " | " + (veh.visitada ? "Visitada" : "PENDIENTE");
+
+                        var btnIr = document.getElementById('alpr-btn-ver-mapa');
+                        if (btnIr) {
+                            btnIr.onclick = function() {
+                                window.placaMasCercanaObj = veh;
+                                if (map && veh.lat && veh.lng) {
+                                    map.setView([veh.lat, veh.lng], 18);
+                                    if (veh.marker) veh.marker.openPopup();
+                                }
+                                if (typeof window.forzarRecalculoManualWaze === 'function') {
+                                    window.forzarRecalculoManualWaze();
+                                }
+                            };
+                        }
+
+                        var ahora = Date.now();
+                        if (ultimaPlacaCantadaAlpr !== veh.placa || (ahora - ultimoTsCantadaAlpr > 12000)) {
+                            ultimaPlacaCantadaAlpr = veh.placa;
+                            ultimoTsCantadaAlpr = ahora;
+                            sonarSirenaHallazgoALPR();
+                            if (typeof window.hablarInstruccionCopiloto === 'function') {
+                                window.hablarInstruccionCopiloto(
+                                    "¡Alerta! Placa " + veh.placa + " detectada frente a la cámara. " +
+                                    ((veh.marca && veh.marca !== '-') ? veh.marca : "") + " " +
+                                    ((veh.color && veh.color !== '-') ? ("color " + veh.color) : ""),
+                                    true
+                                );
+                            }
+                        }
+                    } else {
+                        if (modal) modal.classList.remove('alerta-match');
+                        if (card) card.style.display = 'none';
+                    }
+                } else {
+                    if (elStatus) elStatus.innerText = "Escaneando calle...";
+                }
+            }
+        } catch (errScan) {
+        } finally {
+            alprOcupado = false;
+        }
+    }
+
+    window.forzarCapturaInmediataALPR = function() {
+        procesarFotogramaDeCamara();
+    };
+
+    window.alternarLinternaAlpr = async function() {
+        if (!alprStream) return;
+        try {
+            var track = alprStream.getVideoTracks()[0];
+            if (!track) return;
+            linternaActiva = !linternaActiva;
+            await track.applyConstraints({ advanced: [{ torch: linternaActiva }] });
+        } catch (e) {
+            if (typeof mostrarToastNotificacion === 'function') {
+                mostrarToastNotificacion("🔦 Linterna no disponible en esta cámara.");
+            }
+        }
+    };
+
+    window.toggleEscanerPlacasALPR = async function() {
+        var modal = document.getElementById('alpr-scanner-modal');
+        var btn = document.getElementById('btn-waze-alpr-cam');
+        var video = document.getElementById('alpr-video-el');
+
+        if (!alprActivo) {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("⚠️ Tu navegador no permite abrir la cámara en vivo.");
+                return;
+            }
+            try {
+                alprStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+                video.srcObject = alprStream;
+                await video.play();
+
+                alprActivo = true;
+                if (modal) modal.style.display = 'block';
+                if (btn) btn.classList.add('activo');
+
+                alprTimer = setInterval(procesarFotogramaDeCamara, 900);
+                if (typeof mostrarToastNotificacion === 'function') {
+                    mostrarToastNotificacion("📷 Escáner ALPR activo: apunta a cualquier vehículo.");
+                }
+            } catch (errCam) {
+                alert("⚠️ Permiso de cámara denegado o cámara ocupada: " + (errCam.message || errCam));
+            }
+        } else {
+            alprActivo = false;
+            if (alprTimer) { clearInterval(alprTimer); alprTimer = null; }
+            if (alprStream) {
+                alprStream.getTracks().forEach(function(t) { t.stop(); });
+                alprStream = null;
+            }
+            if (video) video.srcObject = null;
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('alerta-match');
+            }
+            if (btn) btn.classList.remove('activo');
+        }
+    };
+
+    setTimeout(agregarBotonAlprEnControles, 1000);
+    setInterval(agregarBotonAlprEnControles, 5000);
+})();
+</script>
+<!-- ================= FIN DE LA FASE 2 (ESCÁNER ALPR) ================= -->
 </body>
 </html>
