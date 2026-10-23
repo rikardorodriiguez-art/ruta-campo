@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- ================= INICIO SISTEMA WAZE EN CABECERA (100% INFALIBLE) ================= -->
+    <!-- ================= INICIO SISTEMA WAZE V6 (1 SOLA LÍNEA + VISITADAS EN OTRO COLOR 8H + FILTRO FIJO) ================= -->
 <style id="waze-master-head-css">
     body.waze-nav-active { background: #f1efe9 !important; overflow: hidden !important; margin: 0 !important; }
     #top-bar-container { position: fixed !important; top: 4px !important; left: 4px !important; right: 4px !important; z-index: 100005 !important; }
@@ -9,10 +9,20 @@
     #modal-config, #modal-asistente, #modal-auth { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; max-height: 88vh !important; width: 340px !important; max-width: 92vw !important; overflow-y: auto !important; }
     .floating-btn-add { display: flex !important; position: fixed !important; bottom: 20px !important; left: 20px !important; z-index: 100008 !important; }
 
-    /* Ocultar automáticamente en el mapa todas las etiquetas visitadas cuando el filtro de 8h está activo */
-    body.ocultar-visitadas-8h .marker-visitada-oculta { display: none !important; }
+    /* 1. CAMBIAR DE COLOR LAS PLACAS YA VISITADAS (EN LUGAR DE BORRARLAS) */
+    .marker-visitada-8h > div > div:first-child {
+        background: #1e1b4b !important;
+        border: 2.5px dashed #a78bfa !important;
+        color: #cbd5e1 !important;
+        opacity: 0.72 !important;
+        box-shadow: none !important;
+        filter: grayscale(0.45);
+    }
+    .marker-visitada-8h > div > div:first-child span {
+        color: #cbd5e1 !important;
+    }
 
-    /* Mapa 3D y 2D siempre de frente */
+    /* 2. MAPA 3D Y 2D SIEMPRE DE FRENTE */
     body.waze-nav-active.waze-camara-3d #map {
         position: fixed !important; width: 132vmax !important; height: 132vmax !important;
         left: calc(50vw - 66vmax) !important; top: calc(58vh - 66vmax) !important; z-index: 1 !important;
@@ -33,7 +43,7 @@
         transform: rotateZ(var(--waze-inv-rot, 0deg)); transform-origin: center center;
     }
 
-    /* Barra Superior de Distancia, Giro, Placa y Carro */
+    /* 3. BARRA SUPERIOR DE DISTANCIA Y CARRO OBJETIVO */
     #waze-live-distance-bar {
         position: fixed !important; top: 38px !important; left: 50% !important; transform: translateX(-50%) !important;
         width: 95% !important; max-width: 420px !important; background: rgba(10, 18, 36, 0.96) !important;
@@ -46,7 +56,7 @@
     .waze-dist-placa-box { background: #000; color: #ffea00; border: 2px solid #ffea00; border-radius: 6px; padding: 2px 6px; font-size: 13px; font-weight: 900; flex-shrink: 0; }
     .btn-waze-dist-visit { background: #16a34a; color: #fff; border: 1.5px solid #4ade80; border-radius: 9px; padding: 4px 7px; font-size: 9.5px; font-weight: 900; cursor: pointer; flex-shrink: 0; }
 
-    /* Botones Laterales Waze + Cámara (SIEMPRE VISIBLES) */
+    /* 4. CONTROLES LATERALES SIEMPRE VISIBLES */
     #waze-controls-box {
         position: fixed !important; top: 195px !important; left: 6px !important; z-index: 5000 !important;
         display: flex !important; flex-direction: column !important; gap: 6px !important;
@@ -60,7 +70,7 @@
     .btn-waze-ctrl.voz-activa { background: #16a34a !important; color: #fff !important; border-color: #4ade80 !important; }
     .btn-waze-ctrl.voz-mudo { background: #991b1b !important; color: #fecaca !important; border-color: #f87171 !important; }
 
-    /* Visor Automático de Foto Manos Libres */
+    /* 5. VISOR AUTOMÁTICO DE FOTO MANOS LIBRES */
     #waze-auto-photo-hud {
         display: none; position: fixed !important; top: 96px; right: 8px; width: 130px;
         background: rgba(10,18,36,0.96); border: 2px solid #f59e0b; border-radius: 12px;
@@ -68,15 +78,15 @@
     }
     #waze-auto-photo-hud.foto-zoom-cerca { width: 215px; border-color: #00ff87; }
 
-    /* Ventana Cámara Escáner ALPR */
+    /* 6. CÁMARA LPR DE ALTA PRECISIÓN */
     #alpr-scanner-modal {
         display: none; position: fixed !important; top: 52px !important; left: 50% !important; transform: translateX(-50%) !important;
-        width: 90vw !important; max-width: 330px !important; background: #090d16 !important; border: 2px solid #00f0ff !important;
+        width: 92vw !important; max-width: 340px !important; background: #090d16 !important; border: 2px solid #00f0ff !important;
         border-radius: 14px !important; overflow: hidden !important; z-index: 100020 !important; color: #fff !important; box-shadow: 0 12px 35px rgba(0,0,0,0.9) !important;
     }
     #alpr-scanner-modal.alpr-abierto { display: block !important; }
     #alpr-scanner-modal.alerta-match { border-color: #ff0055 !important; box-shadow: 0 0 28px #ff0055 !important; }
-    .alpr-target-box { position: absolute; top: 26%; left: 12%; width: 76%; height: 48%; border: 2px solid #ffea00; border-radius: 8px; box-shadow: 0 0 0 999px rgba(0,0,0,0.45); pointer-events: none; }
+    .alpr-target-box { position: absolute; top: 28%; left: 14%; width: 72%; height: 44%; border: 2.5px solid #ffea00; border-radius: 8px; box-shadow: 0 0 0 999px rgba(0,0,0,0.5); pointer-events: none; }
 
     .waze-moto-gps-marker { background: transparent !important; border: none !important; }
     .waze-moto-wrapper { width: 58px; height: 72px; transform: rotateZ(var(--waze-inv-rot, 0deg)); transform-origin: 50% 65%; pointer-events: none; }
@@ -85,17 +95,18 @@
 <script>
 (function() {
     var OCHO_HORAS = 8 * 60 * 60 * 1000;
-    var CLAVE_FILTROS = 'ubica_rick_filtros_fijos_v5';
+    var CLAVE_FILTRO_FIJO = 'ubica_rick_filtro_bloqueado_v6';
     var wazeActivo = false, modoVista = '3D', pausaPopupTs = 0, hooksInstalados = false;
     var rumboActual = 0, rotAcum = 0, prevLat = null, prevLng = null, ultPanTs = 0;
     var vozActiva = localStorage.getItem('ubica_rick_voz_bg') !== '0';
 
-    var objActual = null, idAnunciadoInicial = null, escalonHablado = 99999;
-    var coordsRuta = [], pasosRuta = [], polyBorde = null, polyCentro = null;
-    var ultRecalculoTs = 0, idRutaActual = null, calculandoRuta = false, claveGiroHablado = "";
+    var objActual = null, idAnunciadoInicial = null;
+    var coordsRuta = [], pasosRuta = [], polyUnicaWaze = null;
+    var ultRecalculoTs = 0, calculandoRuta = false, claveGiroHablado = "";
     var timerAutoLlegada = null, idLlegadaActiva = null;
     var ultTxtVoz = "", ultTsVoz = 0;
 
+    // 1. Nombre automático del usuario sin preguntar "¿Quién fue?"
     function getOperador() {
         if (typeof usuarioOperadorActual !== 'undefined' && usuarioOperadorActual && usuarioOperadorActual.nombre) return usuarioOperadorActual.nombre;
         var b = document.getElementById('badge-perfil-nombre');
@@ -107,6 +118,7 @@
         return origPr ? origPr.call(window, m, d) : (d || '');
     };
 
+    // 2. Silenciador Estricto: Solo habla cambio de objetivo y llegada (Cero parloteo)
     function describirCarro(p) {
         if (!p) return "";
         var m = (p.marca && p.marca !== '-' && p.marca !== 'VEHÍCULO') ? p.marca : '';
@@ -115,7 +127,20 @@
         return "placa " + p.placa + ", " + [m, l, c].filter(Boolean).join(" ");
     }
 
-    function hablarWaze(texto, prioritario) {
+    if ('speechSynthesis' in window && window.speechSynthesis.speak) {
+        var oSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+        window.speechSynthesis.speak = function(u) {
+            if (!vozActiva) { window.speechSynthesis.cancel(); return; }
+            var t = String((u && u.text) || '').trim(), now = Date.now();
+            if (t === ultTxtVoz && (now - ultTsVoz < 120000)) return;
+            // Bloquear discursos automáticos del sistema base que no sean nuestros avisos puntuales
+            if (!u._esVozControladaWaze && (now - ultTsVoz < 60000)) return;
+            ultTxtVoz = t; ultTsVoz = now;
+            return oSpeak(u);
+        };
+    }
+
+    function hablarWaze(texto, urgente) {
         if (!texto || !vozActiva || !('speechSynthesis' in window)) return;
         var limpio = String(texto)
             .replace(/\bKR\b|\bCRA\b|\bCR\b|\bKRA\b/gi, "Carrera")
@@ -125,69 +150,282 @@
             .replace(/#/g, " número ").trim();
 
         var ahora = Date.now();
-        if (limpio === ultTxtVoz && (ahora - ultTsVoz < 25000)) return;
-        if (!prioritario && (ahora - ultTsVoz < 8000)) return;
+        if (limpio === ultTxtVoz && (ahora - ultTsVoz < 90000)) return;
+        if (!urgente && (ahora - ultTsVoz < 45000)) return;
 
-        ultTxtVoz = limpio; ultTsVoz = ahora;
         try {
             window.speechSynthesis.resume();
-            if (prioritario) window.speechSynthesis.cancel();
+            if (urgente) window.speechSynthesis.cancel();
             var u = new SpeechSynthesisUtterance(limpio);
+            u._esVozControladaWaze = true;
             u.lang = 'es-CO'; u.rate = 1.05;
             window.speechSynthesis.speak(u);
         } catch (e) {}
     }
 
-    // Regla de 8 Horas para ocultar todas las placas visitadas (1v / 2v) del Mapa y del Radar
-    function esVisitadaReciente(p) {
+    // 3. Regla de 8 Horas: Poner en OTRO COLOR en el mapa y BLOQUEAR en Radar y en nuevas Rutas
+    function esVisitadaEnUltimas8Horas(p) {
         if (!p) return false;
         var pl = (p.placa || '').toUpperCase().trim();
         var ts = parseInt(localStorage.getItem('visita_ts_placa_' + pl), 10) || parseInt(localStorage.getItem('visita_ts_' + p.id), 10) || p.timestampVisita || 0;
         var marcada = Boolean(p.visitada || (p.visitas && p.visitas > 0));
         if (!marcada && !ts) return false;
-        if (!ts) { ts = Date.now(); localStorage.setItem('visita_ts_placa_' + pl, String(ts)); }
+        if (!ts) {
+            ts = Date.now();
+            localStorage.setItem('visita_ts_placa_' + pl, String(ts));
+        }
         if (Date.now() - ts >= OCHO_HORAS) {
-            p.visitada = false; p.visitas = 0;
+            p.visitada = false; p.visitas = 0; p.timestampVisita = null;
             localStorage.removeItem('visita_ts_placa_' + pl);
+            localStorage.removeItem('visita_ts_' + p.id);
             return false;
         }
         p.visitada = true;
         return true;
     }
 
-    function ocultarVisitadasDelMapa() {
+    function colorearYFiltrarPlacasVisitadas() {
         if (!document.body) return;
-        // Limpiar cualquier etiqueta <style> rota que haya quedado al final del archivo
         var brokenStyle = document.getElementById('waze-clean-v4-styles');
         if (brokenStyle) brokenStyle.remove();
         document.body.classList.remove('menu-modal-abierto');
 
-        var chk = document.getElementById('chkSoloPendientes');
-        var ocultar = chk ? chk.checked : true;
-        document.body.classList.toggle('ocultar-visitadas-8h', ocultar);
-
-        // 1. Ocultar por datos en puntosData
-        if (typeof puntosData !== 'undefined' && Array.isArray(puntosData) && typeof map !== 'undefined' && map) {
+        // Poner otro color (gris/púrpura con borde punteado) a todas las visitadas en las últimas 8 horas
+        if (typeof puntosData !== 'undefined' && Array.isArray(puntosData)) {
             for (var i = 0; i < puntosData.length; i++) {
                 var p = puntosData[i];
-                if (!p || !p.marker) continue;
-                if (esVisitadaReciente(p) && ocultar) {
-                    if (map.hasLayer(p.marker)) map.removeLayer(p.marker);
+                if (!p) continue;
+                var bloq8h = esVisitadaEnUltimas8Horas(p);
+                if (p.marker && p.marker._icon) {
+                    p.marker._icon.classList.toggle('marker-visitada-8h', bloq8h);
                 }
             }
         }
 
-        // 2. Barrido directo de iconos en pantalla que digan (1v), (2v), etc., para que ninguno se quede pegado
+        // También marcar visualmente cualquier etiqueta que tenga "(1v)", "(2v)" en pantalla
         var iconos = document.querySelectorAll('.leaflet-marker-icon');
         for (var k = 0; k < iconos.length; k++) {
             var ic = iconos[k];
-            var txt = ic.innerText || "";
-            if (/\([1-9]\d*v\)/.test(txt)) {
-                ic.classList.toggle('marker-visitada-oculta', ocultar);
+            if (/\([1-9]\d*v\)/.test(ic.innerText || "")) {
+                ic.classList.add('marker-visitada-8h');
             }
         }
     }
 
+    // 4. LIMPIADOR TOTAL DE LÍNEAS MULTICOLOR (DEJA SOLO 1 LÍNEA Y BORRA LO DE ATRÁS)
+    function eliminarLineasConfusasDelMapa() {
+        if (typeof map === 'undefined' || !map) return;
+        // Borrar polilínea nativa si existe para que no salgan 2 rutas distintas
+        if (window.polylineRuta && map.hasLayer(window.polylineRuta)) {
+            try { map.removeLayer(window.polylineRuta); } catch (e) {}
+        }
+        // Borrar cualquier otra línea suelta (verde, amarilla punteada, azul) que no sea nuestra línea única Waze
+        map.eachLayer(function(layer) {
+            if (typeof L !== 'undefined' && layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
+                if (layer !== polyUnicaWaze) {
+                    try { map.removeLayer(layer); } catch (e) {}
+                }
+            }
+        });
+    }
+
+    // Recorta en vivo la línea detrás de tu moto y mide si te desviaste de calle
+    function recortarLineaAtrasYMedirDesvio(lat, lng) {
+        if (!coordsRuta || coordsRuta.length < 2) return 9999;
+        var minD = Infinity, idxMasCercano = 0;
+
+        for (var i = 0; i < coordsRuta.length; i++) {
+            var d = calcularDistancia(lat, lng, coordsRuta[i][0], coordsRuta[i][1]);
+            if (d < minD) {
+                minD = d;
+                idxMasCercano = i;
+            }
+        }
+
+        // Si vamos por la ruta (desvío <= 35m), borrar todos los puntos que ya quedaron atrás de la moto
+        if (minD <= 35) {
+            var sigIdx = Math.min(idxMasCercano + 1, coordsRuta.length - 1);
+            coordsRuta = [[lat, lng]].concat(coordsRuta.slice(sigIdx));
+            if (polyUnicaWaze) {
+                polyUnicaWaze.setLatLngs(coordsRuta);
+            }
+        }
+        return minD;
+    }
+
+    async function trazarUnicaRutaWaze(lat, lng, obj, forzar) {
+        if (!obj || !obj.lat || !obj.lng || calculandoRuta) return;
+        var ahora = Date.now();
+        if (!forzar && (ahora - ultRecalculoTs < 3500)) return;
+        calculandoRuta = true; ultRecalculoTs = ahora;
+
+        try {
+            var url = "https://router.project-osrm.org/route/v1/driving/" + lng + "," + lat + ";" + obj.lng + "," + obj.lat + "?overview=full&geometries=geojson&steps=true";
+            var r = await fetch(url);
+            if (r.ok) {
+                var data = await r.json();
+                if (data && data.routes && data.routes[0]) {
+                    var route = data.routes[0];
+                    var nuevasCoords = route.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+                    // Forzar que el primer punto nazca exactamente en tu moto
+                    nuevasCoords[0] = [lat, lng];
+                    coordsRuta = nuevasCoords;
+                    pasosRuta = (route.legs && route.legs[0] && route.legs[0].steps) ? route.legs[0].steps : [];
+
+                    if (typeof map !== 'undefined' && map) {
+                        eliminarLineasConfusasDelMapa();
+                        if (polyUnicaWaze && map.hasLayer(polyUnicaWaze)) {
+                            polyUnicaWaze.setLatLngs(coordsRuta);
+                        } else {
+                            polyUnicaWaze = L.polyline(coordsRuta, {
+                                color: '#2563eb',
+                                weight: 7,
+                                opacity: 0.92,
+                                lineCap: 'round',
+                                lineJoin: 'round'
+                            }).addTo(map);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+        } finally {
+            calculandoRuta = false;
+        }
+    }
+
+    // 5. FILTROS FIJOS: EVITAR QUE "VER TODAS" SE TILDE SOLO CUANDO ELIGES PICO Y PLACA
+    var aplicandoFiltroLock = false;
+
+    function guardarFiltroElegidoPorUsuario(tipoCambiado) {
+        if (aplicandoFiltroLock) return;
+        var elPico = document.getElementById('chkPico');
+        var elHoy = document.getElementById('chkHoy');
+        var elFoto = document.getElementById('chkFoto');
+        var elTodas = document.getElementById('chkTodas');
+        var elPend = document.getElementById('chkSoloPendientes');
+        var elMun = document.getElementById('filtroMunicipio');
+
+        // Si el usuario marcó Pico y Placa, Hoy o Foto, destildar obligatoriamente "Ver todas"
+        if (tipoCambiado === 'pico' || tipoCambiado === 'hoy' || tipoCambiado === 'foto') {
+            if ((elPico && elPico.checked) || (elHoy && elHoy.checked) || (elFoto && elFoto.checked)) {
+                if (elTodas) elTodas.checked = false;
+            }
+        } else if (tipoCambiado === 'todas' && elTodas && elTodas.checked) {
+            if (elPico) elPico.checked = false;
+            if (elHoy) elHoy.checked = false;
+            if (elFoto) elFoto.checked = false;
+        }
+
+        var st = {
+            m: elMun ? elMun.value : 'TODOS',
+            p: elPico ? elPico.checked : false,
+            h: elHoy ? elHoy.checked : false,
+            f: elFoto ? elFoto.checked : false,
+            t: elTodas ? elTodas.checked : false,
+            v: elPend ? elPend.checked : false
+        };
+        if (st.p || st.h || st.f) st.t = false;
+        localStorage.setItem(CLAVE_FILTRO_FIJO, JSON.stringify(st));
+    }
+
+    function forzarRespetoDeFiltroGuardado() {
+        var raw = localStorage.getItem(CLAVE_FILTRO_FIJO);
+        if (!raw) return;
+        try {
+            var st = JSON.parse(raw);
+            var elPico = document.getElementById('chkPico');
+            var elHoy = document.getElementById('chkHoy');
+            var elFoto = document.getElementById('chkFoto');
+            var elTodas = document.getElementById('chkTodas');
+            var elPend = document.getElementById('chkSoloPendientes');
+            var elMun = document.getElementById('filtroMunicipio');
+            if (!elPico || !elTodas) return;
+
+            var huboDesajuste = false;
+            if (st.p || st.h || st.f) {
+                st.t = false; // Nunca permitir "Ver todas" activo si hay filtro específico
+            }
+
+            if (elPico.checked !== Boolean(st.p)) { elPico.checked = Boolean(st.p); huboDesajuste = true; }
+            if (elHoy && elHoy.checked !== Boolean(st.h)) { elHoy.checked = Boolean(st.h); huboDesajuste = true; }
+            if (elFoto && elFoto.checked !== Boolean(st.f)) { elFoto.checked = Boolean(st.f); huboDesajuste = true; }
+            if (elTodas.checked !== Boolean(st.t)) { elTodas.checked = Boolean(st.t); huboDesajuste = true; }
+            if (elPend && st.v !== undefined && elPend.checked !== Boolean(st.v)) { elPend.checked = Boolean(st.v); huboDesajuste = true; }
+            if (elMun && st.m && elMun.value !== st.m) { elMun.value = st.m; huboDesajuste = true; }
+
+            if (huboDesajuste && typeof actualizarFiltros === 'function') {
+                aplicandoFiltroLock = true;
+                actualizarFiltros();
+                aplicandoFiltroLock = false;
+            }
+        } catch (e) {
+            aplicandoFiltroLock = false;
+        }
+    }
+
+    // 6. Obtener el objetivo activo respetando el filtro (ej. Pico y Placa) y el bloqueo de 8 horas
+    function cumpleFiltroActivo(p) {
+        if (!p || !p.lat || !p.lng) return false;
+        // Bloquear por 8 horas tanto para el radar como para rutas nuevas
+        if (esVisitadaEnUltimas8Horas(p)) return false;
+
+        var elPico = document.getElementById('chkPico');
+        var elFoto = document.getElementById('chkFoto');
+        var elMun = document.getElementById('filtroMunicipio');
+
+        if (elPico && elPico.checked && !p.pico) return false;
+        if (elFoto && elFoto.checked && !p.foto) return false;
+        if (elMun && elMun.value && elMun.value !== 'TODOS') {
+            var mPunto = (p.municipio || p.dirOriginal || p.dir || '').toUpperCase();
+            if (mPunto.indexOf(elMun.value.toUpperCase()) === -1) return false;
+        }
+        return true;
+    }
+
+    function obtenerMejorObjetivo() {
+        if (typeof puntosData === 'undefined' || !Array.isArray(puntosData)) return null;
+        colorearYFiltrarPlacasVisitadas();
+
+        // Si hay ronda activa abajo, verificar que esa parada NO esté visitada en las últimas 8h
+        var botones = document.querySelectorAll('button');
+        for (var i = 0; i < botones.length; i++) {
+            var b = botones[i];
+            if (b.classList.contains('btn-waze-dist-visit')) continue;
+            var t = (b.innerText || "").trim();
+            if (t.indexOf("Visitado") !== -1 && (t.indexOf("Sig") !== -1 || t.indexOf("→") !== -1) && b.offsetParent !== null) {
+                var panel = b.closest('div[style*="fixed"], div[id*="panel"], div[id*="copiloto"]') || b.parentElement.parentElement;
+                if (panel) {
+                    var mPl = (panel.innerText || "").match(/\b([A-Z]{3}\d{2}[0-9A-Z])\b/);
+                    if (mPl && mPl[1]) {
+                        var pRonda = puntosData.find(function(x) { return x && x.placa && x.placa.toUpperCase().trim() === mPl[1]; });
+                        if (pRonda) {
+                            // Si la parada de la ronda ya fue visitada hace menos de 8h, saltarla automáticamente
+                            if (esVisitadaEnUltimas8Horas(pRonda)) {
+                                setTimeout(function() { b.click(); }, 100);
+                            } else {
+                                return pRonda;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        var mejor = null, minD = Infinity;
+        for (var j = 0; j < puntosData.length; j++) {
+            var p = puntosData[j];
+            if (!cumpleFiltroActivo(p)) continue;
+            if (typeof userLat === 'number' && typeof userLng === 'number' && typeof calcularDistancia === 'function') {
+                var d = calcularDistancia(userLat, userLng, p.lat, p.lng);
+                if (d < minD) { minD = d; mejor = p; }
+            } else if (!mejor) mejor = p;
+        }
+        if (mejor) { window.placaMasCercanaObj = mejor; window.menorDistanciaMetros = minD; }
+        return mejor;
+    }
+
+    // 7. Interfaz y Controles
     function crearUI() {
         if (!document.body) return;
         if (!document.getElementById('waze-live-distance-bar')) {
@@ -201,7 +439,7 @@
                         '<span id="waze-dist-detalles" style="font-size:10.5px;color:#fde047;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Vehículo y dirección...</span>' +
                     '</div>' +
                 '</div>' +
-                '<button type="button" class="btn-waze-dist-visit" onclick="window.marcarVisitadoWaze(\'manual\')">✅ Visitado<br><span style="font-size:8px;">➔ Sig (8h)</span></button>';
+                '<button type="button" class="btn-waze-dist-visit" onclick="window.marcarVisitadoWaze()">✅ Visitado<br><span style="font-size:8px;">➔ Sig (8h)</span></button>';
             document.body.appendChild(bar);
         }
         if (!document.getElementById('waze-controls-box')) {
@@ -211,7 +449,7 @@
                 '<button type="button" id="btn-waze-mode" class="btn-waze-ctrl" onclick="window.toggleModoWaze3D()">🏍️ <span id="lbl-waze-btn">Waze 3D</span></button>' +
                 '<button type="button" id="btn-waze-ver-ruta" class="btn-waze-ctrl" style="display:none !important;" onclick="window.alternarVista2D3DWaze()">🧭 <span id="lbl-waze-explorar">2D Frente</span></button>' +
                 '<button type="button" id="btn-waze-bg-voice" class="btn-waze-ctrl voz-activa" onclick="window.toggleVozWaze()"><span id="ico-waze-voice">🔊</span> <span id="lbl-waze-voice">Voz: ON</span></button>' +
-                '<button type="button" id="btn-waze-alpr-cam" class="btn-waze-ctrl" style="border-color:#ffea00;color:#fef08a;" onclick="window.toggleEscanerPlacasALPR()">📷 <span id="lbl-alpr-cam">Escáner</span></button>';
+                '<button type="button" id="btn-waze-alpr-cam" class="btn-waze-ctrl" style="border-color:#ffea00;color:#fef08a;" onclick="window.toggleEscanerPlacasALPR()">📷 <span id="lbl-alpr-cam">Escáner LPR</span></button>';
             document.body.appendChild(box);
         }
         if (!document.getElementById('waze-auto-photo-hud')) {
@@ -230,20 +468,20 @@
             mod.id = 'alpr-scanner-modal';
             mod.innerHTML =
                 '<div style="background:#0f172a;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:900;color:#00f0ff;">' +
-                    '<span>📷 ESCÁNER DE PLACAS</span>' +
+                    '<span>📷 ESCÁNER LPR IA PRECISO</span>' +
                     '<button type="button" onclick="window.cerrarEscanerALPR()" style="background:#dc2626;border:none;color:#fff;border-radius:5px;padding:2px 8px;font-weight:bold;cursor:pointer;">✖</button>' +
                 '</div>' +
-                '<div style="position:relative;width:100%;height:150px;background:#000;overflow:hidden;" onclick="window.capturarPlacaALPR()">' +
+                '<div style="position:relative;width:100%;height:160px;background:#000;overflow:hidden;" onclick="window.capturarPlacaALPR(true)">' +
                     '<video id="alpr-video-el" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video>' +
                     '<div class="alpr-target-box"></div>' +
                 '</div>' +
                 '<div style="padding:7px;background:#0f172a;display:flex;flex-direction:column;gap:6px;">' +
-                    '<button type="button" onclick="window.capturarPlacaALPR()" style="width:100%;background:#eab308;color:#000;border:none;border-radius:7px;padding:7px;font-size:11.5px;font-weight:900;cursor:pointer;">📸 LEER PLACA AHORA</button>' +
+                    '<button type="button" id="btn-shutter-lpr" onclick="window.capturarPlacaALPR(true)" style="width:100%;background:#eab308;color:#000;border:none;border-radius:7px;padding:8px;font-size:12px;font-weight:900;cursor:pointer;">📸 CAPTURAR Y ANALIZAR PLACA</button>' +
                     '<div style="display:flex;align-items:center;gap:8px;background:#1e293b;padding:4px 7px;border-radius:6px;">' +
-                        '<canvas id="alpr-preview-canvas" width="160" height="55" style="width:70px;height:30px;background:#000;border:1px solid #38bdf8;border-radius:4px;"></canvas>' +
+                        '<canvas id="alpr-preview-canvas" width="240" height="80" style="width:78px;height:34px;background:#000;border:1px solid #38bdf8;border-radius:4px;"></canvas>' +
                         '<div style="display:flex;flex-direction:column;overflow:hidden;">' +
-                            '<span id="alpr-status-txt" style="font-size:9.5px;color:#cbd5e1;">Apunta al recuadro amarillo</span>' +
-                            '<span id="alpr-detected-plate" style="color:#ffea00;font-size:13px;font-weight:900;">---</span>' +
+                            '<span id="alpr-status-txt" style="font-size:10px;color:#cbd5e1;">Encuadra la placa y toca Capturar</span>' +
+                            '<span id="alpr-detected-plate" style="color:#ffea00;font-size:13.5px;font-weight:900;">---</span>' +
                         '</div>' +
                     '</div>' +
                 '</div>';
@@ -251,50 +489,16 @@
         }
     }
 
-    function obtenerMejorObjetivo() {
-        if (typeof puntosData === 'undefined' || !Array.isArray(puntosData)) return null;
-        ocultarVisitadasDelMapa();
-
-        var botones = document.querySelectorAll('button');
-        for (var i = 0; i < botones.length; i++) {
-            var b = botones[i];
-            if (b.classList.contains('btn-waze-dist-visit')) continue;
-            var t = (b.innerText || "").trim();
-            if (t.indexOf("Visitado") !== -1 && (t.indexOf("Sig") !== -1 || t.indexOf("→") !== -1) && b.offsetParent !== null) {
-                var panel = b.closest('div[style*="fixed"], div[id*="panel"], div[id*="copiloto"]') || b.parentElement.parentElement;
-                if (panel) {
-                    var mPl = (panel.innerText || "").match(/\b([A-Z]{3}\d{2}[0-9A-Z])\b/);
-                    if (mPl && mPl[1]) {
-                        var pRonda = puntosData.find(function(x) { return x && x.placa && x.placa.toUpperCase().trim() === mPl[1] && window.esElegibleParaRadar(x); });
-                        if (pRonda) return pRonda;
-                    }
-                }
-            }
-        }
-
-        var mejor = null, minD = Infinity;
-        for (var j = 0; j < puntosData.length; j++) {
-            var p = puntosData[j];
-            if (!window.esElegibleParaRadar(p)) continue;
-            if (typeof userLat === 'number' && typeof userLng === 'number' && typeof calcularDistancia === 'function') {
-                var d = calcularDistancia(userLat, userLng, p.lat, p.lng);
-                if (d < minD) { minD = d; mejor = p; }
-            } else if (!mejor) mejor = p;
-        }
-        if (mejor) { window.placaMasCercanaObj = mejor; window.menorDistanciaMetros = minD; }
-        return mejor;
-    }
-
     window.repetirDatosObjetivoWaze = function() {
         var obj = obtenerMejorObjetivo();
         if (!obj) return;
         var d = (typeof userLat === 'number' && typeof userLng === 'number') ? Math.round(calcularDistancia(userLat, userLng, obj.lat, obj.lng)) : 0;
         ultTxtVoz = "";
-        hablarWaze("Vamos para " + describirCarro(obj) + ", a " + d + " metros, en " + (obj.dirOriginal || obj.dir || ""), true);
+        hablarWaze("Objetivo " + describirCarro(obj) + ", a " + d + " metros, en " + (obj.dirOriginal || obj.dir || ""), true);
         if (typeof map !== 'undefined' && map) map.setView([obj.lat, obj.lng], 18, { animate: false });
     };
 
-    window.marcarVisitadoWaze = function(origen) {
+    window.marcarVisitadoWaze = function() {
         if (timerAutoLlegada) { clearTimeout(timerAutoLlegada); timerAutoLlegada = null; }
         var obj = objActual || obtenerMejorObjetivo();
         if (!obj) return;
@@ -305,6 +509,7 @@
             puntosData.forEach(function(p) {
                 if (p && p.placa && p.placa.toUpperCase().trim() === pl) {
                     p.visitada = true; p.visitas = (p.visitas || 0) + 1; p.gestor = op; p.timestampVisita = now;
+                    localStorage.setItem('visita_ts_' + p.id, String(now));
                 }
             });
         }
@@ -321,95 +526,30 @@
         if (btnRonda) btnRonda.click();
         else if (typeof marcarVisitada === 'function') { try { marcarVisitada(obj.placa, obj.id); } catch (e) {} }
 
-        idRutaActual = null; coordsRuta = []; idLlegadaActiva = null;
+        coordsRuta = []; idLlegadaActiva = null;
         var bar = document.getElementById('waze-live-distance-bar');
         if (bar) bar.classList.remove('en-llegada');
 
         setTimeout(function() {
-            ocultarVisitadasDelMapa();
+            colorearYFiltrarPlacasVisitadas();
             var sig = obtenerMejorObjetivo();
             objActual = sig;
             if (sig && typeof userLat === 'number' && typeof userLng === 'number') {
                 var distSig = Math.round(calcularDistancia(userLat, userLng, sig.lat, sig.lng));
-                hablarWaze("Visitada " + pl + ". Siguiente objetivo: " + describirCarro(sig) + ", a " + distSig + " metros, en " + (sig.dirOriginal || sig.dir || ""), true);
-                recalcularRutaOSRM(userLat, userLng, sig, true, false);
-            } else {
-                hablarWaze("Placa " + pl + " visitada. Recorrido completado.", true);
+                hablarWaze("Siguiente: " + describirCarro(sig) + ", a " + distSig + " metros.", true);
+                trazarUnicaRutaWaze(userLat, userLng, sig, true);
             }
             actualizarHUD();
         }, 250);
     };
 
-    function medirDesvioRuta(lat, lng) {
-        if (!coordsRuta || coordsRuta.length < 2) return 9999;
-        var minD = Infinity, idx = 0;
-        for (var i = 0; i < coordsRuta.length; i++) {
-            var d = calcularDistancia(lat, lng, coordsRuta[i][0], coordsRuta[i][1]);
-            if (d < minD) { minD = d; idx = i; }
-        }
-        if (minD <= 24 && idx > 0) {
-            coordsRuta = [[lat, lng]].concat(coordsRuta.slice(idx));
-            if (polyBorde && polyCentro) { polyBorde.setLatLngs(coordsRuta); polyCentro.setLatLngs(coordsRuta); }
-        }
-        return minD;
-    }
-
-    function textoGiroOSRM(step) {
-        if (!step || !step.maneuver) return "Sigue derecho";
-        var m = step.maneuver.modifier || "", t = step.maneuver.type || "", v = step.name ? (" por " + step.name.toUpperCase()) : "";
-        if (t === "arrive") return "Llegando al destino";
-        if (m.indexOf("left") !== -1) return "Gira a la izquierda" + v;
-        if (m.indexOf("right") !== -1) return "Gira a la derecha" + v;
-        if (m.indexOf("uturn") !== -1) return "Retorna en U" + v;
-        return "Sigue" + v;
-    }
-
-    async function recalcularRutaOSRM(lat, lng, obj, forzar, esPorDesvio) {
-        if (!obj || !obj.lat || !obj.lng || calculandoRuta) return;
-        var ahora = Date.now();
-        if (!forzar && (ahora - ultRecalculoTs < 2500)) return;
-        calculandoRuta = true; ultRecalculoTs = ahora; idRutaActual = obj.id;
-
-        try {
-            var url = "https://router.project-osrm.org/route/v1/driving/" + lng + "," + lat + ";" + obj.lng + "," + obj.lat + "?overview=full&geometries=geojson&steps=true";
-            var r = await fetch(url);
-            if (r.ok) {
-                var data = await r.json();
-                if (data && data.routes && data.routes[0]) {
-                    var route = data.routes[0];
-                    coordsRuta = route.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
-                    pasosRuta = (route.legs && route.legs[0] && route.legs[0].steps) ? route.legs[0].steps : [];
-
-                    if (typeof map !== 'undefined' && map) {
-                        if (polyBorde && polyCentro) {
-                            polyBorde.setLatLngs(coordsRuta); polyCentro.setLatLngs(coordsRuta);
-                        } else {
-                            polyBorde = L.polyline(coordsRuta, { color: '#6d28d9', weight: 9, opacity: 0.85 }).addTo(map);
-                            polyCentro = L.polyline(coordsRuta, { color: '#00f0ff', weight: 5, opacity: 0.95 }).addTo(map);
-                        }
-                    }
-
-                    if (esPorDesvio) {
-                        var giroTxt = (pasosRuta.length > 1) ? textoGiroOSRM(pasosRuta[1]) : "";
-                        hablarWaze("Recalculando ruta hacia " + describirCarro(obj) + ". " + giroTxt, true);
-                    }
-                }
-            }
-        } catch (e) {
-        } finally {
-            calculandoRuta = false;
-        }
-    }
-
     function instalarHooksEnAppPrincipal() {
         if (hooksInstalados || typeof map === 'undefined' || !map || typeof window.actualizarPosicionGPS !== 'function') return;
         hooksInstalados = true;
 
+        // Bloquear por 8 horas en el radar y en generadores de rutas
         window.esElegibleParaRadar = function(p) {
-            if (!p || !p.lat || !p.lng) return false;
-            var chk = document.getElementById('chkSoloPendientes');
-            var ocultar = chk ? chk.checked : true;
-            return esVisitadaReciente(p) ? !ocultar : true;
+            return cumpleFiltroActivo(p);
         };
 
         window.hablarInstruccionCopiloto = function(t, f) { hablarWaze(t, Boolean(f)); };
@@ -427,13 +567,17 @@
 
         var origGPS = window.actualizarPosicionGPS;
         window.actualizarPosicionGPS = function(pos) {
+            if (!pos || !pos.coords) return;
+            // Ignorar lecturas GPS con mala precisión (> 65m) que mandan la ruta hacia calles falsas
+            if (pos.coords.accuracy && pos.coords.accuracy > 65 && prevLat !== null) return;
+
             if (typeof origGPS === 'function') origGPS(pos);
             if (typeof userMarker !== 'undefined' && userMarker) { try { userMarker.unbindPopup(); } catch (e) {} }
-            if (!pos || !pos.coords) return;
+
             var lat = pos.coords.latitude, lng = pos.coords.longitude;
-            if (typeof pos.coords.heading === 'number' && !isNaN(pos.coords.heading) && pos.coords.speed > 0.7) {
+            if (typeof pos.coords.heading === 'number' && !isNaN(pos.coords.heading) && pos.coords.speed > 1.0) {
                 rotarMapa(pos.coords.heading);
-            } else if (prevLat !== null && calcularDistancia(prevLat, prevLng, lat, lng) >= 2.8) {
+            } else if (prevLat !== null && calcularDistancia(prevLat, prevLng, lat, lng) >= 4.0) {
                 var dLon = (lng - prevLng) * Math.PI / 180;
                 var y = Math.sin(dLon) * Math.cos(lat * Math.PI / 180);
                 var x = Math.cos(prevLat * Math.PI / 180) * Math.sin(lat * Math.PI / 180) - Math.sin(prevLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.cos(dLon);
@@ -445,46 +589,33 @@
             if (wazeActivo) enfocarMoto(lat, lng, false);
         };
 
-        // Activar chulo de "Ocultar ya visitadas" por defecto y recordar filtros
-        var chkPend = document.getElementById('chkSoloPendientes');
-        var guardado = localStorage.getItem(CLAVE_FILTROS);
-        if (guardado) {
-            try {
-                var st = JSON.parse(guardado);
-                if (document.getElementById('filtroMunicipio') && st.m) document.getElementById('filtroMunicipio').value = st.m;
-                if (document.getElementById('chkPico')) document.getElementById('chkPico').checked = Boolean(st.p);
-                if (document.getElementById('chkHoy')) document.getElementById('chkHoy').checked = Boolean(st.h);
-                if (document.getElementById('chkFoto')) document.getElementById('chkFoto').checked = Boolean(st.f);
-                if (document.getElementById('chkTodas')) document.getElementById('chkTodas').checked = Boolean(st.t);
-                if (chkPend) chkPend.checked = (st.v !== undefined) ? Boolean(st.v) : true;
-            } catch (e) {}
-        } else if (chkPend) {
-            chkPend.checked = true;
-        }
-        if (typeof actualizarFiltros === 'function') actualizarFiltros();
-        ocultarVisitadasDelMapa();
-
-        ['filtroMunicipio', 'chkPico', 'chkHoy', 'chkFoto', 'chkTodas', 'chkSoloPendientes'].forEach(function(id) {
+        // Escuchar clics del usuario en las casillas de filtro para bloquear su elección
+        var mapaChk = { 'chkPico': 'pico', 'chkHoy': 'hoy', 'chkFoto': 'foto', 'chkTodas': 'todas', 'chkSoloPendientes': 'pend', 'filtroMunicipio': 'mun' };
+        Object.keys(mapaChk).forEach(function(id) {
             var el = document.getElementById(id);
-            if (el) el.addEventListener('change', function() {
-                setTimeout(function() {
-                    localStorage.setItem(CLAVE_FILTROS, JSON.stringify({
-                        m: document.getElementById('filtroMunicipio') ? document.getElementById('filtroMunicipio').value : 'TODOS',
-                        p: document.getElementById('chkPico') ? document.getElementById('chkPico').checked : false,
-                        h: document.getElementById('chkHoy') ? document.getElementById('chkHoy').checked : false,
-                        f: document.getElementById('chkFoto') ? document.getElementById('chkFoto').checked : false,
-                        t: document.getElementById('chkTodas') ? document.getElementById('chkTodas').checked : true,
-                        v: document.getElementById('chkSoloPendientes') ? document.getElementById('chkSoloPendientes').checked : true
-                    }));
-                    ocultarVisitadasDelMapa(); actualizarHUD();
-                }, 50);
-            });
+            if (el) {
+                el.addEventListener('change', function() {
+                    guardarFiltroElegidoPorUsuario(mapaChk[id]);
+                    setTimeout(function() {
+                        forzarRespetoDeFiltroGuardado();
+                        colorearYFiltrarPlacasVisitadas();
+                        actualizarHUD();
+                    }, 60);
+                }, true);
+            }
         });
+
+        forzarRespetoDeFiltroGuardado();
+        colorearYFiltrarPlacasVisitadas();
     }
 
     function actualizarHUD() {
         crearUI();
         instalarHooksEnAppPrincipal();
+        forzarRespetoDeFiltroGuardado();
+        colorearYFiltrarPlacasVisitadas();
+        eliminarLineasConfusasDelMapa();
+
         var obj = obtenerMejorObjetivo();
         var bar = document.getElementById('waze-live-distance-bar');
         var elP = document.getElementById('waze-dist-placa');
@@ -494,15 +625,14 @@
 
         if (!obj) {
             if (elP) elP.innerText = "---";
-            if (elM) elM.innerText = "✅ Todo visitado (bloqueo 8h)";
-            if (elD) elD.innerText = "Sin objetivos pendientes";
+            if (elM) elM.innerText = "✅ Sin objetivos pendientes en este filtro";
+            if (elD) elD.innerText = "Las visitadas están en color oscuro (bloqueo 8h)";
             if (phHud) phHud.style.display = 'none';
             return;
         }
 
         if (!objActual || objActual.id !== obj.id) {
             objActual = obj;
-            escalonHablado = 99999;
             idLlegadaActiva = null;
             if (timerAutoLlegada) { clearTimeout(timerAutoLlegada); timerAutoLlegada = null; }
             if (bar) bar.classList.remove('en-llegada');
@@ -511,9 +641,9 @@
                 var dIni = Math.round(calcularDistancia(userLat, userLng, obj.lat, obj.lng));
                 if (idAnunciadoInicial !== obj.id) {
                     idAnunciadoInicial = obj.id;
-                    hablarWaze("Vamos por " + describirCarro(obj) + ", a " + dIni + " metros, en " + (obj.dirOriginal || obj.dir || ""), true);
+                    hablarWaze("Vamos por " + describirCarro(obj) + ", a " + dIni + " metros.", true);
                 }
-                recalcularRutaOSRM(userLat, userLng, obj, true, false);
+                trazarUnicaRutaWaze(userLat, userLng, obj, true);
             }
         }
 
@@ -531,43 +661,21 @@
                 if (elM) elM.innerText = "🏁 ¡LLEGASTE! (" + Math.round(dist) + "m) • Pasando al sig...";
                 if (idLlegadaActiva !== obj.id) {
                     idLlegadaActiva = obj.id;
-                    hablarWaze("¡Llegaste al objetivo! " + describirCarro(obj) + ", en " + (obj.dirOriginal || obj.dir || "") + ". Marcando visitado en 6 segundos.", true);
+                    hablarWaze("Llegaste a " + describirCarro(obj) + ".", true);
                     if (timerAutoLlegada) clearTimeout(timerAutoLlegada);
                     timerAutoLlegada = setTimeout(function() {
-                        window.marcarVisitadoWaze('auto_llegada');
+                        window.marcarVisitadoWaze();
                     }, 6000);
                 }
             } else {
-                var desvio = medirDesvioRuta(userLat, userLng);
-                if (desvio > 22) {
-                    recalcularRutaOSRM(userLat, userLng, obj, false, true);
+                // Recortar en vivo lo que ya recorriste atrás y recalcular si te desviaste más de 28m
+                var desvio = recortarLineaAtrasYMedirDesvio(userLat, userLng);
+                if (desvio > 28) {
+                    trazarUnicaRutaWaze(userLat, userLng, obj, false);
                 }
 
-                var txtGiro = "";
-                if (pasosRuta && pasosRuta.length > 1) {
-                    var pSig = pasosRuta[1];
-                    var locG = (pSig.maneuver && pSig.maneuver.location) ? [pSig.maneuver.location[1], pSig.maneuver.location[0]] : null;
-                    var dGiro = locG ? Math.round(calcularDistancia(userLat, userLng, locG[0], locG[1])) : Math.round(pasosRuta[0].distance || 0);
-                    var gDesc = textoGiroOSRM(pSig);
-                    txtGiro = " • 🧭 En " + dGiro + "m " + gDesc;
-
-                    if (dGiro >= 25 && dGiro <= 105) {
-                        var kG = obj.id + "_" + gDesc;
-                        if (claveGiroHablado !== kG) {
-                            claveGiroHablado = kG;
-                            hablarWaze("En " + dGiro + " metros, " + gDesc + ". Vamos por " + obj.placa, false);
-                        }
-                    }
-                }
-
-                var dStr = dist < 1000 ? (Math.round(dist) + " m") : ((dist / 1000).toFixed(2) + " km");
-                if (elM) elM.innerText = "🎯 A " + dStr + txtGiro;
-
-                var esc = dist <= 120 ? 120 : (dist <= 300 ? 300 : 99999);
-                if (esc < escalonHablado) {
-                    escalonHablado = esc;
-                    hablarWaze("Atención, a " + Math.round(dist) + " metros de " + describirCarro(obj), false);
-                }
+                var dStr = dist < 1000 ? (Math.round(dist) + " metros") : ((dist / 1000).toFixed(2) + " km");
+                if (elM) elM.innerText = "🎯 A " + dStr;
             }
         } else {
             if (elM) elM.innerText = "🛰️ Activa tu GPS (🎯) para ver distancia";
@@ -630,8 +738,7 @@
             if (btn2d) btn2d.style.setProperty('display', 'none', 'important');
             document.documentElement.style.setProperty('--waze-map-rot', '0deg');
             document.documentElement.style.setProperty('--waze-inv-rot', '0deg');
-            if (polyBorde && map) { map.removeLayer(polyBorde); polyBorde = null; }
-            if (polyCentro && map) { map.removeLayer(polyCentro); polyCentro = null; }
+            if (polyUnicaWaze && map) { map.removeLayer(polyUnicaWaze); polyUnicaWaze = null; }
             if (typeof map !== 'undefined' && map) map.invalidateSize(false);
         }
     };
@@ -657,47 +764,97 @@
         else if (vozActiva) window.repetirDatosObjetivoWaze();
     };
 
-    var alprActivo = false, alprStream = null, alprWorker = null, alprTimer = null, alprOcupado = false;
-    window.capturarPlacaALPR = async function() {
+    // 8. ESCÁNER LPR MEJORADO CON GEMINI VISION + LECTOR HD
+    var alprActivo = false, alprStream = null, alprWorker = null, alprOcupado = false;
+
+    function limpiarPlacaColombiana(txt) {
+        if (!txt) return null;
+        var limpio = txt.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        var m = limpio.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/);
+        return m ? m[0] : null;
+    }
+
+    window.capturarPlacaALPR = async function(esDisparoManual) {
         if (!alprActivo || alprOcupado) return;
         var video = document.getElementById('alpr-video-el'), canvas = document.getElementById('alpr-preview-canvas');
         var st = document.getElementById('alpr-status-txt'), chip = document.getElementById('alpr-detected-plate');
+        var btnSh = document.getElementById('btn-shutter-lpr');
         if (!video || video.readyState < 2 || !video.videoWidth) return;
+
         alprOcupado = true;
+        if (btnSh) btnSh.innerText = "⏳ LEYENDO PLACA...";
         try {
             var vw = video.videoWidth, vh = video.videoHeight;
-            canvas.width = 180; canvas.height = 60;
-            canvas.getContext('2d', { willReadFrequently: true }).drawImage(video, Math.round(vw * 0.12), Math.round(vh * 0.26), Math.round(vw * 0.76), Math.round(vh * 0.48), 0, 0, 180, 60);
-            if (!alprWorker && typeof Tesseract !== 'undefined') {
-                st.innerText = "Iniciando lector...";
-                alprWorker = await Tesseract.createWorker('eng');
-                await alprWorker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', tessedit_pageseg_mode: '7' });
-            }
-            if (alprWorker) {
-                var ret = await alprWorker.recognize(canvas);
-                var raw = (ret && ret.data && ret.data.text) ? ret.data.text.toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
-                var m = raw.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/);
-                if (m && m[0]) {
-                    var pl = m[0];
-                    chip.innerText = pl;
-                    var enc = puntosData.find(function(p) { return p && p.placa === pl; });
-                    var mod = document.getElementById('alpr-scanner-modal');
-                    if (enc) {
-                        mod.classList.add('alerta-match');
-                        st.innerText = "🚨 ¡ENCONTRADO!: " + enc.placa;
-                        hablarWaze("¡Alerta! Placa buscada " + describirCarro(enc), true);
-                    } else {
-                        mod.classList.remove('alerta-match');
-                        st.innerText = "Leída OK (No está en lista)";
+            canvas.width = 360; canvas.height = 140;
+            canvas.getContext('2d', { willReadFrequently: true }).drawImage(
+                video, Math.round(vw * 0.14), Math.round(vh * 0.28), Math.round(vw * 0.72), Math.round(vh * 0.44), 0, 0, 360, 140
+            );
+
+            var placaFinal = null;
+            var apiKeyGem = localStorage.getItem('ubica_rick_gemini_key') || (window.configApp && window.configApp.geminiApiKey) || "";
+
+            // Prioridad 1: IA Gemini Vision (100% preciso incluso con placas inclinadas o sucias)
+            if (apiKeyGem) {
+                try {
+                    var b64 = canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
+                    var resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + encodeURIComponent(apiKeyGem), {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [
+                                { text: "Lee únicamente la placa vehicular colombiana (6 caracteres, ejemplo ABC123 o ABC12D) en esta foto. Si no ves una placa clara responde NADA." },
+                                { inline_data: { mime_type: "image/jpeg", data: b64 } }
+                            ]}],
+                            generationConfig: { temperature: 0.0, thinkingConfig: { thinkingBudget: 0 } }
+                        })
+                    });
+                    if (resp.ok) {
+                        var j = await resp.json();
+                        var tGem = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts[0]) ? j.candidates[0].content.parts[0].text : "";
+                        placaFinal = limpiarPlacaColombiana(tGem);
                     }
-                }
+                } catch (eG) {}
             }
-        } catch (e) {} finally { alprOcupado = false; }
+
+            // Prioridad 2: Lector Local Tesseract si no hay clave Gemini
+            if (!placaFinal && typeof Tesseract !== 'undefined') {
+                if (!alprWorker) {
+                    alprWorker = await Tesseract.createWorker('eng');
+                    await alprWorker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', tessedit_pageseg_mode: '7' });
+                }
+                var ret = await alprWorker.recognize(canvas);
+                placaFinal = limpiarPlacaColombiana(ret && ret.data ? ret.data.text : "");
+            }
+
+            var mod = document.getElementById('alpr-scanner-modal');
+            if (placaFinal) {
+                chip.innerText = placaFinal;
+                var enc = (typeof puntosData !== 'undefined' && Array.isArray(puntosData))
+                    ? puntosData.find(function(p) { return p && p.placa && p.placa.toUpperCase().trim() === placaFinal; })
+                    : null;
+                if (enc) {
+                    mod.classList.add('alerta-match');
+                    st.style.color = "#4ade80";
+                    st.innerText = "🚨 ¡ENCONTRADO!: " + enc.placa + " (" + (enc.marca || '') + ")";
+                    hablarWaze("¡Alerta! Placa buscada " + describirCarro(enc), true);
+                } else {
+                    mod.classList.remove('alerta-match');
+                    st.style.color = "#38bdf8";
+                    st.innerText = "Leída OK: " + placaFinal + " (No está en lista)";
+                }
+            } else {
+                st.style.color = "#f87171";
+                st.innerText = "Acércate más a la placa y toca Capturar";
+            }
+        } catch (e) {
+        } finally {
+            alprOcupado = false;
+            if (btnSh) btnSh.innerText = "📸 CAPTURAR Y ANALIZAR PLACA";
+        }
     };
 
     window.cerrarEscanerALPR = function() {
         alprActivo = false;
-        if (alprTimer) { clearInterval(alprTimer); alprTimer = null; }
         if (alprStream) { alprStream.getTracks().forEach(function(t) { t.stop(); }); alprStream = null; }
         var mod = document.getElementById('alpr-scanner-modal');
         if (mod) mod.classList.remove('alpr-abierto');
@@ -709,18 +866,20 @@
         var mod = document.getElementById('alpr-scanner-modal'), video = document.getElementById('alpr-video-el');
         alprActivo = true; mod.classList.add('alpr-abierto');
         try {
-            alprStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+            alprStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
             video.srcObject = alprStream; await video.play();
-            alprTimer = setInterval(window.capturarPlacaALPR, 650);
         } catch (err) { alert("Error cámara: " + (err.message || err)); }
     };
 
     window.addEventListener('DOMContentLoaded', function() { setTimeout(actualizarHUD, 400); });
     window.addEventListener('load', function() { setTimeout(actualizarHUD, 800); });
-    setInterval(function() { ocultarVisitadasDelMapa(); actualizarHUD(); }, 1800);
+    setInterval(actualizarHUD, 1500);
 })();
 </script>
-<!-- ================= FIN SISTEMA WAZE CABECERA ================= -->
+<!-- ================= FIN SISTEMA WAZE V6 ================= -->
     <meta charset="utf-8">
     <title>UBICA-RICK - Sistema de Ruta y Rastreo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.5, user-scalable=yes">
