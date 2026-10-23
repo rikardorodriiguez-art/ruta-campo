@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- ================= INICIO SISTEMA WAZE V8 (FIJACIÓN EXACTA DE COORDENADAS AL PULSAR PLACA) ================= -->
+<!-- ================= INICIO SISTEMA WAZE V9 (FILTRO PICO + HOY SUMATORIO CORRECTO + SIN LPR) ================= -->
 <style id="waze-master-head-css">
     body.waze-nav-active { background: #f1efe9 !important; overflow: hidden !important; margin: 0 !important; }
     #top-bar-container { position: fixed !important; top: 4px !important; left: 4px !important; right: 4px !important; z-index: 100005 !important; }
@@ -9,7 +9,7 @@
     #modal-config, #modal-asistente, #modal-auth { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; max-height: 88vh !important; width: 340px !important; max-width: 92vw !important; overflow-y: auto !important; }
     .floating-btn-add { display: flex !important; position: fixed !important; bottom: 20px !important; left: 20px !important; z-index: 100008 !important; }
 
-    /* Placas visitadas en las últimas 8 horas: color oscuro/púrpura y bloqueadas de rutas y radar */
+    /* Placas visitadas en las últimas 8 horas: se ven en color oscuro/púrpura y no entran a rutas ni radar */
     .marker-visitada-8h > div > div:first-child {
         background: #1e1b4b !important;
         border: 2.5px dashed #a78bfa !important;
@@ -21,7 +21,7 @@
     .marker-visitada-8h > div > div:first-child span { color: #94a3b8 !important; }
     .marker-oculta-por-filtro { display: none !important; }
 
-    /* Empujar hacia abajo cualquier panel nativo de ruta ("Hacia LIX721") para que NUNCA tape la barra superior */
+    /* Empujar hacia abajo cualquier panel nativo de ruta para que no tape la barra superior */
     #panel-ruta-activa,
     #resumen-ruta-panel,
     div[style*="position: fixed"][style*="top: 48px"],
@@ -70,7 +70,7 @@
     }
     .btn-waze-dist-visit:active { transform: scale(0.92); background: #15803d; }
 
-    /* Controles Laterales Waze + Cámara */
+    /* Controles Laterales Waze (Sin botón LPR) */
     #waze-controls-box {
         position: fixed !important; top: 195px !important; left: 6px !important; z-index: 5000 !important;
         display: flex !important; flex-direction: column !important; gap: 6px !important;
@@ -92,16 +92,6 @@
     }
     #waze-auto-photo-hud.foto-zoom-cerca { width: 215px; border-color: #00ff87; }
 
-    /* Cámara LPR */
-    #alpr-scanner-modal {
-        display: none; position: fixed !important; top: 52px !important; left: 50% !important; transform: translateX(-50%) !important;
-        width: 92vw !important; max-width: 340px !important; background: #090d16 !important; border: 2px solid #00f0ff !important;
-        border-radius: 14px !important; overflow: hidden !important; z-index: 100020 !important; color: #fff !important; box-shadow: 0 12px 35px rgba(0,0,0,0.9) !important;
-    }
-    #alpr-scanner-modal.alpr-abierto { display: block !important; }
-    #alpr-scanner-modal.alerta-match { border-color: #ff0055 !important; box-shadow: 0 0 28px #ff0055 !important; }
-    .alpr-target-box { position: absolute; top: 28%; left: 14%; width: 72%; height: 44%; border: 2.5px solid #ffea00; border-radius: 8px; box-shadow: 0 0 0 999px rgba(0,0,0,0.5); pointer-events: none; }
-
     .waze-moto-gps-marker { background: transparent !important; border: none !important; }
     .waze-moto-wrapper { width: 58px; height: 72px; transform: rotateZ(var(--waze-inv-rot, 0deg)); transform-origin: 50% 65%; pointer-events: none; }
 </style>
@@ -109,12 +99,11 @@
 <script>
 (function() {
     var OCHO_HORAS = 8 * 60 * 60 * 1000;
-    var CLAVE_FILTRO_V8 = 'ubica_rick_filtro_defecto_pico_hoy_v8';
+    var CLAVE_FILTRO_V9 = 'ubica_rick_filtro_defecto_pico_hoy_v9';
     var wazeActivo = false, modoVista = '3D', pausaPopupTs = 0, hooksInstalados = false;
     var rumboActual = 0, rotAcum = 0, prevLat = null, prevLng = null, ultPanTs = 0;
     var vozActiva = localStorage.getItem('ubica_rick_voz_bg') !== '0';
 
-    // Candado Maestro de Coordenada Exacta: guarda el punto exacto que el usuario pulsó en el mapa
     var ultimoPuntoPulsado = null;
     var puntoFijadoManual = null;
     var objActual = null, claveObjAnunciado = null;
@@ -122,6 +111,12 @@
     var ultRecalculoTs = 0, calculandoRuta = false, claveRutaTrazada = "";
     var timerAutoLlegada = null, claveLlegadaActiva = null;
     var ultTxtVoz = "", ultTsVoz = 0;
+
+    // Eliminar cualquier rastro del escáner LPR si quedó en el DOM
+    ['alpr-scanner-modal', 'btn-waze-alpr-cam'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.remove();
+    });
 
     function claveUnicaPunto(p) {
         if (!p) return "";
@@ -210,15 +205,17 @@
         return true;
     }
 
-    // Filtro por defecto siempre en Pico y Placa + Subidas Hoy
+    // =========================================================================
+    // FILTRO POR DEFECTO: PICO Y PLACA + SUBIDAS HOY (UNIÓN SUMATORIA CORRECTA)
+    // =========================================================================
     var estadoFiltroMaestro = { m: 'TODOS', p: true, h: true, f: false, t: false, v: true };
     try {
-        var guardadoF = localStorage.getItem(CLAVE_FILTRO_V8);
+        var guardadoF = localStorage.getItem(CLAVE_FILTRO_V9);
         if (guardadoF) {
             var parsedF = JSON.parse(guardadoF);
             if (parsedF && typeof parsedF === 'object') estadoFiltroMaestro = parsedF;
         } else {
-            localStorage.setItem(CLAVE_FILTRO_V8, JSON.stringify(estadoFiltroMaestro));
+            localStorage.setItem(CLAVE_FILTRO_V9, JSON.stringify(estadoFiltroMaestro));
         }
     } catch (e) {}
 
@@ -232,30 +229,36 @@
     }
 
     function esSubidaHoy(p) {
-        if (!p) return true;
+        if (!p) return false;
         if (p.esDeHoy === true) return true;
-        if (!p.timestamp) return true;
+        if (!p.timestamp) return false;
         var hoy = new Date(), f = new Date(Number(p.timestamp));
-        if (isNaN(f.getTime())) return true;
+        if (isNaN(f.getTime())) return false;
         return f.getDate() === hoy.getDate() && f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear();
     }
 
+    // LÓGICA CORREGIDA:
+    // Si marcas "Pico y Placa" y "Subidas Hoy", muestra TODAS las que tienen Pico y Placa hoy (ej. las 63)
+    // MÁS TODAS las que fueron subidas hoy (unión OR, nunca intersección excluyente).
     function pasaFiltroVisualUsuario(p) {
         if (!p || !p.lat || !p.lng) return false;
+
+        // 1. Filtro de Municipio (si se eligió uno específico)
         if (estadoFiltroMaestro.m && estadoFiltroMaestro.m !== 'TODOS') {
             var mPunto = (p.municipio || p.dirOriginal || p.dir || '').toUpperCase();
             if (mPunto.indexOf(estadoFiltroMaestro.m.toUpperCase()) === -1) return false;
         }
-        if (estadoFiltroMaestro.t) return true;
 
-        var hayAlgunaSubidaHoyEnBase = false;
-        if (estadoFiltroMaestro.h && typeof puntosData !== 'undefined' && Array.isArray(puntosData)) {
-            hayAlgunaSubidaHoyEnBase = puntosData.some(function(x) { return x && x.timestamp && esSubidaHoy(x); });
-        }
-        if (estadoFiltroMaestro.p && !tienePicoYPlacaHoy(p)) return false;
-        if (estadoFiltroMaestro.h && hayAlgunaSubidaHoyEnBase && !esSubidaHoy(p)) return false;
-        if (estadoFiltroMaestro.f && !p.foto) return false;
-        return true;
+        // 2. Si está activo "Ver todas" o no hay ningún filtro especial marcado, mostrar todas
+        var algunFiltroEspecial = Boolean(estadoFiltroMaestro.p || estadoFiltroMaestro.h || estadoFiltroMaestro.f);
+        if (estadoFiltroMaestro.t || !algunFiltroEspecial) return true;
+
+        // 3. Unión sumatoria: basta con que cumpla CUALQUIERA de las casillas que tengas marcadas
+        if (estadoFiltroMaestro.p && tienePicoYPlacaHoy(p)) return true;
+        if (estadoFiltroMaestro.h && esSubidaHoy(p)) return true;
+        if (estadoFiltroMaestro.f && Boolean(p.foto)) return true;
+
+        return false;
     }
 
     var sincronizandoCheckboxes = false;
@@ -284,15 +287,14 @@
                 var p = puntosData[i];
                 if (!p || !p.marker) continue;
 
-                // Enganchar clic directo en cada marcador para saber con 100% de exactitud cuál ubicación pulsó el usuario
-                if (!p.marker._hookUbicacionExactaV8) {
-                    p.marker._hookUbicacionExactaV8 = true;
+                if (!p.marker._hookUbicacionExactaV9) {
+                    p.marker._hookUbicacionExactaV9 = true;
                     (function(puntoExacto) {
                         p.marker.on('click mousedown touchstart', function() {
                             ultimoPuntoPulsado = puntoExacto;
                             puntoFijadoManual = puntoExacto;
                             window.placaMasCercanaObj = puntoExacto;
-                            objActual = null; // Forzar trazo inmediato a ESTA coordenada
+                            objActual = null;
                             setTimeout(actualizarHUD, 40);
                         });
                     })(p);
@@ -317,7 +319,6 @@
         }
     }
 
-    // Limpiar líneas duplicadas y círculos amarillos "1" equivocados de la app base
     function eliminarLineasYRutasFalsasDelMapa() {
         if (typeof map === 'undefined' || !map) return;
         if (window.polylineRuta && map.hasLayer(window.polylineRuta)) {
@@ -329,7 +330,6 @@
                     try { map.removeLayer(layer); } catch (e) {}
                 }
             }
-            // Si la app puso un marcador amarillo "1" lejos del punto que el usuario pulsó, quitarlo
             if (puntoFijadoManual && layer && layer._icon && (layer._icon.innerText || "").trim() === "1") {
                 if (layer.getLatLng) {
                     var ll = layer.getLatLng();
@@ -341,7 +341,6 @@
             }
         });
 
-        // Ocultar el cuadro azul "Hacia LIX721" cuando está tapando nuestra barra superior y corrigiendo a la ubicación lejana
         var botonesQuitar = document.querySelectorAll('button');
         for (var i = 0; i < botonesQuitar.length; i++) {
             var b = botonesQuitar[i];
@@ -442,9 +441,6 @@
         calculandoRuta = false;
     }
 
-    // Si una placa tiene múltiples ubicaciones, JAMÁS elegir la más lejana:
-    // 1° Devuelve exactamente la ubicación que el usuario acaba de pulsar.
-    // 2° Si no pulsó ninguna, devuelve la ubicación MÁS CERCANA a su GPS actual.
     function resolverUbicacionCorrectaDePlaca(placaONombre) {
         if (ultimoPuntoPulsado && (!placaONombre || ultimoPuntoPulsado.placa === placaONombre || ultimoPuntoPulsado.id === placaONombre)) {
             return ultimoPuntoPulsado;
@@ -463,7 +459,6 @@
         });
         if (candidatos.length === 0) return null;
 
-        // Ordenar de MENOR a MAYOR distancia al usuario (para que NUNCA tome la más lejana)
         if (typeof userLat === 'number' && typeof userLng === 'number' && typeof calcularDistancia === 'function') {
             candidatos.sort(function(a, b) {
                 return calcularDistancia(userLat, userLng, a.lat, a.lng) - calcularDistancia(userLat, userLng, b.lat, b.lng);
@@ -475,7 +470,6 @@
     function obtenerMejorObjetivo() {
         if (typeof puntosData === 'undefined' || !Array.isArray(puntosData)) return null;
 
-        // 1. PRIORIDAD ABSOLUTA: El punto exacto que el usuario pulsó en el mapa
         if (puntoFijadoManual && !esVisitadaEnUltimas8Horas(puntoFijadoManual)) {
             window.placaMasCercanaObj = puntoFijadoManual;
             return puntoFijadoManual;
@@ -483,7 +477,6 @@
             puntoFijadoManual = null;
         }
 
-        // 2. Si no hay ninguno fijado manualmente, buscar el punto elegible MÁS CERCANO a tu moto
         var mejor = null, minD = Infinity;
         for (var j = 0; j < puntosData.length; j++) {
             var p = puntosData[j];
@@ -575,8 +568,7 @@
             box.innerHTML =
                 '<button type="button" id="btn-waze-mode" class="btn-waze-ctrl" onclick="window.toggleModoWaze3D()">🏍️ <span id="lbl-waze-btn">Waze 3D</span></button>' +
                 '<button type="button" id="btn-waze-ver-ruta" class="btn-waze-ctrl" style="display:none !important;" onclick="window.alternarVista2D3DWaze()">🧭 <span id="lbl-waze-explorar">2D Frente</span></button>' +
-                '<button type="button" id="btn-waze-bg-voice" class="btn-waze-ctrl voz-activa" onclick="window.toggleVozWaze()"><span id="ico-waze-voice">🔊</span> <span id="lbl-waze-voice">Voz: ON</span></button>' +
-                '<button type="button" id="btn-waze-alpr-cam" class="btn-waze-ctrl" style="border-color:#ffea00;color:#fef08a;" onclick="window.toggleEscanerPlacasALPR()">📷 <span id="lbl-alpr-cam">Escáner LPR</span></button>';
+                '<button type="button" id="btn-waze-bg-voice" class="btn-waze-ctrl voz-activa" onclick="window.toggleVozWaze()"><span id="ico-waze-voice">🔊</span> <span id="lbl-waze-voice">Voz: ON</span></button>';
             document.body.appendChild(box);
         }
         if (!document.getElementById('waze-auto-photo-hud')) {
@@ -590,30 +582,6 @@
                 '<img id="waze-ph-img" src="" style="width:100%;height:95px;object-fit:cover;display:block;" onclick="this.parentElement.classList.toggle(\'foto-zoom-cerca\')">';
             document.body.appendChild(ph);
         }
-        if (!document.getElementById('alpr-scanner-modal')) {
-            var mod = document.createElement('div');
-            mod.id = 'alpr-scanner-modal';
-            mod.innerHTML =
-                '<div style="background:#0f172a;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:900;color:#00f0ff;">' +
-                    '<span>📷 ESCÁNER LPR IA PRECISO</span>' +
-                    '<button type="button" onclick="window.cerrarEscanerALPR()" style="background:#dc2626;border:none;color:#fff;border-radius:5px;padding:2px 8px;font-weight:bold;cursor:pointer;">✖</button>' +
-                '</div>' +
-                '<div style="position:relative;width:100%;height:160px;background:#000;overflow:hidden;" onclick="window.capturarPlacaALPR(true)">' +
-                    '<video id="alpr-video-el" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video>' +
-                    '<div class="alpr-target-box"></div>' +
-                '</div>' +
-                '<div style="padding:7px;background:#0f172a;display:flex;flex-direction:column;gap:6px;">' +
-                    '<button type="button" id="btn-shutter-lpr" onclick="window.capturarPlacaALPR(true)" style="width:100%;background:#eab308;color:#000;border:none;border-radius:7px;padding:8px;font-size:12px;font-weight:900;cursor:pointer;">📸 CAPTURAR Y ANALIZAR PLACA</button>' +
-                    '<div style="display:flex;align-items:center;gap:8px;background:#1e293b;padding:4px 7px;border-radius:6px;">' +
-                        '<canvas id="alpr-preview-canvas" width="240" height="80" style="width:78px;height:34px;background:#000;border:1px solid #38bdf8;border-radius:4px;"></canvas>' +
-                        '<div style="display:flex;flex-direction:column;overflow:hidden;">' +
-                            '<span id="alpr-status-txt" style="font-size:10px;color:#cbd5e1;">Encuadra la placa y toca Capturar</span>' +
-                            '<span id="alpr-detected-plate" style="color:#ffea00;font-size:13.5px;font-weight:900;">---</span>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            document.body.appendChild(mod);
-        }
     }
 
     window.repetirDatosObjetivoWaze = function() {
@@ -625,7 +593,6 @@
         if (typeof map !== 'undefined' && map) map.setView([obj.lat, obj.lng], 18, { animate: false });
     };
 
-    // Interceptar cualquier clic en botones de popup ("Ir", "Ruta", "Navegar", "Copiloto") para obligar a usar las coordenadas del popup abierto
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('button, a');
         if (!btn) return;
@@ -679,7 +646,6 @@
             L.Popup.prototype.options.autoPan = false;
         }
 
-        // Al abrir cualquier popup en el mapa, identificar exactamente qué punto tiene esas coordenadas exactas y fijarlo
         map.on('popupopen', function(e) {
             if (typeof userMarker !== 'undefined' && e.popup && e.popup._source === userMarker) { map.closePopup(e.popup); return; }
             pausaPopupTs = Date.now() + 12000;
@@ -769,7 +735,7 @@
                 }
                 estadoFiltroMaestro.v = elPend ? elPend.checked : true;
                 estadoFiltroMaestro.m = elMun ? elMun.value : 'TODOS';
-                localStorage.setItem(CLAVE_FILTRO_V8, JSON.stringify(estadoFiltroMaestro));
+                localStorage.setItem(CLAVE_FILTRO_V9, JSON.stringify(estadoFiltroMaestro));
 
                 setTimeout(function() {
                     imponerFiltroMaestroEnMapaYCheckboxes();
@@ -934,116 +900,12 @@
         else if (vozActiva) window.repetirDatosObjetivoWaze();
     };
 
-    // Escáner LPR IA
-    var alprActivo = false, alprStream = null, alprWorker = null, alprOcupado = false;
-    function limpiarPlacaColombiana(txt) {
-        if (!txt) return null;
-        var limpio = txt.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        var m = limpio.match(/[A-Z]{3}[0-9]{2}[0-9A-Z]/);
-        return m ? m[0] : null;
-    }
-
-    window.capturarPlacaALPR = async function() {
-        if (!alprActivo || alprOcupado) return;
-        var video = document.getElementById('alpr-video-el'), canvas = document.getElementById('alpr-preview-canvas');
-        var st = document.getElementById('alpr-status-txt'), chip = document.getElementById('alpr-detected-plate');
-        var btnSh = document.getElementById('btn-shutter-lpr');
-        if (!video || video.readyState < 2 || !video.videoWidth) return;
-
-        alprOcupado = true;
-        if (btnSh) btnSh.innerText = "⏳ LEYENDO PLACA...";
-        try {
-            var vw = video.videoWidth, vh = video.videoHeight;
-            canvas.width = 360; canvas.height = 140;
-            canvas.getContext('2d', { willReadFrequently: true }).drawImage(
-                video, Math.round(vw * 0.14), Math.round(vh * 0.28), Math.round(vw * 0.72), Math.round(vh * 0.44), 0, 0, 360, 140
-            );
-
-            var placaFinal = null;
-            var apiKeyGem = localStorage.getItem('ubica_rick_gemini_key') || (window.configApp && window.configApp.geminiApiKey) || "";
-            if (apiKeyGem) {
-                try {
-                    var b64 = canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
-                    var resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + encodeURIComponent(apiKeyGem), {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            contents: [{ parts: [
-                                { text: "Lee únicamente la placa vehicular colombiana (6 caracteres, ejemplo ABC123 o ABC12D) en esta foto. Si no ves una placa clara responde NADA." },
-                                { inline_data: { mime_type: "image/jpeg", data: b64 } }
-                            ]}],
-                            generationConfig: { temperature: 0.0, thinkingConfig: { thinkingBudget: 0 } }
-                        })
-                    });
-                    if (resp.ok) {
-                        var j = await resp.json();
-                        var tGem = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts[0]) ? j.candidates[0].content.parts[0].text : "";
-                        placaFinal = limpiarPlacaColombiana(tGem);
-                    }
-                } catch (eG) {}
-            }
-
-            if (!placaFinal && typeof Tesseract !== 'undefined') {
-                if (!alprWorker) {
-                    alprWorker = await Tesseract.createWorker('eng');
-                    await alprWorker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', tessedit_pageseg_mode: '7' });
-                }
-                var ret = await alprWorker.recognize(canvas);
-                placaFinal = limpiarPlacaColombiana(ret && ret.data ? ret.data.text : "");
-            }
-
-            var mod = document.getElementById('alpr-scanner-modal');
-            if (placaFinal) {
-                chip.innerText = placaFinal;
-                var enc = resolverUbicacionCorrectaDePlaca(placaFinal);
-                if (enc) {
-                    mod.classList.add('alerta-match');
-                    st.style.color = "#4ade80";
-                    st.innerText = "🚨 ¡ENCONTRADO!: " + enc.placa + " (" + (enc.marca || '') + ")";
-                    hablarWaze("¡Alerta! Placa buscada " + describirCarro(enc), true);
-                } else {
-                    mod.classList.remove('alerta-match');
-                    st.style.color = "#38bdf8";
-                    st.innerText = "Leída OK: " + placaFinal + " (No está en lista)";
-                }
-            } else {
-                st.style.color = "#f87171";
-                st.innerText = "Acércate más a la placa y toca Capturar";
-            }
-        } catch (e) {
-        } finally {
-            alprOcupado = false;
-            if (btnSh) btnSh.innerText = "📸 CAPTURAR Y ANALIZAR PLACA";
-        }
-    };
-
-    window.cerrarEscanerALPR = function() {
-        alprActivo = false;
-        if (alprStream) { alprStream.getTracks().forEach(function(t) { t.stop(); }); alprStream = null; }
-        var mod = document.getElementById('alpr-scanner-modal');
-        if (mod) mod.classList.remove('alpr-abierto');
-    };
-
-    window.toggleEscanerPlacasALPR = async function() {
-        crearUI();
-        if (alprActivo) { window.cerrarEscanerALPR(); return; }
-        var mod = document.getElementById('alpr-scanner-modal'), video = document.getElementById('alpr-video-el');
-        alprActivo = true; mod.classList.add('alpr-abierto');
-        try {
-            alprStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: false
-            });
-            video.srcObject = alprStream; await video.play();
-        } catch (err) { alert("Error cámara: " + (err.message || err)); }
-    };
-
     window.addEventListener('DOMContentLoaded', function() { setTimeout(actualizarHUD, 400); });
     window.addEventListener('load', function() { setTimeout(actualizarHUD, 800); });
     setInterval(actualizarHUD, 1200);
 })();
 </script>
-<!-- ================= FIN SISTEMA WAZE V8 ================= -->
+<!-- ================= FIN SISTEMA WAZE V9 ================= -->
 
     <meta charset="utf-8">
     <title>UBICA-RICK - Sistema de Ruta y Rastreo</title>
